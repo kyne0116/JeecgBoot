@@ -1,19 +1,9 @@
 #!/bin/bash
 
-# 通用仓库同步脚本
+# JeecgBoot 官方仓库同步脚本
 # 用途：保持fork与官方仓库同步，并更新个人分支
 
 set -e  # 遇到错误时退出
-
-# ========================================
-# 配置变量 - 根据您的项目修改以下变量
-# ========================================
-UPSTREAM_REPO_URL="https://github.com/jeecgboot/JeecgBoot.git"
-ORIGIN_REPO_URL="https://github.com/kyne0116/JeecgBoot.git"
-MAIN_BRANCH="master"
-PERSONAL_BRANCH="my-custom"
-UPSTREAM_REMOTE_NAME="upstream"
-ORIGIN_REMOTE_NAME="origin"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -80,9 +70,9 @@ check_uncommitted_changes() {
 setup_upstream() {
     log_info "检查上游仓库配置..."
 
-    if ! git remote get-url ${UPSTREAM_REMOTE_NAME} > /dev/null 2>&1; then
+    if ! git remote get-url upstream > /dev/null 2>&1; then
         log_info "添加上游仓库..."
-        git remote add ${UPSTREAM_REMOTE_NAME} ${UPSTREAM_REPO_URL}
+        git remote add upstream https://github.com/jeecgboot/JeecgBoot.git
         log_success "上游仓库已添加"
     else
         log_info "上游仓库已存在"
@@ -93,35 +83,35 @@ setup_upstream() {
     git remote -v
 }
 
-# 同步主分支
+# 同步master分支
 sync_master() {
-    log_info "开始同步${MAIN_BRANCH}分支..."
+    log_info "开始同步master分支..."
 
-    # 切换到主分支
-    log_info "切换到${MAIN_BRANCH}分支..."
-    if ! git checkout ${MAIN_BRANCH}; then
-        log_error "切换到${MAIN_BRANCH}分支失败！"
+    # 切换到master分支
+    log_info "切换到master分支..."
+    if ! git checkout master; then
+        log_error "切换到master分支失败！"
         master_sync_status="失败"
         exit 1
     fi
 
     # 获取落后的提交数量
-    commits_behind=$(git rev-list --count HEAD..${UPSTREAM_REMOTE_NAME}/${MAIN_BRANCH} 2>/dev/null || echo "0")
+    commits_behind=$(git rev-list --count HEAD..upstream/master 2>/dev/null || echo "0")
 
     # 获取上游更新
     log_info "获取上游仓库更新..."
-    if ! git fetch ${UPSTREAM_REMOTE_NAME}; then
+    if ! git fetch upstream; then
         log_error "获取上游更新失败！"
         master_sync_status="失败"
         exit 1
     fi
 
     # 重新计算落后的提交数量
-    commits_behind=$(git rev-list --count HEAD..${UPSTREAM_REMOTE_NAME}/${MAIN_BRANCH} 2>/dev/null || echo "0")
+    commits_behind=$(git rev-list --count HEAD..upstream/master 2>/dev/null || echo "0")
 
     # 合并上游更新
-    log_info "合并上游更新到本地${MAIN_BRANCH}..."
-    merge_output=$(git merge ${UPSTREAM_REMOTE_NAME}/${MAIN_BRANCH} --stat 2>&1)
+    log_info "合并上游更新到本地master..."
+    merge_output=$(git merge upstream/master --stat 2>&1)
     if [ $? -ne 0 ]; then
         log_error "合并上游更新失败！可能存在冲突需要手动解决"
         master_sync_status="失败"
@@ -135,17 +125,17 @@ sync_master() {
 
     # 推送到fork
     log_info "推送更新到您的fork..."
-    if ! git push ${ORIGIN_REMOTE_NAME} ${MAIN_BRANCH}; then
+    if ! git push origin master; then
         log_warning "推送到fork失败，可能需要手动推送"
         master_sync_status="部分成功"
     fi
 
-    log_success "${MAIN_BRANCH}分支同步完成！"
+    log_success "master分支同步完成！"
 }
 
 # 更新个人分支
 update_custom_branch() {
-    local branch_name="${PERSONAL_BRANCH}"
+    local branch_name="my-custom"
 
     log_info "开始更新个人分支 ${branch_name}..."
 
@@ -184,7 +174,7 @@ update_custom_branch() {
         1)
             log_info "使用rebase方式更新..."
             rebase_method="Rebase"
-            if git rebase ${MAIN_BRANCH}; then
+            if git rebase master; then
                 log_success "Rebase完成！"
                 personal_branch_status="成功"
             else
@@ -201,7 +191,7 @@ update_custom_branch() {
         2)
             log_info "使用merge方式更新..."
             rebase_method="Merge"
-            if git merge ${MAIN_BRANCH}; then
+            if git merge master; then
                 log_success "Merge完成！"
                 personal_branch_status="成功"
             else
@@ -234,7 +224,7 @@ show_summary() {
     echo -e "${CYAN}           同步操作总结报告${NC}"
     echo "========================================"
     echo
-    echo -e "${BLUE}📊 ${MAIN_BRANCH}分支同步结果：${NC}"
+    echo -e "${BLUE}📊 Master分支同步结果：${NC}"
     echo "   状态: ${master_sync_status}"
     if [ "$commits_behind" -gt 0 ]; then
         echo "   更新: 同步了 ${commits_behind} 个提交"
@@ -246,7 +236,7 @@ show_summary() {
     fi
     echo
     echo -e "${PURPLE}🔧 个人分支处理结果：${NC}"
-    echo "   分支名称: ${PERSONAL_BRANCH}"
+    echo "   分支名称: my-custom"
     echo "   处理状态: ${personal_branch_status}"
     if [ -n "$rebase_method" ]; then
         echo "   更新方式: ${rebase_method}"
@@ -274,14 +264,7 @@ show_summary() {
 # 主函数
 main() {
     echo "========================================"
-    echo "    通用仓库同步脚本"
-    echo "========================================"
-    echo
-    echo "配置信息："
-    echo "  上游仓库: ${UPSTREAM_REPO_URL}"
-    echo "  源仓库: ${ORIGIN_REPO_URL}"
-    echo "  主分支: ${MAIN_BRANCH}"
-    echo "  个人分支: ${PERSONAL_BRANCH}"
+    echo "    JeecgBoot 官方仓库同步脚本"
     echo "========================================"
 
     check_git_repo
