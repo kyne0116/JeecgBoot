@@ -35,58 +35,71 @@ set "WARNING_PREFIX=[警告]"
 set "ERROR_PREFIX=[错误]"
 
 echo ========================================
-echo     通用仓库同步脚本 - Windows版本
+echo     Universal Repository Sync Script - Windows
 echo ========================================
 echo.
-echo 配置信息：
-echo   上游仓库: !UPSTREAM_REPO_URL!
-echo   源仓库: !ORIGIN_REPO_URL!
-echo   主分支: !MAIN_BRANCH!
-echo   个人分支: !PERSONAL_BRANCH!
+echo Configuration:
+echo   Upstream repo: !UPSTREAM_REPO_URL!
+echo   Origin repo: !ORIGIN_REPO_URL!
+echo   Main branch: !MAIN_BRANCH!
+echo   Personal branch: !PERSONAL_BRANCH!
 echo ========================================
 echo.
 
-REM 检查是否在git仓库中
-echo !INFO_PREFIX! 检查Git仓库状态...
+REM 记录当前分支，脚本结束时切换回来
+echo !INFO_PREFIX! Recording current branch...
+for /f %%i in ('git branch --show-current 2^>nul') do set "ORIGINAL_BRANCH=%%i"
+if "!ORIGINAL_BRANCH!"=="" (
+    echo !WARNING_PREFIX! Could not determine current branch, will stay on final branch
+    set "ORIGINAL_BRANCH="
+) else (
+    echo !INFO_PREFIX! Current branch: !ORIGINAL_BRANCH!
+)
+
+REM Check if in git repository
+echo !INFO_PREFIX! Checking Git repository status...
 git rev-parse --git-dir >nul 2>&1
 if errorlevel 1 (
-    echo !ERROR_PREFIX! 当前目录不是Git仓库！
-    pause
+    echo !ERROR_PREFIX! Current directory is not a Git repository!
+    echo Press any key to exit...
+    pause >nul
     exit /b 1
 )
 
-REM 检查是否有未提交的变更
-echo !INFO_PREFIX! 检查未提交的变更...
+REM Check for uncommitted changes
+echo !INFO_PREFIX! Checking for uncommitted changes...
 git diff-index --quiet HEAD -- >nul 2>&1
 if errorlevel 1 (
-    echo !WARNING_PREFIX! 检测到未提交的变更！
-    echo 请先提交或暂存您的变更：
+    echo !WARNING_PREFIX! Detected uncommitted changes!
+    echo Please commit or stash your changes first:
     git status --porcelain
-    set /p "continue=是否继续？(y/N): "
+    set /p "continue=Continue anyway? (y/N): "
     if /i not "!continue!"=="y" (
-        echo !INFO_PREFIX! 操作已取消
-        pause
+        echo !INFO_PREFIX! Operation cancelled
+        echo Press any key to exit...
+        pause >nul
         exit /b 0
     )
 )
 
-REM 检查并添加上游仓库
-echo !INFO_PREFIX! 检查上游仓库配置...
+REM Check and add upstream repository
+echo !INFO_PREFIX! Checking upstream repository configuration...
 git remote get-url !UPSTREAM_REMOTE_NAME! >nul 2>&1
 if errorlevel 1 (
-    echo !INFO_PREFIX! 添加上游仓库...
+    echo !INFO_PREFIX! Adding upstream repository...
     git remote add !UPSTREAM_REMOTE_NAME! !UPSTREAM_REPO_URL!
     if errorlevel 1 (
-        echo !ERROR_PREFIX! 添加上游仓库失败！
-        pause
+        echo !ERROR_PREFIX! Failed to add upstream repository!
+        echo Press any key to exit...
+        pause >nul
         exit /b 1
     )
-    echo !SUCCESS_PREFIX! 上游仓库已添加
+    echo !SUCCESS_PREFIX! Upstream repository added
 ) else (
-    echo !INFO_PREFIX! 上游仓库已存在
+    echo !INFO_PREFIX! Upstream repository already exists
 )
 
-echo 当前远程仓库配置：
+echo Current remote repository configuration:
 git remote -v
 
 echo.
@@ -98,7 +111,8 @@ git checkout !MAIN_BRANCH!
 if errorlevel 1 (
     echo !ERROR_PREFIX! Failed to switch to !MAIN_BRANCH! branch!
     set "master_sync_status=Failed"
-    pause
+    echo Press any key to exit...
+    pause >nul
     exit /b 1
 )
 
@@ -112,7 +126,8 @@ git fetch !UPSTREAM_REMOTE_NAME!
 if errorlevel 1 (
     echo !ERROR_PREFIX! Failed to fetch upstream updates!
     set "master_sync_status=Failed"
-    pause
+    echo Press any key to exit...
+    pause >nul
     exit /b 1
 )
 
@@ -129,7 +144,8 @@ if errorlevel 1 (
     set "conflicts_occurred=Yes"
     type temp_merge_output.txt
     del temp_merge_output.txt
-    pause
+    echo Press any key to exit...
+    pause >nul
     exit /b 1
 ) else (
     REM Parse merge statistics
@@ -153,130 +169,151 @@ if errorlevel 1 (
 echo !SUCCESS_PREFIX! !MAIN_BRANCH! branch sync completed!
 
 echo.
-echo %INFO_PREFIX% 开始更新个人分支 %PERSONAL_BRANCH%...
+echo !INFO_PREFIX! Starting update for personal branch !PERSONAL_BRANCH!...
 
 REM 检查分支是否存在
-git show-ref --verify --quiet refs/heads/%PERSONAL_BRANCH% >nul 2>&1
+git show-ref --verify --quiet refs/heads/!PERSONAL_BRANCH! >nul 2>&1
 if errorlevel 1 (
-    echo %WARNING_PREFIX% 分支 %PERSONAL_BRANCH% 不存在，跳过个人分支更新
-    set "personal_branch_status=跳过（分支不存在）"
+    echo !WARNING_PREFIX! Branch !PERSONAL_BRANCH! does not exist, skipping personal branch update
+    set "personal_branch_status=Skipped (branch not found)"
     goto :show_summary
 )
 
 REM 切换到个人分支
-echo %INFO_PREFIX% 切换到个人分支 %PERSONAL_BRANCH%...
-git checkout %PERSONAL_BRANCH%
+echo !INFO_PREFIX! Switching to personal branch !PERSONAL_BRANCH!...
+git checkout !PERSONAL_BRANCH!
 if errorlevel 1 (
-    echo %ERROR_PREFIX% 切换到个人分支失败！
-    set "personal_branch_status=失败"
-    pause
+    echo !ERROR_PREFIX! Failed to switch to personal branch!
+    set "personal_branch_status=Failed"
+    echo Press any key to exit...
+    pause >nul
     exit /b 1
 )
 
 REM 获取更新前的提交数量
 for /f %%i in ('git rev-list --count HEAD') do set "commits_before=%%i"
 
-REM 创建备份分支
+REM Create backup branch
 for /f "tokens=1-3 delims=/ " %%a in ('date /t') do set "backup_date=%%c%%a%%b"
 for /f "tokens=1-2 delims=: " %%a in ('time /t') do set "backup_time=%%a%%b"
-set "backup_branch_name=%PERSONAL_BRANCH%-backup-%backup_date%-%backup_time%"
-echo %INFO_PREFIX% 创建备份分支 %backup_branch_name%...
-git checkout -b %backup_branch_name% >nul 2>&1
-git checkout %PERSONAL_BRANCH% >nul 2>&1
+set "backup_branch_name=!PERSONAL_BRANCH!-backup-!backup_date!-!backup_time!"
+echo !INFO_PREFIX! Creating backup branch !backup_branch_name!...
+git checkout -b !backup_branch_name! >nul 2>&1
+git checkout !PERSONAL_BRANCH! >nul 2>&1
 
-REM 选择更新方式
-echo 选择更新方式：
-echo 1) Rebase (推荐，保持历史清洁)
-echo 2) Merge (安全，保留完整历史)
-set /p "choice=请选择 (1/2): "
+REM Choose update method
+echo Choose update method:
+echo 1) Rebase (recommended, keeps clean history)
+echo 2) Merge (safe, preserves complete history)
+set /p "choice=Please choose (1/2): "
 
-if "%choice%"=="1" (
-    echo %INFO_PREFIX% 使用rebase方式更新...
+if "!choice!"=="1" (
+    echo !INFO_PREFIX! Using rebase method...
     set "rebase_method=Rebase"
-    git rebase %MAIN_BRANCH%
+    git rebase !MAIN_BRANCH!
     if errorlevel 1 (
-        echo %ERROR_PREFIX% Rebase遇到冲突，请手动解决后运行：
-        echo   git add ^<冲突文件^>
+        echo !ERROR_PREFIX! Rebase encountered conflicts, please resolve manually:
+        echo   git add ^<conflict-files^>
         echo   git rebase --continue
-        echo 或者放弃rebase：
+        echo Or abort rebase:
         echo   git rebase --abort
-        set "personal_branch_status=失败（冲突）"
-        set "conflicts_occurred=是"
-        pause
+        set "personal_branch_status=Failed (conflicts)"
+        set "conflicts_occurred=Yes"
+        echo Press any key to exit...
+        pause >nul
         exit /b 1
     ) else (
-        echo %SUCCESS_PREFIX% Rebase完成！
-        set "personal_branch_status=成功"
+        echo !SUCCESS_PREFIX! Rebase completed!
+        set "personal_branch_status=Success"
     )
-) else if "%choice%"=="2" (
-    echo %INFO_PREFIX% 使用merge方式更新...
+) else if "!choice!"=="2" (
+    echo !INFO_PREFIX! Using merge method...
     set "rebase_method=Merge"
-    git merge %MAIN_BRANCH%
+    git merge !MAIN_BRANCH!
     if errorlevel 1 (
-        echo %ERROR_PREFIX% Merge遇到冲突，请手动解决后运行：
-        echo   git add ^<冲突文件^>
+        echo !ERROR_PREFIX! Merge encountered conflicts, please resolve manually:
+        echo   git add ^<conflict-files^>
         echo   git commit
-        set "personal_branch_status=失败（冲突）"
-        set "conflicts_occurred=是"
-        pause
+        set "personal_branch_status=Failed (conflicts)"
+        set "conflicts_occurred=Yes"
+        echo Press any key to exit...
+        pause >nul
         exit /b 1
     ) else (
-        echo %SUCCESS_PREFIX% Merge完成！
-        set "personal_branch_status=成功"
+        echo !SUCCESS_PREFIX! Merge completed!
+        set "personal_branch_status=Success"
     )
 ) else (
-    echo %WARNING_PREFIX% 无效选择，跳过个人分支更新
-    set "personal_branch_status=跳过（用户取消）"
+    echo !WARNING_PREFIX! Invalid choice, skipping personal branch update
+    set "personal_branch_status=Skipped (user cancelled)"
     goto :show_summary
 )
 
 REM 获取更新后的提交数量
 for /f %%i in ('git rev-list --count HEAD') do set "commits_after=%%i"
 
-echo %SUCCESS_PREFIX% 个人分支 %PERSONAL_BRANCH% 更新完成！
-echo %INFO_PREFIX% 备份分支已创建：%backup_branch_name%
+echo !SUCCESS_PREFIX! Personal branch !PERSONAL_BRANCH! update completed!
+echo !INFO_PREFIX! Backup branch created: !backup_branch_name!
 
 :show_summary
 echo.
 echo ========================================
-echo            同步操作总结报告
+echo            Sync Operation Summary
 echo ========================================
 echo.
-echo 📊 %MAIN_BRANCH%分支同步结果：
-echo    状态: %master_sync_status%
-if %commits_behind% gtr 0 (
-    echo    更新: 同步了 %commits_behind% 个提交
+echo 📊 !MAIN_BRANCH! branch sync result:
+echo    Status: !master_sync_status!
+if !commits_behind! gtr 0 (
+    echo    Updates: Synced !commits_behind! commits
 ) else (
-    echo    更新: 已是最新版本
+    echo    Updates: Already up to date
 )
-if not "%master_files_changed%"=="" (
-    echo    变更: %master_files_changed%
-)
-echo.
-echo 🔧 个人分支处理结果：
-echo    分支名称: %PERSONAL_BRANCH%
-echo    处理状态: %personal_branch_status%
-if not "%rebase_method%"=="" (
-    echo    更新方式: %rebase_method%
-)
-if not "%backup_branch_name%"=="" (
-    echo    备份分支: %backup_branch_name%
-)
-if %commits_before% gtr 0 if %commits_after% gtr 0 (
-    echo    提交数量: %commits_before% → %commits_after%
+if not "!master_files_changed!"=="" (
+    echo    Changes: !master_files_changed!
 )
 echo.
-echo 🚨 冲突情况：
-echo    是否有冲突: %conflicts_occurred%
+echo 🔧 Personal branch processing result:
+echo    Branch name: !PERSONAL_BRANCH!
+echo    Processing status: !personal_branch_status!
+if not "!rebase_method!"=="" (
+    echo    Update method: !rebase_method!
+)
+if not "!backup_branch_name!"=="" (
+    echo    Backup branch: !backup_branch_name!
+)
+if !commits_before! gtr 0 if !commits_after! gtr 0 (
+    echo    Commit count: !commits_before! → !commits_after!
+)
+echo.
+echo 🚨 Conflict status:
+echo    Any conflicts: !conflicts_occurred!
 echo.
 echo ========================================
 echo.
-if "%master_sync_status%"=="成功" if "%personal_branch_status%"=="成功" (
-    echo ✅ 同步操作全部完成！您的代码已更新到最新版本。
+if "!master_sync_status!"=="Success" if "!personal_branch_status!"=="Success" (
+    echo ✅ Sync operation completed successfully! Your code is updated to the latest version.
 ) else (
-    echo ⚠️  同步操作部分完成，请检查上述状态信息。
+    echo ⚠️  Sync operation partially completed, please check the status information above.
 )
 echo.
 
-echo 按任意键退出...
+REM 切换回原始分支
+if not "!ORIGINAL_BRANCH!"=="" (
+    echo !INFO_PREFIX! Switching back to original branch: !ORIGINAL_BRANCH!
+    git checkout !ORIGINAL_BRANCH! >nul 2>&1
+    if errorlevel 1 (
+        echo !WARNING_PREFIX! Failed to switch back to original branch !ORIGINAL_BRANCH!
+        echo Current branch:
+        git branch --show-current
+    ) else (
+        echo !SUCCESS_PREFIX! Successfully switched back to !ORIGINAL_BRANCH!
+    )
+) else (
+    echo !INFO_PREFIX! Staying on current branch
+    echo Current branch:
+    git branch --show-current
+)
+
+echo.
+echo Press any key to exit...
 pause >nul
