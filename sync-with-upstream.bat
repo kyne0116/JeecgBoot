@@ -296,24 +296,9 @@ if "!master_sync_status!"=="Success" if "!personal_branch_status!"=="Success" (
     echo ⚠️  Sync operation partially completed, please check the status information above.
 )
 echo.
-
-REM 切换回原始分支
-if not "!ORIGINAL_BRANCH!"=="" (
-    echo !INFO_PREFIX! Switching back to original branch: !ORIGINAL_BRANCH!
-    git checkout !ORIGINAL_BRANCH! >nul 2>&1
-    if errorlevel 1 (
-        echo !WARNING_PREFIX! Failed to switch back to original branch !ORIGINAL_BRANCH!
-        echo Current branch:
-        git branch --show-current
-    ) else (
-        echo !SUCCESS_PREFIX! Successfully switched back to !ORIGINAL_BRANCH!
-    )
-) else (
-    echo !INFO_PREFIX! Staying on current branch
-    echo Current branch:
-    git branch --show-current
-)
-
+echo !INFO_PREFIX! Script completed, staying on current branch
+echo Current branch:
+git branch --show-current
 echo.
 echo Press any key to exit...
 pause >nul
