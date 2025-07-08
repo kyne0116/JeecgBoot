@@ -209,14 +209,35 @@ if "!choice!"=="1" (
     set "rebase_method=Rebase"
     git rebase %MAIN_BRANCH%
     if errorlevel 1 (
-        echo %ERROR_PREFIX% Rebase encountered conflicts, please resolve manually:
-        echo   git add ^<conflict-files^>
-        echo   git rebase --continue
-        echo Or abort rebase:
-        echo   git rebase --abort
-        set "personal_branch_status=Failed (conflicts)"
+        echo %ERROR_PREFIX% Rebase encountered conflicts!
+        echo.
+        echo Choose how to handle the conflicts:
+        echo 1^) Abort rebase and return to original state ^(recommended^)
+        echo 2^) Leave in conflict state for manual resolution
+        set /p "conflict_choice=Please choose (1/2): "
+
+        if "!conflict_choice!"=="1" (
+            echo %INFO_PREFIX% Aborting rebase and returning to original state...
+            git rebase --abort
+            if errorlevel 1 (
+                echo %WARNING_PREFIX% Failed to abort rebase, manual intervention required
+                set "personal_branch_status=Failed (rebase abort failed)"
+            ) else (
+                echo %SUCCESS_PREFIX% Rebase aborted, returned to original state
+                set "personal_branch_status=Aborted (conflicts)"
+            )
+        ) else (
+            echo %INFO_PREFIX% Leaving in conflict state for manual resolution
+            echo Please resolve conflicts manually:
+            echo   git add ^<conflict-files^>
+            echo   git rebase --continue
+            echo Or abort rebase later:
+            echo   git rebase --abort
+            set "personal_branch_status=Manual resolution required"
+            set "conflicts_occurred=Yes"
+            goto :show_summary
+        )
         set "conflicts_occurred=Yes"
-        goto :restore_branch_and_exit
     ) else (
         echo %SUCCESS_PREFIX% Rebase completed!
         set "personal_branch_status=Success"
@@ -226,12 +247,35 @@ if "!choice!"=="1" (
     set "rebase_method=Merge"
     git merge %MAIN_BRANCH%
     if errorlevel 1 (
-        echo %ERROR_PREFIX% Merge encountered conflicts, please resolve manually:
-        echo   git add ^<conflict-files^>
-        echo   git commit
-        set "personal_branch_status=Failed (conflicts)"
+        echo %ERROR_PREFIX% Merge encountered conflicts!
+        echo.
+        echo Choose how to handle the conflicts:
+        echo 1^) Abort merge and return to original state ^(recommended^)
+        echo 2^) Leave in conflict state for manual resolution
+        set /p "conflict_choice=Please choose (1/2): "
+
+        if "!conflict_choice!"=="1" (
+            echo %INFO_PREFIX% Aborting merge and returning to original state...
+            git merge --abort
+            if errorlevel 1 (
+                echo %WARNING_PREFIX% Failed to abort merge, manual intervention required
+                set "personal_branch_status=Failed (merge abort failed)"
+            ) else (
+                echo %SUCCESS_PREFIX% Merge aborted, returned to original state
+                set "personal_branch_status=Aborted (conflicts)"
+            )
+        ) else (
+            echo %INFO_PREFIX% Leaving in conflict state for manual resolution
+            echo Please resolve conflicts manually:
+            echo   git add ^<conflict-files^>
+            echo   git commit
+            echo Or abort merge later:
+            echo   git merge --abort
+            set "personal_branch_status=Manual resolution required"
+            set "conflicts_occurred=Yes"
+            goto :show_summary
+        )
         set "conflicts_occurred=Yes"
-        goto :restore_branch_and_exit
     ) else (
         echo %SUCCESS_PREFIX% Merge completed!
         set "personal_branch_status=Success"
