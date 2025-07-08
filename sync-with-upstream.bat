@@ -2,6 +2,9 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
+REM Save the full path of this script to avoid issues when switching branches
+set "SCRIPT_PATH=%~dp0%~nx0"
+
 REM ========================================
 REM Git Repository Sync Tool - Windows Version
 REM Purpose: Keep fork synchronized with official repository and update personal branch
