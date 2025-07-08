@@ -115,13 +115,17 @@ REM Record current branch to restore later
 for /f %%i in ('git branch --show-current 2^^^>nul') do set "ORIGINAL_BRANCH=%%i"
 if "!ORIGINAL_BRANCH!"=="" set "ORIGINAL_BRANCH=%PERSONAL_BRANCH%"
 
-REM Switch to main branch
-echo %INFO_PREFIX% Switching to %MAIN_BRANCH% branch...
-git checkout %MAIN_BRANCH%
-if errorlevel 1 (
-    echo %ERROR_PREFIX% Failed to switch to %MAIN_BRANCH% branch!
-    set "master_sync_status=Failed"
-    goto :restore_branch_and_exit
+REM Check if we need to switch to main branch
+if not "!ORIGINAL_BRANCH!"=="%MAIN_BRANCH%" (
+    echo %INFO_PREFIX% Switching to %MAIN_BRANCH% branch...
+    git checkout %MAIN_BRANCH%
+    if errorlevel 1 (
+        echo %ERROR_PREFIX% Failed to switch to %MAIN_BRANCH% branch!
+        set "master_sync_status=Failed"
+        goto :restore_branch_and_exit
+    )
+) else (
+    echo %INFO_PREFIX% Already on %MAIN_BRANCH% branch
 )
 
 REM Change back to the directory where the script is located
@@ -174,6 +178,17 @@ if errorlevel 1 (
 )
 
 echo %SUCCESS_PREFIX% %MAIN_BRANCH% branch sync completed!
+
+REM Switch back to original branch immediately after master sync
+if not "!ORIGINAL_BRANCH!"=="%MAIN_BRANCH%" (
+    echo %INFO_PREFIX% Switching back to !ORIGINAL_BRANCH! branch...
+    git checkout !ORIGINAL_BRANCH!
+    if errorlevel 1 (
+        echo %WARNING_PREFIX% Failed to switch back to !ORIGINAL_BRANCH! branch
+        set "personal_branch_status=Failed (cannot switch back)"
+        goto :show_summary
+    )
+)
 
 echo.
 echo %INFO_PREFIX% Starting update for personal branch %PERSONAL_BRANCH%...
@@ -304,20 +319,7 @@ if not "!backup_branch_name!"=="" (
     echo   git push origin %PERSONAL_BRANCH% --force
     echo.
 )
-echo %INFO_PREFIX% Sync operation completed, returning to !ORIGINAL_BRANCH! branch
-git checkout !ORIGINAL_BRANCH! >nul 2>&1
-if errorlevel 1 (
-    echo %WARNING_PREFIX% Failed to switch back to !ORIGINAL_BRANCH! branch
-    echo %INFO_PREFIX% Attempting to switch to %PERSONAL_BRANCH% branch as fallback...
-    git checkout %PERSONAL_BRANCH% >nul 2>&1
-    if errorlevel 1 (
-        echo %WARNING_PREFIX% Failed to switch to %PERSONAL_BRANCH% branch, staying on current branch
-    ) else (
-        echo %SUCCESS_PREFIX% Successfully switched to %PERSONAL_BRANCH% branch
-    )
-) else (
-    echo %SUCCESS_PREFIX% Successfully returned to !ORIGINAL_BRANCH! branch
-)
+echo %INFO_PREFIX% Sync operation completed
 echo Current branch:
 git branch --show-current
 echo.
