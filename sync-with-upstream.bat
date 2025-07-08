@@ -55,7 +55,7 @@ echo.
 
 REM Record current branch for information
 echo %INFO_PREFIX% Recording current branch...
-for /f %%i in ('git branch --show-current 2^^^>nul') do set "CURRENT_BRANCH_INFO=%%i"
+for /f %%i in ('git branch --show-current 2^>^&1') do set "CURRENT_BRANCH_INFO=%%i"
 if "!CURRENT_BRANCH_INFO!"=="" (
     echo %WARNING_PREFIX% Could not determine current branch
 ) else (
@@ -112,7 +112,7 @@ echo.
 echo %INFO_PREFIX% Starting sync for %MAIN_BRANCH% branch...
 
 REM Record current branch to restore later
-for /f %%i in ('git branch --show-current 2^^^>nul') do set "ORIGINAL_BRANCH=%%i"
+for /f %%i in ('git branch --show-current 2^>^&1') do set "ORIGINAL_BRANCH=%%i"
 if "!ORIGINAL_BRANCH!"=="" set "ORIGINAL_BRANCH=%PERSONAL_BRANCH%"
 
 REM Use a safer approach: update master branch without switching to it
@@ -122,7 +122,7 @@ REM Change back to the directory where the script is located
 cd /d "%~dp0"
 
 REM Get commits behind count for master branch
-for /f %%i in ('git rev-list --count %MAIN_BRANCH%..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^^^>nul') do set "commits_behind=%%i"
+for /f %%i in ('git rev-list --count %MAIN_BRANCH%..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^>^&1') do set "commits_behind=%%i"
 if "!commits_behind!"=="" set "commits_behind=0"
 
 REM Fetch upstream updates
@@ -135,7 +135,7 @@ if errorlevel 1 (
 )
 
 REM Recalculate commits behind count
-for /f %%i in ('git rev-list --count %MAIN_BRANCH%..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^^^>nul') do set "commits_behind=%%i"
+for /f %%i in ('git rev-list --count %MAIN_BRANCH%..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^>^&1') do set "commits_behind=%%i"
 if "!commits_behind!"=="" set "commits_behind=0"
 
 if !commits_behind! gtr 0 (
