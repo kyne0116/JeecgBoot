@@ -111,9 +111,7 @@ git checkout !MAIN_BRANCH!
 if errorlevel 1 (
     echo !ERROR_PREFIX! Failed to switch to !MAIN_BRANCH! branch!
     set "master_sync_status=Failed"
-    echo Press any key to exit...
-    pause >nul
-    exit /b 1
+    goto :restore_branch_and_exit
 )
 
 REM Get commits behind count
@@ -126,9 +124,7 @@ git fetch !UPSTREAM_REMOTE_NAME!
 if errorlevel 1 (
     echo !ERROR_PREFIX! Failed to fetch upstream updates!
     set "master_sync_status=Failed"
-    echo Press any key to exit...
-    pause >nul
-    exit /b 1
+    goto :restore_branch_and_exit
 )
 
 REM Recalculate commits behind count
@@ -144,9 +140,7 @@ if errorlevel 1 (
     set "conflicts_occurred=Yes"
     type temp_merge_output.txt
     del temp_merge_output.txt
-    echo Press any key to exit...
-    pause >nul
-    exit /b 1
+    goto :restore_branch_and_exit
 ) else (
     REM Parse merge statistics
     for /f "delims=" %%i in (temp_merge_output.txt) do (
@@ -185,9 +179,7 @@ git checkout !PERSONAL_BRANCH!
 if errorlevel 1 (
     echo !ERROR_PREFIX! Failed to switch to personal branch!
     set "personal_branch_status=Failed"
-    echo Press any key to exit...
-    pause >nul
-    exit /b 1
+    goto :restore_branch_and_exit
 )
 
 REM 获取更新前的提交数量
@@ -219,9 +211,7 @@ if "!choice!"=="1" (
         echo   git rebase --abort
         set "personal_branch_status=Failed (conflicts)"
         set "conflicts_occurred=Yes"
-        echo Press any key to exit...
-        pause >nul
-        exit /b 1
+        goto :restore_branch_and_exit
     ) else (
         echo !SUCCESS_PREFIX! Rebase completed!
         set "personal_branch_status=Success"
@@ -236,9 +226,7 @@ if "!choice!"=="1" (
         echo   git commit
         set "personal_branch_status=Failed (conflicts)"
         set "conflicts_occurred=Yes"
-        echo Press any key to exit...
-        pause >nul
-        exit /b 1
+        goto :restore_branch_and_exit
     ) else (
         echo !SUCCESS_PREFIX! Merge completed!
         set "personal_branch_status=Success"
@@ -302,3 +290,25 @@ git branch --show-current
 echo.
 echo Press any key to exit...
 pause >nul
+goto :eof
+
+:restore_branch_and_exit
+echo.
+echo !WARNING_PREFIX! Script encountered an error, attempting to restore original branch...
+if not "!ORIGINAL_BRANCH!"=="" (
+    echo !INFO_PREFIX! Restoring to original branch: !ORIGINAL_BRANCH!
+    git checkout !ORIGINAL_BRANCH! >nul 2>&1
+    if errorlevel 1 (
+        echo !WARNING_PREFIX! Failed to restore original branch, staying on current branch
+    ) else (
+        echo !SUCCESS_PREFIX! Successfully restored to original branch: !ORIGINAL_BRANCH!
+    )
+) else (
+    echo !WARNING_PREFIX! Original branch unknown, staying on current branch
+)
+echo Current branch:
+git branch --show-current
+echo.
+echo Press any key to exit...
+pause >nul
+exit /b 1
