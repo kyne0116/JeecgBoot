@@ -50,14 +50,13 @@ echo.
 echo %INFO_PREFIX% Starting sync operation...
 echo.
 
-REM Record current branch, switch back at script end
+REM Record current branch for information
 echo %INFO_PREFIX% Recording current branch...
-for /f %%i in ('git branch --show-current 2^>nul') do set "ORIGINAL_BRANCH=%%i"
-if "!ORIGINAL_BRANCH!"=="" (
-    echo %WARNING_PREFIX% Could not determine current branch, will stay on final branch
-    set "ORIGINAL_BRANCH="
+for /f %%i in ('git branch --show-current 2^>nul') do set "CURRENT_BRANCH_INFO=%%i"
+if "!CURRENT_BRANCH_INFO!"=="" (
+    echo %WARNING_PREFIX% Could not determine current branch
 ) else (
-    echo %INFO_PREFIX% Current branch: !ORIGINAL_BRANCH!
+    echo %INFO_PREFIX% Current branch: !CURRENT_BRANCH_INFO!
 )
 
 REM Check if in git repository
