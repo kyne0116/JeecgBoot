@@ -52,7 +52,7 @@ echo.
 
 REM Record current branch for information
 echo %INFO_PREFIX% Recording current branch...
-for /f %%i in ('git branch --show-current 2^>nul') do set "CURRENT_BRANCH_INFO=%%i"
+for /f %%i in ('git branch --show-current 2^^^>nul') do set "CURRENT_BRANCH_INFO=%%i"
 if "!CURRENT_BRANCH_INFO!"=="" (
     echo %WARNING_PREFIX% Could not determine current branch
 ) else (
@@ -118,7 +118,7 @@ if errorlevel 1 (
 )
 
 REM Get commits behind count
-for /f %%i in ('git rev-list --count HEAD..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^>nul') do set "commits_behind=%%i"
+for /f %%i in ('git rev-list --count HEAD..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^^^>nul') do set "commits_behind=%%i"
 if "!commits_behind!"=="" set "commits_behind=0"
 
 REM Fetch upstream updates
@@ -131,7 +131,7 @@ if errorlevel 1 (
 )
 
 REM Recalculate commits behind count
-for /f %%i in ('git rev-list --count HEAD..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^>nul') do set "commits_behind=%%i"
+for /f %%i in ('git rev-list --count HEAD..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^^^>nul') do set "commits_behind=%%i"
 if "!commits_behind!"=="" set "commits_behind=0"
 
 REM Merge upstream updates
