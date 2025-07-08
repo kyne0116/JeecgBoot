@@ -14,3 +14,4 @@ os_del_doc.cmd
 .svn
 *.log
 **/settings.json
+.sync-state.txt

@@ -3,8 +3,11 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 REM ========================================
-REM 通用仓库同步脚本 - Windows版本
-REM 用途：保持fork与官方仓库同步，并更新个人分支
+REM Git 仓库同步管理工具 - Windows版本
+REM 用途：保持fork与官方仓库同步，并提供回退功能
+REM 使用方法：
+REM   sync-with-upstream.bat          - 执行同步操作
+REM   sync-with-upstream.bat rollback - 回退到同步前状态
 REM ========================================
 
 REM ========================================
@@ -16,16 +19,17 @@ set "MAIN_BRANCH=master"
 set "PERSONAL_BRANCH=my-custom"
 set "UPSTREAM_REMOTE_NAME=upstream"
 set "ORIGIN_REMOTE_NAME=origin"
+set "STATE_FILE=.sync-state.txt"
 
 REM 初始化总结变量
-set "master_sync_status=未开始"
+set "master_sync_status=Not Started"
 set "master_changes_count=0"
 set "master_files_changed="
 set "commits_behind=0"
-set "personal_branch_status=未开始"
+set "personal_branch_status=Not Started"
 set "backup_branch_name="
 set "rebase_method="
-set "conflicts_occurred=否"
+set "conflicts_occurred=No"
 set "commits_before=0"
 set "commits_after=0"
 
@@ -36,47 +40,70 @@ set "WARNING_PREFIX=[WARNING]"
 set "ERROR_PREFIX=[ERROR]"
 
 echo ========================================
-echo     Universal Repository Sync Script - Windows
+echo        Git Repository Sync Tool
 echo ========================================
 echo.
 echo Configuration:
-echo   Upstream repo: !UPSTREAM_REPO_URL!
-echo   Origin repo: !ORIGIN_REPO_URL!
-echo   Main branch: !MAIN_BRANCH!
-echo   Personal branch: !PERSONAL_BRANCH!
+echo   Upstream repo: %UPSTREAM_REPO_URL%
+echo   Origin repo: %ORIGIN_REPO_URL%
+echo   Main branch: %MAIN_BRANCH%
+echo   Personal branch: %PERSONAL_BRANCH%
 echo ========================================
 echo.
 
+REM 检查参数
+if "%1"=="rollback" goto :rollback_operation
+if "%1"=="" goto :sync_operation
+echo %ERROR_PREFIX% Invalid parameter. Use 'rollback' or no parameter.
+echo Usage:
+echo   %0          - Execute sync operation
+echo   %0 rollback - Rollback to pre-sync state
+pause
+exit /b 1
+
+:sync_operation
+echo %INFO_PREFIX% Starting sync operation...
+echo.
+
+REM 保存同步前的Git状态
+echo %INFO_PREFIX% Saving current Git state...
+call :save_git_state
+if errorlevel 1 (
+    echo %ERROR_PREFIX% Failed to save Git state!
+    pause
+    exit /b 1
+)
+
 REM 记录当前分支，脚本结束时切换回来
-echo !INFO_PREFIX! Recording current branch...
+echo %INFO_PREFIX% Recording current branch...
 for /f %%i in ('git branch --show-current 2^>nul') do set "ORIGINAL_BRANCH=%%i"
 if "!ORIGINAL_BRANCH!"=="" (
-    echo !WARNING_PREFIX! Could not determine current branch, will stay on final branch
+    echo %WARNING_PREFIX% Could not determine current branch, will stay on final branch
     set "ORIGINAL_BRANCH="
 ) else (
-    echo !INFO_PREFIX! Current branch: !ORIGINAL_BRANCH!
+    echo %INFO_PREFIX% Current branch: !ORIGINAL_BRANCH!
 )
 
 REM Check if in git repository
-echo !INFO_PREFIX! Checking Git repository status...
+echo %INFO_PREFIX% Checking Git repository status...
 git rev-parse --git-dir >nul 2>&1
 if errorlevel 1 (
-    echo !ERROR_PREFIX! Current directory is not a Git repository!
+    echo %ERROR_PREFIX% Current directory is not a Git repository!
     echo Press any key to exit...
     pause >nul
     exit /b 1
 )
 
 REM Check for uncommitted changes
-echo !INFO_PREFIX! Checking for uncommitted changes...
+echo %INFO_PREFIX% Checking for uncommitted changes...
 git diff-index --quiet HEAD -- >nul 2>&1
 if errorlevel 1 (
-    echo !WARNING_PREFIX! Detected uncommitted changes!
+    echo %WARNING_PREFIX% Detected uncommitted changes!
     echo Please commit or stash your changes first:
     git status --porcelain
     set /p "continue=Continue anyway? (y/N): "
     if /i not "!continue!"=="y" (
-        echo !INFO_PREFIX! Operation cancelled
+        echo %INFO_PREFIX% Operation cancelled
         echo Press any key to exit...
         pause >nul
         exit /b 0
@@ -84,13 +111,13 @@ if errorlevel 1 (
 )
 
 REM Check and add upstream repository
-echo !INFO_PREFIX! Checking upstream repository configuration...
+echo %INFO_PREFIX% Checking upstream repository configuration...
 git remote get-url !UPSTREAM_REMOTE_NAME! >nul 2>&1
 if errorlevel 1 (
-    echo !INFO_PREFIX! Adding upstream repository...
+    echo %INFO_PREFIX% Adding upstream repository...
     git remote add !UPSTREAM_REMOTE_NAME! !UPSTREAM_REPO_URL!
     if errorlevel 1 (
-        echo !ERROR_PREFIX! Failed to add upstream repository!
+        echo %ERROR_PREFIX% Failed to add upstream repository!
         echo Press any key to exit...
         pause >nul
         exit /b 1
@@ -285,27 +312,23 @@ if "!master_sync_status!"=="Success" if "!personal_branch_status!"=="Success" (
     echo ⚠️  Sync operation partially completed, please check the status information above.
 )
 echo.
-echo !INFO_PREFIX! Script completed, staying on current branch
+echo %INFO_PREFIX% Sync operation completed, returning to %PERSONAL_BRANCH% branch
+git checkout !PERSONAL_BRANCH! >nul 2>&1
 echo Current branch:
 git branch --show-current
 echo.
 echo Press any key to exit...
 pause >nul
-goto :eof
+exit /b 0
 
 :restore_branch_and_exit
 echo.
-echo !WARNING_PREFIX! Script encountered an error, attempting to restore original branch...
-if not "!ORIGINAL_BRANCH!"=="" (
-    echo !INFO_PREFIX! Restoring to original branch: !ORIGINAL_BRANCH!
-    git checkout !ORIGINAL_BRANCH! >nul 2>&1
-    if errorlevel 1 (
-        echo !WARNING_PREFIX! Failed to restore original branch, staying on current branch
-    ) else (
-        echo !SUCCESS_PREFIX! Successfully restored to original branch: !ORIGINAL_BRANCH!
-    )
+echo %WARNING_PREFIX% Sync operation encountered error, trying to restore to %PERSONAL_BRANCH% branch...
+git checkout !PERSONAL_BRANCH! >nul 2>&1
+if errorlevel 1 (
+    echo %WARNING_PREFIX% Cannot switch to %PERSONAL_BRANCH% branch, staying on current branch
 ) else (
-    echo !WARNING_PREFIX! Original branch unknown, staying on current branch
+    echo %SUCCESS_PREFIX% Restored to %PERSONAL_BRANCH% branch
 )
 echo Current branch:
 git branch --show-current
@@ -313,3 +336,203 @@ echo.
 echo Press any key to exit...
 pause >nul
 exit /b 1
+
+:rollback_operation
+echo %INFO_PREFIX% Starting rollback operation...
+echo.
+echo ========================================
+echo        Rollback to Pre-sync State
+echo ========================================
+echo.
+
+REM 检查状态文件是否存在
+if not exist "!STATE_FILE!" (
+    echo %ERROR_PREFIX% State file !STATE_FILE! not found!
+    echo No previous sync operation found, or state file was deleted.
+    echo.
+    echo Press any key to exit...
+    pause >nul
+    exit /b 1
+)
+
+echo %INFO_PREFIX% Loading saved Git state...
+call :load_git_state
+if errorlevel 1 (
+    echo %ERROR_PREFIX% Failed to load Git state!
+    echo.
+    echo Press any key to exit...
+    pause >nul
+    exit /b 1
+)
+
+echo.
+echo %WARNING_PREFIX% About to execute the following rollback operations:
+echo   - Rollback %MAIN_BRANCH% branch to: !SAVED_MASTER_COMMIT!
+echo   - Rollback %PERSONAL_BRANCH% branch to: !SAVED_PERSONAL_COMMIT!
+echo   - Force push to remote repository (this will overwrite remote history)
+echo.
+echo %WARNING_PREFIX% This operation is irreversible, please confirm!
+echo.
+set /p "confirm=Confirm rollback operation? (y/N): "
+if /i not "!confirm!"=="y" (
+    echo %INFO_PREFIX% Rollback operation cancelled
+    echo.
+    echo Press any key to exit...
+    pause >nul
+    exit /b 0
+)
+
+echo.
+echo %INFO_PREFIX% Starting rollback execution...
+
+REM 回退master分支
+echo %INFO_PREFIX% Rolling back %MAIN_BRANCH% branch...
+git checkout !MAIN_BRANCH! >nul 2>&1
+if errorlevel 1 (
+    echo %ERROR_PREFIX% Cannot switch to %MAIN_BRANCH% branch!
+    goto :rollback_failed
+)
+
+git reset --hard !SAVED_MASTER_COMMIT! >nul 2>&1
+if errorlevel 1 (
+    echo %ERROR_PREFIX% Failed to rollback %MAIN_BRANCH% branch!
+    goto :rollback_failed
+)
+echo %SUCCESS_PREFIX% %MAIN_BRANCH% branch rolled back to !SAVED_MASTER_COMMIT!
+
+REM 强制推送master分支
+echo %INFO_PREFIX% Force pushing %MAIN_BRANCH% branch to remote repository...
+git push !ORIGIN_REMOTE_NAME! !MAIN_BRANCH! --force >nul 2>&1
+if errorlevel 1 (
+    echo %WARNING_PREFIX% Failed to push %MAIN_BRANCH% branch to remote, may need manual push
+) else (
+    echo %SUCCESS_PREFIX% %MAIN_BRANCH% branch force pushed to remote repository
+)
+
+REM 回退个人分支
+echo %INFO_PREFIX% Rolling back %PERSONAL_BRANCH% branch...
+git checkout !PERSONAL_BRANCH! >nul 2>&1
+if errorlevel 1 (
+    echo %ERROR_PREFIX% Cannot switch to %PERSONAL_BRANCH% branch!
+    goto :rollback_failed
+)
+
+git reset --hard !SAVED_PERSONAL_COMMIT! >nul 2>&1
+if errorlevel 1 (
+    echo %ERROR_PREFIX% Failed to rollback %PERSONAL_BRANCH% branch!
+    goto :rollback_failed
+)
+echo %SUCCESS_PREFIX% %PERSONAL_BRANCH% branch rolled back to !SAVED_PERSONAL_COMMIT!
+
+REM 强制推送个人分支
+echo %INFO_PREFIX% Force pushing %PERSONAL_BRANCH% branch to remote repository...
+git push !ORIGIN_REMOTE_NAME! !PERSONAL_BRANCH! --force >nul 2>&1
+if errorlevel 1 (
+    echo %WARNING_PREFIX% Failed to push %PERSONAL_BRANCH% branch to remote, may need manual push
+) else (
+    echo %SUCCESS_PREFIX% %PERSONAL_BRANCH% branch force pushed to remote repository
+)
+
+echo.
+echo %SUCCESS_PREFIX% Rollback operation completed!
+echo Current branch: %PERSONAL_BRANCH%
+echo Git state has been restored to pre-sync state.
+echo.
+echo Press any key to exit...
+pause >nul
+exit /b 0
+
+:rollback_failed
+echo.
+echo %ERROR_PREFIX% Rollback operation failed!
+echo Please check Git status and handle manually.
+echo.
+echo Press any key to exit...
+pause >nul
+exit /b 1
+
+REM ========================================
+REM 子程序：保存Git状态
+REM ========================================
+:save_git_state
+echo %INFO_PREFIX% Saving current Git state to %STATE_FILE%...
+
+REM 检查Git仓库状态
+git rev-parse --git-dir >nul 2>&1
+if errorlevel 1 (
+    echo %ERROR_PREFIX% Current directory is not a Git repository!
+    exit /b 1
+)
+
+REM 获取当前分支
+for /f %%i in ('git branch --show-current 2^>nul') do set "CURRENT_BRANCH=%%i"
+if "!CURRENT_BRANCH!"=="" (
+    echo %ERROR_PREFIX% Cannot determine current branch!
+    exit /b 1
+)
+
+REM 获取master分支的commit hash
+git show-ref --verify --quiet refs/heads/!MAIN_BRANCH! >nul 2>&1
+if errorlevel 1 (
+    echo %ERROR_PREFIX% %MAIN_BRANCH% branch does not exist!
+    exit /b 1
+)
+for /f %%i in ('git rev-parse !MAIN_BRANCH! 2^>nul') do set "MASTER_COMMIT=%%i"
+
+REM 获取个人分支的commit hash
+git show-ref --verify --quiet refs/heads/!PERSONAL_BRANCH! >nul 2>&1
+if errorlevel 1 (
+    echo %WARNING_PREFIX% %PERSONAL_BRANCH% branch does not exist, will record as empty
+    set "PERSONAL_COMMIT="
+) else (
+    for /f %%i in ('git rev-parse !PERSONAL_BRANCH! 2^>nul') do set "PERSONAL_COMMIT=%%i"
+)
+
+REM 获取当前时间戳
+for /f "tokens=1-3 delims=/ " %%a in ('date /t') do set "SAVE_DATE=%%c-%%a-%%b"
+for /f "tokens=1-2 delims=: " %%a in ('time /t') do set "SAVE_TIME=%%a:%%b"
+
+REM 保存状态到文件
+echo # Git Sync State File > "!STATE_FILE!"
+echo # Save Time: !SAVE_DATE! !SAVE_TIME! >> "!STATE_FILE!"
+echo CURRENT_BRANCH=!CURRENT_BRANCH! >> "!STATE_FILE!"
+echo MASTER_COMMIT=!MASTER_COMMIT! >> "!STATE_FILE!"
+echo PERSONAL_COMMIT=!PERSONAL_COMMIT! >> "!STATE_FILE!"
+echo SAVE_TIMESTAMP=!SAVE_DATE!_!SAVE_TIME! >> "!STATE_FILE!"
+
+echo %SUCCESS_PREFIX% Git state saved
+echo   Current branch: !CURRENT_BRANCH!
+echo   %MAIN_BRANCH% branch: !MASTER_COMMIT!
+if not "!PERSONAL_COMMIT!"=="" (
+    echo   %PERSONAL_BRANCH% branch: !PERSONAL_COMMIT!
+)
+exit /b 0
+
+REM ========================================
+REM 子程序：加载Git状态
+REM ========================================
+:load_git_state
+echo %INFO_PREFIX% Loading Git state from %STATE_FILE%...
+
+REM 读取状态文件
+for /f "usebackq tokens=1,2 delims==" %%a in ("!STATE_FILE!") do (
+    if "%%a"=="CURRENT_BRANCH" set "SAVED_CURRENT_BRANCH=%%b"
+    if "%%a"=="MASTER_COMMIT" set "SAVED_MASTER_COMMIT=%%b"
+    if "%%a"=="PERSONAL_COMMIT" set "SAVED_PERSONAL_COMMIT=%%b"
+    if "%%a"=="SAVE_TIMESTAMP" set "SAVED_TIMESTAMP=%%b"
+)
+
+REM 验证必要的变量
+if "!SAVED_MASTER_COMMIT!"=="" (
+    echo %ERROR_PREFIX% Missing %MAIN_BRANCH% branch info in state file!
+    exit /b 1
+)
+
+echo %SUCCESS_PREFIX% Git state loaded successfully
+echo   Save time: !SAVED_TIMESTAMP!
+echo   Original branch: !SAVED_CURRENT_BRANCH!
+echo   %MAIN_BRANCH% branch: !SAVED_MASTER_COMMIT!
+if not "!SAVED_PERSONAL_COMMIT!"=="" (
+    echo   %PERSONAL_BRANCH% branch: !SAVED_PERSONAL_COMMIT!
+)
+exit /b 0
