@@ -111,6 +111,10 @@ git remote -v
 echo.
 echo %INFO_PREFIX% Starting sync for %MAIN_BRANCH% branch...
 
+REM Record current branch to restore later
+for /f %%i in ('git branch --show-current 2^^^>nul') do set "ORIGINAL_BRANCH=%%i"
+if "!ORIGINAL_BRANCH!"=="" set "ORIGINAL_BRANCH=%PERSONAL_BRANCH%"
+
 REM Switch to main branch
 echo %INFO_PREFIX% Switching to %MAIN_BRANCH% branch...
 git checkout %MAIN_BRANCH%
@@ -300,8 +304,20 @@ if not "!backup_branch_name!"=="" (
     echo   git push origin %PERSONAL_BRANCH% --force
     echo.
 )
-echo %INFO_PREFIX% Sync operation completed, returning to %PERSONAL_BRANCH% branch
-git checkout %PERSONAL_BRANCH% >nul 2>&1
+echo %INFO_PREFIX% Sync operation completed, returning to !ORIGINAL_BRANCH! branch
+git checkout !ORIGINAL_BRANCH! >nul 2>&1
+if errorlevel 1 (
+    echo %WARNING_PREFIX% Failed to switch back to !ORIGINAL_BRANCH! branch
+    echo %INFO_PREFIX% Attempting to switch to %PERSONAL_BRANCH% branch as fallback...
+    git checkout %PERSONAL_BRANCH% >nul 2>&1
+    if errorlevel 1 (
+        echo %WARNING_PREFIX% Failed to switch to %PERSONAL_BRANCH% branch, staying on current branch
+    ) else (
+        echo %SUCCESS_PREFIX% Successfully switched to %PERSONAL_BRANCH% branch
+    )
+) else (
+    echo %SUCCESS_PREFIX% Successfully returned to !ORIGINAL_BRANCH! branch
+)
 echo Current branch:
 git branch --show-current
 echo.
@@ -311,12 +327,29 @@ exit /b 0
 
 :restore_branch_and_exit
 echo.
-echo %WARNING_PREFIX% Sync operation encountered error, trying to restore to %PERSONAL_BRANCH% branch...
-git checkout %PERSONAL_BRANCH% >nul 2>&1
-if errorlevel 1 (
-    echo %WARNING_PREFIX% Cannot switch to %PERSONAL_BRANCH% branch, staying on current branch
+echo %WARNING_PREFIX% Sync operation encountered error, trying to restore to original branch...
+if not "!ORIGINAL_BRANCH!"=="" (
+    echo %INFO_PREFIX% Attempting to restore to !ORIGINAL_BRANCH! branch...
+    git checkout !ORIGINAL_BRANCH! >nul 2>&1
+    if errorlevel 1 (
+        echo %WARNING_PREFIX% Cannot switch to !ORIGINAL_BRANCH! branch, trying %PERSONAL_BRANCH%...
+        git checkout %PERSONAL_BRANCH% >nul 2>&1
+        if errorlevel 1 (
+            echo %WARNING_PREFIX% Cannot switch to %PERSONAL_BRANCH% branch, staying on current branch
+        ) else (
+            echo %SUCCESS_PREFIX% Restored to %PERSONAL_BRANCH% branch
+        )
+    ) else (
+        echo %SUCCESS_PREFIX% Restored to !ORIGINAL_BRANCH! branch
+    )
 ) else (
-    echo %SUCCESS_PREFIX% Restored to %PERSONAL_BRANCH% branch
+    echo %INFO_PREFIX% Attempting to restore to %PERSONAL_BRANCH% branch...
+    git checkout %PERSONAL_BRANCH% >nul 2>&1
+    if errorlevel 1 (
+        echo %WARNING_PREFIX% Cannot switch to %PERSONAL_BRANCH% branch, staying on current branch
+    ) else (
+        echo %SUCCESS_PREFIX% Restored to %PERSONAL_BRANCH% branch
+    )
 )
 echo Current branch:
 git branch --show-current
