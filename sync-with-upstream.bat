@@ -115,24 +115,14 @@ REM Record current branch to restore later
 for /f %%i in ('git branch --show-current 2^^^>nul') do set "ORIGINAL_BRANCH=%%i"
 if "!ORIGINAL_BRANCH!"=="" set "ORIGINAL_BRANCH=%PERSONAL_BRANCH%"
 
-REM Check if we need to switch to main branch
-if not "!ORIGINAL_BRANCH!"=="%MAIN_BRANCH%" (
-    echo %INFO_PREFIX% Switching to %MAIN_BRANCH% branch...
-    git checkout %MAIN_BRANCH%
-    if errorlevel 1 (
-        echo %ERROR_PREFIX% Failed to switch to %MAIN_BRANCH% branch!
-        set "master_sync_status=Failed"
-        goto :restore_branch_and_exit
-    )
-) else (
-    echo %INFO_PREFIX% Already on %MAIN_BRANCH% branch
-)
+REM Use a safer approach: update master branch without switching to it
+echo %INFO_PREFIX% Updating local %MAIN_BRANCH% branch from upstream (without switching)...
 
 REM Change back to the directory where the script is located
 cd /d "%~dp0"
 
-REM Get commits behind count
-for /f %%i in ('git rev-list --count HEAD..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^^^>nul') do set "commits_behind=%%i"
+REM Get commits behind count for master branch
+for /f %%i in ('git rev-list --count %MAIN_BRANCH%..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^^^>nul') do set "commits_behind=%%i"
 if "!commits_behind!"=="" set "commits_behind=0"
 
 REM Fetch upstream updates
@@ -145,50 +135,37 @@ if errorlevel 1 (
 )
 
 REM Recalculate commits behind count
-for /f %%i in ('git rev-list --count HEAD..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^^^>nul') do set "commits_behind=%%i"
+for /f %%i in ('git rev-list --count %MAIN_BRANCH%..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^^^>nul') do set "commits_behind=%%i"
 if "!commits_behind!"=="" set "commits_behind=0"
 
-REM Merge upstream updates
-echo %INFO_PREFIX% Merging upstream updates to local %MAIN_BRANCH%...
-git merge %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% --stat > temp_merge_output.txt 2>&1
-if errorlevel 1 (
-    echo %ERROR_PREFIX% Failed to merge upstream updates! Conflicts may need manual resolution
-    set "master_sync_status=Failed"
-    set "conflicts_occurred=Yes"
-    type temp_merge_output.txt
-    del temp_merge_output.txt
-    goto :restore_branch_and_exit
-) else (
-    REM Parse merge statistics
-    for /f "delims=" %%i in (temp_merge_output.txt) do (
-        echo %%i | findstr "files changed" >nul
-        if not errorlevel 1 set "master_files_changed=%%i"
-    )
-    if "!master_files_changed!"=="" set "master_files_changed=No file changes"
-    set "master_sync_status=Success"
-    del temp_merge_output.txt
-)
+if !commits_behind! gtr 0 (
+    echo %INFO_PREFIX% Found !commits_behind! new commits, updating local %MAIN_BRANCH% branch...
 
-REM Push to fork
-echo %INFO_PREFIX% Pushing updates to your fork...
-git push %ORIGIN_REMOTE_NAME% %MAIN_BRANCH%
-if errorlevel 1 (
-    echo %WARNING_PREFIX% Failed to push to fork, may need manual push
-    set "master_sync_status=Partial Success"
+    REM Update master branch using git update-ref (safer than checkout + merge)
+    git update-ref refs/heads/%MAIN_BRANCH% %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%
+    if errorlevel 1 (
+        echo %ERROR_PREFIX% Failed to update local %MAIN_BRANCH% branch!
+        set "master_sync_status=Failed"
+        goto :restore_branch_and_exit
+    )
+
+    REM Push to fork
+    echo %INFO_PREFIX% Pushing updates to your fork...
+    git push %ORIGIN_REMOTE_NAME% %MAIN_BRANCH%
+    if errorlevel 1 (
+        echo %WARNING_PREFIX% Failed to push to fork, may need manual push
+        set "master_sync_status=Partial Success"
+    ) else (
+        set "master_sync_status=Success"
+    )
+    set "master_files_changed=Updated !commits_behind! commits"
+) else (
+    echo %INFO_PREFIX% Local %MAIN_BRANCH% branch is already up to date
+    set "master_sync_status=Already up to date"
+    set "master_files_changed=No changes needed"
 )
 
 echo %SUCCESS_PREFIX% %MAIN_BRANCH% branch sync completed!
-
-REM Switch back to original branch immediately after master sync
-if not "!ORIGINAL_BRANCH!"=="%MAIN_BRANCH%" (
-    echo %INFO_PREFIX% Switching back to !ORIGINAL_BRANCH! branch...
-    git checkout !ORIGINAL_BRANCH!
-    if errorlevel 1 (
-        echo %WARNING_PREFIX% Failed to switch back to !ORIGINAL_BRANCH! branch
-        set "personal_branch_status=Failed (cannot switch back)"
-        goto :show_summary
-    )
-)
 
 echo.
 echo %INFO_PREFIX% Starting update for personal branch %PERSONAL_BRANCH%...
