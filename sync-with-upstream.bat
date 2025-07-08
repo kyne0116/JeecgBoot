@@ -88,10 +88,10 @@ if errorlevel 1 (
 
 REM Check and add upstream repository
 echo %INFO_PREFIX% Checking upstream repository configuration...
-git remote get-url !UPSTREAM_REMOTE_NAME! >nul 2>&1
+git remote get-url %UPSTREAM_REMOTE_NAME% >nul 2>&1
 if errorlevel 1 (
     echo %INFO_PREFIX% Adding upstream repository...
-    git remote add !UPSTREAM_REMOTE_NAME! !UPSTREAM_REPO_URL!
+    git remote add %UPSTREAM_REMOTE_NAME% %UPSTREAM_REPO_URL%
     if errorlevel 1 (
         echo %ERROR_PREFIX% Failed to add upstream repository!
         echo Press any key to exit...
@@ -111,7 +111,7 @@ echo %INFO_PREFIX% Starting sync for %MAIN_BRANCH% branch...
 
 REM Switch to main branch
 echo %INFO_PREFIX% Switching to %MAIN_BRANCH% branch...
-git checkout !MAIN_BRANCH!
+git checkout %MAIN_BRANCH%
 if errorlevel 1 (
     echo %ERROR_PREFIX% Failed to switch to %MAIN_BRANCH% branch!
     set "master_sync_status=Failed"
@@ -119,12 +119,12 @@ if errorlevel 1 (
 )
 
 REM Get commits behind count
-for /f %%i in ('git rev-list --count HEAD..!UPSTREAM_REMOTE_NAME!/!MAIN_BRANCH! 2^>nul') do set "commits_behind=%%i"
+for /f %%i in ('git rev-list --count HEAD..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^>nul') do set "commits_behind=%%i"
 if "!commits_behind!"=="" set "commits_behind=0"
 
 REM Fetch upstream updates
 echo %INFO_PREFIX% Fetching upstream repository updates...
-git fetch !UPSTREAM_REMOTE_NAME!
+git fetch %UPSTREAM_REMOTE_NAME%
 if errorlevel 1 (
     echo %ERROR_PREFIX% Failed to fetch upstream updates!
     set "master_sync_status=Failed"
@@ -132,12 +132,12 @@ if errorlevel 1 (
 )
 
 REM Recalculate commits behind count
-for /f %%i in ('git rev-list --count HEAD..!UPSTREAM_REMOTE_NAME!/!MAIN_BRANCH! 2^>nul') do set "commits_behind=%%i"
+for /f %%i in ('git rev-list --count HEAD..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^>nul') do set "commits_behind=%%i"
 if "!commits_behind!"=="" set "commits_behind=0"
 
 REM Merge upstream updates
 echo %INFO_PREFIX% Merging upstream updates to local %MAIN_BRANCH%...
-git merge !UPSTREAM_REMOTE_NAME!/!MAIN_BRANCH! --stat > temp_merge_output.txt 2>&1
+git merge %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% --stat > temp_merge_output.txt 2>&1
 if errorlevel 1 (
     echo %ERROR_PREFIX% Failed to merge upstream updates! Conflicts may need manual resolution
     set "master_sync_status=Failed"
@@ -158,7 +158,7 @@ if errorlevel 1 (
 
 REM Push to fork
 echo %INFO_PREFIX% Pushing updates to your fork...
-git push !ORIGIN_REMOTE_NAME! !MAIN_BRANCH!
+git push %ORIGIN_REMOTE_NAME% %MAIN_BRANCH%
 if errorlevel 1 (
     echo %WARNING_PREFIX% Failed to push to fork, may need manual push
     set "master_sync_status=Partial Success"
@@ -170,7 +170,7 @@ echo.
 echo %INFO_PREFIX% Starting update for personal branch %PERSONAL_BRANCH%...
 
 REM Check if branch exists
-git show-ref --verify --quiet refs/heads/!PERSONAL_BRANCH! >nul 2>&1
+git show-ref --verify --quiet refs/heads/%PERSONAL_BRANCH% >nul 2>&1
 if errorlevel 1 (
     echo %WARNING_PREFIX% Branch %PERSONAL_BRANCH% does not exist, skipping personal branch update
     set "personal_branch_status=Skipped (branch not found)"
@@ -179,7 +179,7 @@ if errorlevel 1 (
 
 REM Switch to personal branch
 echo %INFO_PREFIX% Switching to personal branch %PERSONAL_BRANCH%...
-git checkout !PERSONAL_BRANCH!
+git checkout %PERSONAL_BRANCH%
 if errorlevel 1 (
     echo %ERROR_PREFIX% Failed to switch to personal branch!
     set "personal_branch_status=Failed"
@@ -195,7 +195,7 @@ for /f "tokens=1-2 delims=: " %%a in ('time /t') do set "backup_time=%%a%%b"
 set "backup_branch_name=!PERSONAL_BRANCH!-backup-!backup_date!-!backup_time!"
 echo %INFO_PREFIX% Creating backup branch !backup_branch_name!...
 git checkout -b !backup_branch_name! >nul 2>&1
-git checkout !PERSONAL_BRANCH! >nul 2>&1
+git checkout %PERSONAL_BRANCH% >nul 2>&1
 
 REM Choose update method
 echo Choose update method:
@@ -206,7 +206,7 @@ set /p "choice=Please choose (1/2): "
 if "!choice!"=="1" (
     echo %INFO_PREFIX% Using rebase method...
     set "rebase_method=Rebase"
-    git rebase !MAIN_BRANCH!
+    git rebase %MAIN_BRANCH%
     if errorlevel 1 (
         echo %ERROR_PREFIX% Rebase encountered conflicts, please resolve manually:
         echo   git add ^<conflict-files^>
@@ -223,7 +223,7 @@ if "!choice!"=="1" (
 ) else if "!choice!"=="2" (
     echo %INFO_PREFIX% Using merge method...
     set "rebase_method=Merge"
-    git merge !MAIN_BRANCH!
+    git merge %MAIN_BRANCH%
     if errorlevel 1 (
         echo %ERROR_PREFIX% Merge encountered conflicts, please resolve manually:
         echo   git add ^<conflict-files^>
@@ -296,7 +296,7 @@ if not "!backup_branch_name!"=="" (
     echo.
 )
 echo %INFO_PREFIX% Sync operation completed, returning to %PERSONAL_BRANCH% branch
-git checkout !PERSONAL_BRANCH! >nul 2>&1
+git checkout %PERSONAL_BRANCH% >nul 2>&1
 echo Current branch:
 git branch --show-current
 echo.
@@ -307,7 +307,7 @@ exit /b 0
 :restore_branch_and_exit
 echo.
 echo %WARNING_PREFIX% Sync operation encountered error, trying to restore to %PERSONAL_BRANCH% branch...
-git checkout !PERSONAL_BRANCH! >nul 2>&1
+git checkout %PERSONAL_BRANCH% >nul 2>&1
 if errorlevel 1 (
     echo %WARNING_PREFIX% Cannot switch to %PERSONAL_BRANCH% branch, staying on current branch
 ) else (
