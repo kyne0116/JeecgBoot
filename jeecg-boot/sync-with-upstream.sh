@@ -14,7 +14,6 @@ MAIN_BRANCH="master"
 PERSONAL_BRANCH="my-custom"
 UPSTREAM_REMOTE_NAME="upstream"
 ORIGIN_REMOTE_NAME="origin"
-
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
