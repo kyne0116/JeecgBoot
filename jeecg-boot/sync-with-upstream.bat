@@ -1,8 +1,18 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM JeecgBoot Repository Sync Script (Windows Version)
+REM Universal Repository Sync Script (Windows Version)
 REM Purpose: Keep fork synced with official repository and update personal branch
+
+REM ========================================
+REM Configuration Variables - Modify these for your project
+REM ========================================
+set "UPSTREAM_REPO_URL=https://github.com/jeecgboot/JeecgBoot.git"
+set "ORIGIN_REPO_URL=https://github.com/kyne0116/JeecgBoot.git"
+set "MAIN_BRANCH=master"
+set "PERSONAL_BRANCH=my-custom"
+set "UPSTREAM_REMOTE_NAME=upstream"
+set "ORIGIN_REMOTE_NAME=origin"
 
 REM Initialize summary variables
 set "master_sync_status=Not Started"
@@ -14,7 +24,14 @@ set "rebase_method="
 set "conflicts_occurred=No"
 
 echo ========================================
-echo     JeecgBoot Repository Sync Script
+echo     Universal Repository Sync Script
+echo ========================================
+echo.
+echo Configuration:
+echo   Upstream: %UPSTREAM_REPO_URL%
+echo   Origin: %ORIGIN_REPO_URL%
+echo   Main Branch: %MAIN_BRANCH%
+echo   Personal Branch: %PERSONAL_BRANCH%
 echo ========================================
 echo.
 
@@ -34,19 +51,20 @@ if errorlevel 1 (
     git status --porcelain
     echo.
     set /p continue="Continue anyway? (y/N): "
-    if /i not "!continue!"=="y" (
+    if /i "!continue!" NEQ "y" (
         echo [INFO] Operation cancelled
         pause
         exit /b 0
     )
+    echo [INFO] Continuing with uncommitted changes...
 )
 
 REM Check and add upstream repository
 echo [INFO] Checking upstream repository configuration...
-git remote get-url upstream >nul 2>&1
+git remote get-url %UPSTREAM_REMOTE_NAME% >nul 2>&1
 if errorlevel 1 (
     echo [INFO] Adding upstream repository...
-    git remote add upstream https://github.com/jeecgboot/JeecgBoot.git
+    git remote add %UPSTREAM_REMOTE_NAME% %UPSTREAM_REPO_URL%
     if errorlevel 1 (
         echo [ERROR] Failed to add upstream repository!
         pause
@@ -62,21 +80,21 @@ echo Current remote repository configuration:
 git remote -v
 echo.
 
-REM Sync master branch
-echo [INFO] Starting master branch sync...
+REM Sync main branch
+echo [INFO] Starting %MAIN_BRANCH% branch sync...
 echo.
 
-echo [INFO] Switching to master branch...
-git checkout master
+echo [INFO] Switching to %MAIN_BRANCH% branch...
+git checkout %MAIN_BRANCH%
 if errorlevel 1 (
-    echo [ERROR] Failed to switch to master branch!
+    echo [ERROR] Failed to switch to %MAIN_BRANCH% branch!
     set "master_sync_status=Failed"
     pause
     exit /b 1
 )
 
 echo [INFO] Fetching upstream updates...
-git fetch upstream
+git fetch %UPSTREAM_REMOTE_NAME%
 if errorlevel 1 (
     echo [ERROR] Failed to fetch upstream updates!
     set "master_sync_status=Failed"
@@ -85,10 +103,10 @@ if errorlevel 1 (
 )
 
 REM Get merge statistics before merge
-for /f "tokens=*" %%i in ('git rev-list --count HEAD..upstream/master') do set "commits_behind=%%i"
+for /f "tokens=*" %%i in ('git rev-list --count HEAD..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%') do set "commits_behind=%%i"
 
-echo [INFO] Merging upstream updates to local master...
-git merge upstream/master --stat > merge_output.tmp 2>&1
+echo [INFO] Merging upstream updates to local %MAIN_BRANCH%...
+git merge %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% --stat > merge_output.tmp 2>&1
 if errorlevel 1 (
     echo [ERROR] Failed to merge upstream updates! Conflicts may need manual resolution
     set "master_sync_status=Failed"
@@ -103,18 +121,18 @@ if errorlevel 1 (
 )
 
 echo [INFO] Pushing updates to your fork...
-git push origin master
+git push %ORIGIN_REMOTE_NAME% %MAIN_BRANCH%
 if errorlevel 1 (
     echo [WARNING] Failed to push to fork, may need manual push
     set "master_sync_status=Partial Success"
 )
 
 del merge_output.tmp >nul 2>&1
-echo [SUCCESS] Master branch sync completed!
+echo [SUCCESS] %MAIN_BRANCH% branch sync completed!
 echo.
 
 REM Update personal branch
-set branch_name=my-custom
+set branch_name=%PERSONAL_BRANCH%
 echo [INFO] Starting personal branch %branch_name% update...
 
 REM Check if branch exists
@@ -157,7 +175,7 @@ set /p choice="Please choose (1/2): "
 if "!choice!"=="1" (
     echo [INFO] Using rebase method...
     set "rebase_method=Rebase"
-    git rebase master
+    git rebase %MAIN_BRANCH%
     if errorlevel 1 (
         echo [ERROR] Rebase encountered conflicts, please resolve manually then run:
         echo   git add ^<conflict-files^>
@@ -174,7 +192,7 @@ if "!choice!"=="1" (
 ) else if "!choice!"=="2" (
     echo [INFO] Using merge method...
     set "rebase_method=Merge"
-    git merge master
+    git merge %MAIN_BRANCH%
     if errorlevel 1 (
         echo [ERROR] Merge encountered conflicts, please resolve manually then run:
         echo   git add ^<conflict-files^>
@@ -204,7 +222,7 @@ echo ========================================
 echo           Sync Operation Summary
 echo ========================================
 echo.
-echo Master Branch Sync Result:
+echo %MAIN_BRANCH% Branch Sync Result:
 echo    Status: %master_sync_status%
 if not "%commits_behind%"=="" (
     if %commits_behind% GTR 0 (
