@@ -120,6 +120,9 @@ if errorlevel 1 (
     goto :restore_branch_and_exit
 )
 
+REM Change back to the directory where the script is located
+cd /d "%~dp0"
+
 REM Get commits behind count
 for /f %%i in ('git rev-list --count HEAD..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^^^>nul') do set "commits_behind=%%i"
 if "!commits_behind!"=="" set "commits_behind=0"
