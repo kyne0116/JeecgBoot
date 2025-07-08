@@ -4,10 +4,7 @@ setlocal enabledelayedexpansion
 
 REM ========================================
 REM Git Repository Sync Tool - Windows Version
-REM Purpose: Keep fork synchronized with official repository and provide rollback functionality
-REM Usage:
-REM   sync-with-upstream.bat          - Execute sync operation
-REM   sync-with-upstream.bat rollback - Rollback to pre-sync state
+REM Purpose: Keep fork synchronized with official repository and update personal branch
 REM ========================================
 
 REM ========================================
@@ -19,7 +16,6 @@ set "MAIN_BRANCH=master"
 set "PERSONAL_BRANCH=my-custom"
 set "UPSTREAM_REMOTE_NAME=upstream"
 set "ORIGIN_REMOTE_NAME=origin"
-set "STATE_FILE=.sync-state.txt"
 
 REM Initialize summary variables
 set "master_sync_status=Not Started"
@@ -51,28 +47,8 @@ echo   Personal branch: %PERSONAL_BRANCH%
 echo ========================================
 echo.
 
-REM Check parameters
-if "%1"=="rollback" goto :rollback_operation
-if "%1"=="" goto :sync_operation
-echo %ERROR_PREFIX% Invalid parameter. Use 'rollback' or no parameter.
-echo Usage:
-echo   %0          - Execute sync operation
-echo   %0 rollback - Rollback to pre-sync state
-pause
-exit /b 1
-
-:sync_operation
 echo %INFO_PREFIX% Starting sync operation...
 echo.
-
-REM Save Git state before sync
-echo %INFO_PREFIX% Saving current Git state...
-call :save_git_state
-if errorlevel 1 (
-    echo %ERROR_PREFIX% Failed to save Git state!
-    pause
-    exit /b 1
-)
 
 REM Record current branch, switch back at script end
 echo %INFO_PREFIX% Recording current branch...
@@ -312,6 +288,13 @@ if "!master_sync_status!"=="Success" if "!personal_branch_status!"=="Success" (
     echo Sync operation partially completed, please check the status information above.
 )
 echo.
+if not "!backup_branch_name!"=="" (
+    echo %INFO_PREFIX% Backup branch created: !backup_branch_name!
+    echo If you need to rollback, use:
+    echo   git reset --hard !backup_branch_name!
+    echo   git push origin %PERSONAL_BRANCH% --force
+    echo.
+)
 echo %INFO_PREFIX% Sync operation completed, returning to %PERSONAL_BRANCH% branch
 git checkout !PERSONAL_BRANCH! >nul 2>&1
 echo Current branch:
@@ -336,203 +319,3 @@ echo.
 echo Press any key to exit...
 pause >nul
 exit /b 1
-
-:rollback_operation
-echo %INFO_PREFIX% Starting rollback operation...
-echo.
-echo ========================================
-echo        Rollback to Pre-sync State
-echo ========================================
-echo.
-
-REM Check if state file exists
-if not exist "!STATE_FILE!" (
-    echo %ERROR_PREFIX% State file !STATE_FILE! not found!
-    echo No previous sync operation found, or state file was deleted.
-    echo.
-    echo Press any key to exit...
-    pause >nul
-    exit /b 1
-)
-
-echo %INFO_PREFIX% Loading saved Git state...
-call :load_git_state
-if errorlevel 1 (
-    echo %ERROR_PREFIX% Failed to load Git state!
-    echo.
-    echo Press any key to exit...
-    pause >nul
-    exit /b 1
-)
-
-echo.
-echo %WARNING_PREFIX% About to execute the following rollback operations:
-echo   - Rollback %MAIN_BRANCH% branch to: !SAVED_MASTER_COMMIT!
-echo   - Rollback %PERSONAL_BRANCH% branch to: !SAVED_PERSONAL_COMMIT!
-echo   - Force push to remote repository (this will overwrite remote history)
-echo.
-echo %WARNING_PREFIX% This operation is irreversible, please confirm!
-echo.
-set /p "confirm=Confirm rollback operation? (y/N): "
-if /i not "!confirm!"=="y" (
-    echo %INFO_PREFIX% Rollback operation cancelled
-    echo.
-    echo Press any key to exit...
-    pause >nul
-    exit /b 0
-)
-
-echo.
-echo %INFO_PREFIX% Starting rollback execution...
-
-REM Rollback master branch
-echo %INFO_PREFIX% Rolling back %MAIN_BRANCH% branch...
-git checkout !MAIN_BRANCH! >nul 2>&1
-if errorlevel 1 (
-    echo %ERROR_PREFIX% Cannot switch to %MAIN_BRANCH% branch!
-    goto :rollback_failed
-)
-
-git reset --hard !SAVED_MASTER_COMMIT! >nul 2>&1
-if errorlevel 1 (
-    echo %ERROR_PREFIX% Failed to rollback %MAIN_BRANCH% branch!
-    goto :rollback_failed
-)
-echo %SUCCESS_PREFIX% %MAIN_BRANCH% branch rolled back to !SAVED_MASTER_COMMIT!
-
-REM Force push master branch
-echo %INFO_PREFIX% Force pushing %MAIN_BRANCH% branch to remote repository...
-git push !ORIGIN_REMOTE_NAME! !MAIN_BRANCH! --force >nul 2>&1
-if errorlevel 1 (
-    echo %WARNING_PREFIX% Failed to push %MAIN_BRANCH% branch to remote, may need manual push
-) else (
-    echo %SUCCESS_PREFIX% %MAIN_BRANCH% branch force pushed to remote repository
-)
-
-REM Rollback personal branch
-echo %INFO_PREFIX% Rolling back %PERSONAL_BRANCH% branch...
-git checkout !PERSONAL_BRANCH! >nul 2>&1
-if errorlevel 1 (
-    echo %ERROR_PREFIX% Cannot switch to %PERSONAL_BRANCH% branch!
-    goto :rollback_failed
-)
-
-git reset --hard !SAVED_PERSONAL_COMMIT! >nul 2>&1
-if errorlevel 1 (
-    echo %ERROR_PREFIX% Failed to rollback %PERSONAL_BRANCH% branch!
-    goto :rollback_failed
-)
-echo %SUCCESS_PREFIX% %PERSONAL_BRANCH% branch rolled back to !SAVED_PERSONAL_COMMIT!
-
-REM Force push personal branch
-echo %INFO_PREFIX% Force pushing %PERSONAL_BRANCH% branch to remote repository...
-git push !ORIGIN_REMOTE_NAME! !PERSONAL_BRANCH! --force >nul 2>&1
-if errorlevel 1 (
-    echo %WARNING_PREFIX% Failed to push %PERSONAL_BRANCH% branch to remote, may need manual push
-) else (
-    echo %SUCCESS_PREFIX% %PERSONAL_BRANCH% branch force pushed to remote repository
-)
-
-echo.
-echo %SUCCESS_PREFIX% Rollback operation completed!
-echo Current branch: %PERSONAL_BRANCH%
-echo Git state has been restored to pre-sync state.
-echo.
-echo Press any key to exit...
-pause >nul
-exit /b 0
-
-:rollback_failed
-echo.
-echo %ERROR_PREFIX% Rollback operation failed!
-echo Please check Git status and handle manually.
-echo.
-echo Press any key to exit...
-pause >nul
-exit /b 1
-
-REM ========================================
-REM Subroutine: Save Git State
-REM ========================================
-:save_git_state
-echo %INFO_PREFIX% Saving current Git state to %STATE_FILE%...
-
-REM Check Git repository status
-git rev-parse --git-dir >nul 2>&1
-if errorlevel 1 (
-    echo %ERROR_PREFIX% Current directory is not a Git repository!
-    exit /b 1
-)
-
-REM Get current branch
-for /f %%i in ('git branch --show-current 2^>nul') do set "CURRENT_BRANCH=%%i"
-if "!CURRENT_BRANCH!"=="" (
-    echo %ERROR_PREFIX% Cannot determine current branch!
-    exit /b 1
-)
-
-REM Get master branch commit hash
-git show-ref --verify --quiet refs/heads/!MAIN_BRANCH! >nul 2>&1
-if errorlevel 1 (
-    echo %ERROR_PREFIX% %MAIN_BRANCH% branch does not exist!
-    exit /b 1
-)
-for /f %%i in ('git rev-parse !MAIN_BRANCH! 2^>nul') do set "MASTER_COMMIT=%%i"
-
-REM Get personal branch commit hash
-git show-ref --verify --quiet refs/heads/!PERSONAL_BRANCH! >nul 2>&1
-if errorlevel 1 (
-    echo %WARNING_PREFIX% %PERSONAL_BRANCH% branch does not exist, will record as empty
-    set "PERSONAL_COMMIT="
-) else (
-    for /f %%i in ('git rev-parse !PERSONAL_BRANCH! 2^>nul') do set "PERSONAL_COMMIT=%%i"
-)
-
-REM Get current timestamp
-for /f "tokens=1-3 delims=/ " %%a in ('date /t') do set "SAVE_DATE=%%c-%%a-%%b"
-for /f "tokens=1-2 delims=: " %%a in ('time /t') do set "SAVE_TIME=%%a:%%b"
-
-REM Save state to file
-echo # Git Sync State File > "!STATE_FILE!"
-echo # Save Time: !SAVE_DATE! !SAVE_TIME! >> "!STATE_FILE!"
-echo CURRENT_BRANCH=!CURRENT_BRANCH! >> "!STATE_FILE!"
-echo MASTER_COMMIT=!MASTER_COMMIT! >> "!STATE_FILE!"
-echo PERSONAL_COMMIT=!PERSONAL_COMMIT! >> "!STATE_FILE!"
-echo SAVE_TIMESTAMP=!SAVE_DATE!_!SAVE_TIME! >> "!STATE_FILE!"
-
-echo %SUCCESS_PREFIX% Git state saved
-echo   Current branch: !CURRENT_BRANCH!
-echo   %MAIN_BRANCH% branch: !MASTER_COMMIT!
-if not "!PERSONAL_COMMIT!"=="" (
-    echo   %PERSONAL_BRANCH% branch: !PERSONAL_COMMIT!
-)
-exit /b 0
-
-REM ========================================
-REM Subroutine: Load Git State
-REM ========================================
-:load_git_state
-echo %INFO_PREFIX% Loading Git state from %STATE_FILE%...
-
-REM Read state file
-for /f "usebackq tokens=1,2 delims==" %%a in ("!STATE_FILE!") do (
-    if "%%a"=="CURRENT_BRANCH" set "SAVED_CURRENT_BRANCH=%%b"
-    if "%%a"=="MASTER_COMMIT" set "SAVED_MASTER_COMMIT=%%b"
-    if "%%a"=="PERSONAL_COMMIT" set "SAVED_PERSONAL_COMMIT=%%b"
-    if "%%a"=="SAVE_TIMESTAMP" set "SAVED_TIMESTAMP=%%b"
-)
-
-REM Validate required variables
-if "!SAVED_MASTER_COMMIT!"=="" (
-    echo %ERROR_PREFIX% Missing %MAIN_BRANCH% branch info in state file!
-    exit /b 1
-)
-
-echo %SUCCESS_PREFIX% Git state loaded successfully
-echo   Save time: !SAVED_TIMESTAMP!
-echo   Original branch: !SAVED_CURRENT_BRANCH!
-echo   %MAIN_BRANCH% branch: !SAVED_MASTER_COMMIT!
-if not "!SAVED_PERSONAL_COMMIT!"=="" (
-    echo   %PERSONAL_BRANCH% branch: !SAVED_PERSONAL_COMMIT!
-)
-exit /b 0
