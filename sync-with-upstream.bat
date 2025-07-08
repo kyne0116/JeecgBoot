@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 REM ========================================
@@ -29,10 +30,10 @@ set "commits_before=0"
 set "commits_after=0"
 
 REM 颜色定义（Windows CMD不支持ANSI颜色，使用文本标记）
-set "INFO_PREFIX=[信息]"
-set "SUCCESS_PREFIX=[成功]"
-set "WARNING_PREFIX=[警告]"
-set "ERROR_PREFIX=[错误]"
+set "INFO_PREFIX=[INFO]"
+set "SUCCESS_PREFIX=[SUCCESS]"
+set "WARNING_PREFIX=[WARNING]"
+set "ERROR_PREFIX=[ERROR]"
 
 echo ========================================
 echo     Universal Repository Sync Script - Windows
