@@ -55,7 +55,7 @@ echo.
 
 REM Record current branch for information
 echo %INFO_PREFIX% Recording current branch...
-for /f %%i in ('git branch --show-current 2^>^&1') do set "CURRENT_BRANCH_INFO=%%i"
+for /f "delims=" %%i in ('git branch --show-current 2^>nul') do set "CURRENT_BRANCH_INFO=%%i"
 if "!CURRENT_BRANCH_INFO!"=="" (
     echo %WARNING_PREFIX% Could not determine current branch
 ) else (
@@ -70,6 +70,22 @@ if errorlevel 1 (
     echo Press any key to exit...
     pause >nul
     exit /b 1
+)
+
+REM Check and configure safe directory if needed (for Git 2.35.2+)
+echo %INFO_PREFIX% Checking Git safe directory configuration...
+git config --global --get-all safe.directory | findstr /C:"%CD%" >nul 2>&1
+if errorlevel 1 (
+    echo %INFO_PREFIX% Adding current directory to Git safe directories...
+    git config --global --add safe.directory "%CD%"
+    if errorlevel 1 (
+        echo %WARNING_PREFIX% Could not add directory to safe.directory config
+        echo %WARNING_PREFIX% You may need to run: git config --global --add safe.directory "%CD%"
+    ) else (
+        echo %SUCCESS_PREFIX% Directory added to Git safe directories
+    )
+) else (
+    echo %INFO_PREFIX% Directory is already in Git safe directories
 )
 
 REM Check for uncommitted changes
@@ -112,7 +128,7 @@ echo.
 echo %INFO_PREFIX% Starting sync for %MAIN_BRANCH% branch...
 
 REM Record current branch to restore later
-for /f %%i in ('git branch --show-current 2^>^&1') do set "ORIGINAL_BRANCH=%%i"
+for /f "delims=" %%i in ('git branch --show-current 2^>nul') do set "ORIGINAL_BRANCH=%%i"
 if "!ORIGINAL_BRANCH!"=="" set "ORIGINAL_BRANCH=%PERSONAL_BRANCH%"
 
 REM Use a safer approach: update master branch without switching to it
@@ -122,23 +138,31 @@ REM Change back to the directory where the script is located
 cd /d "%~dp0"
 
 REM Get commits behind count for master branch
-for /f %%i in ('git rev-list --count %MAIN_BRANCH%..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^>^&1') do set "commits_behind=%%i"
+echo %INFO_PREFIX% Getting initial commits behind count...
+for /f "delims=" %%i in ('git rev-list --count %MAIN_BRANCH%..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^>nul') do set "commits_behind=%%i"
 if "!commits_behind!"=="" set "commits_behind=0"
+echo %INFO_PREFIX% Initial commits behind: !commits_behind!
 
 REM Fetch upstream updates
 echo %INFO_PREFIX% Fetching upstream repository updates...
-git fetch %UPSTREAM_REMOTE_NAME%
+echo %INFO_PREFIX% Running: git fetch %UPSTREAM_REMOTE_NAME%
+git fetch %UPSTREAM_REMOTE_NAME% 2>&1
 if errorlevel 1 (
     echo %ERROR_PREFIX% Failed to fetch upstream updates!
+    echo %ERROR_PREFIX% Git fetch command returned error code: %errorlevel%
     set "master_sync_status=Failed"
     goto :restore_branch_and_exit
 )
+echo %SUCCESS_PREFIX% Fetch completed successfully
 
 REM Recalculate commits behind count
-for /f %%i in ('git rev-list --count %MAIN_BRANCH%..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^>^&1') do set "commits_behind=%%i"
+echo %INFO_PREFIX% Calculating commits behind count...
+for /f "delims=" %%i in ('git rev-list --count %MAIN_BRANCH%..%UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH% 2^>nul') do set "commits_behind=%%i"
 if "!commits_behind!"=="" set "commits_behind=0"
+echo %INFO_PREFIX% Commits behind: !commits_behind!
 
-if !commits_behind! gtr 0 (
+echo %INFO_PREFIX% Checking if updates are needed...
+if "!commits_behind!" gtr "0" (
     echo %INFO_PREFIX% Found !commits_behind! new commits, updating local %MAIN_BRANCH% branch...
 
     REM Update master branch using git update-ref (safer than checkout + merge)
@@ -151,7 +175,7 @@ if !commits_behind! gtr 0 (
 
     REM Check if origin has commits not in upstream before force push
     echo %INFO_PREFIX% Checking if your fork has unique commits on master branch...
-    for /f %%i in ('git rev-list --count %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%..%ORIGIN_REMOTE_NAME%/%MAIN_BRANCH% 2^>^&1') do set "origin_ahead=%%i"
+    for /f "delims=" %%i in ('git rev-list --count %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%..%ORIGIN_REMOTE_NAME%/%MAIN_BRANCH% 2^>nul') do set "origin_ahead=%%i"
     if "!origin_ahead!"=="" set "origin_ahead=0"
 
     if !origin_ahead! gtr 0 (
@@ -202,12 +226,14 @@ echo.
 echo %INFO_PREFIX% Starting update for personal branch %PERSONAL_BRANCH%...
 
 REM Check if branch exists
+echo %INFO_PREFIX% Checking if branch %PERSONAL_BRANCH% exists...
 git show-ref --verify --quiet refs/heads/%PERSONAL_BRANCH% >nul 2>&1
 if errorlevel 1 (
     echo %WARNING_PREFIX% Branch %PERSONAL_BRANCH% does not exist, skipping personal branch update
     set "personal_branch_status=Skipped (branch not found)"
     goto :show_summary
 )
+echo %INFO_PREFIX% Branch %PERSONAL_BRANCH% exists, proceeding...
 
 REM Switch to personal branch
 echo %INFO_PREFIX% Switching to personal branch %PERSONAL_BRANCH%...
@@ -219,10 +245,10 @@ if errorlevel 1 (
 )
 
 REM Get commit count before update
-for /f %%i in ('git rev-list --count HEAD') do set "commits_before=%%i"
+for /f "delims=" %%i in ('git rev-list --count HEAD 2^>nul') do set "commits_before=%%i"
 
 REM Create backup branch with numeric timestamp (YYYYMMDD-HHMMSS format)
-for /f %%i in ('powershell -command "Get-Date -Format 'yyyyMMdd-HHmmss'"') do set "timestamp=%%i"
+for /f "delims=" %%i in ('powershell -command "Get-Date -Format 'yyyyMMdd-HHmmss'"') do set "timestamp=%%i"
 set "backup_branch_name=!PERSONAL_BRANCH!-backup-!timestamp!"
 echo %INFO_PREFIX% Creating backup branch !backup_branch_name!...
 git checkout -b !backup_branch_name! >nul 2>&1
@@ -317,7 +343,7 @@ if "!choice!"=="1" (
 )
 
 REM Get commit count after update
-for /f %%i in ('git rev-list --count HEAD') do set "commits_after=%%i"
+for /f "delims=" %%i in ('git rev-list --count HEAD 2^>nul') do set "commits_after=%%i"
 
 echo %SUCCESS_PREFIX% Personal branch %PERSONAL_BRANCH% update completed!
 echo %INFO_PREFIX% Backup branch created: !backup_branch_name!
