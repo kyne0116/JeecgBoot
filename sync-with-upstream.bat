@@ -191,10 +191,9 @@ if errorlevel 1 (
 REM Get commit count before update
 for /f %%i in ('git rev-list --count HEAD') do set "commits_before=%%i"
 
-REM Create backup branch
-for /f "tokens=1-3 delims=/ " %%a in ('date /t') do set "backup_date=%%c%%a%%b"
-for /f "tokens=1-2 delims=: " %%a in ('time /t') do set "backup_time=%%a%%b"
-set "backup_branch_name=!PERSONAL_BRANCH!-backup-!backup_date!-!backup_time!"
+REM Create backup branch with numeric timestamp (YYYYMMDD-HHMMSS format)
+for /f %%i in ('powershell -command "Get-Date -Format 'yyyyMMdd-HHmmss'"') do set "timestamp=%%i"
+set "backup_branch_name=!PERSONAL_BRANCH!-backup-!timestamp!"
 echo %INFO_PREFIX% Creating backup branch !backup_branch_name!...
 git checkout -b !backup_branch_name! >nul 2>&1
 git checkout %PERSONAL_BRANCH% >nul 2>&1
