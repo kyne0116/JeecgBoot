@@ -149,6 +149,35 @@ if !commits_behind! gtr 0 (
         goto :restore_branch_and_exit
     )
 
+    REM Check if origin has commits not in upstream before force push
+    echo %INFO_PREFIX% Checking if your fork has unique commits on master branch...
+    for /f %%i in ('git rev-list --count %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%..%ORIGIN_REMOTE_NAME%/%MAIN_BRANCH% 2^>^&1') do set "origin_ahead=%%i"
+    if "!origin_ahead!"=="" set "origin_ahead=0"
+
+    if !origin_ahead! gtr 0 (
+        echo %WARNING_PREFIX% Your fork has !origin_ahead! commits on master that are not in upstream!
+        echo %WARNING_PREFIX% This indicates you may have made commits directly to master branch.
+        echo.
+        echo These commits will be lost if you continue with force push:
+        git log --oneline %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%..%ORIGIN_REMOTE_NAME%/%MAIN_BRANCH%
+        echo.
+        echo Recommendations:
+        echo   1^) Create a backup branch for these commits first
+        echo   2^) Cherry-pick important commits to your personal branch
+        echo   3^) Only continue if you're sure these commits are not needed
+        echo.
+        set /p "force_confirm=Do you want to force push anyway and lose these commits? (y/N): "
+        if /i not "!force_confirm!"=="y" (
+            echo %INFO_PREFIX% Force push cancelled to preserve your commits
+            echo %INFO_PREFIX% Consider backing up these commits before running sync again
+            set "master_sync_status=Cancelled (preserving fork commits)"
+            goto :personal_branch_update
+        )
+        echo %WARNING_PREFIX% Proceeding with force push - your fork commits will be lost!
+    ) else (
+        echo %INFO_PREFIX% Your fork master is clean (no unique commits), safe to force push
+    )
+
     REM Push to fork (force push to ensure sync)
     echo %INFO_PREFIX% Pushing updates to your fork...
     echo %WARNING_PREFIX% This will force-push to ensure master branch sync with upstream
@@ -168,6 +197,7 @@ if !commits_behind! gtr 0 (
 
 echo %SUCCESS_PREFIX% %MAIN_BRANCH% branch sync completed!
 
+:personal_branch_update
 echo.
 echo %INFO_PREFIX% Starting update for personal branch %PERSONAL_BRANCH%...
 
