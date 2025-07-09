@@ -149,9 +149,10 @@ if !commits_behind! gtr 0 (
         goto :restore_branch_and_exit
     )
 
-    REM Push to fork
+    REM Push to fork (force push to ensure sync)
     echo %INFO_PREFIX% Pushing updates to your fork...
-    git push %ORIGIN_REMOTE_NAME% %MAIN_BRANCH%
+    echo %WARNING_PREFIX% This will force-push to ensure master branch sync with upstream
+    git push %ORIGIN_REMOTE_NAME% %MAIN_BRANCH% --force
     if errorlevel 1 (
         echo %WARNING_PREFIX% Failed to push to fork, may need manual push
         set "master_sync_status=Partial Success"
