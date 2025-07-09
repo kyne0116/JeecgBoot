@@ -20,6 +20,14 @@ set "PERSONAL_BRANCH=my-custom"
 set "UPSTREAM_REMOTE_NAME=upstream"
 set "ORIGIN_REMOTE_NAME=origin"
 
+REM ========================================
+REM Smart Sync Configuration
+REM ========================================
+REM Enable selective sync mode (avoids conflicts with sync scripts)
+set "SELECTIVE_SYNC_MODE=true"
+REM Skip commits that modify sync scripts to avoid conflicts
+set "SKIP_SYNC_SCRIPT_COMMITS=true"
+
 REM Initialize summary variables
 set "master_sync_status=Not Started"
 set "master_changes_count=0"
@@ -273,6 +281,34 @@ set /p "choice=Please choose (1/2): "
 if "!choice!"=="1" (
     echo %INFO_PREFIX% Using rebase method...
     set "rebase_method=Rebase"
+
+    REM Smart sync: Check for potential conflicts with sync scripts
+    if "%SELECTIVE_SYNC_MODE%"=="true" (
+        echo %INFO_PREFIX% Smart sync mode enabled - checking for potential conflicts...
+        git log --oneline %MAIN_BRANCH%..HEAD | findstr /i "sync" >nul 2>&1
+        if not errorlevel 1 (
+            echo %WARNING_PREFIX% Detected sync-related commits that may conflict
+            echo %INFO_PREFIX% Recommendation: Use selective cherry-pick instead of full rebase
+            echo.
+            echo Choose sync strategy:
+            echo 1^) Continue with full rebase ^(may have conflicts^)
+            echo 2^) Use selective cherry-pick ^(recommended^)
+            echo 3^) Skip sync and keep current state
+            set /p "sync_strategy=Please choose (1/2/3): "
+
+            if "!sync_strategy!"=="2" (
+                echo %INFO_PREFIX% Using selective cherry-pick strategy...
+                call :selective_cherry_pick
+                goto :show_summary
+            ) else if "!sync_strategy!"=="3" (
+                echo %INFO_PREFIX% Skipping sync, keeping current state
+                set "personal_branch_status=Skipped (user choice)"
+                goto :show_summary
+            )
+            echo %INFO_PREFIX% Continuing with full rebase...
+        )
+    )
+
     git rebase %MAIN_BRANCH%
     if errorlevel 1 (
         echo %ERROR_PREFIX% Rebase encountered conflicts!
@@ -413,6 +449,77 @@ echo.
 echo Press any key to exit...
 pause >nul
 exit /b 0
+
+:selective_cherry_pick
+echo %INFO_PREFIX% Starting selective cherry-pick process...
+echo %INFO_PREFIX% Analyzing commits from %MAIN_BRANCH% that are safe to apply...
+
+REM Get list of commits from master that are not in current branch
+git log --oneline %MAIN_BRANCH%..HEAD >current_commits.tmp 2>nul
+git log --oneline HEAD..%MAIN_BRANCH% >available_commits.tmp 2>nul
+
+if not exist available_commits.tmp (
+    echo %INFO_PREFIX% No new commits to cherry-pick
+    set "personal_branch_status=Already up to date"
+    goto :cleanup_cherry_pick
+)
+
+REM Filter out sync-related commits if enabled
+if "%SKIP_SYNC_SCRIPT_COMMITS%"=="true" (
+    echo %INFO_PREFIX% Filtering out sync script related commits...
+    findstr /v /i "sync" available_commits.tmp > safe_commits.tmp
+) else (
+    copy available_commits.tmp safe_commits.tmp >nul
+)
+
+REM Check if there are safe commits to apply
+for /f %%i in ('type safe_commits.tmp ^| find /c /v ""') do set "safe_commit_count=%%i"
+
+if %safe_commit_count% EQU 0 (
+    echo %INFO_PREFIX% No safe commits found to cherry-pick
+    set "personal_branch_status=No safe updates available"
+    goto :cleanup_cherry_pick
+)
+
+echo %INFO_PREFIX% Found %safe_commit_count% safe commits to apply:
+type safe_commits.tmp
+echo.
+set /p "apply_commits=Apply these commits? (y/N): "
+
+if /i "!apply_commits!"=="y" (
+    echo %INFO_PREFIX% Applying safe commits...
+    set "applied_count=0"
+    set "failed_count=0"
+
+    for /f "tokens=1" %%i in (safe_commits.tmp) do (
+        echo %INFO_PREFIX% Cherry-picking commit %%i...
+        git cherry-pick %%i >nul 2>&1
+        if errorlevel 1 (
+            echo %WARNING_PREFIX% Failed to apply commit %%i, skipping...
+            git cherry-pick --abort >nul 2>&1
+            set /a "failed_count+=1"
+        ) else (
+            echo %SUCCESS_PREFIX% Successfully applied commit %%i
+            set /a "applied_count+=1"
+        )
+    )
+
+    echo %INFO_PREFIX% Cherry-pick completed: !applied_count! applied, !failed_count! failed
+    if !applied_count! GTR 0 (
+        set "personal_branch_status=Partial sync (!applied_count! commits applied)"
+    ) else (
+        set "personal_branch_status=No commits applied"
+    )
+) else (
+    echo %INFO_PREFIX% Cherry-pick cancelled by user
+    set "personal_branch_status=Cancelled by user"
+)
+
+:cleanup_cherry_pick
+if exist current_commits.tmp del current_commits.tmp >nul 2>&1
+if exist available_commits.tmp del available_commits.tmp >nul 2>&1
+if exist safe_commits.tmp del safe_commits.tmp >nul 2>&1
+goto :eof
 
 :restore_branch_and_exit
 echo.
