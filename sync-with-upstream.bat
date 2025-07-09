@@ -162,62 +162,72 @@ if "!commits_behind!"=="" set "commits_behind=0"
 echo %INFO_PREFIX% Commits behind: !commits_behind!
 
 echo %INFO_PREFIX% Checking if updates are needed...
-if "!commits_behind!" gtr "0" (
-    echo %INFO_PREFIX% Found !commits_behind! new commits, updating local %MAIN_BRANCH% branch...
+set /a "commits_check=!commits_behind!"
 
-    REM Update master branch using git update-ref (safer than checkout + merge)
-    git update-ref refs/heads/%MAIN_BRANCH% %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%
-    if errorlevel 1 (
-        echo %ERROR_PREFIX% Failed to update local %MAIN_BRANCH% branch!
-        set "master_sync_status=Failed"
-        goto :restore_branch_and_exit
-    )
+REM Use goto instead of if-else to avoid parsing issues
+if !commits_check! gtr 0 goto :update_master_branch
+goto :master_already_updated
 
-    REM Check if origin has commits not in upstream before force push
-    echo %INFO_PREFIX% Checking if your fork has unique commits on master branch...
-    for /f "delims=" %%i in ('git rev-list --count %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%..%ORIGIN_REMOTE_NAME%/%MAIN_BRANCH% 2^>nul') do set "origin_ahead=%%i"
-    if "!origin_ahead!"=="" set "origin_ahead=0"
+:update_master_branch
+echo %INFO_PREFIX% Found !commits_behind! new commits, updating local %MAIN_BRANCH% branch...
 
-    if !origin_ahead! gtr 0 (
-        echo %WARNING_PREFIX% Your fork has !origin_ahead! commits on master that are not in upstream!
-        echo %WARNING_PREFIX% This indicates you may have made commits directly to master branch.
-        echo.
-        echo These commits will be lost if you continue with force push:
-        git log --oneline %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%..%ORIGIN_REMOTE_NAME%/%MAIN_BRANCH%
-        echo.
-        echo Recommendations:
-        echo   1^) Create a backup branch for these commits first
-        echo   2^) Cherry-pick important commits to your personal branch
-        echo   3^) Only continue if you're sure these commits are not needed
-        echo.
-        set /p "force_confirm=Do you want to force push anyway and lose these commits? (y/N): "
-        if /i not "!force_confirm!"=="y" (
-            echo %INFO_PREFIX% Force push cancelled to preserve your commits
-            echo %INFO_PREFIX% Consider backing up these commits before running sync again
-            set "master_sync_status=Cancelled (preserving fork commits)"
-            goto :personal_branch_update
-        )
-        echo %WARNING_PREFIX% Proceeding with force push - your fork commits will be lost!
-    ) else (
-        echo %INFO_PREFIX% Your fork master is clean (no unique commits), safe to force push
-    )
-
-    REM Push to fork (force push to ensure sync)
-    echo %INFO_PREFIX% Pushing updates to your fork...
-    echo %WARNING_PREFIX% This will force-push to ensure master branch sync with upstream
-    git push %ORIGIN_REMOTE_NAME% %MAIN_BRANCH% --force
-    if errorlevel 1 (
-        echo %WARNING_PREFIX% Failed to push to fork, may need manual push
-        set "master_sync_status=Partial Success"
-    ) else (
-        set "master_sync_status=Success"
-    )
-    set "master_files_changed=Updated !commits_behind! commits"
-) else (
-    echo %INFO_PREFIX% Local %MAIN_BRANCH% branch is already up to date
-    set "master_sync_status=Already up to date"
-    set "master_files_changed=No changes needed"
+REM Update master branch using git update-ref (safer than checkout + merge)
+git update-ref refs/heads/%MAIN_BRANCH% %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%
+if errorlevel 1 (
+    echo %ERROR_PREFIX% Failed to update local %MAIN_BRANCH% branch!
+    set "master_sync_status=Failed"
+    goto :restore_branch_and_exit
 )
+
+REM Check if origin has commits not in upstream before force push
+echo %INFO_PREFIX% Checking if your fork has unique commits on master branch...
+for /f "delims=" %%i in ('git rev-list --count %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%..%ORIGIN_REMOTE_NAME%/%MAIN_BRANCH% 2^>nul') do set "origin_ahead=%%i"
+if "!origin_ahead!"=="" set "origin_ahead=0"
+
+if !origin_ahead! gtr 0 (
+    echo %WARNING_PREFIX% Your fork has !origin_ahead! commits on master that are not in upstream!
+    echo %WARNING_PREFIX% This indicates you may have made commits directly to master branch.
+    echo.
+    echo These commits will be lost if you continue with force push:
+    git log --oneline %UPSTREAM_REMOTE_NAME%/%MAIN_BRANCH%..%ORIGIN_REMOTE_NAME%/%MAIN_BRANCH%
+    echo.
+    echo Recommendations:
+    echo   1^) Create a backup branch for these commits first
+    echo   2^) Cherry-pick important commits to your personal branch
+    echo   3^) Only continue if you're sure these commits are not needed
+    echo.
+    set /p "force_confirm=Do you want to force push anyway and lose these commits? (y/N): "
+    if /i not "!force_confirm!"=="y" (
+        echo %INFO_PREFIX% Force push cancelled to preserve your commits
+        echo %INFO_PREFIX% Consider backing up these commits before running sync again
+        set "master_sync_status=Cancelled (preserving fork commits)"
+        goto :personal_branch_update
+    )
+    echo %WARNING_PREFIX% Proceeding with force push - your fork commits will be lost!
+) else (
+    echo %INFO_PREFIX% Your fork master is clean (no unique commits), safe to force push
+)
+
+REM Push to fork (force push to ensure sync)
+echo %INFO_PREFIX% Pushing updates to your fork...
+echo %WARNING_PREFIX% This will force-push to ensure master branch sync with upstream
+git push %ORIGIN_REMOTE_NAME% %MAIN_BRANCH% --force
+if errorlevel 1 (
+    echo %WARNING_PREFIX% Failed to push to fork, may need manual push
+    set "master_sync_status=Partial Success"
+) else (
+    set "master_sync_status=Success"
+)
+set "master_files_changed=Updated !commits_behind! commits"
+goto :master_sync_completed
+
+:master_already_updated
+echo %INFO_PREFIX% Local %MAIN_BRANCH% branch is already up to date
+set "master_sync_status=Already up to date"
+set "master_files_changed=No changes needed"
+goto :master_sync_completed
+
+:master_sync_completed
 
 echo %SUCCESS_PREFIX% %MAIN_BRANCH% branch sync completed!
 
