@@ -150,7 +150,7 @@ jobs:
     - name: Validate Maven project and pre-download dependencies
       run: |
         echo "🔄 Validating Maven project and pre-downloading dependencies..."
-        mvn validate dependency:go-offline dependency:resolve-sources -T 4 -q
+        mvn validate dependency:go-offline -T 4 -q
         echo "✅ Dependencies cached successfully!"
     
     - name: Compile project
