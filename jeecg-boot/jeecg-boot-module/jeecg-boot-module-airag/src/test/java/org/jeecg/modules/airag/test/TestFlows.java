@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -16,7 +17,12 @@ import java.io.IOException;
 @Slf4j
 public class TestFlows {
 
+    /**
+     * 集成测试：需要AI RAG Flow服务在localhost:7008运行
+     * 在CI环境中禁用，因为外部服务依赖不可用
+     */
     @Test
+    @Disabled("集成测试：需要外部AI RAG Flow服务运行(localhost:7008)，CI环境中不可用")
     public void testRunFlow(){
         String id = "1889499701976358913";
 //        String id = "1889571074002247682"; //switch
