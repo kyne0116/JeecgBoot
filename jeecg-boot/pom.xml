@@ -489,7 +489,7 @@
 		        <groupId>org.apache.maven.plugins</groupId>
 		        <artifactId>maven-surefire-plugin</artifactId>
 		        <configuration>
-		          <skipTests>true</skipTests>
+		          <skipTests>false</skipTests>
 		        </configuration>
 	        </plugin>
 	         <!-- 避免font文件的二进制文件格式压缩破坏 -->

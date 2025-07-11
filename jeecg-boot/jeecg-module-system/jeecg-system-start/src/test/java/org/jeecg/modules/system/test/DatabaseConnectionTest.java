@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 数据库连接测试类
  * 验证数据库连接和基本查询功能
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = JeecgSystemApplication.class)
+@SpringBootTest(classes = JeecgSystemApplication.class)
 @TestPropertySource(properties = {
     "spring.profiles.active=test"
 })
