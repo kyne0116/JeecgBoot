@@ -1,0 +1,36 @@
+# CI测试环境专用配置 - 覆盖主配置文件
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://127.0.0.1:3306/jeecg-boot?useUnicode=true&characterEncoding=utf8mb4&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+          username: jeecg
+          password: jeecg
+          driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    password: ''
+  # 简化配置，减少启动时间
+  autoconfigure:
+    exclude:
+      - com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      - org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration
+
+# 简化日志配置
+logging:
+  level:
+    org.jeecg.modules.system.mapper: info
+    org.springframework: WARN
+    org.hibernate: WARN
+    com.baomidou.mybatisplus: WARN
+
+# 禁用一些在测试中不需要的功能
+jeecg:
+  xxljob:
+    enabled: false
+  redisson:
+    enabled: false
