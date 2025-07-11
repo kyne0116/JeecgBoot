@@ -34,7 +34,7 @@ MAVEN_OPTS='-Xmx3072m -XX:+UseParallelGC -Djava.awt.headless=true'
 #### 📦 预下载命令
 ```bash
 # 离线模式预下载所有依赖
-mvn dependency:go-offline dependency:resolve-sources -T 4 -q
+mvn dependency:go-offline -T 4 -q
 ```
 
 #### 🎯 优势
