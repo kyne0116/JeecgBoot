@@ -14,7 +14,8 @@ on:
 
 env:
   JAVA_VERSION: '17'
-  MAVEN_OPTS: '-Xmx3072m'
+  MAVEN_OPTS: '-Xmx3072m -XX:+UseParallelGC -Djava.awt.headless=true'
+  MAVEN_CLI_OPTS: '-B -V -ntp -e'
 
 jobs:
   test:
@@ -60,12 +61,16 @@ jobs:
         distribution: 'temurin'
         cache: maven
     
-    - name: Cache Maven dependencies
+    - name: Cache Maven dependencies (Enhanced)
       uses: actions/cache@v4
       with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        path: |
+          ~/.m2/repository
+          ~/.m2/wrapper
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/.mvn/wrapper/maven-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-
+          ${{ runner.os }}-maven-
     
     - name: Initialize MySQL database
       run: |
@@ -142,14 +147,17 @@ jobs:
         echo "   - Tables: $TABLE_COUNT"
         echo "   - User: jeecg (with full privileges)"
     
-    - name: Validate Maven project
-      run: mvn validate
+    - name: Validate Maven project and pre-download dependencies
+      run: |
+        echo "🔄 Validating Maven project and pre-downloading dependencies..."
+        mvn validate dependency:go-offline dependency:resolve-sources -T 4 -q
+        echo "✅ Dependencies cached successfully!"
     
     - name: Compile project
-      run: mvn clean compile -DskipTests
+      run: mvn clean compile -DskipTests -T 4 -q
     
     - name: Run unit tests
-      run: mvn test -Dspring.profiles.active=test -Dmaven.test.failure.ignore=true
+      run: mvn test -Dspring.profiles.active=test -Dmaven.test.failure.ignore=true -T 4
       env:
         SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/jeecg_boot?useUnicode=true&characterEncoding=utf8mb4&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&connectionCollation=utf8mb4_unicode_ci
         SPRING_DATASOURCE_USERNAME: jeecg
@@ -170,7 +178,7 @@ jobs:
         fail-on-error: false
     
     - name: Package application
-      run: mvn package -DskipTests
+      run: mvn package -DskipTests -T 4 -q
     
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -220,19 +228,23 @@ jobs:
         distribution: 'temurin'
         cache: maven
     
-    - name: Cache Maven dependencies
+    - name: Cache Maven dependencies (Enhanced)
       uses: actions/cache@v4
       with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        path: |
+          ~/.m2/repository
+          ~/.m2/wrapper
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/.mvn/wrapper/maven-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-
+          ${{ runner.os }}-maven-
     
     - name: Run SpotBugs analysis
-      run: mvn spotbugs:check -DskipTests
+      run: mvn spotbugs:check -DskipTests -T 4 -q
       continue-on-error: true
     
     - name: Run Checkstyle analysis
-      run: mvn checkstyle:check -DskipTests
+      run: mvn checkstyle:check -DskipTests -T 4 -q
       continue-on-error: true
     
     - name: Generate dependency tree
@@ -266,15 +278,19 @@ jobs:
         distribution: 'temurin'
         cache: maven
     
-    - name: Cache Maven dependencies
+    - name: Cache Maven dependencies (Enhanced)
       uses: actions/cache@v4
       with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        path: |
+          ~/.m2/repository
+          ~/.m2/wrapper
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/.mvn/wrapper/maven-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-
+          ${{ runner.os }}-maven-
     
     - name: Run OWASP Dependency Check
-      run: mvn org.owasp:dependency-check-maven:check -DskipTests
+      run: mvn org.owasp:dependency-check-maven:check -DskipTests -T 4 -q
       continue-on-error: true
     
     - name: Upload security scan results
