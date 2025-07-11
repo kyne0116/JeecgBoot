@@ -189,7 +189,7 @@ jeecg:
   ai-chat:
     enabled: true
     model: deepseek-chat
-    apiKey: ??
+    apiKey: sk-4ede24014c7f4553aaa067a74dc2f53e
     apiHost: https://api.deepseek.com/v1
     timeout: 60
   # AIRag向量库
