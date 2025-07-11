@@ -69,14 +69,69 @@ jobs:
     
     - name: Initialize MySQL database
       run: |
-        # Wait for MySQL to be ready
-        timeout 300 bash -c 'until mysql -h127.0.0.1 -P3306 -uroot -proot -e "SELECT 1"; do sleep 2; done'
+        set -e  # Exit on any error
         
-        # Create database and user if needed
-        mysql -h127.0.0.1 -P3306 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS jeecg_boot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+        echo "🔄 Waiting for MySQL to be ready..."
+        timeout 300 bash -c 'until mysql -h127.0.0.1 -P3306 -uroot -proot -e "SELECT 1" >/dev/null 2>&1; do 
+          echo "  Waiting for MySQL..."; 
+          sleep 2; 
+        done'
+        
+        echo "✅ MySQL is ready, starting database initialization..."
+        
+        # Check if SQL file exists
+        if [ ! -f "jeecg-boot/db/jeecgboot-mysql-5.7.sql" ]; then
+          echo "❌ Error: jeecgboot-mysql-5.7.sql file not found!"
+          exit 1
+        fi
+        
+        echo "📄 SQL file found: $(wc -l < jeecg-boot/db/jeecgboot-mysql-5.7.sql) lines"
+        
+        # Create application user first
+        echo "👤 Creating application user 'jeecg'..."
         mysql -h127.0.0.1 -P3306 -uroot -proot -e "CREATE USER IF NOT EXISTS 'jeecg'@'%' IDENTIFIED BY 'jeecg';"
-        mysql -h127.0.0.1 -P3306 -uroot -proot -e "GRANT ALL PRIVILEGES ON jeecg_boot.* TO 'jeecg'@'%';"
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "GRANT ALL PRIVILEGES ON *.* TO 'jeecg'@'%' WITH GRANT OPTION;"
         mysql -h127.0.0.1 -P3306 -uroot -proot -e "FLUSH PRIVILEGES;"
+        
+        # Create a temporary SQL file with modifications for MySQL 8.0 compatibility
+        echo "🔧 Preparing SQL file for MySQL 8.0 compatibility..."
+        cp jeecg-boot/db/jeecgboot-mysql-5.7.sql /tmp/jeecgboot-init.sql
+        
+        # Replace database name from jeecg-boot to jeecg_boot (MySQL 8.0 naming conventions)
+        sed -i 's/`jeecg-boot`/`jeecg_boot`/g' /tmp/jeecgboot-init.sql
+        sed -i 's/USE `jeecg-boot`;/USE `jeecg_boot`;/g' /tmp/jeecgboot-init.sql
+        
+        # Add MySQL 8.0 compatibility settings
+        echo "SET sql_mode = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION';" > /tmp/mysql_init.sql
+        cat /tmp/jeecgboot-init.sql >> /tmp/mysql_init.sql
+        
+        echo "📥 Importing JeecgBoot database schema and initial data..."
+        mysql -h127.0.0.1 -P3306 -uroot -proot -v < /tmp/mysql_init.sql
+        
+        # Verify database creation
+        echo "🔍 Verifying database initialization..."
+        
+        DB_EXISTS=$(mysql -h127.0.0.1 -P3306 -uroot -proot -e "SHOW DATABASES;" | grep -c jeecg_boot || echo "0")
+        if [ "$DB_EXISTS" -eq "0" ]; then
+          echo "❌ Error: Database 'jeecg_boot' was not created!"
+          exit 1
+        fi
+        
+        TABLE_COUNT=$(mysql -h127.0.0.1 -P3306 -uroot -proot -e "USE jeecg_boot; SHOW TABLES;" | wc -l)
+        echo "📊 Database 'jeecg_boot' created with $TABLE_COUNT tables"
+        
+        # Show some sample tables to verify
+        echo "📋 Sample tables created:"
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "USE jeecg_boot; SHOW TABLES;" | head -10
+        
+        # Test user connection
+        echo "🔐 Testing application user connection..."
+        mysql -h127.0.0.1 -P3306 -ujeecg -pjeecg -e "USE jeecg_boot; SELECT COUNT(*) as table_count FROM information_schema.tables WHERE table_schema = 'jeecg_boot';"
+        
+        echo "✅ Database initialization completed successfully!"
+        echo "   - Database: jeecg_boot"
+        echo "   - Tables: $TABLE_COUNT"
+        echo "   - User: jeecg (with full privileges)"
     
     - name: Validate Maven project
       run: mvn validate
@@ -87,7 +142,7 @@ jobs:
     - name: Run unit tests
       run: mvn test -Dspring.profiles.active=test
       env:
-        SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/jeecg_boot?useUnicode=true&characterEncoding=utf8&autoReconnect=true&useSSL=false&serverTimezone=UTC
+        SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/jeecg_boot?useUnicode=true&characterEncoding=utf8&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
         SPRING_DATASOURCE_USERNAME: jeecg
         SPRING_DATASOURCE_PASSWORD: jeecg
         SPRING_REDIS_HOST: 127.0.0.1
