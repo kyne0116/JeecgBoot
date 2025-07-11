@@ -1,0 +1,240 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ master, develop, my-custom ]
+    paths:
+      - 'jeecg-boot/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ master, develop ]
+    paths:
+      - 'jeecg-boot/**'
+      - '.github/workflows/backend-ci.yml'
+
+env:
+  JAVA_VERSION: '17'
+  MAVEN_OPTS: '-Xmx3072m'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./jeecg-boot
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: jeecg_boot
+          MYSQL_USER: jeecg
+          MYSQL_PASSWORD: jeecg
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        ports:
+          - 3306:3306
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+    
+    - name: Initialize MySQL database
+      run: |
+        # Wait for MySQL to be ready
+        timeout 300 bash -c 'until mysql -h127.0.0.1 -P3306 -uroot -proot -e "SELECT 1"; do sleep 2; done'
+        
+        # Create database and user if needed
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS jeecg_boot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "CREATE USER IF NOT EXISTS 'jeecg'@'%' IDENTIFIED BY 'jeecg';"
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "GRANT ALL PRIVILEGES ON jeecg_boot.* TO 'jeecg'@'%';"
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "FLUSH PRIVILEGES;"
+    
+    - name: Validate Maven project
+      run: mvn validate
+    
+    - name: Compile project
+      run: mvn clean compile -DskipTests
+    
+    - name: Run unit tests
+      run: mvn test -Dspring.profiles.active=test
+      env:
+        SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/jeecg_boot?useUnicode=true&characterEncoding=utf8&autoReconnect=true&useSSL=false&serverTimezone=UTC
+        SPRING_DATASOURCE_USERNAME: jeecg
+        SPRING_DATASOURCE_PASSWORD: jeecg
+        SPRING_REDIS_HOST: 127.0.0.1
+        SPRING_REDIS_PORT: 6379
+        SPRING_REDIS_PASSWORD: ""
+    
+    - name: Generate test report
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: Maven Test Results
+        path: jeecg-boot/*/target/surefire-reports/*.xml
+        reporter: java-junit
+        fail-on-error: true
+    
+    - name: Package application
+      run: mvn package -DskipTests
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          jeecg-boot/*/target/surefire-reports/
+          jeecg-boot/*/target/site/
+    
+    - name: Upload JAR artifacts
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: backend-jars
+        path: |
+          jeecg-boot/*/target/*.jar
+          !jeecg-boot/*/target/*-sources.jar
+          !jeecg-boot/*/target/*-javadoc.jar
+    
+    - name: Check artifact sizes
+      run: |
+        echo "=== Build Artifacts ==="
+        find . -name "*.jar" -type f -exec ls -lh {} \; | grep -E "(jar|war)$"
+        
+        echo "=== Total size ==="
+        find . -name "*.jar" -type f -exec du -ch {} + | tail -1
+
+  code-quality:
+    runs-on: ubuntu-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: ./jeecg-boot
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for better analysis
+    
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+    
+    - name: Run SpotBugs analysis
+      run: mvn spotbugs:check -DskipTests
+      continue-on-error: true
+    
+    - name: Run Checkstyle analysis
+      run: mvn checkstyle:check -DskipTests
+      continue-on-error: true
+    
+    - name: Generate dependency tree
+      run: mvn dependency:tree -DoutputFile=dependency-tree.txt
+    
+    - name: Upload code quality reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: code-quality-reports
+        path: |
+          jeecg-boot/*/target/spotbugs/
+          jeecg-boot/*/target/checkstyle-result.xml
+          jeecg-boot/dependency-tree.txt
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: ./jeecg-boot
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+    
+    - name: Run OWASP Dependency Check
+      run: mvn org.owasp:dependency-check-maven:check -DskipTests
+      continue-on-error: true
+    
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-scan-results
+        path: |
+          jeecg-boot/*/target/dependency-check-report.html
+          jeecg-boot/*/target/dependency-check-report.xml
+
+  build-summary:
+    runs-on: ubuntu-latest
+    needs: [test, code-quality, security-scan]
+    if: always()
+    
+    steps:
+    - name: Build Summary
+      run: |
+        echo "## Backend CI Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Test Job**: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Code Quality**: ${{ needs.code-quality.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Security Scan**: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Time**: $(date)" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.test.result }}" == "success" ]; then
+          echo "✅ All tests passed successfully!" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Some tests failed. Please check the logs." >> $GITHUB_STEP_SUMMARY
+        fi
