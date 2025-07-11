@@ -157,7 +157,16 @@ jobs:
       run: mvn clean compile -DskipTests -T 4 -q
     
     - name: Run unit tests
-      run: mvn test -Dspring.profiles.active=test -Dmaven.test.failure.ignore=true -T 4
+      run: |
+        echo "🔍 Running unit tests with report generation..."
+        mvn test -Dspring.profiles.active=test \
+          -Dmaven.test.failure.ignore=true \
+          -DskipTests=false \
+          -Dsurefire.useFile=false \
+          -Dmaven.surefire.debug=true \
+          -T 4
+        echo "📊 Test execution completed. Checking for reports..."
+        find . -name "surefire-reports" -type d -exec ls -la {} \;
       env:
         SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/jeecg_boot?useUnicode=true&characterEncoding=utf8mb4&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&connectionCollation=utf8mb4_unicode_ci
         SPRING_DATASOURCE_USERNAME: jeecg
@@ -165,6 +174,15 @@ jobs:
         SPRING_REDIS_HOST: 127.0.0.1
         SPRING_REDIS_PORT: 6379
         SPRING_REDIS_PASSWORD: ""
+    
+    - name: Debug - List test report files
+      if: always()
+      run: |
+        echo "🔍 Searching for test report files..."
+        find . -name "*.xml" -path "*/surefire-reports/*" -type f | head -20 || echo "No XML files found in surefire-reports"
+        find . -name "surefire-reports" -type d -exec ls -la {} \; || echo "No surefire-reports directories found"
+        echo "📂 Working directory contents:"
+        ls -la */target/ || echo "No target directories found"
     
     - name: Generate test report
       uses: dorny/test-reporter@v1
