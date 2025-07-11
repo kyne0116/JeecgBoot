@@ -29,18 +29,28 @@ mvn package -T 4
 MAVEN_OPTS='-Xmx3072m -XX:+UseParallelGC -Djava.awt.headless=true'
 ```
 
-### 3. 依赖预下载策略
+### 3. 智能依赖管理策略
 
-#### 📦 预下载命令
+#### 📦 按需下载 + 强力缓存（推荐）
 ```bash
-# 离线模式预下载所有依赖
-mvn dependency:go-offline -T 4 -q
+# 编译时自动下载需要的依赖
+mvn clean compile -T 4 --no-transfer-progress
 ```
 
 #### 🎯 优势
-- 一次性下载所有依赖
-- 后续步骤无需网络等待
-- 减少网络超时风险
+- 只下载实际需要的依赖
+- 充分利用GitHub Actions缓存
+- 避免dependency:go-offline的性能陷阱
+- 减少不必要的网络传输
+
+#### ⚠️ 避免的性能陷阱
+```bash
+# ❌ 避免使用：会导致15-20分钟的下载时间
+mvn dependency:go-offline
+
+# ✅ 推荐使用：按需下载，缓存优先
+mvn compile
+```
 
 ### 4. 业界基准对比
 

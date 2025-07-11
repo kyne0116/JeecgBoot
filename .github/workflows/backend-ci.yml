@@ -147,14 +147,14 @@ jobs:
         echo "   - Tables: $TABLE_COUNT"
         echo "   - User: jeecg (with full privileges)"
     
-    - name: Validate Maven project and pre-download dependencies
+    - name: Validate Maven project  
       run: |
-        echo "🔄 Validating Maven project and pre-downloading dependencies..."
-        mvn validate dependency:go-offline -T 4 -q
-        echo "✅ Dependencies cached successfully!"
+        echo "🔄 Validating Maven project structure..."
+        mvn validate -T 4 -q --no-transfer-progress
+        echo "✅ Project validation completed!"
     
-    - name: Compile project
-      run: mvn clean compile -DskipTests -T 4 -q
+    - name: Compile project (dependencies auto-download and cached)
+      run: mvn clean compile -DskipTests -T 4 -q --no-transfer-progress
     
     - name: Run unit tests with forced execution
       run: |
@@ -170,7 +170,8 @@ jobs:
           -DskipTests=false \
           -Dsurefire.reportsDirectory=target/surefire-reports \
           -Dsurefire.printSummary=true \
-          --no-transfer-progress
+          --no-transfer-progress \
+          -q
         
         echo "📊 Test execution completed. Checking for reports..."
         ls -la target/ || echo "No target directory"
