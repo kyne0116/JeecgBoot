@@ -29,7 +29,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: jeecg_boot
+          MYSQL_DATABASE: jeecg-boot
           MYSQL_USER: jeecg
           MYSQL_PASSWORD: jeecg
         options: >-
@@ -105,9 +105,8 @@ jobs:
         echo "🔧 Preparing SQL file for MySQL 8.0 compatibility..."
         cp db/jeecgboot-mysql-5.7.sql /tmp/jeecgboot-init.sql
         
-        # Replace database name from jeecg-boot to jeecg_boot (MySQL 8.0 naming conventions)
-        sed -i 's/`jeecg-boot`/`jeecg_boot`/g' /tmp/jeecgboot-init.sql
-        sed -i 's/USE `jeecg-boot`;/USE `jeecg_boot`;/g' /tmp/jeecgboot-init.sql
+        # Keep original database name jeecg-boot (matching application-test.yml)
+        echo "✅ Using original database name 'jeecg-boot' to match Spring Boot configuration"
         
         # Add MySQL 8.0 compatibility settings and fix character encoding
         echo "SET sql_mode = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';" > /tmp/mysql_init.sql
@@ -125,25 +124,25 @@ jobs:
         # Verify database creation
         echo "🔍 Verifying database initialization..."
         
-        DB_EXISTS=$(mysql -h127.0.0.1 -P3306 -uroot -proot -e "SHOW DATABASES;" | grep -c jeecg_boot || echo "0")
+        DB_EXISTS=$(mysql -h127.0.0.1 -P3306 -uroot -proot -e "SHOW DATABASES;" | grep -c "jeecg-boot" || echo "0")
         if [ "$DB_EXISTS" -eq "0" ]; then
-          echo "❌ Error: Database 'jeecg_boot' was not created!"
+          echo "❌ Error: Database 'jeecg-boot' was not created!"
           exit 1
         fi
         
-        TABLE_COUNT=$(mysql -h127.0.0.1 -P3306 -uroot -proot -e "USE jeecg_boot; SHOW TABLES;" | wc -l)
-        echo "📊 Database 'jeecg_boot' created with $TABLE_COUNT tables"
+        TABLE_COUNT=$(mysql -h127.0.0.1 -P3306 -uroot -proot -e "USE \`jeecg-boot\`; SHOW TABLES;" | wc -l)
+        echo "📊 Database 'jeecg-boot' created with $TABLE_COUNT tables"
         
         # Show some sample tables to verify
         echo "📋 Sample tables created:"
-        mysql -h127.0.0.1 -P3306 -uroot -proot -e "USE jeecg_boot; SHOW TABLES;" | head -10
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "USE \`jeecg-boot\`; SHOW TABLES;" | head -10
         
         # Test user connection
         echo "🔐 Testing application user connection..."
-        mysql -h127.0.0.1 -P3306 -ujeecg -pjeecg -e "USE jeecg_boot; SELECT COUNT(*) as table_count FROM information_schema.tables WHERE table_schema = 'jeecg_boot';"
+        mysql -h127.0.0.1 -P3306 -ujeecg -pjeecg -e "USE \`jeecg-boot\`; SELECT COUNT(*) as table_count FROM information_schema.tables WHERE table_schema = 'jeecg-boot';"
         
         echo "✅ Database initialization completed successfully!"
-        echo "   - Database: jeecg_boot"
+        echo "   - Database: jeecg-boot"
         echo "   - Tables: $TABLE_COUNT"
         echo "   - User: jeecg (with full privileges)"
     
@@ -159,47 +158,26 @@ jobs:
         mvn clean install -DskipTests -T 4 -q --no-transfer-progress
         echo "✅ All modules installed successfully!"
     
-    - name: Force create test reports (guaranteed)
+    - name: Run real unit tests (configuration fixed)
       run: |
-        echo "🎯 Creating test reports directory and files (guaranteed approach)..."
+        echo "🎯 Running real tests with corrected database configuration..."
         
-        # Create the target directory structure first
-        mkdir -p jeecg-module-system/jeecg-system-start/target/surefire-reports
+        echo "📋 Configuration check:"
+        echo "  - Database: jeecg-boot (matches application-test.yml)"
+        echo "  - Redis: 127.0.0.1:6379 (CI environment)"
+        echo "  - Profile: test"
         
-        # Force create test XML files that test-reporter can find
-        cat > jeecg-module-system/jeecg-system-start/target/surefire-reports/TEST-BasicCITest.xml << 'EOF'
-        <?xml version="1.0" encoding="UTF-8"?>
-        <testsuite name="BasicCITest" tests="3" errors="0" skipped="0" failures="0" time="0.5">
-          <properties>
-            <property name="java.version" value="17"/>
-            <property name="os.name" value="Linux"/>
-          </properties>
-          <testcase classname="org.jeecg.ci.BasicCITest" name="testMath" time="0.1"/>
-          <testcase classname="org.jeecg.ci.BasicCITest" name="testString" time="0.1"/>
-          <testcase classname="org.jeecg.ci.BasicCITest" name="testBoolean" time="0.1"/>
-        </testsuite>
-        EOF
+        # Run tests on the system-start module with corrected config
+        mvn test -pl jeecg-module-system/jeecg-system-start \
+          -DskipTests=false \
+          -Dspring.profiles.active=test \
+          -Dmaven.test.failure.ignore=true \
+          --no-transfer-progress \
+          -q
         
-        # Create additional XML to ensure multiple files
-        cat > jeecg-module-system/jeecg-system-start/target/surefire-reports/TEST-DatabaseConnectionTest.xml << 'EOF'
-        <?xml version="1.0" encoding="UTF-8"?>
-        <testsuite name="DatabaseConnectionTest" tests="2" errors="0" skipped="0" failures="0" time="1.0">
-          <testcase classname="org.jeecg.modules.system.test.DatabaseConnectionTest" name="testDatabaseConnection" time="0.5"/>
-          <testcase classname="org.jeecg.modules.system.test.DatabaseConnectionTest" name="testBasicQuery" time="0.5"/>
-        </testsuite>
-        EOF
-        
-        echo "✅ Test XML files created successfully!"
-        
-        # Verify files were created
-        echo "📊 Verifying created files..."
-        ls -la jeecg-module-system/jeecg-system-start/target/surefire-reports/
-        
-        # Also try to run real tests (but don't fail if this doesn't work)
-        echo "🔍 Attempting real test execution (optional)..."
-        mvn test -pl jeecg-module-system/jeecg-system-start -DskipTests=false -Dmaven.test.failure.ignore=true --no-transfer-progress || echo "Real tests skipped - using generated reports"
+        echo "✅ Test execution completed!"
       env:
-        SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/jeecg_boot?useUnicode=true&characterEncoding=utf8mb4&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&connectionCollation=utf8mb4_unicode_ci
+        SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/jeecg-boot?useUnicode=true&characterEncoding=utf8mb4&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&connectionCollation=utf8mb4_unicode_ci
         SPRING_DATASOURCE_USERNAME: jeecg
         SPRING_DATASOURCE_PASSWORD: jeecg
         SPRING_REDIS_HOST: 127.0.0.1
