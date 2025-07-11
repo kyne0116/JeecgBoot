@@ -1,0 +1,9 @@
+这是一个测试文本文件，用于验证AI RAG文件解析功能。
+This is a test text file for AI RAG file parsing verification.
+
+测试内容包括：
+1. 中文文本解析
+2. 英文文本解析
+3. 数字和符号：123456 !@#$%^&*()
+
+AI RAG (Retrieval-Augmented Generation) 是一种结合了检索和生成的人工智能技术。
