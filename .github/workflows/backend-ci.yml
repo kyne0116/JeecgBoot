@@ -79,13 +79,16 @@ jobs:
         
         echo "✅ MySQL is ready, starting database initialization..."
         
-        # Check if SQL file exists
-        if [ ! -f "jeecg-boot/db/jeecgboot-mysql-5.7.sql" ]; then
+        # Check if SQL file exists (relative to jeecg-boot working directory)
+        if [ ! -f "db/jeecgboot-mysql-5.7.sql" ]; then
           echo "❌ Error: jeecgboot-mysql-5.7.sql file not found!"
+          echo "Current directory: $(pwd)"
+          echo "Looking for: db/jeecgboot-mysql-5.7.sql"
+          ls -la db/ || echo "db directory not found"
           exit 1
         fi
         
-        echo "📄 SQL file found: $(wc -l < jeecg-boot/db/jeecgboot-mysql-5.7.sql) lines"
+        echo "📄 SQL file found: $(wc -l < db/jeecgboot-mysql-5.7.sql) lines"
         
         # Create application user first
         echo "👤 Creating application user 'jeecg'..."
@@ -95,7 +98,7 @@ jobs:
         
         # Create a temporary SQL file with modifications for MySQL 8.0 compatibility
         echo "🔧 Preparing SQL file for MySQL 8.0 compatibility..."
-        cp jeecg-boot/db/jeecgboot-mysql-5.7.sql /tmp/jeecgboot-init.sql
+        cp db/jeecgboot-mysql-5.7.sql /tmp/jeecgboot-init.sql
         
         # Replace database name from jeecg-boot to jeecg_boot (MySQL 8.0 naming conventions)
         sed -i 's/`jeecg-boot`/`jeecg_boot`/g' /tmp/jeecgboot-init.sql
