@@ -41,3 +41,15 @@ jobs:
     - name: Run unit tests (pure JUnit)
       working-directory: ./jeecg-boot
       run: mvn test -pl jeecg-module-system/jeecg-system-start -Dtest=PureJunitTest -B -P test
+    
+    - name: Run BDD tests (Cucumber)
+      working-directory: ./jeecg-boot
+      run: mvn test -pl jeecg-module-system/jeecg-system-start -Dtest=CucumberTestRunner -B -P test
+    
+    - name: Upload BDD test reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: bdd-test-reports
+        path: |
+          jeecg-boot/jeecg-module-system/jeecg-system-start/target/cucumber-reports/
