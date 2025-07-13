@@ -28,6 +28,8 @@ jeecg:
     dataSourceSafe: false
     lowCodeMode: dev
   uploadType: local
+  path:
+    upload: /tmp/jeecg-boot/upload  # 测试环境上传路径
 
 cas:
   prefixUrl: http://localhost:8443/cas
