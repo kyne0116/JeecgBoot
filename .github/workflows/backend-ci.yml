@@ -155,7 +155,8 @@ jobs:
     - name: Install all modules (resolve inter-module dependencies)
       run: |
         echo "🔧 Installing all modules to resolve inter-module dependencies..."
-        mvn clean install -DskipTests -T 4 -q --no-transfer-progress
+        echo "📋 Using CI profile to avoid database connections during install"
+        mvn clean install -DskipTests -Dspring.profiles.active=ci -T 4 -q --no-transfer-progress
         echo "✅ All modules installed successfully!"
     
     - name: Run unit tests with CI configuration
