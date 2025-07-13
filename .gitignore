@@ -16,3 +16,5 @@ os_del_doc.cmd
 **/settings.json
 .sync-state.txt
 .DS_Store
+.vscode/
+.java-version

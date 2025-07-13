@@ -26,7 +26,7 @@
   <properties>
     <jeecgboot.version>3.8.1</jeecgboot.version>
     <!-- JDK版本支持17和1.8 -->
-    <java.version>1.8</java.version>
+    <java.version>17</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- 微服务 -->
     <spring-cloud.version>2021.0.8</spring-cloud.version>
@@ -80,7 +80,6 @@
     <module>jeecg-boot-base-core</module>
     <module>jeecg-module-system</module>
     <module>jeecg-boot-module</module>
-    <module>jeecg-module-hrms</module>
   </modules>
   <repositories>
     <repository>
