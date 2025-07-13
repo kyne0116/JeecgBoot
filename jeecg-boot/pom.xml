@@ -81,6 +81,8 @@
 		<!-- Log4j2爆雷漏洞 -->
 		<log4j2.version>2.17.0</log4j2.version>
 		<logback.version>1.2.13</logback.version>
+		<!-- Cucumber BDD测试 -->
+		<cucumber.version>7.18.0</cucumber.version>
 	</properties>
 
 	<modules>
@@ -468,6 +470,22 @@
 				<groupId>org.flywaydb</groupId>
 				<artifactId>flyway-core</artifactId>
 				<version>7.15.0</version>
+			</dependency>
+			<!-- Cucumber BDD测试框架版本管理 -->
+			<dependency>
+				<groupId>io.cucumber</groupId>
+				<artifactId>cucumber-java</artifactId>
+				<version>${cucumber.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.cucumber</groupId>
+				<artifactId>cucumber-junit-platform-engine</artifactId>
+				<version>${cucumber.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.cucumber</groupId>
+				<artifactId>cucumber-spring</artifactId>
+				<version>${cucumber.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

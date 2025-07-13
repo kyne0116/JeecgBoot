@@ -1,13 +1,17 @@
-# GitHub Actions CI测试配置
+# BDD测试专用配置 - 最小化配置，专注测试逻辑
 spring:
+  main:
+    web-application-type: none  # 禁用Web环境，专注于BDD逻辑测试
   datasource:
-    dynamic:
-      datasource:
-        master:
-          url: jdbc:mysql://127.0.0.1:3306/jeecg-boot?useUnicode=true&characterEncoding=utf8&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-          username: root
-          password: root
-          driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:h2:mem:bdd_testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
 
 # JeecgBoot必要配置
 jeecg:
@@ -28,12 +32,11 @@ jeecg:
 cas:
   prefixUrl: http://localhost:8443/cas
 
-# 最小化日志配置
+# BDD测试专用日志配置
 logging:
   level:
     root: WARN
     org.jeecg: INFO
-    org.springframework: ERROR
-    org.hibernate: ERROR
-    com.baomidou.mybatisplus: ERROR
-    org.apache.ibatis: ERROR
+    org.springframework: WARN
+    org.hibernate: WARN
+    io.cucumber: INFO
