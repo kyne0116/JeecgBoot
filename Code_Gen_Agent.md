@@ -57,10 +57,15 @@
 #### 技能 6: 工作流程自动化执行
 
 1. 调用 Code_Gen_Guide.py 脚本执行完整工作流
-2. 传递系统名称参数给脚本
-3. 监控执行过程并提供状态反馈
-4. 处理执行过程中的异常和错误
-5. 验证生成结果的正确性
+2. 确保四个核心变量正确传递给脚本：
+   - **PROJECT_PATH_PREFIX**: 项目根路径前缀
+   - **PROJECT_PATH**: 完整项目路径
+   - **ENTITY_NAME**: 实体名称
+   - **PACKAGE_NAME**: 完整包名
+3. 传递模块名称参数给脚本，自动生成正确的四个核心变量
+4. 监控执行过程并提供状态反馈
+5. 处理执行过程中的异常和错误
+6. 验证生成结果的正确性
 
 ## Rules
 
@@ -119,12 +124,19 @@
    - 检查 jeecg-module-{系统名} 是否存在
    - 如不存在，自动创建 Maven 模块
    - 更新项目配置文件
+   - **生成四个核心变量**：
+     - PROJECT_PATH_PREFIX: 从配置文件读取项目根路径前缀
+     - PROJECT_PATH: 基于前缀和模块名生成完整项目路径
+     - ENTITY_NAME: 基于业务功能的英文单词子模块名称（如：invoice、employee、customer）
+     - PACKAGE_NAME: 基于模块名和子模块名生成完整包名 `org.jeecg.modules.{模块名}.{子模块名}`
    - 登录系统获取 Token
    - 创建在线表单
    - 同步数据库结构
+   - **传递四个核心变量**：确保代码模板中的变量正确替换
    - 生成完整 CRUD 代码
 3. **监控执行过程**：
    - 实时显示执行状态
+   - 显示四个核心变量的值用于调试
    - 处理可能的错误和异常
    - 验证每个步骤的执行结果
 
@@ -156,6 +168,15 @@
 - `<字段列表>`: 分析得出的业务字段清单
 - `<配置文件>`: 生成的临时 JSON 配置文件路径
 - `<脚本参数>`: 传递给 Code_Gen_Guide.py 的命令行参数
+
+### 四个核心变量
+
+Code_Gen_Guide.py 脚本需要接收和处理的四个核心变量：
+
+- `PROJECT_PATH_PREFIX`: 项目根路径前缀，从配置文件读取
+- `PROJECT_PATH`: 完整项目路径，动态生成
+- `ENTITY_NAME`: 实体名称，从表名提取
+- `PACKAGE_NAME`: 完整包名，基于模块名和子模块名动态生成
 
 ### 🎯 业务系统智能识别
 
@@ -341,9 +362,15 @@ AI助手将：
    - **智能系统识别**：基于表名和描述识别业务系统类型
    - **模块管理**：检查 `jeecg-module-{系统名}` 是否存在，不存在则自动创建
    - **配置更新**：自动更新主项目和启动项目的 pom.xml
+   - **四个核心变量生成**：
+     - PROJECT_PATH_PREFIX: 从配置文件读取
+     - PROJECT_PATH: 基于前缀和模块名生成
+     - ENTITY_NAME: 基于业务功能的英文单词子模块名称
+     - PACKAGE_NAME: 基于模块名和子模块名生成完整包名 `org.jeecg.modules.{模块名}.{子模块名}`
    - **登录认证**：获取 JWT Token
    - **表单创建**：创建在线表单
    - **数据库同步**：同步表结构到数据库
+   - **变量替换**：确保四个核心变量在模板中正确替换
    - **代码生成**：生成完整的 CRUD 代码
 5. **结果确认** → 验证生成结果，自动清理临时文件
 
@@ -357,6 +384,55 @@ A: 不可以。这些是 JeecgBoot 框架必需字段，配置固定。
 
 **Q: 生成的代码可以直接使用吗？**
 A: 可以。生成的代码包含完整的 CRUD 功能，可根据需要进行调整。
+
+## 🔧 四个核心变量详解
+
+### 变量传递机制
+
+Code_Gen_Guide.py 脚本通过四个核心变量来完成完整的代码生成工作流：
+
+1. **PROJECT_PATH_PREFIX** - 项目根路径前缀
+
+   - 来源：从 `Code_Gen_Config.json` 配置文件读取
+   - 示例：`/Users/admin/Work/Github/JeecgBoot`
+   - 用途：作为所有项目路径计算的基础
+
+2. **PROJECT_PATH** - 完整项目路径
+
+   - 生成规则：`{PROJECT_PATH_PREFIX}/jeecg-boot/jeecg-module-{module_name}`
+   - 示例：`/Users/admin/Work/Github/JeecgBoot/jeecg-boot/jeecg-module-finance`
+   - 用途：指定代码生成的目标目录
+
+3. **ENTITY_NAME** - 子模块名称
+
+   - 生成规则：基于业务功能的英文单词命名，遵循业界最佳实践
+   - 命名规范：
+     - 使用单个英文单词（如：invoice、employee、customer）
+     - 避免下划线和驼峰命名
+     - 体现核心业务功能
+   - 示例：
+     - 发票管理 → `invoice`
+     - 员工管理 → `employee`
+     - 客户管理 → `customer`
+     - 订单管理 → `order`
+   - 用途：前端路由、权限控制、API 路径、SQL 脚本、子模块标识
+
+4. **PACKAGE_NAME** - 完整包名
+   - 生成规则：基于模块名和子模块名生成完整包名 `org.jeecg.modules.{模块名}.{子模块名}`
+   - 示例：`org.jeecg.modules.finance.invoice`
+   - 用途：Java 代码包结构，模板变量替换
+
+### 调试输出
+
+脚本执行时会打印四个核心变量的值：
+
+```
+四个核心变量:
+  PROJECT_PATH_PREFIX: /Users/admin/Work/Github/JeecgBoot
+  PROJECT_PATH: /Users/admin/Work/Github/JeecgBoot/jeecg-boot/jeecg-module-finance
+  ENTITY_NAME: invoice
+  PACKAGE_NAME: org.jeecg.modules.finance.invoice
+```
 
 ---
 

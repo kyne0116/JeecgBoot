@@ -1,4 +1,7 @@
 {
+  "project": {
+    "path_prefix": "/Users/admin/Work/Github/JeecgBoot"
+  },
   "server": {
     "base_url": "http://localhost:8080/jeecg-boot",
     "username": "admin",
