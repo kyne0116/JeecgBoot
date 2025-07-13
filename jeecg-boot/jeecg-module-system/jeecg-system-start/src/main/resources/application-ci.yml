@@ -22,7 +22,7 @@ spring:
         filters: stat
       datasource:
         master:
-          url: jdbc:mysql://127.0.0.1:3306/jeecg-boot?useUnicode=true&characterEncoding=utf8mb4&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+          url: jdbc:mysql://127.0.0.1:3306/jeecg-boot?useUnicode=true&characterEncoding=utf8&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
           username: jeecg
           password: jeecg
           driver-class-name: com.mysql.cj.jdbc.Driver
@@ -31,7 +31,16 @@ spring:
     host: 127.0.0.1
     port: 6379
     password: ''
-  # 排除所有不必要的自动配置以避免CI期间的依赖问题
+    timeout: 2000ms
+    connect-timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 2
+        max-idle: 2
+        min-idle: 0
+        max-wait: 1000ms
+      shutdown-timeout: 1000ms
+  # 排除部分自动配置以加速CI启动，保留必要的Redis和数据源配置
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration
@@ -40,10 +49,7 @@ spring:
       - org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration
       - org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration
       - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure
-      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-      - org.apache.shiro.spring.boot.autoconfigure.ShiroAutoConfiguration
   flyway:
     enabled: false
   quartz:
@@ -67,6 +73,17 @@ jeecg:
   redisson:
     enabled: false
   file-view-domain: http://localhost:8012
+  # 禁用AI相关功能以减少依赖
+  ai-chat:
+    enabled: false
+  ai-rag:
+    enabled: false
+  # 安全配置
+  firewall:
+    dataSourceSafe: false
+    lowCodeMode: dev
+  # 上传配置
+  uploadType: local
 
 cas:
   prefixUrl: http://localhost:8443/cas
