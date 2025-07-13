@@ -40,4 +40,4 @@ jobs:
     
     - name: Run tests
       working-directory: ./jeecg-boot
-      run: mvn test -B
+      run: mvn test -B -Dspring.profiles.active=test
