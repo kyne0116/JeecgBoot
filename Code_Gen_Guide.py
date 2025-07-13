@@ -25,6 +25,9 @@ def load_config():
     """加载配置文件"""
     config_file = 'Code_Gen_Config.json'
     default_config = {
+        "project": {
+            "path_prefix": "/Users/admin/Work/Github/JeecgBoot"
+        },
         "server": {
             "base_url": "http://localhost:8080/jeecg-boot",
             "username": "admin",
@@ -42,8 +45,8 @@ def load_config():
             "wait_after_create": 3
         },
         "codegen": {
-            "project_path": "D:\\02_Dev\\Workspace\\GitHub\\JeecgBoot\\jeecg-boot\\jeecg-module-system",
-            "entity_package": "empinfo",
+            "project_path": "{{PROJECT_PATH}}",
+            "entity_name": "{{ENTITY_NAME}}",
             "jsp_mode": "one",
             "jform_type": "1",
             "package_style": "service",
@@ -87,6 +90,66 @@ CONFIG = load_config()
 SKIP_MODULE_MANAGEMENT = False
 FORCE_SYSTEM = None
 
+# ==================== 配置文件处理功能 ====================
+
+def backup_and_replace_jeecg_config(project_path, package_name):
+    """备份并替换 jeecg_config.properties 文件中的变量"""
+    config_path = Path("jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/resources/jeecg/jeecg_config.properties")
+    backup_path = config_path.with_suffix('.properties.backup')
+
+    print(f"📝 临时替换配置文件变量: {config_path}")
+
+    try:
+        # 备份原文件
+        if config_path.exists():
+            import shutil
+            shutil.copy2(config_path, backup_path)
+            print(f"   ✅ 已备份原配置文件: {backup_path}")
+
+        # 读取原文件内容
+        with open(config_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # 替换变量
+        content = content.replace('{{PROJECT_PATH}}', str(project_path))
+        content = content.replace('{{PACKAGE_NAME}}', package_name)
+
+        # 写入替换后的内容
+        with open(config_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+        print(f"   ✅ 已替换变量:")
+        print(f"      PROJECT_PATH = {project_path}")
+        print(f"      PACKAGE_NAME = {package_name}")
+
+        return True
+
+    except Exception as e:
+        print(f"   ❌ 配置文件替换失败: {e}")
+        return False
+
+def restore_jeecg_config():
+    """还原 jeecg_config.properties 文件"""
+    config_path = Path("jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/resources/jeecg/jeecg_config.properties")
+    backup_path = config_path.with_suffix('.properties.backup')
+
+    print(f"🔄 还原配置文件: {config_path}")
+
+    try:
+        if backup_path.exists():
+            import shutil
+            shutil.copy2(backup_path, config_path)
+            backup_path.unlink()  # 删除备份文件
+            print(f"   ✅ 已还原配置文件，保持变量占位")
+        else:
+            print(f"   ⚠️ 备份文件不存在，跳过还原")
+
+        return True
+
+    except Exception as e:
+        print(f"   ❌ 配置文件还原失败: {e}")
+        return False
+
 # ==================== 模块管理功能 ====================
 
 def detect_business_system(table_name, table_description=""):
@@ -116,26 +179,26 @@ def detect_business_system(table_name, table_description=""):
     else:
         return 'system'  # 默认系统名
 
-def check_module_exists(system_name):
-    """检查系统级模块是否存在"""
-    module_path = Path(f"jeecg-boot/jeecg-module-{system_name}")
+def check_module_exists(module_name):
+    """检查模块是否存在"""
+    module_path = Path(f"jeecg-boot/jeecg-module-{module_name}")
     exists = module_path.exists() and module_path.is_dir()
 
-    print(f"🔍 检查模块: jeecg-module-{system_name}")
+    print(f"🔍 检查模块: jeecg-module-{module_name}")
     print(f"   路径: {module_path.absolute()}")
     print(f"   存在: {'✅ 是' if exists else '❌ 否'}")
 
     return exists
 
-def create_maven_module(system_name):
+def create_maven_module(module_name):
     """使用Maven archetype创建新模块"""
-    print(f"🏗️ 创建Maven模块: jeecg-module-{system_name}")
+    print(f"🏗️ 创建Maven模块: jeecg-module-{module_name}")
 
     # 构建Maven命令
     maven_cmd = [
         'mvn', 'archetype:generate',
         '-DgroupId=org.jeecgframework.boot',
-        f'-DartifactId=jeecg-module-{system_name}',
+        f'-DartifactId=jeecg-module-{module_name}',
         '-Dversion=3.8.1',
         '-DarchetypeGroupId=org.jeecgframework.archetype',
         '-DarchetypeArtifactId=jeecg-boot-gen',
@@ -180,7 +243,7 @@ def create_maven_module(system_name):
         print(f"❌ Maven命令执行异常: {e}")
         return False
 
-def update_main_pom(system_name):
+def update_main_pom(module_name):
     """更新主项目pom.xml添加新模块"""
     pom_path = Path('jeecg-boot/pom.xml')
 
@@ -209,16 +272,16 @@ def update_main_pom(system_name):
             return False
 
         # 检查模块是否已存在
-        module_name = f"jeecg-module-{system_name}"
+        module_artifact_id = f"jeecg-module-{module_name}"
         existing_modules = [elem.text for elem in modules_element.findall('.//maven:module', namespace) or modules_element.findall('.//module')]
 
-        if module_name in existing_modules:
-            print(f"✅ 模块已存在于pom.xml中: {module_name}")
+        if module_artifact_id in existing_modules:
+            print(f"✅ 模块已存在于pom.xml中: {module_artifact_id}")
             return True
 
         # 添加新模块
         new_module = ET.SubElement(modules_element, 'module')
-        new_module.text = module_name
+        new_module.text = module_artifact_id
 
         # 保存文件
         tree.write(pom_path, encoding='utf-8', xml_declaration=True)
@@ -229,7 +292,7 @@ def update_main_pom(system_name):
         print(f"❌ 更新主项目pom.xml失败: {e}")
         return False
 
-def update_system_start_pom(system_name):
+def update_system_start_pom(module_name):
     """更新启动项目pom.xml添加新模块依赖"""
     pom_path = Path('jeecg-boot/jeecg-module-system/jeecg-system-start/pom.xml')
 
@@ -258,7 +321,7 @@ def update_system_start_pom(system_name):
             return False
 
         # 检查依赖是否已存在
-        artifact_id = f"jeecg-module-{system_name}"
+        artifact_id = f"jeecg-module-{module_name}"
         existing_deps = []
         for dep in dependencies_element.findall('.//maven:dependency', namespace) or dependencies_element.findall('.//dependency'):
             artifact_elem = dep.find('.//maven:artifactId', namespace) or dep.find('.//artifactId')
@@ -290,32 +353,32 @@ def update_system_start_pom(system_name):
         print(f"❌ 更新启动项目pom.xml失败: {e}")
         return False
 
-def ensure_module_exists(system_name):
+def ensure_module_exists(module_name):
     """确保模块存在，如果不存在则创建并配置"""
-    print(f"\n🔧 模块管理: {system_name}")
+    print(f"\n🔧 模块管理: {module_name}")
     print("=" * 40)
 
     # 1. 检查模块是否存在
-    if check_module_exists(system_name):
+    if check_module_exists(module_name):
         print(f"✅ 模块已存在，跳过创建步骤")
         return True
 
     # 2. 创建模块
     print(f"📦 模块不存在，开始创建...")
-    if not create_maven_module(system_name):
+    if not create_maven_module(module_name):
         return False
 
     # 3. 更新主项目pom.xml
-    if not update_main_pom(system_name):
+    if not update_main_pom(module_name):
         return False
 
     # 4. 更新启动项目pom.xml
-    if not update_system_start_pom(system_name):
+    if not update_system_start_pom(module_name):
         return False
 
     # 5. 验证模块创建结果
-    if check_module_exists(system_name):
-        print(f"🎉 模块创建和配置完成: jeecg-module-{system_name}")
+    if check_module_exists(module_name):
+        print(f"🎉 模块创建和配置完成: jeecg-module-{module_name}")
         return True
     else:
         print(f"❌ 模块创建验证失败")
@@ -336,7 +399,7 @@ FORM_DATA_FILE = CONFIG['form']['data_file']
 WAIT_TIME_AFTER_CREATE = CONFIG['form']['wait_after_create']
 
 PROJECT_PATH = CONFIG['codegen']['project_path']
-ENTITY_PACKAGE = CONFIG['codegen']['entity_package']
+ENTITY_NAME = CONFIG['codegen']['entity_name']
 JSP_MODE = CONFIG['codegen']['jsp_mode']
 JFORM_TYPE = CONFIG['codegen']['jform_type']
 PACKAGE_STYLE = CONFIG['codegen']['package_style']
@@ -514,11 +577,87 @@ def run_diagnostics():
 
 # ==================== 主要功能函数 ====================
 
+def print_workflow_variables():
+    """打印工作流执行期间使用的所有变量和变量值"""
+    print("\n📋 工作流变量详情")
+    print("=" * 80)
+
+    # 服务器配置
+    print("\n🌐 服务器配置:")
+    print(f"   BASE_URL                 = {BASE_URL}")
+    print(f"   LOGIN_USERNAME           = {LOGIN_USERNAME}")
+    print(f"   LOGIN_PASSWORD           = {'*' * len(LOGIN_PASSWORD)}")
+
+    # 超时配置
+    print("\n⏱️  超时配置:")
+    print(f"   REQUEST_TIMEOUT_LOGIN    = {REQUEST_TIMEOUT_LOGIN}s")
+    print(f"   REQUEST_TIMEOUT_CREATE   = {REQUEST_TIMEOUT_CREATE}s")
+    print(f"   REQUEST_TIMEOUT_LIST     = {REQUEST_TIMEOUT_LIST}s")
+    print(f"   REQUEST_TIMEOUT_SYNC     = {REQUEST_TIMEOUT_SYNC}s")
+    print(f"   REQUEST_TIMEOUT_CODEGEN  = {REQUEST_TIMEOUT_CODEGEN}s")
+
+    # 表单配置
+    print("\n📝 表单配置:")
+    print(f"   FORM_DATA_FILE           = {FORM_DATA_FILE}")
+    print(f"   WAIT_TIME_AFTER_CREATE   = {WAIT_TIME_AFTER_CREATE}s")
+
+    # 项目路径配置
+    print("\n📁 项目路径配置:")
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+
+    # 生成完整包名（基于模块名称和实体名称）
+    if FORCE_SYSTEM:
+        # 使用指定的模块名称生成包名
+        package_name = f"org.jeecg.modules.{FORCE_SYSTEM}.{ENTITY_NAME}"
+    else:
+        # 默认包名（仅使用实体名称，兼容旧版本）
+        package_name = f"org.jeecg.modules.{ENTITY_NAME}"
+
+    print(f"   PROJECT_PATH_PREFIX      = {project_prefix}")
+    print(f"   PROJECT_PATH             = {PROJECT_PATH}")
+    print(f"   ENTITY_NAME              = {ENTITY_NAME}")
+    print(f"   PACKAGE_NAME             = {package_name}")
+
+    # 代码生成配置
+    print("\n🔧 代码生成配置:")
+    print(f"   JSP_MODE                 = {JSP_MODE}")
+    print(f"   JFORM_TYPE               = {JFORM_TYPE}")
+    print(f"   PACKAGE_STYLE            = {PACKAGE_STYLE}")
+    print(f"   VUE_STYLE                = {VUE_STYLE}")
+    print(f"   CODE_TYPES               = {CODE_TYPES}")
+
+    # 查询配置
+    print("\n🔍 查询配置:")
+    print(f"   PAGE_SIZE                = {PAGE_SIZE}")
+    print(f"   PAGE_NO                  = {PAGE_NO}")
+
+    # 显示配置
+    print("\n🖥️  显示配置:")
+    print(f"   DISPLAY_TOKEN_LENGTH     = {DISPLAY_TOKEN_LENGTH}")
+    print(f"   MAX_DISPLAY_RECORDS      = {MAX_DISPLAY_RECORDS}")
+
+    # 模块管理配置
+    print("\n🏗️  模块管理配置:")
+    print(f"   SKIP_MODULE_MANAGEMENT   = {SKIP_MODULE_MANAGEMENT}")
+    print(f"   FORCE_SYSTEM             = {FORCE_SYSTEM or 'None (自动识别)'}")
+
+    # 运行环境信息
+    print("\n💻 运行环境信息:")
+    print(f"   操作系统                 = {platform.system()} {platform.release()}")
+    print(f"   Python版本               = {platform.python_version()}")
+    print(f"   当前工作目录             = {Path.cwd()}")
+    print(f"   配置文件路径             = {Path('Code_Gen_Config.json').absolute()}")
+
+    print("=" * 80)
+
 def jeecg_complete_workflow():
     """JeecgBoot完整表单工作流"""
 
     print("\n🚀 开始执行 JeecgBoot 表单工作流")
     print("=" * 50)
+
+    # 打印所有变量信息
+    print_workflow_variables()
 
     # 1. 登录获取Token
     print("1️⃣ 正在登录...")
@@ -571,29 +710,54 @@ def jeecg_complete_workflow():
         try:
             # 优先使用命令行指定的系统名称，否则智能识别
             if FORCE_SYSTEM:
-                system_name = FORCE_SYSTEM
-                print(f"🎯 使用指定业务系统: {system_name}")
+                module_name = FORCE_SYSTEM
+                print(f"🎯 使用指定业务系统: {module_name}")
             else:
-                system_name = detect_business_system(table_name, table_txt)
-                print(f"🧠 智能识别业务系统: {system_name}")
+                module_name = detect_business_system(table_name, table_txt)
+                print(f"🧠 智能识别业务系统: {module_name}")
 
             # 确保模块存在
-            if not ensure_module_exists(system_name):
+            if not ensure_module_exists(module_name):
                 print(f"❌ 模块管理失败，终止工作流")
                 return
 
             # 更新项目路径配置
-            global PROJECT_PATH, ENTITY_PACKAGE
-            PROJECT_PATH = str(Path(f"D:/02_Dev/Workspace/GitHub/JeecgBoot/jeecg-boot/jeecg-module-{system_name}").resolve())
+            global PROJECT_PATH, ENTITY_NAME
+            project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+            PROJECT_PATH = str(Path(f"{project_prefix}/jeecg-boot/jeecg-module-{module_name}").resolve())
 
             # 从表名提取实体包名（去掉us_前缀）
             if table_name.startswith('us_'):
-                ENTITY_PACKAGE = table_name[3:]  # 去掉us_前缀
+                ENTITY_NAME = table_name[3:]  # 去掉us_前缀
             else:
-                ENTITY_PACKAGE = table_name
+                ENTITY_NAME = table_name
 
             print(f"🔧 更新项目路径: {PROJECT_PATH}")
-            print(f"📦 更新实体包名: {ENTITY_PACKAGE}")
+            print(f"📦 更新实体名称: {ENTITY_NAME}")
+
+            # 生成完整包名（基于模块名称和实体名称）
+            if FORCE_SYSTEM:
+                # 使用指定的模块名称生成包名
+                package_name = f"org.jeecg.modules.{FORCE_SYSTEM}.{ENTITY_NAME}"
+            else:
+                # 默认包名（仅使用实体名称，兼容旧版本）
+                package_name = f"org.jeecg.modules.{ENTITY_NAME}"
+
+            # 打印详细的路径信息
+            print(f"\n📋 动态更新后的路径变量:")
+            print(f"   项目路径前缀             = {project_prefix}")
+            print(f"   业务模块名称             = {module_name}")
+            print(f"   完整项目路径             = {PROJECT_PATH}")
+            print(f"   实体名称                 = {ENTITY_NAME}")
+            print(f"   完整包名                 = {package_name}")
+            print(f"   表名                     = {table_name}")
+            print(f"   表描述                   = {table_txt}")
+            print(f"\n📝 变量说明:")
+            print(f"   - path_prefix: 项目根路径前缀，来自配置文件")
+            print(f"   - project_path: 完整项目路径，格式为 {{path_prefix}}/jeecg-boot/jeecg-module-{{module_name}}")
+            print(f"   - entity_name: 实体名称，从表名去掉us_前缀生成，用于前端路由和权限控制")
+            print(f"   - package_name: 完整包名，格式为 org.jeecg.modules.{{module_name}}.{{entity_name}}")
+            print(f"   - SQL文件中的模块名称就是entity_name的值，如 'invoice'")
 
         except Exception as e:
             print(f"❌ 模块管理异常: {e}")
@@ -601,7 +765,23 @@ def jeecg_complete_workflow():
     else:
         print("\n2️⃣.5️⃣ 跳过模块管理（使用现有配置）")
         print(f"🔧 当前项目路径: {PROJECT_PATH}")
-        print(f"📦 当前实体包名: {ENTITY_PACKAGE}")
+        print(f"📦 当前实体名称: {ENTITY_NAME}")
+
+        # 生成完整包名（基于模块名称和实体名称）
+        if FORCE_SYSTEM:
+            # 使用指定的模块名称生成包名
+            package_name = f"org.jeecg.modules.{FORCE_SYSTEM}.{ENTITY_NAME}"
+        else:
+            # 默认包名（仅使用实体名称，兼容旧版本）
+            package_name = f"org.jeecg.modules.{ENTITY_NAME}"
+
+        # 打印当前配置信息
+        print(f"\n📋 当前配置变量:")
+        print(f"   项目路径                 = {PROJECT_PATH}")
+        print(f"   实体名称                 = {ENTITY_NAME}")
+        print(f"   完整包名                 = {package_name}")
+        print(f"   表名                     = {table_name}")
+        print(f"   表描述                   = {table_txt}")
     
     # 3. 创建表单
     print("\n3️⃣ 正在创建表单...")
@@ -731,6 +911,40 @@ def jeecg_complete_workflow():
         # 生成实体名（将表名转换为驼峰命名）
         entity_name = ''.join(word.capitalize() for word in table_name.split('_'))
 
+        # 生成完整包名（基于模块名称和实体名称）
+        if FORCE_SYSTEM:
+            # 使用指定的模块名称生成包名
+            package_name = f"org.jeecg.modules.{FORCE_SYSTEM}.{ENTITY_NAME}"
+        else:
+            # 默认包名（仅使用实体名称，兼容旧版本）
+            package_name = f"org.jeecg.modules.{ENTITY_NAME}"
+
+        # 打印代码生成前的所有关键变量
+        print(f"\n📋 代码生成关键变量:")
+        print(f"   表单ID                   = {form_id}")
+        print(f"   表名                     = {table_name}")
+        print(f"   表描述                   = {form_data['head']['tableTxt']}")
+        print(f"   实体名                   = {entity_name}")
+        print(f"   实体名称                 = {ENTITY_NAME}")
+        print(f"   完整包名                 = {package_name}")
+        print(f"   项目路径                 = {PROJECT_PATH}")
+
+        # 显示四个核心变量
+        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+        print(f"\n📋 四个核心变量:")
+        print(f"   PROJECT_PATH_PREFIX      = {project_prefix}")
+        print(f"   PROJECT_PATH             = {PROJECT_PATH}")
+        print(f"   ENTITY_NAME              = {ENTITY_NAME}")
+        print(f"   PACKAGE_NAME             = {package_name}")
+
+        print(f"\n🔧 其他配置:")
+        print(f"   JSP模式                  = {JSP_MODE}")
+        print(f"   表单类型                 = {JFORM_TYPE}")
+        print(f"   包样式                   = {PACKAGE_STYLE}")
+        print(f"   Vue样式                  = {VUE_STYLE}")
+        print(f"   代码类型                 = {CODE_TYPES}")
+        print(f"   强制系统                 = {FORCE_SYSTEM or 'None'}")
+
         # 准备代码生成参数
         codegen_data = {
             "projectPath": PROJECT_PATH,
@@ -739,7 +953,8 @@ def jeecg_complete_workflow():
             "jformType": JFORM_TYPE,
             "tableName_tmp": table_name,
             "entityName": entity_name,
-            "entityPackage": ENTITY_PACKAGE,
+            "entityPackage": ENTITY_NAME,
+            "bussiPackage": package_name,  # 添加正确的业务包名
             "packageStyle": PACKAGE_STYLE,
             "vueStyle": VUE_STYLE,
             "codeTypes": CODE_TYPES,
@@ -747,10 +962,22 @@ def jeecg_complete_workflow():
             "tableName": table_name
         }
 
+        # 打印完整的代码生成请求参数
+        print(f"\n📋 代码生成请求参数:")
+        for key, value in codegen_data.items():
+            print(f"   {key:<20} = {value}")
+
+        # 代码生成前：备份并替换配置文件变量
+        config_replaced = backup_and_replace_jeecg_config(PROJECT_PATH, package_name)
+        if not config_replaced:
+            print("⚠️ 配置文件替换失败，继续执行代码生成...")
+
         codegen_url = f"{BASE_URL}/online/cgform/api/codeGenerate"
         print(f"   代码生成URL: {codegen_url}")
         print(f"   表单ID: {form_id}")
         print(f"   实体名: {entity_name}")
+        print(f"   业务包名: {package_name}")
+        print(f"   实体名称: {ENTITY_NAME}")
         print(f"   使用Token: {token[:DISPLAY_TOKEN_LENGTH]}...")
 
         response = requests.post(codegen_url, json=codegen_data, headers=headers, timeout=REQUEST_TIMEOUT_CODEGEN)
@@ -774,6 +1001,9 @@ def jeecg_complete_workflow():
     except Exception as e:
         print(f"❌ 代码生成异常: {e}")
         return
+    finally:
+        # 代码生成完成后：还原配置文件
+        restore_jeecg_config()
 
     # 7. 完成
     print(f"\n{'='*50}")
@@ -781,7 +1011,8 @@ def jeecg_complete_workflow():
     print(f"📋 表名: {table_name}")
     print(f"🆔 表单ID: {form_id}")
     print(f"🏗️ 实体名: {entity_name}")
-    print(f"📦 包名: {ENTITY_PACKAGE}")
+    print(f"📦 业务包名: {package_name}")
+    print(f"📦 实体名称: {ENTITY_NAME}")
     print(f"🏗️ 项目路径: {PROJECT_PATH}")
     print(f"⏰ 完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*50}")
@@ -791,8 +1022,17 @@ def jeecg_complete_workflow():
     print(f"   表名: {table_name}")
     print(f"   表单ID: {form_id}")
     print(f"   实体名: {entity_name}")
-    print(f"   实体包名: {ENTITY_PACKAGE}")
+    print(f"   实体名称: {ENTITY_NAME}")
+    print(f"   业务包名: {package_name}")
     print(f"   项目路径: {PROJECT_PATH}")
+
+    # 显示四个核心变量摘要
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    print(f"\n📋 四个核心变量摘要:")
+    print(f"   PROJECT_PATH_PREFIX      = {project_prefix}")
+    print(f"   PROJECT_PATH             = {PROJECT_PATH}")
+    print(f"   ENTITY_NAME              = {ENTITY_NAME}")
+    print(f"   PACKAGE_NAME             = {package_name}")
     print(f"   状态: 成功")
 
     print("\n✅ 代码已生成到指定项目路径，可以启动JeecgBoot查看效果！")
@@ -922,8 +1162,8 @@ def parse_arguments():
     parser.add_argument('--config', '-c', default='Code_Gen_Config.json',
                        help='配置文件路径 (默认: Code_Gen_Config.json)')
 
-    parser.add_argument('--system-name', '-s',
-                       help='业务系统名称（如：hrms, crm, scm, oa, finance）')
+    parser.add_argument('--module-name', '-m',
+                       help='业务模块名称（如：hrms, crm, scm, oa, finance）')
 
     parser.add_argument('--form-config', '-f',
                        help='表单配置文件路径')
@@ -937,8 +1177,8 @@ def parse_arguments():
     parser.add_argument('--project-path', '-p',
                        help='项目路径（覆盖配置文件中的设置）')
 
-    parser.add_argument('--entity-package', '-e',
-                       help='实体包名（覆盖配置文件中的设置）')
+    parser.add_argument('--entity-name', '-e',
+                       help='实体名称（覆盖配置文件中的设置）')
 
     parser.add_argument('--test', action='store_true',
                        help='运行系统诊断测试')
@@ -969,23 +1209,49 @@ def main():
     # 命令行参数覆盖配置
     if args.project_path:
         CONFIG['codegen']['project_path'] = args.project_path
-    if args.entity_package:
-        CONFIG['codegen']['entity_package'] = args.entity_package
+    if args.entity_name:
+        CONFIG['codegen']['entity_name'] = args.entity_name
 
     # 设置全局标志
     global SKIP_MODULE_MANAGEMENT, FORCE_SYSTEM
     SKIP_MODULE_MANAGEMENT = args.skip_module_management
-    FORCE_SYSTEM = args.system_name  # 使用新的参数名
+    FORCE_SYSTEM = args.module_name  # 使用新的参数名
 
-    # 更新全局变量
+    # 预处理工作流变量（确保在显示配置前就有实际值）
+    global PROJECT_PATH, ENTITY_NAME
+
+    # 1. 处理模块名称和项目路径
+    if FORCE_SYSTEM:
+        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+        PROJECT_PATH = f"{project_prefix}/jeecg-boot/jeecg-module-{FORCE_SYSTEM}"
+    else:
+        PROJECT_PATH = CONFIG['codegen']['project_path']  # 保持原配置值
+
+    # 2. 处理实体名称
+    if args.form_config:
+        try:
+            with open(args.form_config, 'r', encoding='utf-8') as f:
+                form_data = json.load(f)
+                table_name = form_data.get('head', {}).get('tableName', '')
+                if table_name.startswith('us_'):
+                    ENTITY_NAME = table_name[3:]  # 去掉us_前缀
+                else:
+                    ENTITY_NAME = table_name
+        except Exception as e:
+            print(f"⚠️ 无法读取表单配置文件: {e}")
+            ENTITY_NAME = CONFIG['codegen']['entity_name']  # 保持原配置值
+    else:
+        ENTITY_NAME = CONFIG['codegen']['entity_name']  # 保持原配置值
+
+    # 3. 更新全局变量（使用预处理后的值）
     update_global_vars()
 
     # 显示工具信息
     print("JeecgBoot 表单工作流自动化工具 v2.0")
     print("=" * 50)
 
-    if args.system_name:
-        print(f"🎯 指定业务系统: {args.system_name}")
+    if args.module_name:
+        print(f"🎯 指定业务模块: {args.module_name}")
     if args.form_config:
         print(f"📋 表单配置文件: {args.form_config}")
 
@@ -1024,10 +1290,10 @@ def main():
     if args.dry_run:
         print("🔍 试运行模式 - 将显示操作但不执行")
         print(f"📋 配置文件: {args.config}")
-        print(f"🎯 业务系统: {args.system_name or '自动识别'}")
+        print(f"🎯 业务系统: {args.module_name or '自动识别'}")
         print(f"📋 表单配置: {args.form_config or '使用默认'}")
         print(f"🏗️ 项目路径: {CONFIG['codegen']['project_path']}")
-        print(f"📦 实体包名: {CONFIG['codegen']['entity_package']}")
+        print(f"📦 实体名称: {CONFIG['codegen']['entity_name']}")
         return
 
     # 处理表单配置文件
@@ -1057,7 +1323,7 @@ def update_global_vars():
     global REQUEST_TIMEOUT_LOGIN, REQUEST_TIMEOUT_CREATE, REQUEST_TIMEOUT_LIST
     global REQUEST_TIMEOUT_SYNC, REQUEST_TIMEOUT_CODEGEN
     global FORM_DATA_FILE, WAIT_TIME_AFTER_CREATE
-    global PROJECT_PATH, ENTITY_PACKAGE, JSP_MODE, JFORM_TYPE
+    global JSP_MODE, JFORM_TYPE
     global PACKAGE_STYLE, VUE_STYLE, CODE_TYPES
     global PAGE_SIZE, PAGE_NO, DISPLAY_TOKEN_LENGTH, MAX_DISPLAY_RECORDS
 
@@ -1074,8 +1340,7 @@ def update_global_vars():
     FORM_DATA_FILE = CONFIG['form']['data_file']
     WAIT_TIME_AFTER_CREATE = CONFIG['form']['wait_after_create']
 
-    PROJECT_PATH = CONFIG['codegen']['project_path']
-    ENTITY_PACKAGE = CONFIG['codegen']['entity_package']
+    # PROJECT_PATH 和 ENTITY_NAME 在主函数中已经预处理，这里不再覆盖
     JSP_MODE = CONFIG['codegen']['jsp_mode']
     JFORM_TYPE = CONFIG['codegen']['jform_type']
     PACKAGE_STYLE = CONFIG['codegen']['package_style']

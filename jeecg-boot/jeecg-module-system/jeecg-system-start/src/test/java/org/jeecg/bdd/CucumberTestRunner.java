@@ -15,6 +15,7 @@ import static io.cucumber.junit.platform.engine.Constants.*;
     value = "html:target/cucumber-reports/html," +
             "json:target/cucumber-reports/json/cucumber.json," +
             "junit:target/cucumber-reports/xml/cucumber.xml," +
+            "timeline:target/cucumber-reports/timeline," +
             "pretty")
 @ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "org.jeecg.bdd")
 @ConfigurationParameter(key = FEATURES_PROPERTY_NAME, value = "src/test/resources/features")

@@ -27,16 +27,20 @@ Code_Gen_Guide/
 
 **主要功能**：
 
-- **系统名称接收**：接收业务系统名称参数（如：hrms、crm、scm）
-- **模块管理**：自动检查 jeecg-module-{系统名} 是否存在，如不存在则创建
+- **模块名称接收**：接收业务模块名称参数（如：hrms、crm、scm、finance）
+- **模块管理**：自动检查 jeecg-module-{模块名} 是否存在，如不存在则创建
 - **Maven 模块创建**：使用 Maven archetype 自动创建新模块
 - **项目配置更新**：自动更新主项目和启动项目的 pom.xml 配置
+- **完整包名生成**：基于模块名称和实体名称自动生成正确的包名 `org.jeecg.modules.{模块名}.{实体名称}`
+- **模板变量处理**：确保包名等模板变量正确传递和替换
 - **完整工作流执行**：登录 → 表单创建 → 数据库同步 → 代码生成
 
 **核心特性**：
 
 - ✅ 智能模块管理
 - ✅ 自动化 Maven 操作
+- ✅ 业务包名自动生成
+- ✅ 模板变量正确替换
 - ✅ 完整工作流执行
 - ✅ 错误处理和验证
 - ✅ 跨平台兼容
@@ -76,8 +80,177 @@ Code_Gen_Guide/
 
 **动态变量支持**：
 
-- `{{PROJECT_PATH}}`：根据系统名动态生成项目路径
-- `{{ENTITY_PACKAGE}}`：根据模块名动态生成包名
+- `{{PROJECT_PATH}}`：根据模块名动态生成项目路径
+- `{{ENTITY_NAME}}`：根据表名动态生成实体名称
+- `{{PACKAGE_NAME}}`：基于模块名和子模块名动态生成完整包名
+
+## 🔧 核心变量详解
+
+### 四个核心变量
+
+`Code_Gen_Guide.py` 脚本需要接收以下四个核心变量来完成代码生成工作流：
+
+1. **PROJECT_PATH_PREFIX** - 项目根路径前缀
+
+   - 来源：配置文件 `Code_Gen_Config.json` 中的 `project.path_prefix`
+   - 示例：`/Users/admin/Work/Github/JeecgBoot`
+   - 用途：作为所有项目路径的基础前缀
+   - 传递方式：从配置文件读取
+
+2. **PROJECT_PATH** - 完整项目路径
+
+   - 生成规则：`{PROJECT_PATH_PREFIX}/jeecg-boot/jeecg-module-{module_name}`
+   - 示例：`/Users/admin/Work/Github/JeecgBoot/jeecg-boot/jeecg-module-finance`
+   - 用途：指定代码生成的目标目录
+   - 传递方式：基于 PROJECT_PATH_PREFIX 和模块名称动态生成
+
+3. **ENTITY_NAME** - 子模块名称
+
+   - 生成规则：基于业务功能的英文单词命名，遵循业界最佳实践
+   - 命名规范：
+     - 使用单个英文单词（如：invoice、employee、customer、order）
+     - 避免下划线和驼峰命名
+     - 体现核心业务功能
+     - 符合 RESTful API 设计规范
+   - 示例：
+     - 发票管理 → `invoice`
+     - 员工管理 → `employee`
+     - 客户管理 → `customer`
+     - 订单管理 → `order`
+   - 用途：
+     - 前端路由路径：`/invoice/usInvoiceList`
+     - 权限控制标识：`invoice:list`
+     - SQL 文件中的模块名称
+     - API 接口路径：`/invoice/usInvoice/list`
+     - 子模块标识和包名组成
+   - 传递方式：基于业务功能手动指定或智能推断
+
+4. **PACKAGE_NAME** - 完整包名
+   - 生成规则：基于模块名和子模块名生成完整包名 `org.jeecg.modules.{模块名}.{子模块名}`
+   - 示例：`org.jeecg.modules.finance.invoice`
+   - 用途：Java 代码包结构，用于生成正确的包路径
+   - 传递方式：基于模块名称和子模块名称动态生成
+
+### 变量命名统一说明
+
+- **module_name**: 模块名称，如 `finance`，对应 `jeecg-module-finance`
+- **entity_name**: 子模块名称，如 `invoice`，用于前端路由和权限控制
+- **package_name**: 完整包名，基于模块名和子模块名生成 `org.jeecg.modules.{模块名}.{子模块名}`，如 `org.jeecg.modules.finance.invoice`，用于 Java 代码包结构
+
+### 变量传递流程
+
+```
+Code_Gen_Guide.py 接收四个核心变量：
+
+1. PROJECT_PATH_PREFIX (从配置文件读取)
+   示例: /Users/admin/Work/Github/JeecgBoot
+
+2. PROJECT_PATH (动态生成)
+   规则: {PROJECT_PATH_PREFIX}/jeecg-boot/jeecg-module-{module_name}
+   示例: /Users/admin/Work/Github/JeecgBoot/jeecg-boot/jeecg-module-finance
+
+3. ENTITY_NAME (基于业务功能)
+   规则: 使用英文单词体现核心业务功能
+   示例: 发票管理 → invoice
+
+4. PACKAGE_NAME (动态生成)
+   规则: 基于模块名和子模块名生成完整包名 org.jeecg.modules.{模块名}.{子模块名}
+   示例: org.jeecg.modules.finance.invoice
+
+变量使用场景：
+- ENTITY_NAME 用于: 前端路由、权限控制、API路径、SQL脚本、子模块标识
+- PACKAGE_NAME 用于: Java代码包结构、模板变量替换
+- PROJECT_PATH 用于: 代码生成目标目录
+- PROJECT_PATH_PREFIX 用于: 路径计算基础
+```
+
+## 🔧 四个核心变量处理机制
+
+### 变量说明
+
+`Code_Gen_Guide.py` 脚本通过四个核心变量来完成完整的代码生成工作流：
+
+1. **PROJECT_PATH_PREFIX**: 项目根路径前缀
+2. **PROJECT_PATH**: 完整项目路径
+3. **ENTITY_NAME**: 实体名称
+4. **PACKAGE_NAME**: 完整包名
+
+### 自动生成规则
+
+脚本会根据传入的模块名称和配置信息自动生成这四个变量：
+
+```
+输入: 模块名称=finance, 业务功能=发票管理
+
+生成过程:
+1. PROJECT_PATH_PREFIX = 从配置文件读取 (/Users/admin/Work/Github/JeecgBoot)
+2. PROJECT_PATH = {PROJECT_PATH_PREFIX}/jeecg-boot/jeecg-module-finance
+3. ENTITY_NAME = invoice (基于业务功能的英文单词)
+4. PACKAGE_NAME = org.jeecg.modules.finance.invoice
+```
+
+### 传递流程
+
+1. **接收模块名称**：通过 `--module-name` 参数接收
+2. **读取配置前缀**：从 `Code_Gen_Config.json` 读取 `PROJECT_PATH_PREFIX`
+3. **生成项目路径**：`PROJECT_PATH = f"{PROJECT_PATH_PREFIX}/jeecg-boot/jeecg-module-{module_name}"`
+4. **确定子模块名称**：基于业务功能确定 `ENTITY_NAME`（如：invoice、employee、customer）
+5. **生成完整包名**：基于模块名和子模块名生成 `PACKAGE_NAME = f"org.jeecg.modules.{module_name}.{ENTITY_NAME}"`
+6. **传递给 API**：在代码生成请求中包含 `"bussiPackage": PACKAGE_NAME`
+7. **配置文件替换**：代码生成时临时替换 `jeecg_config.properties` 文件中的变量
+8. **还原配置**：生成完毕后，还原 `jeecg_config.properties` 文件，保持为变量占位
+
+### 配置文件变量替换机制
+
+**重要说明**：代码生成时 `jeecg_config.properties` 文件进行四个核心变量的替换，生成完毕后，还原该文件，保持为变量占位。
+
+#### 替换过程
+
+1. **生成前状态**：
+
+   ```properties
+   project_path={{PROJECT_PATH}}
+   bussi_package={{PACKAGE_NAME}}
+   entity_name={{ENTITY_NAME}}
+   path_prefix={{PROJECT_PATH_PREFIX}}
+   ```
+
+2. **生成时替换**：
+
+   ```properties
+   project_path=/Users/admin/Work/Github/JeecgBoot/jeecg-boot/jeecg-module-finance
+   bussi_package=org.jeecg.modules.finance.invoice
+   entity_name=invoice
+   path_prefix=/Users/admin/Work/Github/JeecgBoot
+   ```
+
+3. **生成后还原**：
+   ```properties
+   project_path={{PROJECT_PATH}}
+   bussi_package={{PACKAGE_NAME}}
+   entity_name={{ENTITY_NAME}}
+   path_prefix={{PROJECT_PATH_PREFIX}}
+   ```
+
+#### 目的说明
+
+- **临时替换**：确保代码生成时使用正确的四个核心变量值
+- **自动还原**：保持配置文件的通用性，支持多次不同模块的代码生成
+- **变量占位**：避免硬编码特定项目路径，提高配置文件的可移植性
+
+### 生成的代码结构
+
+```
+jeecg-module-{模块名}/
+└── src/main/java/
+    └── org/jeecg/modules/{模块名}/
+        └── {实体名称}/
+            ├── controller/
+            ├── entity/
+            ├── mapper/
+            ├── service/
+            └── vue3/
+```
 
 ### Code_Gen_Guide.json - 基础模板文件
 
@@ -212,15 +385,28 @@ python Code_Gen_Guide.py --skip-module-management --form-config config.json
 
 ### 动态配置更新
 
-脚本会根据识别的系统名称动态更新配置：
+脚本会根据识别的系统名称和表名动态生成四个核心变量：
 
 ```python
-# 更新项目路径
-PROJECT_PATH = f"D:/02_Dev/Workspace/GitHub/JeecgBoot/jeecg-boot/jeecg-module-{system_name}"
+# 1. 读取项目路径前缀
+PROJECT_PATH_PREFIX = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
 
-# 从表名提取实体包名（去掉 us_ 前缀）
-if table_name.startswith('us_'):
-    ENTITY_PACKAGE = table_name[3:]
+# 2. 生成完整项目路径
+PROJECT_PATH = f"{PROJECT_PATH_PREFIX}/jeecg-boot/jeecg-module-{system_name}"
+
+# 3. 基于业务功能确定子模块名称
+# 推荐使用英文单词，如：invoice、employee、customer、order
+ENTITY_NAME = "invoice"  # 示例：发票管理
+
+# 4. 生成完整包名
+PACKAGE_NAME = f"org.jeecg.modules.{system_name}.{ENTITY_NAME}"
+
+# 打印四个核心变量用于调试
+print(f"四个核心变量:")
+print(f"  PROJECT_PATH_PREFIX: {PROJECT_PATH_PREFIX}")
+print(f"  PROJECT_PATH: {PROJECT_PATH}")
+print(f"  ENTITY_NAME: {ENTITY_NAME}")
+print(f"  PACKAGE_NAME: {PACKAGE_NAME}")
 ```
 
 ## 🚀 完整使用流程
