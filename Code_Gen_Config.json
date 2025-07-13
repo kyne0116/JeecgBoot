@@ -16,8 +16,8 @@
     "wait_after_create": 3
   },
   "codegen": {
-    "project_path": "D:\\02_Dev\\Workspace\\GitHub\\JeecgBoot\\jeecg-boot\\jeecg-module-employee",
-    "entity_package": "empinfo",
+    "project_path": "{{PROJECT_PATH}}",
+    "entity_package": "{{ENTITY_PACKAGE}}",
     "jsp_mode": "one",
     "jform_type": "1",
     "package_style": "service",
