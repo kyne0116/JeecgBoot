@@ -36,8 +36,8 @@ jobs:
     
     - name: Build with Maven
       working-directory: ./jeecg-boot
-      run: mvn clean package -DskipTests -B
+      run: mvn clean package -DskipTests -B -P test
     
     - name: Run tests
       working-directory: ./jeecg-boot
-      run: mvn test -B -Dspring.profiles.active=test
+      run: mvn test -B -P test
