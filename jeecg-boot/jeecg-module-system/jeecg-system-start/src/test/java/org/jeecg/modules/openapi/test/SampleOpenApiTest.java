@@ -8,10 +8,10 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import java.security.MessageDigest;
 
-
-
+@Disabled("CI环境下暂时禁用，需要运行中的应用程序服务器")
 public class SampleOpenApiTest {
     private final String base_url = "http://localhost:8080/jeecg-boot";
     private final String appKey = "ak-pFjyNHWRsJEFWlu6";
