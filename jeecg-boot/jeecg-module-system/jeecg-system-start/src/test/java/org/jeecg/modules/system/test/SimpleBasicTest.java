@@ -1,15 +1,13 @@
 package org.jeecg.modules.system.test;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * 简单基础测试类
+ * 简单基础测试类 - 纯单元测试，不依赖Spring Boot
  * 确保CI环境下至少有一个测试可以运行
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 public class SimpleBasicTest {
 
     @Test
