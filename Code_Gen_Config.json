@@ -1,0 +1,35 @@
+{
+  "server": {
+    "base_url": "http://localhost:8080/jeecg-boot",
+    "username": "admin",
+    "password": "123456"
+  },
+  "timeouts": {
+    "login": 10,
+    "create": 30,
+    "list": 15,
+    "sync": 30,
+    "codegen": 60
+  },
+  "form": {
+    "data_file": "Code_Gen_Guide.json",
+    "wait_after_create": 3
+  },
+  "codegen": {
+    "project_path": "D:\\02_Dev\\Workspace\\GitHub\\JeecgBoot\\jeecg-boot\\jeecg-module-employee",
+    "entity_package": "empinfo",
+    "jsp_mode": "one",
+    "jform_type": "1",
+    "package_style": "service",
+    "vue_style": "vue3",
+    "code_types": "controller,service,dao,mapper,entity,vue"
+  },
+  "query": {
+    "page_size": 50,
+    "page_no": 1
+  },
+  "display": {
+    "token_length": 50,
+    "max_records": 5
+  }
+}
