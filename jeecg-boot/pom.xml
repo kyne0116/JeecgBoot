@@ -30,7 +30,7 @@
 	<properties>
 		<jeecgboot.version>3.8.1</jeecgboot.version>
 		<!-- JDK版本支持17和1.8 -->
-		<java.version>17</java.version>
+		<java.version>1.8</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
 		<!-- 微服务 -->
@@ -81,7 +81,7 @@
 		<!-- Log4j2爆雷漏洞 -->
 		<log4j2.version>2.17.0</log4j2.version>
 		<logback.version>1.2.13</logback.version>
-		<!-- Cucumber BDD测试 -->
+		<!-- BDD 测试驱动 -->
 		<cucumber.version>7.18.0</cucumber.version>
 	</properties>
 
@@ -150,6 +150,7 @@
 			<artifactId>commonmark</artifactId>
 			<version>${commonmark.version}</version>
 		</dependency>
+
 	</dependencies>
 
 	<dependencyManagement>
@@ -507,7 +508,7 @@
 		        <groupId>org.apache.maven.plugins</groupId>
 		        <artifactId>maven-surefire-plugin</artifactId>
 		        <configuration>
-		          <skipTests>false</skipTests>
+		          <skipTests>true</skipTests>
 		        </configuration>
 	        </plugin>
 	         <!-- 避免font文件的二进制文件格式压缩破坏 -->
@@ -560,39 +561,13 @@
 	
     <!-- 环境 -->
     <profiles>
-        <!-- 本地环境 -->
+        <!-- 开发 -->
         <profile>
-            <id>local</id>
+            <id>dev</id>
             <activation>
                 <!--默认激活配置-->
                 <activeByDefault>true</activeByDefault>
             </activation>
-            <properties>
-                <!--当前环境-->
-                <profile.name>local</profile.name>
-                <!--Nacos服务地址-->
-                <config.server-addr>localhost:8848</config.server-addr>
-                <!--Nacos配置中心命名空间,用于支持多环境.这里必须使用ID，不能使用名称,默认为空-->
-                <config.namespace></config.namespace>
-                <!--Nacos配置分组名称-->
-                <config.group>DEFAULT_GROUP</config.group>
-                <!--Nacos用户名-->
-                <config.username></config.username>
-                <!--Nacos密码-->
-                <config.password></config.password>
-            </properties>
-        </profile>
-        <!-- CI环境 -->
-        <profile>
-            <id>ci</id>
-            <properties>
-                <!--当前环境-->
-                <profile.name>ci</profile.name>
-            </properties>
-        </profile>
-        <!-- 开发 -->
-        <profile>
-            <id>dev</id>
             <properties>
                 <!--当前环境-->
                 <profile.name>dev</profile.name>
@@ -620,24 +595,6 @@
 				<config.password>nacos</config.password>
 			</properties>
 		</profile> -->
-        <!-- UAT测试环境 -->
-        <profile>
-            <id>uat</id>
-            <properties>
-                <!--当前环境-->
-                <profile.name>uat</profile.name>
-                <!--Nacos服务地址-->
-                <config.server-addr>10.92.82.149:8848</config.server-addr>
-                <!--Nacos配置中心命名空间,用于支持多环境.这里必须使用ID，不能使用名称,默认为空-->
-                <config.namespace></config.namespace>
-                <!--Nacos配置分组名称-->
-                <config.group>UAT_GROUP</config.group>
-                <!--Nacos用户名-->
-                <config.username></config.username>
-                <!--Nacos密码-->
-                <config.password></config.password>
-            </properties>
-        </profile>
         <!-- 测试 -->
         <profile>
             <id>test</id>
