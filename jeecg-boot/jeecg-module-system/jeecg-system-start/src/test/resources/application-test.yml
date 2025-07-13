@@ -1,4 +1,4 @@
-# GitHub Actions CI测试配置 - 简化配置
+# GitHub Actions CI测试配置
 spring:
   datasource:
     dynamic:
@@ -8,6 +8,25 @@ spring:
           username: root
           password: root
           driver-class-name: com.mysql.cj.jdbc.Driver
+
+# JeecgBoot必要配置
+jeecg:
+  xxljob:
+    enabled: false
+  redisson:
+    enabled: false
+  file-view-domain: http://localhost:8012
+  ai-chat:
+    enabled: false
+  ai-rag:
+    enabled: false
+  firewall:
+    dataSourceSafe: false
+    lowCodeMode: dev
+  uploadType: local
+
+cas:
+  prefixUrl: http://localhost:8443/cas
 
 # 最小化日志配置
 logging:
