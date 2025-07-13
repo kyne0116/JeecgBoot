@@ -146,9 +146,10 @@ spring:
           slow-sql-millis: 5000
       datasource:
         master:
-          url: jdbc:mysql://127.0.0.1:3306/jeecg-boot?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-          username: root
-          password: root
+          # 生产环境数据库配置 - 使用环境变量或配置管理
+          url: jdbc:mysql://${DB_HOST:prod-db-host}:${DB_PORT:3306}/jeecg-boot?characterEncoding=UTF-8&useUnicode=true&useSSL=true&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: ${DB_USERNAME:jeecg_prod}
+          password: ${DB_PASSWORD:ChangeThisPassword!}
           driver-class-name: com.mysql.cj.jdbc.Driver
           # 多数据源配置
           #multi-datasource1:

@@ -1,0 +1,82 @@
+# GitHub Actions CI环境配置 - 专为CI/CD优化
+server:
+  port: 8080
+
+spring:
+  main:
+    web-application-type: none  # 禁用web环境，避免启动时连接数据库
+  datasource:
+    dynamic:
+      druid:
+        initial-size: 1
+        min-idle: 1
+        maxActive: 5
+        maxWait: 30000
+        timeBetweenEvictionRunsMillis: 60000
+        minEvictableIdleTimeMillis: 300000
+        validationQuery: SELECT 1
+        testWhileIdle: true
+        testOnBorrow: false
+        testOnReturn: false
+        poolPreparedStatements: false
+        filters: stat
+      datasource:
+        master:
+          url: jdbc:mysql://127.0.0.1:3306/jeecg-boot?useUnicode=true&characterEncoding=utf8mb4&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+          username: jeecg
+          password: jeecg
+          driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    password: ''
+  # 排除所有不必要的自动配置以避免CI期间的依赖问题
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.embedded.EmbeddedWebServerFactoryCustomizerAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.HttpEncodingAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration
+      - org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.apache.shiro.spring.boot.autoconfigure.ShiroAutoConfiguration
+  flyway:
+    enabled: false
+  quartz:
+    auto-startup: false
+
+mybatis-plus:
+  mapper-locations: classpath*:org/jeecg/**/xml/*Mapper.xml
+  global-config:
+    banner: false
+    db-config:
+      id-type: ASSIGN_ID
+      table-underline: true
+  configuration:
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+    call-setters-on-nulls: true
+
+# 禁用所有非必要功能
+jeecg:
+  xxljob:
+    enabled: false
+  redisson:
+    enabled: false
+  file-view-domain: http://localhost:8012
+
+cas:
+  prefixUrl: http://localhost:8443/cas
+
+# 最小化日志输出
+logging:
+  level:
+    root: WARN
+    org.jeecg: INFO
+    org.springframework: ERROR
+    org.hibernate: ERROR
+    com.baomidou.mybatisplus: ERROR
+    org.apache.ibatis: ERROR
