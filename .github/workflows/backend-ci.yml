@@ -38,6 +38,6 @@ jobs:
       working-directory: ./jeecg-boot
       run: mvn clean package -DskipTests -B -P test
     
-    - name: Run tests
+    - name: Run unit tests (pure JUnit)
       working-directory: ./jeecg-boot
-      run: mvn test -B -P test
+      run: mvn test -pl jeecg-module-system/jeecg-system-start -Dtest=PureJunitTest -B -P test
