@@ -1,28 +1,14 @@
-name: Backend CI
+name: JeecgBoot CI/CD
 
 on:
   push:
     branches: [ master, develop, my-custom ]
-    paths:
-      - 'jeecg-boot/**'
-      - '.github/workflows/backend-ci.yml'
   pull_request:
     branches: [ master, develop ]
-    paths:
-      - 'jeecg-boot/**'
-      - '.github/workflows/backend-ci.yml'
-
-env:
-  JAVA_VERSION: '17'
-  MAVEN_OPTS: '-Xmx3072m -XX:+UseParallelGC -Djava.awt.headless=true'
-  MAVEN_CLI_OPTS: '-B -V -ntp -e'
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./jeecg-boot
     
     services:
       mysql:
@@ -30,326 +16,28 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: jeecg-boot
-          MYSQL_USER: jeecg
-          MYSQL_PASSWORD: jeecg
+        ports:
+          - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
-        ports:
-          - 3306:3306
-      
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-        ports:
-          - 6379:6379
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
     
-    - name: Set up JDK ${{ env.JAVA_VERSION }}
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
-        java-version: ${{ env.JAVA_VERSION }}
+        java-version: '17'
         distribution: 'temurin'
         cache: maven
     
-    - name: Cache Maven dependencies (Enhanced)
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.m2/repository
-          ~/.m2/wrapper
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/.mvn/wrapper/maven-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-
-          ${{ runner.os }}-maven-
+    - name: Build with Maven
+      working-directory: ./jeecg-boot
+      run: mvn clean package -DskipTests -B
     
-    - name: Initialize MySQL database
-      run: |
-        set -e  # Exit on any error
-        
-        echo "🔄 Waiting for MySQL to be ready..."
-        timeout 300 bash -c 'until mysql -h127.0.0.1 -P3306 -uroot -proot -e "SELECT 1" >/dev/null 2>&1; do 
-          echo "  Waiting for MySQL..."; 
-          sleep 2; 
-        done'
-        
-        echo "✅ MySQL is ready, starting database initialization..."
-        
-        # Check if SQL file exists (relative to jeecg-boot working directory)
-        if [ ! -f "db/jeecgboot-mysql-5.7.sql" ]; then
-          echo "❌ Error: jeecgboot-mysql-5.7.sql file not found!"
-          echo "Current directory: $(pwd)"
-          echo "Looking for: db/jeecgboot-mysql-5.7.sql"
-          ls -la db/ || echo "db directory not found"
-          exit 1
-        fi
-        
-        echo "📄 SQL file found: $(wc -l < db/jeecgboot-mysql-5.7.sql) lines"
-        
-        # Create application user first
-        echo "👤 Creating application user 'jeecg'..."
-        mysql -h127.0.0.1 -P3306 -uroot -proot -e "CREATE USER IF NOT EXISTS 'jeecg'@'%' IDENTIFIED BY 'jeecg';"
-        mysql -h127.0.0.1 -P3306 -uroot -proot -e "GRANT ALL PRIVILEGES ON *.* TO 'jeecg'@'%' WITH GRANT OPTION;"
-        mysql -h127.0.0.1 -P3306 -uroot -proot -e "FLUSH PRIVILEGES;"
-        
-        # Create a temporary SQL file with modifications for MySQL 8.0 compatibility
-        echo "🔧 Preparing SQL file for MySQL 8.0 compatibility..."
-        cp db/jeecgboot-mysql-5.7.sql /tmp/jeecgboot-init.sql
-        
-        # Keep original database name jeecg-boot (matching application-test.yml)
-        echo "✅ Using original database name 'jeecg-boot' to match Spring Boot configuration"
-        
-        # Add MySQL 8.0 compatibility settings and fix character encoding
-        echo "SET sql_mode = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';" > /tmp/mysql_init.sql
-        echo "SET NAMES utf8mb4;" >> /tmp/mysql_init.sql
-        echo "SET character_set_client = utf8mb4;" >> /tmp/mysql_init.sql
-        cat /tmp/jeecgboot-init.sql >> /tmp/mysql_init.sql
-        
-        echo "📥 Importing JeecgBoot database schema and initial data..."
-        mysql -h127.0.0.1 -P3306 -uroot -proot --default-character-set=utf8mb4 < /tmp/mysql_init.sql 2>&1 | head -20 || {
-          echo "❌ Database import failed, showing error details:"
-          mysql -h127.0.0.1 -P3306 -uroot -proot --default-character-set=utf8mb4 < /tmp/mysql_init.sql 2>&1 | tail -20
-          exit 1
-        }
-        
-        # Verify database creation
-        echo "🔍 Verifying database initialization..."
-        
-        DB_EXISTS=$(mysql -h127.0.0.1 -P3306 -uroot -proot -e "SHOW DATABASES;" | grep -c "jeecg-boot" || echo "0")
-        if [ "$DB_EXISTS" -eq "0" ]; then
-          echo "❌ Error: Database 'jeecg-boot' was not created!"
-          exit 1
-        fi
-        
-        TABLE_COUNT=$(mysql -h127.0.0.1 -P3306 -uroot -proot -e "USE \`jeecg-boot\`; SHOW TABLES;" | wc -l)
-        echo "📊 Database 'jeecg-boot' created with $TABLE_COUNT tables"
-        
-        # Show some sample tables to verify
-        echo "📋 Sample tables created:"
-        mysql -h127.0.0.1 -P3306 -uroot -proot -e "USE \`jeecg-boot\`; SHOW TABLES;" | head -10
-        
-        # Test user connection
-        echo "🔐 Testing application user connection..."
-        mysql -h127.0.0.1 -P3306 -ujeecg -pjeecg -e "USE \`jeecg-boot\`; SELECT COUNT(*) as table_count FROM information_schema.tables WHERE table_schema = 'jeecg-boot';"
-        
-        echo "✅ Database initialization completed successfully!"
-        echo "   - Database: jeecg-boot"
-        echo "   - Tables: $TABLE_COUNT"
-        echo "   - User: jeecg (with full privileges)"
-    
-    - name: Validate Maven project  
-      run: |
-        echo "🔄 Validating Maven project structure..."
-        mvn validate -T 4 -q --no-transfer-progress
-        echo "✅ Project validation completed!"
-    
-    - name: Install all modules (resolve inter-module dependencies)
-      run: |
-        echo "🔧 Installing all modules to resolve inter-module dependencies..."
-        echo "📋 Using CI profile to avoid database connections during install"
-        mvn clean install -DskipTests -Dspring.profiles.active=ci -T 4 -q --no-transfer-progress
-        echo "✅ All modules installed successfully!"
-    
-    - name: Run unit tests with CI configuration
-      run: |
-        echo "🎯 Running tests with GitHub Actions CI environment..."
-        
-        echo "📋 CI Configuration:"
-        echo "  - Database: jeecg-boot (MySQL service on 127.0.0.1:3306)"
-        echo "  - Redis: 127.0.0.1:6379 (Redis service)"
-        echo "  - Profile: ci"
-        echo "  - Test execution: enabled (skipTests=false in pom.xml)"
-        
-        # GitHub Actions CI环境使用已经配置好的application-ci.yml
-        echo "📄 Using pre-configured application-ci.yml for GitHub Actions environment"
-        
-        echo "📄 Created GitHub Actions CI-specific test configuration"
-        
-        # Run tests with the CI profile - focus on execution and report generation
-        mvn test -pl jeecg-module-system/jeecg-system-start \
-          -DskipTests=false \
-          -Dspring.profiles.active=ci \
-          -Dmaven.test.failure.ignore=true \
-          --no-transfer-progress \
-          -q
-        
-        echo "✅ Test execution completed! Surefire reports generated for test-reporter."
-    
-    - name: Verify test reports exist
-      if: always()
-      run: |
-        echo "🔍 Verifying test report files exist for test-reporter..."
-        
-        echo "📂 Checking surefire-reports directory:"
-        ls -la jeecg-module-system/jeecg-system-start/target/surefire-reports/ || echo "ERROR: surefire-reports directory not found!"
-        
-        echo "📄 Listing all XML files:"
-        find . -name "*.xml" -path "*/surefire-reports/*" -type f -exec echo "✅ Found: {}" \; || echo "ERROR: No XML files found!"
-        
-        echo "📊 File count verification:"
-        find . -name "TEST-*.xml" -path "*/surefire-reports/*" | wc -l
-    
-    - name: Generate test report
-      uses: dorny/test-reporter@v1
-      if: success() || failure()
-      with:
-        name: Maven Test Results
-        path: |
-          **/target/surefire-reports/*.xml
-          **/target/surefire-reports/TEST-*.xml
-        reporter: java-junit
-        fail-on-error: false
-    
-    - name: Package application
-      run: mvn package -DskipTests -T 4 -q
-    
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: |
-          **/target/surefire-reports/
-          **/target/site/
-          **/target/failsafe-reports/
-    
-    - name: Upload JAR artifacts
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: backend-jars
-        path: |
-          jeecg-boot/*/target/*.jar
-          !jeecg-boot/*/target/*-sources.jar
-          !jeecg-boot/*/target/*-javadoc.jar
-    
-    - name: Check artifact sizes
-      run: |
-        echo "=== Build Artifacts ==="
-        find . -name "*.jar" -type f -exec ls -lh {} \; | grep -E "(jar|war)$"
-        
-        echo "=== Total size ==="
-        find . -name "*.jar" -type f -exec du -ch {} + | tail -1
-
-  code-quality:
-    runs-on: ubuntu-latest
-    needs: test
-    defaults:
-      run:
-        working-directory: ./jeecg-boot
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Shallow clones should be disabled for better analysis
-    
-    - name: Set up JDK ${{ env.JAVA_VERSION }}
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ env.JAVA_VERSION }}
-        distribution: 'temurin'
-        cache: maven
-    
-    - name: Cache Maven dependencies (Enhanced)
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.m2/repository
-          ~/.m2/wrapper
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/.mvn/wrapper/maven-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-
-          ${{ runner.os }}-maven-
-    
-    - name: Run SpotBugs analysis
-      run: mvn spotbugs:check -DskipTests -T 4 -q
-      continue-on-error: true
-    
-    - name: Run Checkstyle analysis
-      run: mvn checkstyle:check -DskipTests -T 4 -q
-      continue-on-error: true
-    
-    - name: Generate dependency tree
-      run: mvn dependency:tree -DoutputFile=dependency-tree.txt
-    
-    - name: Upload code quality reports
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: code-quality-reports
-        path: |
-          jeecg-boot/*/target/spotbugs/
-          jeecg-boot/*/target/checkstyle-result.xml
-          jeecg-boot/dependency-tree.txt
-
-  security-scan:
-    runs-on: ubuntu-latest
-    needs: test
-    defaults:
-      run:
-        working-directory: ./jeecg-boot
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up JDK ${{ env.JAVA_VERSION }}
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ env.JAVA_VERSION }}
-        distribution: 'temurin'
-        cache: maven
-    
-    - name: Cache Maven dependencies (Enhanced)
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.m2/repository
-          ~/.m2/wrapper
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/.mvn/wrapper/maven-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-
-          ${{ runner.os }}-maven-
-    
-    - name: Run OWASP Dependency Check
-      run: mvn org.owasp:dependency-check-maven:check -DskipTests -T 4 -q
-      continue-on-error: true
-    
-    - name: Upload security scan results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: security-scan-results
-        path: |
-          jeecg-boot/*/target/dependency-check-report.html
-          jeecg-boot/*/target/dependency-check-report.xml
-
-  build-summary:
-    runs-on: ubuntu-latest
-    needs: [test, code-quality, security-scan]
-    if: always()
-    
-    steps:
-    - name: Build Summary
-      run: |
-        echo "## Backend CI Build Summary" >> $GITHUB_STEP_SUMMARY
-        echo "- **Test Job**: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Code Quality**: ${{ needs.code-quality.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Security Scan**: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Build Time**: $(date)" >> $GITHUB_STEP_SUMMARY
-        
-        if [ "${{ needs.test.result }}" == "success" ]; then
-          echo "✅ All tests passed successfully!" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Some tests failed. Please check the logs." >> $GITHUB_STEP_SUMMARY
-        fi
+    - name: Run tests
+      working-directory: ./jeecg-boot
+      run: mvn test -B
