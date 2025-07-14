@@ -66,7 +66,7 @@
 
 ## 工作流程（智能化增强版）
 
-### 第一步：需求分析
+### 第一步：需求分析 + 强制命名检查
 
 ```
 用户输入: "创建员工培训记录表"
@@ -75,7 +75,14 @@
 - 业务领域: 人力资源 → hrms
 - 核心实体: 培训记录 → training
 - 表名生成: us_training_record
-- 关键字段: 培训名称、时间、参与人员、效果评估
+
+🚨 强制命名检查 (必须执行):
+- 初始实体名: training_record (包含下划线)
+- ⚡ 自动转换: training_record → trainingrecord
+- ✅ 最终实体名: trainingrecord (无下划线，全小写)
+- ✅ 最终包名: org.jeecg.modules.hrms.trainingrecord
+
+关键字段: 培训名称、时间、参与人员、效果评估
 ```
 
 ### 第二步：智能数据字典检查
@@ -182,6 +189,12 @@ python Code_Gen_Guide.py --module-name hrms --form-config temp_training_config.j
 - 核心功能: {功能描述}
 - 表名: us_{entity_name}
 
+🚨 **强制命名检查结果**:
+- 原始实体名: {original_name}
+- 检查结果: [✅通过/❌转换] 
+- 最终实体名: {final_entity_name} (Java规范，无下划线)
+- 最终包名: org.jeecg.modules.{system}.{final_entity_name}
+
 ## 智能数据字典分析
 - 数据字典状态: 已自动检查并更新
 - 字典记录数: {dict_count}条
@@ -207,13 +220,35 @@ python Code_Gen_Guide.py --module-name {system} --form-config temp_{entity}_conf
 - 数据字典集成: 前端自动支持字典选择组件
 ```
 
-## 重要规则
+## ⚠️ 关键约束规则 (必须严格遵循)
+
+### 🚨 强制性命名检查点
+
+**在生成任何代码配置前，必须执行以下检查：**
+
+1. **ENTITY_NAME检查**: 
+   ```
+   ❌ 如果包含下划线 → 立即转换为Java规范
+   例: sales_invoice → salesinvoice
+   例: employee_info → employeeinfo 
+   例: purchase_order → purchaseorder
+   ```
+
+2. **PACKAGE_NAME检查**:
+   ```
+   ❌ 如果包含下划线 → 立即转换为全小写
+   例: org.jeecg.modules.finance.sales_invoice 
+   →  org.jeecg.modules.finance.salesinvoice
+   ```
+
+### 📋 核心命名规则
 
 1. **表名规范**: 必须使用`us_`前缀 (如: us_sales_invoice)
-2. **实体命名规范**: 使用英文单词，遵循Java命名约定
-   - ✅ 正确: `invoice`, `employee`, `salesinvoice`, `salesOrder`
-   - ❌ 错误: `sales_invoice`, `employee_info` (不要使用下划线)
-3. **包名规范**: 全小写，无下划线
+2. **🔥 实体命名规范**: 使用英文单词，遵循Java命名约定 **[绝对禁止下划线]**
+   - ✅ 正确: `invoice`, `employee`, `salesinvoice`, `salesorder`
+   - ❌ 错误: `sales_invoice`, `employee_info`, `purchase_order`
+   - **⚡ 转换规则**: 移除所有下划线，全部小写连写
+3. **🔥 包名规范**: 全小写，无下划线 **[绝对禁止下划线]**
    - ✅ 正确: `org.jeecg.modules.finance.salesinvoice`
    - ❌ 错误: `org.jeecg.modules.finance.sales_invoice`
 4. **系统字段**: 保持 7 个固定系统字段不变
@@ -221,6 +256,28 @@ python Code_Gen_Guide.py --module-name {system} --form-config temp_{entity}_conf
 6. **临时文件**: 生成 temp\_开头的配置文件，执行后可删除
 7. **数据字典**: 优先检查Code_Gen_DICT.json中是否有合适的字典
 8. **字典字段**: 包含dictField属性指向具体的数据字典编码
+
+### 🔄 自动命名转换算法
+
+**业务术语 → Java实体名转换**:
+```python
+def convert_to_java_entity_name(business_term):
+    """
+    强制转换业务术语为Java实体名
+    例: "销售发票" → "sales invoice" → "salesinvoice"
+    """
+    # 1. 翻译为英文 (如需要)
+    # 2. 移除所有空格和下划线
+    # 3. 转换为全小写
+    # 4. 合并为单个词
+    return business_term.replace('_', '').replace(' ', '').lower()
+
+# 示例转换:
+# "销售发票" → "salesinvoice"  
+# "员工信息" → "employeeinfo"
+# "采购订单" → "purchaseorder"
+# "客户服务" → "customerservice"
+```
 
 ### 命名转换规则
 | 表名 | 实体名 | 说明 |
@@ -243,7 +300,12 @@ python Code_Gen_Guide.py --module-name {system} --form-config temp_{entity}_conf
 - 业务领域: hrms (人力资源)
 - 核心功能: 员工信息管理
 - 表名: us_employee_info
-- 实体名: employeeinfo (遵循Java命名规范)
+
+🚨 **强制命名检查结果**:
+- 原始实体名: employee_info (包含下划线)
+- 检查结果: ❌转换 (检测到下划线，执行自动转换)
+- 最终实体名: employeeinfo (Java规范，无下划线)
+- 最终包名: org.jeecg.modules.hrms.employeeinfo
 
 ## 智能数据字典分析
 - 数据字典状态: 已自动检查并更新（156条记录）
@@ -357,10 +419,14 @@ python Code_Gen_Guide.py --module-name hrms --form-config temp_employee_config.j
 数据量级: 月开票约500张，需要5年历史数据查询
 特殊要求: 与金税系统对接，支持电子发票
 
-命名要求: 
-- 表名: us_sales_invoice
-- 实体名: salesinvoice (遵循Java命名规范，全小写无下划线)
-- 包名: org.jeecg.modules.finance.salesinvoice
+🚨 **强制命名检查要求**: 
+- 表名: us_sales_invoice (数据库表名)
+- 原始实体名: sales_invoice (业务翻译)
+- ⚡ 自动转换: sales_invoice → salesinvoice (移除下划线)
+- 最终实体名: salesinvoice (Java规范，全小写无下划线)
+- 最终包名: org.jeecg.modules.finance.salesinvoice (全小写无下划线)
+
+**重要**: 确保ENTITY_NAME和PACKAGE_NAME绝对不包含下划线！
 
 请设计表结构并生成代码。
 ```
@@ -550,13 +616,25 @@ python Code_Gen_Guide.py --module-name 模块名 --form-config 配置文件
 
 #### ❌ 常见错误避免
 
+**🚨 关键命名错误 (绝对禁止)**:
+```
+❌ ENTITY_NAME = sales_invoice        (包含下划线)
+❌ ENTITY_NAME = employee_info        (包含下划线)  
+❌ PACKAGE_NAME = org.jeecg.modules.finance.sales_invoice (包含下划线)
+
+✅ ENTITY_NAME = salesinvoice         (Java规范)
+✅ ENTITY_NAME = employeeinfo         (Java规范)
+✅ PACKAGE_NAME = org.jeecg.modules.finance.salesinvoice (Java规范)
+```
+
 **禁止操作**:
 ```
 ❌ 直接修改 Code_Gen_Guide.json 的具体字段值
 ❌ 手动编辑 Code_Gen_DICT.json 文件
 ❌ 修改 Code_Gen_Config.json 的 codegen 配置
 ❌ 在系统字段(0-6)中添加业务逻辑
-❌ 使用带下划线的实体名称
+❌ 使用带下划线的实体名称 (最严重错误!)
+❌ 跳过强制命名检查步骤
 ```
 
 **必须操作**:
@@ -566,6 +644,8 @@ python Code_Gen_Guide.py --module-name 模块名 --form-config 配置文件
 ✅ 遵循Java命名规范(小写无下划线)
 ✅ 使用 us_ 前缀的表名
 ✅ 保持模板文件的模板状态
+✅ 执行强制命名检查和转换
+✅ 确保ENTITY_NAME和PACKAGE_NAME无下划线
 ```
 
 #### 🔧 智能化特性使用
