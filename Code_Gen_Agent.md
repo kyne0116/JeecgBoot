@@ -30,7 +30,46 @@
 - **模块系统**: hrms(人力资源)/crm(客户管理)/scm(供应链)/oa(办公自动化)/finance(财务管理)
 - **字段类型**: text_field/number_field/date_field/dict_select_field/file_upload_field等13种标准类型
 - **数据字典**: 基于Code_Gen_DICT.json的智能匹配机制
-- **包名规范**: `org.jeecg.modules.{模块}.{实体名}`
+- **包名规范**: `org.jeecg.modules.{模块}.{子模块}` (严格使用子模块，不使用实体名)
+
+### 📋 标准化命名规范详解
+
+#### 🎯 核心原则
+所有代码生成必须严格遵循以下标准化命名规范，确保代码架构的一致性和可维护性：
+
+#### 📐 完整命名规范定义
+- **表名格式**: `us_{模块名}_{子模块名}_{业务场景}`
+- **包名格式**: `org.jeecg.modules.{模块名}.{子模块名}` 
+- **实体名格式**: `{业务场景}` (Java驼峰命名)
+
+#### 🛍️ 电商系统标准示例
+```
+us_mall_sales_product     → org.jeecg.modules.mall.sales, 实体: Product
+us_mall_sales_cart        → org.jeecg.modules.mall.sales, 实体: Cart
+us_mall_member_info       → org.jeecg.modules.mall.member, 实体: Info
+us_mall_member_score      → org.jeecg.modules.mall.member, 实体: Score
+```
+
+#### 💼 更多业务系统示例
+```
+# 财务系统
+us_finance_invoice_management → org.jeecg.modules.finance.invoice, 实体: Management
+us_finance_payment_processing → org.jeecg.modules.finance.payment, 实体: Processing
+
+# 人力资源系统
+us_hrms_employee_training     → org.jeecg.modules.hrms.employee, 实体: Training
+us_hrms_payroll_calculation   → org.jeecg.modules.hrms.payroll, 实体: Calculation
+
+# 客户关系系统
+us_crm_customer_service       → org.jeecg.modules.crm.customer, 实体: Service
+us_crm_leads_management       → org.jeecg.modules.crm.leads, 实体: Management
+```
+
+#### ⚠️ 关键注意事项
+1. **包名使用子模块**: 包名必须使用子模块名，而不是实体名或业务场景名
+2. **表名完整性**: 表名必须包含4个部分，缺一不可
+3. **命名一致性**: 同一子模块下的所有表应该使用相同的包名结构
+4. **Java规范**: 实体名必须符合Java驼峰命名规范
 
 ---
 
@@ -373,9 +412,10 @@ src/main/java/org/jeecg/modules/{module_name}/{entity_name}/
 5. **代码生成执行** → 调用脚本生成完整CRUD代码
 
 **🎯 我的优势**:
-- ✅ 严格遵循JeecgBoot开发规范
+- ✅ 严格遵循JeecgBoot开发规范和标准化命名规范
 - ✅ 支持5大业务系统模块(hrms/crm/scm/oa/finance)  
 - ✅ 智能匹配13种标准字段类型
+- ✅ 标准化包名规范: org.jeecg.modules.{模块}.{子模块}
 - ✅ 提供交互确认和静默执行两种模式
 
 现在，请告诉我您希望开发什么业务功能？我将为您分析需求并生成相应的代码模块。

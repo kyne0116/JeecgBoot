@@ -51,10 +51,128 @@ graph TD
 
 **功能**: 核心工作流执行引擎，负责完整的代码生成流程
 
+## ⚠️ JeecgBoot 标准化命名规范（严格执行）
+
+**核心原则**: 所有代码生成必须严格遵循以下标准化命名规范，确保代码架构的一致性和可维护性
+
+### 🎯 完整命名规范定义
+
+#### **1. 表名格式**
+```
+us_{模块名}_{子模块名}_{业务场景}
+```
+
+#### **2. 包名格式**  
+```
+org.jeecg.modules.{模块名}.{子模块名}
+```
+
+#### **3. 实体名格式**
+```
+{业务场景}
+```
+
+### 📋 电商系统标准示例
+
+#### 示例1：销售模块的产品信息管理
+```bash
+需求描述: "电商系统中的销售模块的产品信息管理"
+解析结果:
+├── 模块名: mall
+├── 子模块: sales  
+├── 业务场景: product
+└── 生成结果:
+    ├── 表名: us_mall_sales_product
+    ├── 包名: org.jeecg.modules.mall.sales
+    └── 实体名: product
+```
+
+#### 示例2：销售模块的购物车管理
+```bash
+需求描述: "电商系统中的销售模块的购物车管理"
+解析结果:
+├── 模块名: mall
+├── 子模块: sales
+├── 业务场景: cart
+└── 生成结果:
+    ├── 表名: us_mall_sales_cart
+    ├── 包名: org.jeecg.modules.mall.sales
+    └── 实体名: cart
+```
+
+#### 示例3：会员管理模块的会员信息管理
+```bash
+需求描述: "电商系统中的会员管理模块的会员信息管理"
+解析结果:
+├── 模块名: mall
+├── 子模块: member
+├── 业务场景: info
+└── 生成结果:
+    ├── 表名: us_mall_member_info
+    ├── 包名: org.jeecg.modules.mall.member
+    └── 实体名: info
+```
+
+#### 示例4：会员管理模块的会员积分管理
+```bash
+需求描述: "电商系统中的会员管理模块的会员积分管理"
+解析结果:
+├── 模块名: mall
+├── 子模块: member
+├── 业务场景: score
+└── 生成结果:
+    ├── 表名: us_mall_member_score
+    ├── 包名: org.jeecg.modules.mall.member
+    └── 实体名: score
+```
+
+### ✅ 更多标准示例
+```bash
+# 财务系统
+us_finance_invoice_management     → org.jeecg.modules.finance.invoice, 实体: management
+us_finance_payment_processing     → org.jeecg.modules.finance.payment, 实体: processing
+us_finance_report_analytics       → org.jeecg.modules.finance.report, 实体: analytics
+
+# 人力资源系统  
+us_hrms_employee_training         → org.jeecg.modules.hrms.employee, 实体: training
+us_hrms_payroll_calculation       → org.jeecg.modules.hrms.payroll, 实体: calculation
+us_hrms_attendance_tracking       → org.jeecg.modules.hrms.attendance, 实体: tracking
+
+# 客户关系系统
+us_crm_customer_service           → org.jeecg.modules.crm.customer, 实体: service
+us_crm_leads_management           → org.jeecg.modules.crm.leads, 实体: management
+us_crm_opportunity_tracking       → org.jeecg.modules.crm.opportunity, 实体: tracking
+```
+
+### ❌ 错误示例对比
+```bash
+❌ 错误格式:
+mall_sales_product              # 缺少us_前缀
+us_mall_product                 # 缺少子模块名
+us_mall_sales_product_info      # 业务场景过长
+biz_product_management          # 使用错误前缀
+
+✅ 正确格式:
+us_mall_sales_product           # 标准格式
+us_mall_sales_cart              # 标准格式  
+us_mall_member_info             # 标准格式
+```
+
+### 🔧 命名组件说明
+- **模块名**: 顶级业务领域 (mall, finance, hrms, crm, scm等)
+- **子模块名**: 具体功能模块 (sales, member, invoice, employee等)  
+- **业务场景**: 具体业务对象/操作 (product, cart, info, score, management等)
+
+### 📐 架构设计原则
+1. **包名使用模块+子模块**: 形成清晰的业务层次结构
+2. **实体名使用业务场景**: 精确描述具体的业务对象  
+3. **表名包含完整信息**: 便于数据库管理和理解
+4. **命名简洁明确**: 避免冗长和歧义的命名
+
 **主要函数**:
 ```python
 def extract_business_entity_from_table_name(table_name):
-    """从表名中提取业务实体名，仅支持us_{模块}_{子模块}_{场景}格式"""
+    """从表名中提取业务实体名，严格遵循us_{模块}_{子模块}_{场景}格式"""
     # 输入: "us_finance_invoice_sales"
     # 输出: "sales"
     
@@ -76,9 +194,11 @@ def load_config():
 python Code_Gen_Guide.py [OPTIONS]
 
 OPTIONS:
-  --module-name TEXT          模块名称 (hrms/crm/scm/oa/finance)
+  --module-name TEXT          模块名称 (hrms/crm/scm/oa/finance/business)
   --form-config TEXT          表单配置文件路径
   --dict                      更新数据字典缓存
+  --validate-table-name TEXT  验证表名格式并提供修复建议
+  --fix-table-name TEXT       自动修复表名格式
   --help                      显示帮助信息
 ```
 
@@ -89,6 +209,12 @@ python Code_Gen_Guide.py --module-name finance --form-config temp_sales_config.j
 
 # 更新数据字典
 python Code_Gen_Guide.py --dict
+
+# 验证表名格式
+python Code_Gen_Guide.py --validate-table-name "biz_product_management"
+
+# 自动修复表名
+python Code_Gen_Guide.py --fix-table-name "biz_product_management"
 ```
 
 ### 2. Code_Gen_Config.json - 系统配置

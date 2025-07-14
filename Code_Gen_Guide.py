@@ -92,6 +92,98 @@ FORCE_SYSTEM = None
 
 # ==================== Java命名规范转换功能 ====================
 
+def parse_table_name_components(table_name):
+    """
+    解析表名并返回所有命名组件
+    严格按照标准化命名规范：us_{模块名}_{子模块名}_{业务场景}
+    
+    Args:
+        table_name (str): 完整表名，必须符合标准格式
+        
+    Returns:
+        dict: 包含所有命名组件的字典
+        {
+            'module_name': str,      # 模块名
+            'sub_module': str,       # 子模块名  
+            'business_scenario': str, # 业务场景
+            'entity_name': str       # 实体名（业务场景的Java格式）
+        }
+        
+    Examples:
+        us_mall_sales_product -> {
+            'module_name': 'mall',
+            'sub_module': 'sales', 
+            'business_scenario': 'product',
+            'entity_name': 'product'
+        }
+    """
+    if not table_name:
+        raise ValueError("表名不能为空")
+        
+    if not table_name.startswith('us_'):
+        error_msg = f"""
+❌ 表名格式错误: {table_name}
+
+📋 表名命名规范要求:
+   格式: us_{{模块名}}_{{子模块名}}_{{业务场景}}
+   
+✅ 正确示例:
+   us_mall_sales_product         (电商-销售-产品)
+   us_mall_member_info          (电商-会员-信息)
+   us_finance_invoice_management (财务-发票-管理)
+
+🔧 智能修复建议:
+   推荐表名: '{suggest_table_name_fix(table_name)}'
+   或手动修改为: 'us_{{模块名}}_{{子模块名}}_{{业务场景}}'
+
+📚 详细文档: 请查看 Code_Gen_Guide.md 中的标准化命名规范
+        """
+        raise ValueError(error_msg)
+        
+    parts = table_name.split('_')
+    
+    if len(parts) != 4:
+        error_msg = f"""
+❌ 表名格式错误: {table_name}
+
+📋 表名必须包含4个部分，用下划线分隔:
+   格式: us_{{模块名}}_{{子模块名}}_{{业务场景}}
+   当前: {len(parts)}个部分 {parts}
+
+✅ 正确示例:
+   us_mall_sales_product        (4个部分: us + mall + sales + product)
+   us_finance_invoice_management (4个部分: us + finance + invoice + management)
+   
+❌ 错误示例:
+   us_mall_product              (3个部分，缺少子模块名)
+   us_product                   (2个部分，格式不完整)
+
+🔧 修复建议:
+   确保表名包含: 前缀(us) + 模块名 + 子模块名 + 业务场景
+        """
+        raise ValueError(error_msg)
+    
+    # 解析组件: us_module_submodule_business_scenario
+    module_name = parts[1]        # 模块名称
+    sub_module = parts[2]         # 子模块名称  
+    business_scenario = parts[3]  # 业务场景
+    
+    # 生成实体名（Java格式的业务场景）
+    entity_name = convert_to_java_entity_name(business_scenario)
+    
+    print(f"🎯 标准化表名解析: {table_name}")
+    print(f"   ├── 模块名: {module_name}")
+    print(f"   ├── 子模块: {sub_module}") 
+    print(f"   ├── 业务场景: {business_scenario}")
+    print(f"   └── 实体名: {entity_name}")
+    
+    return {
+        'module_name': module_name,
+        'sub_module': sub_module,
+        'business_scenario': business_scenario,
+        'entity_name': entity_name
+    }
+
 def extract_business_entity_from_table_name(table_name):
     """
     从表名中提取业务实体名
@@ -113,12 +205,48 @@ def extract_business_entity_from_table_name(table_name):
         raise ValueError("表名不能为空")
         
     if not table_name.startswith('us_'):
-        raise ValueError(f"表名必须以 'us_' 开头: {table_name}")
+        error_msg = f"""
+❌ 表名格式错误: {table_name}
+
+📋 表名命名规范要求:
+   格式: us_{{模块名}}_{{子模块名}}_{{业务场景}}
+   
+✅ 正确示例:
+   us_finance_invoice_management     (财务-发票-管理)
+   us_hrms_employee_training         (人力-员工-培训)
+   us_crm_customer_service           (客户-客户-服务)
+   us_business_product_management    (业务-产品-管理)
+
+🔧 智能修复建议:
+   推荐表名: '{suggest_table_name_fix(table_name)}'
+   或手动修改为: 'us_{{模块名}}_{{子模块名}}_{{业务场景}}'
+
+📚 详细文档: 请查看 Code_Gen_Guide.md 中的命名规范部分
+        """
+        raise ValueError(error_msg)
         
     parts = table_name.split('_')
     
     if len(parts) != 4:
-        raise ValueError(f"表名格式错误，必须为 us_{{模块名称}}_{{子模块名称}}_{{推理业务需求场景}} 格式: {table_name}")
+        error_msg = f"""
+❌ 表名格式错误: {table_name}
+
+📋 表名必须包含4个部分，用下划线分隔:
+   格式: us_{{模块名}}_{{子模块名}}_{{业务场景}}
+   当前: {len(parts)}个部分 {parts}
+
+✅ 正确示例:
+   us_finance_invoice_management     (4个部分)
+   us_hrms_employee_training         (4个部分)
+   
+❌ 错误示例:
+   us_finance_invoice               (3个部分，缺少业务场景)
+   us_product                       (2个部分，格式不完整)
+
+🔧 修复建议:
+   确保表名包含: 前缀(us) + 模块名 + 子模块名 + 业务场景
+        """
+        raise ValueError(error_msg)
     
     # 标准格式: us_module_submodule_business_scenario
     module_name = parts[1]      # 模块名称
@@ -132,6 +260,72 @@ def extract_business_entity_from_table_name(table_name):
     print(f"   └── 业务场景: {business_scenario} → Java实体: {java_name}")
     
     return java_name
+
+def suggest_table_name_fix(table_name):
+    """
+    为错误的表名提供修复建议
+    
+    Args:
+        table_name (str): 错误的表名
+        
+    Returns:
+        str: 修复建议
+    """
+    if not table_name:
+        return "us_business_example_management"
+    
+    # 移除常见前缀
+    clean_name = table_name
+    for prefix in ['biz_', 'sys_', 't_', 'tb_', 'tbl_']:
+        if clean_name.startswith(prefix):
+            clean_name = clean_name[len(prefix):]
+            break
+    
+    # 如果不以us_开头，添加us_business_前缀
+    if not clean_name.startswith('us_'):
+        # 尝试智能分析表名结构
+        parts = clean_name.split('_')
+        if len(parts) == 1:
+            # 单词，加默认结构
+            return f"us_business_{clean_name}_management"
+        elif len(parts) == 2:
+            # 两个词，假设是模块_功能
+            return f"us_business_{parts[0]}_{parts[1]}"
+        else:
+            # 多个词，保持原结构并加前缀
+            return f"us_business_{clean_name}"
+    
+    return clean_name
+
+def validate_table_name_command(table_name):
+    """表名验证命令"""
+    print(f"🔍 验证表名: {table_name}")
+    print("=" * 50)
+    
+    try:
+        result = extract_business_entity_from_table_name(table_name)
+        print(f"✅ 表名格式正确!")
+        print(f"📦 提取的业务实体: {result}")
+    except ValueError as e:
+        print(f"❌ 表名验证失败:")
+        print(str(e))
+        print(f"\n💡 自动修复建议: {suggest_table_name_fix(table_name)}")
+
+def fix_table_name_command(table_name):
+    """表名自动修复命令"""
+    print(f"🔧 修复表名: {table_name}")
+    print("=" * 50)
+    
+    if table_name.startswith('us_') and len(table_name.split('_')) == 4:
+        print(f"✅ 表名已经符合规范: {table_name}")
+        return
+    
+    fixed_name = suggest_table_name_fix(table_name)
+    print(f"🎯 原表名: {table_name}")
+    print(f"✨ 修复后: {fixed_name}")
+    print(f"\n📋 建议操作:")
+    print(f"   1. 将配置文件中的表名改为: {fixed_name}")
+    print(f"   2. 或按照您的业务需求手动调整")
 
 def convert_to_java_entity_name(entity_name):
     """
@@ -891,7 +1085,7 @@ def jeecg_complete_workflow():
             print(f"   - path_prefix: 项目根路径前缀，来自配置文件")
             print(f"   - project_path: 完整项目路径，格式为 {{path_prefix}}/jeecg-boot/jeecg-module-{{module_name}}")
             print(f"   - entity_name: 实体名称，从表名去掉us_前缀生成，用于前端路由和权限控制")
-            print(f"   - package_name: 完整包名，格式为 org.jeecg.modules.{{module_name}}.{{entity_name}}")
+            print(f"   - package_name: 完整包名，格式为 org.jeecg.modules.{{module_name}}.{{sub_module}}")
             print(f"   - SQL文件中的模块名称就是entity_name的值，如 'invoice'")
 
         except Exception as e:
@@ -1655,12 +1849,27 @@ def parse_arguments():
 
     parser.add_argument('--dict', action='store_true',
                        help='获取系统数据字典并保存到Code_Gen_DICT.json')
+    
+    parser.add_argument('--validate-table-name', type=str,
+                       help='验证表名格式并提供修复建议')
+    
+    parser.add_argument('--fix-table-name', type=str,
+                       help='自动修复表名格式')
 
     return parser.parse_args()
 
 def main():
     """主函数"""
     args = parse_arguments()
+
+    # 处理表名验证和修复命令
+    if args.validate_table_name:
+        validate_table_name_command(args.validate_table_name)
+        return
+    
+    if args.fix_table_name:
+        fix_table_name_command(args.fix_table_name)
+        return
 
     # 加载配置
     global CONFIG, FORM_DATA_FILE
