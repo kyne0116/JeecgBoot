@@ -555,56 +555,55 @@ def create_maven_module(module_name):
         print(f"❌ Maven命令执行异常: {e}")
         return False
 
-def update_main_pom(module_name):
-    """更新主项目pom.xml添加新模块"""
+def update_module_registry_pom(module_name):
+    """更新模块注册表pom.xml添加新模块"""
     # 获取路径前缀
     project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
-    pom_path = Path(project_prefix) / 'jeecg-boot' / 'pom.xml'
+    pom_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / 'pom.xml'
 
-    print(f"📝 更新主项目pom.xml: {pom_path.absolute()}")
+    print(f"📝 更新模块注册表pom.xml: {pom_path.absolute()}")
 
     if not pom_path.exists():
-        print(f"❌ 主项目pom.xml不存在: {pom_path}")
+        print(f"❌ 模块注册表pom.xml不存在: {pom_path}")
         return False
 
     try:
-        # 解析XML
-        tree = ET.parse(pom_path)
-        root = tree.getroot()
-
-        # 查找命名空间
-        namespace = {'maven': 'http://maven.apache.org/POM/4.0.0'}
-        if root.tag.startswith('{'):
-            namespace_uri = root.tag[1:root.tag.index('}')]
-            namespace = {'maven': namespace_uri}
-
-        # 查找modules节点
-        modules_element = root.find('.//maven:modules', namespace) or root.find('.//modules')
-
-        if modules_element is None:
-            print("❌ 未找到modules节点")
-            return False
+        # 读取原始文件内容
+        with open(pom_path, 'r', encoding='utf-8') as f:
+            content = f.read()
 
         # 检查模块是否已存在
         module_artifact_id = f"jeecg-module-{module_name}"
-        existing_modules = [elem.text for elem in modules_element.findall('.//maven:module', namespace) or modules_element.findall('.//module')]
-
-        if module_artifact_id in existing_modules:
-            print(f"✅ 模块已存在于pom.xml中: {module_artifact_id}")
+        if f"<module>{module_artifact_id}</module>" in content:
+            print(f"✅ 模块已存在于模块注册表中: {module_artifact_id}")
             return True
 
-        # 添加新模块
-        new_module = ET.SubElement(modules_element, 'module')
-        new_module.text = module_artifact_id
+        # 查找 </modules> 或 </ns0:modules> 标签的位置
+        modules_end_pos = content.find('</modules>')
+        if modules_end_pos == -1:
+            modules_end_pos = content.find('</ns0:modules>')
+        if modules_end_pos == -1:
+            print("❌ 未找到modules节点")
+            return False
 
-        # 保存文件
-        tree.write(pom_path, encoding='utf-8', xml_declaration=True)
-        print(f"✅ 已添加模块到主项目pom.xml: {module_name}")
+        # 在 </modules> 前插入新模块
+        new_module_entry = f"        <module>{module_artifact_id}</module>\n    "
+        new_content = content[:modules_end_pos] + new_module_entry + content[modules_end_pos:]
+
+        # 写回文件
+        with open(pom_path, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+
+        print(f"✅ 已添加模块到模块注册表: {module_name}")
         return True
 
     except Exception as e:
-        print(f"❌ 更新主项目pom.xml失败: {e}")
+        print(f"❌ 更新模块注册表pom.xml失败: {e}")
         return False
+
+def update_main_pom(module_name):
+    """更新主项目pom.xml添加新模块 (保持向后兼容)"""
+    return update_module_registry_pom(module_name)
 
 def update_system_start_pom(module_name):
     """更新启动项目pom.xml添加新模块依赖"""
@@ -619,49 +618,49 @@ def update_system_start_pom(module_name):
         return False
 
     try:
-        # 解析XML
-        tree = ET.parse(pom_path)
-        root = tree.getroot()
-
-        # 查找命名空间
-        namespace = {'maven': 'http://maven.apache.org/POM/4.0.0'}
-        if root.tag.startswith('{'):
-            namespace_uri = root.tag[1:root.tag.index('}')]
-            namespace = {'maven': namespace_uri}
-
-        # 查找dependencies节点
-        dependencies_element = root.find('.//maven:dependencies', namespace) or root.find('.//dependencies')
-
-        if dependencies_element is None:
-            print("❌ 未找到dependencies节点")
-            return False
+        # 读取原始文件内容
+        with open(pom_path, 'r', encoding='utf-8') as f:
+            content = f.read()
 
         # 检查依赖是否已存在
         artifact_id = f"jeecg-module-{module_name}"
-        existing_deps = []
-        for dep in dependencies_element.findall('.//maven:dependency', namespace) or dependencies_element.findall('.//dependency'):
-            artifact_elem = dep.find('.//maven:artifactId', namespace) or dep.find('.//artifactId')
-            if artifact_elem is not None:
-                existing_deps.append(artifact_elem.text)
-
-        if artifact_id in existing_deps:
+        if f"<artifactId>{artifact_id}</artifactId>" in content:
             print(f"✅ 依赖已存在于启动项目pom.xml中: {artifact_id}")
             return True
 
-        # 添加新依赖
-        new_dependency = ET.SubElement(dependencies_element, 'dependency')
+        # 查找合适的位置插入新依赖（在 jeecg-system-biz 依赖之后）
+        system_biz_pos = content.find('<artifactId>jeecg-system-biz</artifactId>')
+        if system_biz_pos == -1:
+            # 如果找不到 jeecg-system-biz，就在第一个 </dependency> 后插入
+            first_dep_end = content.find('</dependency>')
+            if first_dep_end == -1:
+                print("❌ 无法找到合适的位置插入依赖")
+                return False
+            insert_pos = first_dep_end + len('</dependency>')
+        else:
+            # 找到 jeecg-system-biz 依赖的结束位置
+            dep_end_pos = content.find('</dependency>', system_biz_pos)
+            if dep_end_pos == -1:
+                print("❌ 无法找到 jeecg-system-biz 依赖的结束位置")
+                return False
+            insert_pos = dep_end_pos + len('</dependency>')
 
-        group_id = ET.SubElement(new_dependency, 'groupId')
-        group_id.text = 'org.jeecgframework.boot'
+        # 构建新的依赖项
+        new_dependency = f"""
 
-        artifact_id_elem = ET.SubElement(new_dependency, 'artifactId')
-        artifact_id_elem.text = artifact_id
+        <dependency>
+            <groupId>org.jeecgframework.boot</groupId>
+            <artifactId>{artifact_id}</artifactId>
+            <version>${{jeecgboot.version}}</version>
+        </dependency>"""
 
-        version = ET.SubElement(new_dependency, 'version')
-        version.text = '${jeecgboot.version}'
+        # 插入新依赖
+        new_content = content[:insert_pos] + new_dependency + content[insert_pos:]
 
-        # 保存文件
-        tree.write(pom_path, encoding='utf-8', xml_declaration=True)
+        # 写回文件
+        with open(pom_path, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+
         print(f"✅ 已添加依赖到启动项目pom.xml: {artifact_id}")
         return True
 
@@ -677,6 +676,8 @@ def ensure_module_exists(module_name):
     # 1. 检查模块是否存在
     if check_module_exists(module_name):
         print(f"✅ 模块已存在，跳过创建步骤")
+        # 即使模块存在，也要确保它已经集成到项目结构中
+        integrate_module_to_project(module_name)
         return True
 
     # 2. 创建模块
@@ -684,21 +685,40 @@ def ensure_module_exists(module_name):
     if not create_maven_module(module_name):
         return False
 
-    # 3. 更新主项目pom.xml
-    if not update_main_pom(module_name):
+    # 3. 集成模块到项目结构
+    if not integrate_module_to_project(module_name):
         return False
 
-    # 4. 更新启动项目pom.xml
-    if not update_system_start_pom(module_name):
-        return False
-
-    # 5. 验证模块创建结果
+    # 4. 验证模块创建结果
     if check_module_exists(module_name):
         print(f"🎉 模块创建和配置完成: jeecg-module-{module_name}")
         return True
     else:
         print(f"❌ 模块创建验证失败")
         return False
+
+def integrate_module_to_project(module_name):
+    """将模块集成到JeecgBoot项目结构中"""
+    print(f"🔗 集成模块到项目结构: {module_name}")
+
+    success = True
+
+    # 1. 更新模块注册表 pom.xml
+    if not update_module_registry_pom(module_name):
+        print(f"⚠️ 模块注册表更新失败")
+        success = False
+
+    # 2. 更新启动项目 pom.xml
+    if not update_system_start_pom(module_name):
+        print(f"⚠️ 启动项目依赖更新失败")
+        success = False
+
+    if success:
+        print(f"✅ 模块集成完成: jeecg-module-{module_name}")
+    else:
+        print(f"⚠️ 模块集成部分失败，请手动检查")
+
+    return success
 
 # 提取配置变量（保持向后兼容）
 BASE_URL = CONFIG['server']['base_url']
