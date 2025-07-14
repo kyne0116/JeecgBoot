@@ -89,6 +89,7 @@ CONFIG = load_config()
 # 全局标志变量
 SKIP_MODULE_MANAGEMENT = False
 FORCE_SYSTEM = None
+CURRENT_TABLE_NAME = ""  # 当前表名，用于生成标准化包名
 
 # ==================== Java命名规范转换功能 ====================
 
@@ -183,6 +184,46 @@ def parse_table_name_components(table_name):
         'business_scenario': business_scenario,
         'entity_name': entity_name
     }
+
+def generate_standardized_package_name(table_name=None, force_system=None):
+    """
+    根据表名生成标准化包名
+    
+    Args:
+        table_name (str): 完整表名，必须符合标准格式。如果为None，使用全局变量CURRENT_TABLE_NAME
+        force_system (str): 强制使用的模块名（用于向后兼容）
+        
+    Returns:
+        str: 标准化包名，格式为 org.jeecg.modules.{module_name}.{sub_module}
+        
+    Examples:
+        us_mall_sales_product -> org.jeecg.modules.mall.sales
+        us_finance_invoice_management -> org.jeecg.modules.finance.invoice
+    """
+    global CURRENT_TABLE_NAME
+    
+    # 如果没有提供表名，使用全局变量
+    if not table_name:
+        table_name = CURRENT_TABLE_NAME
+    
+    if not table_name:
+        # 如果没有表名，使用传统方式
+        if force_system:
+            return f"org.jeecg.modules.{force_system}.{ENTITY_NAME}"
+        else:
+            return f"org.jeecg.modules.{ENTITY_NAME}"
+    
+    try:
+        components = parse_table_name_components(table_name)
+        package_name = f"org.jeecg.modules.{components['module_name']}.{components['sub_module']}"
+        print(f"📦 生成标准化包名: {package_name}")
+        return package_name
+    except ValueError as e:
+        print(f"⚠️ 表名解析失败，使用传统格式: {e}")
+        if force_system:
+            return f"org.jeecg.modules.{force_system}.{ENTITY_NAME}"
+        else:
+            return f"org.jeecg.modules.{ENTITY_NAME}"
 
 def extract_business_entity_from_table_name(table_name):
     """
@@ -880,13 +921,8 @@ def print_workflow_variables():
     print("\n📁 项目路径配置:")
     project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
 
-    # 生成完整包名（基于模块名称和实体名称）
-    if FORCE_SYSTEM:
-        # 使用指定的模块名称生成包名
-        package_name = f"org.jeecg.modules.{FORCE_SYSTEM}.{ENTITY_NAME}"
-    else:
-        # 默认包名（仅使用实体名称，兼容旧版本）
-        package_name = f"org.jeecg.modules.{ENTITY_NAME}"
+    # 生成完整包名（基于标准化命名规范）
+    package_name = generate_standardized_package_name(force_system=FORCE_SYSTEM)
 
     print(f"   PROJECT_PATH_PREFIX      = {project_prefix}")
     print(f"   PROJECT_PATH             = {PROJECT_PATH}")
@@ -970,6 +1006,10 @@ def jeecg_complete_workflow():
         # 使用JSON文件中预设的表名，如果没有则生成随机表名
         table_name = form_data['head'].get('tableName')
         table_txt = form_data['head'].get('tableTxt')
+        
+        # 设置全局变量，用于生成标准化包名
+        global CURRENT_TABLE_NAME
+        CURRENT_TABLE_NAME = table_name
 
         if not table_name or table_name in ['tableNameEn', 'test_table']:
             # 如果没有设置表名或使用默认模板名，则生成随机表名
@@ -1065,12 +1105,8 @@ def jeecg_complete_workflow():
             print(f"📦 更新实体名称: {ENTITY_NAME}")
 
             # 生成完整包名（基于模块名称和实体名称）
-            if FORCE_SYSTEM:
-                # 使用指定的模块名称生成包名
-                package_name = f"org.jeecg.modules.{FORCE_SYSTEM}.{ENTITY_NAME}"
-            else:
-                # 默认包名（仅使用实体名称，兼容旧版本）
-                package_name = f"org.jeecg.modules.{ENTITY_NAME}"
+            # 生成完整包名（基于标准化命名规范）
+            package_name = generate_standardized_package_name(force_system=FORCE_SYSTEM)
 
             # 打印详细的路径信息
             print(f"\n📋 动态更新后的路径变量:")
@@ -1096,13 +1132,8 @@ def jeecg_complete_workflow():
         print(f"🔧 当前项目路径: {PROJECT_PATH}")
         print(f"📦 当前实体名称: {ENTITY_NAME}")
 
-        # 生成完整包名（基于模块名称和实体名称）
-        if FORCE_SYSTEM:
-            # 使用指定的模块名称生成包名
-            package_name = f"org.jeecg.modules.{FORCE_SYSTEM}.{ENTITY_NAME}"
-        else:
-            # 默认包名（仅使用实体名称，兼容旧版本）
-            package_name = f"org.jeecg.modules.{ENTITY_NAME}"
+        # 生成完整包名（基于标准化命名规范）
+        package_name = generate_standardized_package_name(force_system=FORCE_SYSTEM)
 
         # 打印当前配置信息
         print(f"\n📋 当前配置变量:")
@@ -1240,13 +1271,8 @@ def jeecg_complete_workflow():
         # 生成实体名（将表名转换为驼峰命名）
         entity_name = ''.join(word.capitalize() for word in table_name.split('_'))
 
-        # 生成完整包名（基于模块名称和实体名称）
-        if FORCE_SYSTEM:
-            # 使用指定的模块名称生成包名
-            package_name = f"org.jeecg.modules.{FORCE_SYSTEM}.{ENTITY_NAME}"
-        else:
-            # 默认包名（仅使用实体名称，兼容旧版本）
-            package_name = f"org.jeecg.modules.{ENTITY_NAME}"
+        # 生成完整包名（基于标准化命名规范）
+        package_name = generate_standardized_package_name(force_system=FORCE_SYSTEM)
 
         # 打印代码生成前的所有关键变量
         print(f"\n📋 代码生成关键变量:")
@@ -1334,7 +1360,32 @@ def jeecg_complete_workflow():
         # 代码生成完成后：还原配置文件
         restore_jeecg_config()
 
-    # 7. 完成
+    # 7. 自动集成模块到JeecgBoot项目结构
+    print(f"\n{'='*50}")
+    print("🔗 自动集成模块到JeecgBoot项目结构...")
+    
+    # 从表名解析出模块名以进行集成
+    try:
+        if CURRENT_TABLE_NAME:
+            components = parse_table_name_components(CURRENT_TABLE_NAME)
+            module_name = components['module_name']
+            print(f"📦 检测到模块: {module_name}")
+            
+            # 确保模块存在并完成集成
+            if ensure_module_exists(module_name):
+                print(f"✅ 模块集成完成: jeecg-module-{module_name}")
+                print(f"   - 主项目pom.xml已更新")
+                print(f"   - 启动项目pom.xml已更新")
+                print(f"   - 模块目录结构已创建")
+            else:
+                print(f"⚠️ 模块集成失败，但代码生成已完成")
+        else:
+            print("⚠️ 无法解析表名，跳过模块集成")
+    except Exception as e:
+        print(f"⚠️ 模块集成失败: {e}")
+        print("   代码生成已完成，请手动检查模块集成")
+
+    # 8. 完成
     print(f"\n{'='*50}")
     print("🎉 完整工作流完成!")
     print(f"📋 表名: {table_name}")
@@ -1344,6 +1395,25 @@ def jeecg_complete_workflow():
     print(f"📦 实体名称: {ENTITY_NAME}")
     print(f"🏗️ 项目路径: {PROJECT_PATH}")
     print(f"⏰ 完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # 显示生成的代码结构和下一步操作
+    print(f"\n📁 生成的代码结构:")
+    if CURRENT_TABLE_NAME:
+        try:
+            components = parse_table_name_components(CURRENT_TABLE_NAME)
+            print(f"   模块路径: /jeecg-boot/jeecg-boot-module/jeecg-module-{components['module_name']}")
+            print(f"   包结构: org.jeecg.modules.{components['module_name']}.{components['sub_module']}")
+            print(f"   实体类: {components['entity_name']}")
+            print(f"   前端组件: 已同步生成Vue3组件")
+        except:
+            print(f"   包结构: {package_name}")
+            print(f"   实体类: {ENTITY_NAME}")
+    
+    print(f"\n🚀 下一步操作:")
+    print(f"   1. 启动后端服务: mvn spring-boot:run")
+    print(f"   2. 启动前端服务: pnpm dev")
+    print(f"   3. 访问系统: http://localhost:3100")
+    print(f"   4. 在菜单管理中配置新功能菜单")
     print(f"{'='*50}")
 
     # 显示结果摘要（不保存文件）
@@ -1883,7 +1953,7 @@ def main():
         CONFIG['codegen']['entity_name'] = args.entity_name
 
     # 设置全局标志
-    global SKIP_MODULE_MANAGEMENT, FORCE_SYSTEM
+    global SKIP_MODULE_MANAGEMENT, FORCE_SYSTEM, CURRENT_TABLE_NAME
     SKIP_MODULE_MANAGEMENT = args.skip_module_management
     FORCE_SYSTEM = args.module_name  # 使用新的参数名
 
@@ -1903,6 +1973,7 @@ def main():
             with open(args.form_config, 'r', encoding='utf-8') as f:
                 form_data = json.load(f)
                 table_name = form_data.get('head', {}).get('tableName', '')
+                CURRENT_TABLE_NAME = table_name  # 设置全局表名
                 ENTITY_NAME = extract_business_entity_from_table_name(table_name)
         except Exception as e:
             print(f"⚠️ 无法读取表单配置文件: {e}")
