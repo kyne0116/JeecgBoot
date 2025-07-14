@@ -248,7 +248,9 @@ def detect_business_system(table_name, table_description=""):
 
 def check_module_exists(module_name):
     """检查模块是否存在"""
-    module_path = Path(f"jeecg-boot/jeecg-module-{module_name}")
+    # 获取路径前缀
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    module_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f"jeecg-module-{module_name}"
     exists = module_path.exists() and module_path.is_dir()
 
     print(f"🔍 检查模块: jeecg-module-{module_name}")
@@ -261,6 +263,9 @@ def create_maven_module(module_name):
     """使用Maven archetype创建新模块"""
     print(f"🏗️ 创建Maven模块: jeecg-module-{module_name}")
 
+    # 获取路径前缀
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    
     # 构建Maven命令
     maven_cmd = [
         'mvn', 'archetype:generate',
@@ -273,21 +278,26 @@ def create_maven_module(module_name):
         '-DinteractiveMode=false'  # 非交互模式
     ]
 
+    # 构建执行目录路径，使用正确的路径分隔符
+    if platform.system() == 'Windows':
+        exec_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module'
+    else:
+        exec_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module'
+
     print(f"   操作系统: {platform.system()}")
-    print(f"   执行目录: {Path('jeecg-boot').absolute()}")
+    print(f"   执行目录: {exec_dir.absolute()}")
     print(f"   Maven命令: {' '.join(maven_cmd)}")
 
     try:
-        # 确保在jeecg-boot目录下执行
-        jeecg_boot_path = Path('jeecg-boot')
-        if not jeecg_boot_path.exists():
-            print(f"❌ jeecg-boot目录不存在: {jeecg_boot_path.absolute()}")
+        # 确保在正确的目录下执行
+        if not exec_dir.exists():
+            print(f"❌ 执行目录不存在: {exec_dir.absolute()}")
             return False
 
         # 执行Maven命令
         result = subprocess.run(
             maven_cmd,
-            cwd=jeecg_boot_path,
+            cwd=exec_dir,
             capture_output=True,
             text=True,
             timeout=300  # 5分钟超时
@@ -312,7 +322,9 @@ def create_maven_module(module_name):
 
 def update_main_pom(module_name):
     """更新主项目pom.xml添加新模块"""
-    pom_path = Path('jeecg-boot/pom.xml')
+    # 获取路径前缀
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    pom_path = Path(project_prefix) / 'jeecg-boot' / 'pom.xml'
 
     print(f"📝 更新主项目pom.xml: {pom_path.absolute()}")
 
@@ -360,13 +372,15 @@ def update_main_pom(module_name):
         return False
 
 def update_system_start_pom(module_name):
-    """更新启动项目pom.xml添加新模块依赖"""
-    pom_path = Path('jeecg-boot/jeecg-module-system/jeecg-system-start/pom.xml')
+    """更新系统模块pom.xml添加新模块依赖"""
+    # 获取路径前缀
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    pom_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-module-system' / 'pom.xml'
 
-    print(f"📝 更新启动项目pom.xml: {pom_path.absolute()}")
+    print(f"📝 更新系统模块pom.xml: {pom_path.absolute()}")
 
     if not pom_path.exists():
-        print(f"❌ 启动项目pom.xml不存在: {pom_path}")
+        print(f"❌ 系统模块pom.xml不存在: {pom_path}")
         return False
 
     try:
@@ -396,7 +410,7 @@ def update_system_start_pom(module_name):
                 existing_deps.append(artifact_elem.text)
 
         if artifact_id in existing_deps:
-            print(f"✅ 依赖已存在于启动项目pom.xml中: {artifact_id}")
+            print(f"✅ 依赖已存在于系统模块pom.xml中: {artifact_id}")
             return True
 
         # 添加新依赖
@@ -413,11 +427,11 @@ def update_system_start_pom(module_name):
 
         # 保存文件
         tree.write(pom_path, encoding='utf-8', xml_declaration=True)
-        print(f"✅ 已添加依赖到启动项目pom.xml: {artifact_id}")
+        print(f"✅ 已添加依赖到系统模块pom.xml: {artifact_id}")
         return True
 
     except Exception as e:
-        print(f"❌ 更新启动项目pom.xml失败: {e}")
+        print(f"❌ 更新系统模块pom.xml失败: {e}")
         return False
 
 def ensure_module_exists(module_name):
