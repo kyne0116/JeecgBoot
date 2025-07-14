@@ -32,8 +32,8 @@ python Code_Gen_Guide.py --module-name finance --form-config your_table.json
 |------|----------|------|
 | **PROJECT_PATH_PREFIX** | 从配置文件读取 | `/Users/admin/Work/Github/JeecgBoot` |
 | **PROJECT_PATH** | `{前缀}/jeecg-boot/jeecg-module-{模块名}` | `.../jeecg-module-finance` |
-| **ENTITY_NAME** | 业务功能英文单词 | `invoice`(发票) |
-| **PACKAGE_NAME** | `org.jeecg.modules.{模块名}.{实体名}` | `org.jeecg.modules.finance.invoice` |
+| **ENTITY_NAME** | 业务功能英文单词(全小写无下划线) | `invoice`, `salesinvoice` |
+| **PACKAGE_NAME** | `org.jeecg.modules.{模块名}.{实体名}` | `org.jeecg.modules.finance.salesinvoice` |
 
 ### 业务系统类型
 - **hrms**: 人力资源 (employee, training, performance)
@@ -166,10 +166,16 @@ python Code_Gen_Guide.py --dict
 
 ## ⚠️ 重要规则
 
-1. **表名规范**: 必须使用`us_`前缀
-2. **模板保护**: `Code_Gen_Guide.json`永远保持模板状态
-3. **字段顺序**: 系统字段0-6，业务字段从7开始
-4. **环境要求**: Maven已安装，JeecgBoot服务运行中
+1. **表名规范**: 必须使用`us_`前缀 (如: us_sales_invoice)
+2. **实体命名**: 遵循Java命名约定，全小写无下划线
+   - ✅ 正确: `invoice`, `salesinvoice`, `employeeinfo`
+   - ❌ 错误: `sales_invoice`, `employee_info`
+3. **包名规范**: 全小写，格式为 `org.jeecg.modules.{模块}.{实体}`
+   - ✅ 正确: `org.jeecg.modules.finance.salesinvoice`
+   - ❌ 错误: `org.jeecg.modules.finance.sales_invoice`
+4. **模板保护**: `Code_Gen_Guide.json`永远保持模板状态
+5. **字段顺序**: 系统字段0-6，业务字段从7开始
+6. **环境要求**: Maven已安装，JeecgBoot服务运行中
 
 ## 🤖 AI助手模式
 
