@@ -372,15 +372,15 @@ def update_main_pom(module_name):
         return False
 
 def update_system_start_pom(module_name):
-    """更新系统模块pom.xml添加新模块依赖"""
+    """更新启动项目pom.xml添加新模块依赖"""
     # 获取路径前缀
     project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
-    pom_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-module-system' / 'pom.xml'
+    pom_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-module-system' / 'jeecg-system-start' / 'pom.xml'
 
-    print(f"📝 更新系统模块pom.xml: {pom_path.absolute()}")
+    print(f"📝 更新启动项目pom.xml: {pom_path.absolute()}")
 
     if not pom_path.exists():
-        print(f"❌ 系统模块pom.xml不存在: {pom_path}")
+        print(f"❌ 启动项目pom.xml不存在: {pom_path}")
         return False
 
     try:
@@ -410,7 +410,7 @@ def update_system_start_pom(module_name):
                 existing_deps.append(artifact_elem.text)
 
         if artifact_id in existing_deps:
-            print(f"✅ 依赖已存在于系统模块pom.xml中: {artifact_id}")
+            print(f"✅ 依赖已存在于启动项目pom.xml中: {artifact_id}")
             return True
 
         # 添加新依赖
@@ -427,11 +427,11 @@ def update_system_start_pom(module_name):
 
         # 保存文件
         tree.write(pom_path, encoding='utf-8', xml_declaration=True)
-        print(f"✅ 已添加依赖到系统模块pom.xml: {artifact_id}")
+        print(f"✅ 已添加依赖到启动项目pom.xml: {artifact_id}")
         return True
 
     except Exception as e:
-        print(f"❌ 更新系统模块pom.xml失败: {e}")
+        print(f"❌ 更新启动项目pom.xml失败: {e}")
         return False
 
 def ensure_module_exists(module_name):
@@ -862,7 +862,7 @@ def jeecg_complete_workflow():
             # 更新项目路径配置
             global PROJECT_PATH, ENTITY_NAME
             project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
-            PROJECT_PATH = str(Path(f"{project_prefix}/jeecg-boot/jeecg-module-{module_name}").resolve())
+            PROJECT_PATH = str(Path(f"{project_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}").resolve())
 
             # 从表名提取业务实体名（支持新的命名规范）
             ENTITY_NAME = extract_business_entity_from_table_name(table_name)
@@ -1684,7 +1684,7 @@ def main():
     # 1. 处理模块名称和项目路径
     if FORCE_SYSTEM:
         project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
-        PROJECT_PATH = f"{project_prefix}/jeecg-boot/jeecg-module-{FORCE_SYSTEM}"
+        PROJECT_PATH = f"{project_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{FORCE_SYSTEM}"
     else:
         PROJECT_PATH = CONFIG['codegen']['project_path']  # 保持原配置值
 
