@@ -78,6 +78,7 @@ python Code_Gen_Guide.py --module-name finance --form-config your_table.json
 | `--validate` | 验证配置 | 不执行工作流 |
 | `--skip-module-management` | 跳过模块管理 | 使用现有模块 |
 | `--try-run` | 试运行模式 | 显示操作不执行 |
+| `--dict` | 获取数据字典 | 保存到Code_Gen_DICT.json |
 
 ## 🚀 使用示例
 
@@ -98,6 +99,12 @@ python Code_Gen_Guide.py --module-name finance --form-config invoice_config.json
 ```bash
 python Code_Gen_Guide.py --test
 # 检查：Maven环境、服务连接、配置有效性
+```
+
+### 示例3: 获取数据字典
+```bash
+python Code_Gen_Guide.py --dict
+# 获取系统所有数据字典并保存到Code_Gen_DICT.json
 ```
 
 ## 🔧 高级功能
