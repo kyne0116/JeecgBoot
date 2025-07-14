@@ -209,13 +209,26 @@ python Code_Gen_Guide.py --module-name {system} --form-config temp_{entity}_conf
 
 ## 重要规则
 
-1. **表名规范**: 必须使用`us_`前缀
-2. **系统字段**: 保持 7 个固定系统字段不变
-3. **字段排序**: 业务字段 orderNum 从 7 开始
-4. **实体命名**: 使用英文单词，避免下划线(invoice, employee)
-5. **临时文件**: 生成 temp\_开头的配置文件，执行后可删除
-6. **数据字典**: 优先检查Code_Gen_DICT.json中是否有合适的字典
-7. **字典字段**: 包含dictField属性指向具体的数据字典编码
+1. **表名规范**: 必须使用`us_`前缀 (如: us_sales_invoice)
+2. **实体命名规范**: 使用英文单词，遵循Java命名约定
+   - ✅ 正确: `invoice`, `employee`, `salesinvoice`, `salesOrder`
+   - ❌ 错误: `sales_invoice`, `employee_info` (不要使用下划线)
+3. **包名规范**: 全小写，无下划线
+   - ✅ 正确: `org.jeecg.modules.finance.salesinvoice`
+   - ❌ 错误: `org.jeecg.modules.finance.sales_invoice`
+4. **系统字段**: 保持 7 个固定系统字段不变
+5. **字段排序**: 业务字段 orderNum 从 7 开始
+6. **临时文件**: 生成 temp\_开头的配置文件，执行后可删除
+7. **数据字典**: 优先检查Code_Gen_DICT.json中是否有合适的字典
+8. **字典字段**: 包含dictField属性指向具体的数据字典编码
+
+### 命名转换规则
+| 表名 | 实体名 | 说明 |
+|------|--------|------|
+| us_sales_invoice | salesinvoice | 销售发票 |
+| us_employee_info | employeeinfo | 员工信息 |
+| us_purchase_order | purchaseorder | 采购订单 |
+| us_customer_service | customerservice | 客户服务 |
 
 ## 执行示例
 
@@ -230,6 +243,7 @@ python Code_Gen_Guide.py --module-name {system} --form-config temp_{entity}_conf
 - 业务领域: hrms (人力资源)
 - 核心功能: 员工信息管理
 - 表名: us_employee_info
+- 实体名: employeeinfo (遵循Java命名规范)
 
 ## 智能数据字典分析
 - 数据字典状态: 已自动检查并更新（156条记录）
@@ -269,8 +283,9 @@ python Code_Gen_Guide.py --module-name hrms --form-config temp_employee_config.j
 ````
 
 ## 预期结果
-
-生成位置: jeecg-module-finance/src/main/java/org/jeecg/modules/finance/invoice/
+- **模块路径**: `jeecg-module-hrms/src/main/java/org/jeecg/modules/hrms/employeeinfo/`
+- **实体类**: `EmployeeInfo.java` (驼峰命名)
+- **包名**: `org.jeecg.modules.hrms.employeeinfo` (全小写)
 
 ```
 
@@ -294,13 +309,14 @@ python Code_Gen_Guide.py --module-name hrms --form-config temp_employee_config.j
 
 ## 常见场景
 
-| 用户描述 | 系统识别 | 实体名 | 说明 |
-|----------|----------|--------|------|
-| "员工信息管理" | hrms | employee | 人员基础信息 |
-| "客户档案管理" | crm | customer | 客户关系管理 |
-| "库存商品管理" | scm | product | 商品库存管理 |
-| "财务发票管理" | finance | invoice | 发票财务管理 |
-| "会议室预约" | oa | meeting | 办公会议管理 |
+| 用户描述 | 系统识别 | 实体名 | 包名示例 | 说明 |
+|----------|----------|--------|----------|------|
+| "员工信息管理" | hrms | employee | org.jeecg.modules.hrms.employee | 人员基础信息 |
+| "客户档案管理" | crm | customer | org.jeecg.modules.crm.customer | 客户关系管理 |
+| "库存商品管理" | scm | product | org.jeecg.modules.scm.product | 商品库存管理 |
+| "财务发票管理" | finance | invoice | org.jeecg.modules.finance.invoice | 发票财务管理 |
+| "销售发票管理" | finance | salesinvoice | org.jeecg.modules.finance.salesinvoice | 销售发票管理 |
+| "会议室预约" | oa | meeting | org.jeecg.modules.oa.meeting | 办公会议管理 |
 
 ---
 
@@ -340,6 +356,11 @@ python Code_Gen_Guide.py --module-name hrms --form-config temp_employee_config.j
 关键字段: 发票号、客户信息、商品明细、税额计算、开票状态
 数据量级: 月开票约500张，需要5年历史数据查询
 特殊要求: 与金税系统对接，支持电子发票
+
+命名要求: 
+- 表名: us_sales_invoice
+- 实体名: salesinvoice (遵循Java命名规范，全小写无下划线)
+- 包名: org.jeecg.modules.finance.salesinvoice
 
 请设计表结构并生成代码。
 ```
