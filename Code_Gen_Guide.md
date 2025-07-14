@@ -77,6 +77,7 @@ python Code_Gen_Guide.py --module-name finance --form-config your_table.json
 | `--test` | 运行系统诊断 | 检查环境和配置 |
 | `--validate` | 验证配置 | 不执行工作流 |
 | `--skip-module-management` | 跳过模块管理 | 使用现有模块 |
+| `--try-run` | 试运行模式 | 显示操作不执行 |
 
 ## 🚀 使用示例
 
