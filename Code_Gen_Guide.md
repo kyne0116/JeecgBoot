@@ -42,6 +42,36 @@ python Code_Gen_Guide.py --module-name finance --form-config your_table.json
 - **oa**: 办公自动化 (approval, meeting, document)
 - **finance**: 财务管理 (invoice, budget, asset)
 
+### 字段模板类型
+
+**基础字段**:
+- `text_field`: 文本输入框
+- `number_field`: 数字输入框
+- `decimal_field`: 小数输入框  
+- `date_field`: 日期选择器
+- `datetime_field`: 日期时间选择器
+- `textarea_field`: 多行文本框
+
+**数据字典字段**:
+- `dict_select_field`: 下拉选择 (关联数据字典)
+- `dict_radio_field`: 单选按钮 (关联数据字典)  
+- `dict_checkbox_field`: 多选框 (关联数据字典)
+
+**高级字段类型** (新增):
+- `file_upload_field`: 文件上传组件
+- `image_upload_field`: 图片上传组件
+- `rich_text_field`: 富文本编辑器
+- `phone_field`: 手机号输入框 (带验证)
+- `email_field`: 邮箱输入框 (带验证)
+
+**模板变量**:
+- `{{DICT_CODE}}`: 数据字典编码 (如: sex, status, type)
+- `{{FIELD_NAME}}`: 字段名称
+- `{{FIELD_DESCRIPTION}}`: 字段描述
+- `{{ORDER_NUM}}`: 字段排序号
+- `{{NULLABLE}}`: 是否可空 (0/1)
+- `{{REQUIRED}}`: 是否必填 (0/1)
+
 ## ⚙️ 配置文件
 
 ### Code_Gen_Config.json - 主配置
@@ -67,6 +97,7 @@ python Code_Gen_Guide.py --module-name finance --form-config your_table.json
 - **表头信息**: 表名(us_前缀)、表描述
 - **系统字段**: 7个固定字段(不可修改)
 - **业务字段**: orderNum从7开始，使用字段模板
+- **数据字典字段**: 支持从Code_Gen_DICT.json自动关联
 
 ## 📋 命令行参数
 
@@ -117,6 +148,16 @@ python Code_Gen_Guide.py --dict
 ### 配置文件处理
 - **变量替换**: 代码生成时临时替换jeecg_config.properties变量
 - **自动还原**: 生成完成后恢复模板状态
+
+### 智能数据字典集成 (增强版)
+- **自动检查**: 24小时过期检测机制，自动判断是否需要更新
+- **智能匹配**: 增强算法支持精确匹配、模糊匹配、相似度计算
+- **多级匹配**: 
+  - 精确匹配(10分): 语义词完全对应
+  - 部分匹配(8分): 包含关系匹配  
+  - 模糊匹配(3-5分): 相似度算法匹配
+- **自动应用**: ≥8分自动配置，5-7分显示建议
+- **扩展语义**: 支持部门、职位、用户等更多业务词汇
 
 ### 错误处理
 - **完整验证**: 配置、网络、数据结构验证

@@ -429,8 +429,8 @@ def validate_config():
     # 验证代码生成配置
     if not CONFIG['codegen']['project_path']:
         errors.append("项目路径不能为空")
-    if not CONFIG['codegen']['entity_package']:
-        errors.append("实体包名不能为空")
+    if not CONFIG['codegen']['entity_name']:
+        errors.append("实体名称不能为空")
 
     # 验证jeecg-boot根目录是否存在
     jeecg_boot_path = Path('jeecg-boot')
@@ -677,8 +677,17 @@ def jeecg_complete_workflow():
         print(f"❌ 登录异常: {e}")
         return
 
-    # 2. 准备表单数据
-    print("\n2️⃣ 准备表单数据...")
+    # 2. 自动确保数据字典数据最新
+    print("\n2️⃣ 智能数据字典检查...")
+    if not auto_ensure_dict_data():
+        print("⚠️ 数据字典获取失败，将跳过智能匹配")
+        dict_data = []
+    else:
+        dict_data = load_dict_data()
+        print(f"✅ 加载数据字典: {len(dict_data)}条记录")
+
+    # 3. 准备表单数据
+    print("\n3️⃣ 准备表单数据...")
     try:
         with open(FORM_DATA_FILE, 'r', encoding='utf-8') as f:
             form_data = json.load(f)
@@ -700,13 +709,61 @@ def jeecg_complete_workflow():
         print(f"✅ 表名: {table_name}")
         print(f"✅ 表描述: {table_txt}")
 
+        # 4. 智能字段分析和数据字典匹配
+        print("\n4️⃣ 智能字段数据字典匹配...")
+        if dict_data:
+            enhanced_count = 0
+            suggested_count = 0
+            
+            for field in form_data.get('fields', []):
+                field_desc = field.get('dbFieldTxt', '')
+                if field_desc and field.get('orderNum', 0) >= 7:  # 只处理业务字段
+                    matches = match_dict_field(field_desc, dict_data)
+                    if matches:
+                        best_match = matches[0]
+                        
+                        # 自动应用高分匹配
+                        if best_match['score'] >= 8:  # 高分匹配自动应用
+                            # 更新字段配置为数据字典字段
+                            if '是否' in field_desc or '启用' in field_desc:
+                                field['fieldShowType'] = 'radio'
+                                field['queryShowType'] = 'radio'
+                            else:
+                                field['fieldShowType'] = 'text'  # 下拉选择
+                            
+                            field['dictField'] = best_match['dict_code']
+                            field['dictTable'] = ''
+                            field['dictText'] = ''
+                            
+                            enhanced_count += 1
+                            print(f"   ✓ {field_desc} -> {best_match['dict_name']} ({best_match['match_type']}, 分数:{best_match['score']})")
+                        
+                        # 显示中等匹配的建议
+                        elif best_match['score'] >= 5:  # 中等匹配显示建议
+                            suggested_count += 1
+                            print(f"   💡 建议: {field_desc} -> {best_match['dict_name']} ({best_match['match_type']}, 分数:{best_match['score']})")
+                            
+                            # 显示所有候选项（前3个）
+                            if len(matches) > 1:
+                                for i, match in enumerate(matches[:3], 1):
+                                    print(f"      {i}. {match['dict_name']} ({match['match_type']}, 分数:{match['score']})")
+            
+            if enhanced_count > 0:
+                print(f"✅ 智能匹配完成: {enhanced_count}个字段已自动关联数据字典")
+            if suggested_count > 0:
+                print(f"💡 发现 {suggested_count}个字段的潜在匹配建议（可手动配置）")
+            if enhanced_count == 0 and suggested_count == 0:
+                print("ℹ️ 未发现需要数据字典匹配的字段")
+        else:
+            print("⚠️ 跳过智能匹配: 数据字典数据不可用")
+
     except Exception as e:
         print(f"❌ 准备数据失败: {e}")
         return
 
-    # 2.5. 智能识别业务系统并确保模块存在
+    # 5. 智能识别业务系统并确保模块存在
     if not SKIP_MODULE_MANAGEMENT:
-        print("\n2️⃣.5️⃣ 模块管理...")
+        print("\n5️⃣ 模块管理...")
         try:
             # 优先使用命令行指定的系统名称，否则智能识别
             if FORCE_SYSTEM:
@@ -763,7 +820,7 @@ def jeecg_complete_workflow():
             print(f"❌ 模块管理异常: {e}")
             return
     else:
-        print("\n2️⃣.5️⃣ 跳过模块管理（使用现有配置）")
+        print("\n5️⃣ 跳过模块管理（使用现有配置）")
         print(f"🔧 当前项目路径: {PROJECT_PATH}")
         print(f"📦 当前实体名称: {ENTITY_NAME}")
 
@@ -783,8 +840,8 @@ def jeecg_complete_workflow():
         print(f"   表名                     = {table_name}")
         print(f"   表描述                   = {table_txt}")
     
-    # 3. 创建表单
-    print("\n3️⃣ 正在创建表单...")
+    # 6. 创建表单
+    print("\n6️⃣ 正在创建表单...")
     headers = {
         'X-Access-Token': token,
         'Content-Type': 'application/json',
@@ -867,8 +924,8 @@ def jeecg_complete_workflow():
         print(f"❌ 获取表单ID异常: {e}")
         return
     
-    # 5. 同步到数据库
-    print("\n5️⃣ 正在同步到数据库...")
+    # 7. 同步到数据库
+    print("\n7️⃣ 正在同步到数据库...")
 
     try:
         # 确保使用正确的headers和Token
@@ -904,8 +961,8 @@ def jeecg_complete_workflow():
         print(f"❌ 数据库同步异常: {e}")
         return
 
-    # 6. 代码生成
-    print("\n6️⃣ 正在生成代码...")
+    # 8. 代码生成
+    print("\n8️⃣ 正在生成代码...")
 
     try:
         # 生成实体名（将表名转换为驼峰命名）
@@ -1062,6 +1119,170 @@ def cleanup_temp_files():
         print(f"\n🧹 已清理临时文件: {', '.join(cleaned_files)}")
 
 # ==================== 数据字典功能 ====================
+
+def check_dict_file_status():
+    """检查数据字典文件状态"""
+    dict_file = 'Code_Gen_DICT.json'
+    
+    if not os.path.exists(dict_file):
+        return False, "数据字典文件不存在"
+    
+    try:
+        # 检查文件修改时间，如果超过24小时则认为需要更新
+        file_mtime = os.path.getmtime(dict_file)
+        current_time = time.time()
+        hours_diff = (current_time - file_mtime) / 3600
+        
+        if hours_diff > 24:
+            return False, f"数据字典文件已过期 ({hours_diff:.1f}小时前更新)"
+        
+        # 检查文件是否为空
+        with open(dict_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            if not data or len(data) == 0:
+                return False, "数据字典文件为空"
+        
+        return True, f"数据字典文件有效 ({len(data)}条记录)"
+        
+    except Exception as e:
+        return False, f"数据字典文件检查失败: {e}"
+
+def load_dict_data():
+    """加载数据字典数据"""
+    dict_file = 'Code_Gen_DICT.json'
+    try:
+        with open(dict_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"⚠️ 加载数据字典失败: {e}")
+        return []
+
+def calculate_similarity(str1, str2):
+    """计算两个字符串的相似度（简单的编辑距离算法）"""
+    if not str1 or not str2:
+        return 0.0
+    
+    len1, len2 = len(str1), len(str2)
+    dp = [[0] * (len2 + 1) for _ in range(len1 + 1)]
+    
+    for i in range(len1 + 1):
+        dp[i][0] = i
+    for j in range(len2 + 1):
+        dp[0][j] = j
+    
+    for i in range(1, len1 + 1):
+        for j in range(1, len2 + 1):
+            if str1[i-1] == str2[j-1]:
+                dp[i][j] = dp[i-1][j-1]
+            else:
+                dp[i][j] = min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1
+    
+    max_len = max(len1, len2)
+    similarity = (max_len - dp[len1][len2]) / max_len
+    return similarity
+
+def match_dict_field(field_description, dict_data):
+    """智能匹配数据字典字段（增强版）"""
+    # 扩展的数据字典语义映射
+    semantic_mapping = {
+        "性别": ["sex", "gender"],
+        "状态": ["status", "state", "condition"], 
+        "类型": ["type", "category", "kind", "class"],
+        "等级": ["level", "grade", "rank", "tier"],
+        "优先级": ["priority", "importance"],
+        "是否": ["yes_no", "flag", "enable", "switch"],
+        "审核": ["audit_result", "approve_status", "review"],
+        "级别": ["level", "grade", "rank"],
+        "分类": ["category", "type", "classification"],
+        "状况": ["status", "state", "situation"],
+        "启用": ["enable", "flag", "yes_no", "active"],
+        "有效": ["valid", "flag", "yes_no", "effective"],
+        "部门": ["department", "dept", "division"],
+        "职位": ["position", "job", "role", "post"],
+        "用户": ["user", "member", "person"]
+    }
+    
+    # 查找匹配的语义词
+    matched_dict_codes = []
+    semantic_scores = {}
+    
+    for semantic_word, dict_codes in semantic_mapping.items():
+        if semantic_word in field_description:
+            matched_dict_codes.extend(dict_codes)
+            for code in dict_codes:
+                semantic_scores[code] = 10  # 精确语义匹配
+    
+    # 在实际数据字典中查找匹配项
+    dict_matches = []
+    for dict_item in dict_data:
+        dict_code = dict_item.get('dictCode', '').lower()
+        dict_name = dict_item.get('dictName', '').lower()
+        
+        best_score = 0
+        match_type = ""
+        
+        # 1. 精确匹配检查
+        if dict_code in matched_dict_codes:
+            best_score = semantic_scores.get(dict_code, 10)
+            match_type = '语义精确匹配'
+        
+        # 2. 部分匹配检查
+        elif any(code in dict_code for code in matched_dict_codes):
+            best_score = 8
+            match_type = '语义部分匹配'
+        
+        # 3. 名称匹配检查
+        elif any(semantic_word in dict_name for semantic_word in semantic_mapping.keys() if semantic_word in field_description):
+            best_score = 6
+            match_type = '名称语义匹配'
+        
+        # 4. 模糊匹配检查（新增）
+        else:
+            # 检查字段描述与字典名称的相似度
+            similarity = calculate_similarity(field_description, dict_name)
+            if similarity > 0.6:  # 相似度阈值
+                best_score = int(similarity * 5)  # 转换为分数（最高5分）
+                match_type = f'模糊匹配({similarity:.2f})'
+            
+            # 检查字段描述与字典编码的相似度
+            code_similarity = calculate_similarity(field_description.lower(), dict_code)
+            if code_similarity > 0.5:
+                code_score = int(code_similarity * 4)  # 最高4分
+                if code_score > best_score:
+                    best_score = code_score
+                    match_type = f'编码模糊匹配({code_similarity:.2f})'
+        
+        # 添加到结果中（只添加有意义的匹配）
+        if best_score > 0:
+            dict_matches.append({
+                'dict_code': dict_item.get('dictCode'),
+                'dict_name': dict_item.get('dictName'),
+                'score': best_score,
+                'match_type': match_type
+            })
+    
+    # 按得分排序，返回最佳匹配
+    dict_matches.sort(key=lambda x: x['score'], reverse=True)
+    return dict_matches[:5] if dict_matches else []  # 返回前5个最佳匹配
+
+def auto_ensure_dict_data():
+    """自动确保数据字典数据存在且最新"""
+    print("\n🔍 检查数据字典状态...")
+    
+    is_valid, status_msg = check_dict_file_status()
+    print(f"   {status_msg}")
+    
+    if not is_valid:
+        print("📚 自动获取最新数据字典...")
+        if fetch_system_dict():
+            print("✅ 数据字典更新完成")
+            return True
+        else:
+            print("❌ 数据字典获取失败")
+            return False
+    else:
+        print("✅ 数据字典文件有效，跳过更新")
+        return True
 
 def fetch_system_dict():
     """获取系统数据字典并保存到Code_Gen_DICT.json"""
@@ -1220,7 +1441,8 @@ def create_field_from_template(field_type, field_name, field_description, order_
         '{{NULLABLE}}': kwargs.get('nullable', '1'),
         '{{REQUIRED}}': kwargs.get('required', '0'),
         '{{OPTIONS}}': kwargs.get('options', ''),
-        '{{DEFAULT_VALUE}}': kwargs.get('default_value', '')
+        '{{DEFAULT_VALUE}}': kwargs.get('default_value', ''),
+        '{{DICT_CODE}}': kwargs.get('dict_code', '')
     }
 
     # 递归替换所有字符串值
@@ -1238,6 +1460,43 @@ def create_field_from_template(field_type, field_name, field_description, order_
             return obj
 
     return replace_template_vars(template)
+
+def create_field_with_smart_dict(field_type, field_name, field_description, order_num, dict_data=None, **kwargs):
+    """智能创建字段，自动匹配数据字典"""
+    
+    # 如果没有提供数据字典数据，尝试加载
+    if dict_data is None:
+        dict_data = load_dict_data()
+    
+    # 智能匹配数据字典
+    dict_matches = match_dict_field(field_description, dict_data)
+    
+    # 如果有匹配的数据字典且字段类型适合使用数据字典
+    if dict_matches and field_type in ['select_field', 'text_field']:
+        best_match = dict_matches[0]  # 使用最佳匹配
+        dict_code = best_match['dict_code']
+        
+        print(f"🎯 智能匹配数据字典: {field_description} → {dict_code} ({best_match['dict_name']})")
+        print(f"   匹配类型: {best_match['match_type']}, 得分: {best_match['score']}")
+        
+        # 根据原字段类型选择合适的数据字典字段类型
+        if field_type == 'select_field':
+            dict_field_type = 'dict_select_field'
+        else:
+            dict_field_type = 'dict_select_field'  # 默认使用下拉选择
+        
+        # 创建数据字典字段
+        return create_field_from_template(
+            dict_field_type, 
+            field_name, 
+            field_description, 
+            order_num,
+            dict_code=dict_code,
+            **kwargs
+        )
+    
+    # 没有匹配的数据字典，使用原始字段类型
+    return create_field_from_template(field_type, field_name, field_description, order_num, **kwargs)
 
 def create_form_from_config(config_file):
     """从配置文件创建表单"""
