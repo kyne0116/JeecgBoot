@@ -90,6 +90,73 @@ CONFIG = load_config()
 SKIP_MODULE_MANAGEMENT = False
 FORCE_SYSTEM = None
 
+# ==================== Java命名规范转换功能 ====================
+
+def extract_business_entity_from_table_name(table_name):
+    """
+    从表名中提取业务实体名
+    仅支持标准格式: us_{模块名称}_{子模块名称}_{推理业务需求场景}
+    
+    Args:
+        table_name (str): 完整表名，必须符合 us_{模块}_{子模块}_{业务场景} 格式
+        
+    Returns:
+        str: 业务场景实体名（Java规范）
+        
+    Examples:
+        us_finance_invoice_sales -> sales
+        us_hrms_employee_training -> training  
+        us_crm_customer_service -> service
+        us_scm_inventory_management -> management
+    """
+    if not table_name:
+        raise ValueError("表名不能为空")
+        
+    if not table_name.startswith('us_'):
+        raise ValueError(f"表名必须以 'us_' 开头: {table_name}")
+        
+    parts = table_name.split('_')
+    
+    if len(parts) != 4:
+        raise ValueError(f"表名格式错误，必须为 us_{{模块名称}}_{{子模块名称}}_{{推理业务需求场景}} 格式: {table_name}")
+    
+    # 标准格式: us_module_submodule_business_scenario
+    module_name = parts[1]      # 模块名称
+    sub_module = parts[2]       # 子模块名称  
+    business_scenario = parts[3] # 业务场景
+    
+    java_name = convert_to_java_entity_name(business_scenario)
+    print(f"🎯 业务实体提取: {table_name}")
+    print(f"   ├── 模块: {module_name}")
+    print(f"   ├── 子模块: {sub_module}") 
+    print(f"   └── 业务场景: {business_scenario} → Java实体: {java_name}")
+    
+    return java_name
+
+def convert_to_java_entity_name(entity_name):
+    """
+    将实体名转换为Java命名规范
+    移除下划线并转换为小写连写形式
+    
+    Args:
+        entity_name (str): 原始实体名，可能包含下划线
+    
+    Returns:
+        str: 符合Java规范的实体名（小写无下划线）
+    
+    Examples:
+        sales_invoice -> salesinvoice
+        employee_info -> employeeinfo
+        purchase_order -> purchaseorder
+    """
+    if not entity_name:
+        return entity_name
+    
+    # 移除所有下划线并转换为小写
+    java_name = entity_name.replace('_', '').lower()
+    
+    return java_name
+
 # ==================== 配置文件处理功能 ====================
 
 def backup_and_replace_jeecg_config(project_path, package_name):
@@ -783,11 +850,8 @@ def jeecg_complete_workflow():
             project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
             PROJECT_PATH = str(Path(f"{project_prefix}/jeecg-boot/jeecg-module-{module_name}").resolve())
 
-            # 从表名提取实体包名（去掉us_前缀）
-            if table_name.startswith('us_'):
-                ENTITY_NAME = table_name[3:]  # 去掉us_前缀
-            else:
-                ENTITY_NAME = table_name
+            # 从表名提取业务实体名（支持新的命名规范）
+            ENTITY_NAME = extract_business_entity_from_table_name(table_name)
 
             print(f"🔧 更新项目路径: {PROJECT_PATH}")
             print(f"📦 更新实体名称: {ENTITY_NAME}")
@@ -1616,10 +1680,7 @@ def main():
             with open(args.form_config, 'r', encoding='utf-8') as f:
                 form_data = json.load(f)
                 table_name = form_data.get('head', {}).get('tableName', '')
-                if table_name.startswith('us_'):
-                    ENTITY_NAME = table_name[3:]  # 去掉us_前缀
-                else:
-                    ENTITY_NAME = table_name
+                ENTITY_NAME = extract_business_entity_from_table_name(table_name)
         except Exception as e:
             print(f"⚠️ 无法读取表单配置文件: {e}")
             ENTITY_NAME = CONFIG['codegen']['entity_name']  # 保持原配置值
