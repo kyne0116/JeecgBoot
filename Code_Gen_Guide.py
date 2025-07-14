@@ -1061,6 +1061,127 @@ def cleanup_temp_files():
     if cleaned_files:
         print(f"\n🧹 已清理临时文件: {', '.join(cleaned_files)}")
 
+# ==================== 数据字典功能 ====================
+
+def fetch_system_dict():
+    """获取系统数据字典并保存到Code_Gen_DICT.json"""
+    print("\n📚 开始获取系统数据字典...")
+    print("=" * 50)
+    
+    # 1. 删除已存在的字典文件
+    dict_file = 'Code_Gen_DICT.json'
+    if os.path.exists(dict_file):
+        try:
+            os.remove(dict_file)
+            print(f"🗑️ 已删除现有字典文件: {dict_file}")
+        except Exception as e:
+            print(f"⚠️ 删除字典文件失败: {e}")
+    
+    # 2. 登录获取Token
+    print("\n1️⃣ 正在登录获取Token...")
+    try:
+        login_data = {"username": LOGIN_USERNAME, "password": LOGIN_PASSWORD}
+        response = requests.post(f"{BASE_URL}/sys/mLogin", json=login_data, timeout=REQUEST_TIMEOUT_LOGIN)
+        
+        if response.status_code != 200 or not response.json().get('success'):
+            print("❌ 登录失败")
+            return False
+        
+        token = response.json()['result']['token']
+        user_info = response.json()['result']['userInfo']
+        print(f"✅ 登录成功: {user_info.get('realname')}")
+        print(f"   Token: {token[:DISPLAY_TOKEN_LENGTH]}...")
+        
+    except Exception as e:
+        print(f"❌ 登录异常: {e}")
+        return False
+    
+    # 3. 获取数据字典
+    print("\n2️⃣ 正在获取数据字典...")
+    headers = {
+        'X-Access-Token': token,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+    
+    all_records = []
+    page_no = 1
+    page_size = 10
+    total_pages = 1
+    
+    try:
+        while page_no <= total_pages:
+            # 构建查询参数
+            params = {
+                'column': 'createTime',
+                'order': 'desc', 
+                'pageNo': page_no,
+                'pageSize': page_size,
+                '_t': int(time.time() * 1000)  # 时间戳
+            }
+            
+            print(f"   📄 获取第 {page_no} 页数据...")
+            
+            # 调用数据字典接口
+            dict_url = f"{BASE_URL}/sys/dict/list"
+            response = requests.get(dict_url, params=params, headers=headers, timeout=REQUEST_TIMEOUT_LIST)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success'):
+                    records = result['result']['records']
+                    total = result['result']['total']
+                    
+                    # 计算总页数
+                    total_pages = (total + page_size - 1) // page_size
+                    
+                    print(f"      ✓ 获取到 {len(records)} 条记录")
+                    print(f"      ✓ 总记录数: {total}, 总页数: {total_pages}")
+                    
+                    # 添加到总记录中
+                    all_records.extend(records)
+                    
+                    # 下一页
+                    page_no += 1
+                    
+                else:
+                    print(f"❌ 获取数据字典失败: {result.get('message')}")
+                    return False
+            else:
+                print(f"❌ 请求失败: HTTP {response.status_code}")
+                print(f"   响应内容: {response.text}")
+                return False
+        
+        # 4. 保存到文件
+        print(f"\n3️⃣ 正在保存数据字典...")
+        print(f"   总共获取到 {len(all_records)} 条数据字典记录")
+        
+        with open(dict_file, 'w', encoding='utf-8') as f:
+            json.dump(all_records, f, ensure_ascii=False, indent=2)
+        
+        print(f"✅ 数据字典已保存到: {dict_file}")
+        
+        # 5. 显示统计信息
+        print(f"\n📊 数据字典统计:")
+        print(f"   文件路径: {os.path.abspath(dict_file)}")
+        print(f"   记录总数: {len(all_records)}")
+        
+        # 显示前几条记录的基本信息
+        if all_records:
+            print(f"\n📋 前5条记录预览:")
+            for i, record in enumerate(all_records[:5]):
+                dict_code = record.get('dictCode', 'N/A')
+                dict_name = record.get('dictName', 'N/A')
+                print(f"   {i+1}. {dict_code} - {dict_name}")
+        
+        print("\n" + "=" * 50)
+        print("🎉 数据字典获取完成！")
+        return True
+        
+    except Exception as e:
+        print(f"❌ 获取数据字典异常: {e}")
+        return False
+
 # ==================== 模板处理功能 ====================
 
 def load_template(template_file='Code_Gen_Guide.json'):
@@ -1195,6 +1316,9 @@ def parse_arguments():
     parser.add_argument('--verbose', '-v', action='store_true',
                        help='详细输出模式')
 
+    parser.add_argument('--dict', action='store_true',
+                       help='获取系统数据字典并保存到Code_Gen_DICT.json')
+
     return parser.parse_args()
 
 def main():
@@ -1294,6 +1418,11 @@ def main():
         print(f"📋 表单配置: {args.form_config or '使用默认'}")
         print(f"🏗️ 项目路径: {CONFIG['codegen']['project_path']}")
         print(f"📦 实体名称: {CONFIG['codegen']['entity_name']}")
+        return
+
+    if args.dict:
+        # 获取系统数据字典
+        fetch_system_dict()
         return
 
     # 处理表单配置文件
