@@ -1,113 +1,113 @@
 <?xml version='1.0' encoding='utf-8'?>
-<ns0:project xmlns:ns0="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <ns0:parent>
-        <ns0:artifactId>jeecg-module-system</ns0:artifactId>
-        <ns0:groupId>org.jeecgframework.boot</ns0:groupId>
-        <ns0:version>3.8.1</ns0:version>
-    </ns0:parent>
-    <ns0:modelVersion>4.0.0</ns0:modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>jeecg-module-system</artifactId>
+        <groupId>org.jeecgframework.boot</groupId>
+        <version>3.8.1</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
 
-    <ns0:artifactId>jeecg-system-start</ns0:artifactId>
+    <artifactId>jeecg-system-start</artifactId>
     
-    <ns0:dependencies>
+    <dependencies>
         
-        <ns0:dependency>
-            <ns0:groupId>org.jeecgframework.boot</ns0:groupId>
-            <ns0:artifactId>jeecg-system-biz</ns0:artifactId>
-            <ns0:version>${jeecgboot.version}</ns0:version>
-        </ns0:dependency>
+        <dependency>
+            <groupId>org.jeecgframework.boot</groupId>
+            <artifactId>jeecg-system-biz</artifactId>
+            <version>${jeecgboot.version}</version>
+        </dependency>
         
-        <ns0:dependency>
-            <ns0:groupId>org.jeecgframework.boot</ns0:groupId>
-            <ns0:artifactId>jeecg-module-demo</ns0:artifactId>
-            <ns0:version>${jeecgboot.version}</ns0:version>
-        </ns0:dependency>
-        
-        
-        <ns0:dependency>
-            <ns0:groupId>org.flywaydb</ns0:groupId>
-            <ns0:artifactId>flyway-core</ns0:artifactId>
-        </ns0:dependency>
+        <dependency>
+            <groupId>org.jeecgframework.boot</groupId>
+            <artifactId>jeecg-module-demo</artifactId>
+            <version>${jeecgboot.version}</version>
+        </dependency>
         
         
-        <ns0:dependency>
-            <ns0:groupId>io.cucumber</ns0:groupId>
-            <ns0:artifactId>cucumber-java</ns0:artifactId>
-            <ns0:scope>test</ns0:scope>
-        </ns0:dependency>
-        <ns0:dependency>
-            <ns0:groupId>io.cucumber</ns0:groupId>
-            <ns0:artifactId>cucumber-junit-platform-engine</ns0:artifactId>
-            <ns0:scope>test</ns0:scope>
-        </ns0:dependency>
-        <ns0:dependency>
-            <ns0:groupId>io.cucumber</ns0:groupId>
-            <ns0:artifactId>cucumber-spring</ns0:artifactId>
-            <ns0:scope>test</ns0:scope>
-        </ns0:dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
         
-        <ns0:dependency>
-            <ns0:groupId>org.junit.platform</ns0:groupId>
-            <ns0:artifactId>junit-platform-suite</ns0:artifactId>
-            <ns0:scope>test</ns0:scope>
-        </ns0:dependency>
         
-        <ns0:dependency>
-            <ns0:groupId>com.fasterxml.jackson.core</ns0:groupId>
-            <ns0:artifactId>jackson-databind</ns0:artifactId>
-        </ns0:dependency>
-    <dependency><groupId>org.jeecgframework.boot</groupId><artifactId>jeecg-module-finance</artifactId><version>${jeecgboot.version}</version></dependency></ns0:dependencies>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+    </dependencies>
 
-    <ns0:build>
-        <ns0:plugins>
-            <ns0:plugin>
-                <ns0:groupId>org.springframework.boot</ns0:groupId>
-                <ns0:artifactId>spring-boot-maven-plugin</ns0:artifactId>
-            </ns0:plugin>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
             
-            <ns0:plugin>
-                <ns0:groupId>org.apache.maven.plugins</ns0:groupId>
-                <ns0:artifactId>maven-surefire-plugin</ns0:artifactId>
-                <ns0:configuration>
-                    <ns0:skipTests>false</ns0:skipTests>
-                    <ns0:excludes>
-                        <ns0:exclude>**/MockControllerTest.java</ns0:exclude>
-                        <ns0:exclude>**/SysUserApiTest.java</ns0:exclude>
-                    </ns0:excludes>
-                </ns0:configuration>
-            </ns0:plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <skipTests>false</skipTests>
+                    <excludes>
+                        <exclude>**/MockControllerTest.java</exclude>
+                        <exclude>**/SysUserApiTest.java</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
             
-            <ns0:plugin>
-                <ns0:groupId>org.codehaus.mojo</ns0:groupId>
-                <ns0:artifactId>exec-maven-plugin</ns0:artifactId>
-                <ns0:version>3.1.0</ns0:version>
-                <ns0:executions>
-                    <ns0:execution>
-                        <ns0:id>generate-living-doc</ns0:id>
-                        <ns0:phase>test</ns0:phase>
-                        <ns0:goals>
-                            <ns0:goal>java</ns0:goal>
-                        </ns0:goals>
-                        <ns0:configuration>
-                            <ns0:mainClass>org.jeecg.bdd.LivingDocGenerator</ns0:mainClass>
-                            <ns0:arguments>
-                                <ns0:argument>target/cucumber-reports/json/cucumber.json</ns0:argument>
-                                <ns0:argument>target/living-documentation</ns0:argument>
-                            </ns0:arguments>
-                            <ns0:includeProjectDependencies>true</ns0:includeProjectDependencies>
-                            <ns0:includePluginDependencies>true</ns0:includePluginDependencies>
-                        </ns0:configuration>
-                    </ns0:execution>
-                </ns0:executions>
-                <ns0:dependencies>
-                    <ns0:dependency>
-                        <ns0:groupId>com.fasterxml.jackson.core</ns0:groupId>
-                        <ns0:artifactId>jackson-databind</ns0:artifactId>
-                        <ns0:version>2.15.2</ns0:version>
-                    </ns0:dependency>
-                </ns0:dependencies>
-            </ns0:plugin>
-        </ns0:plugins>
-    </ns0:build>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-living-doc</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>org.jeecg.bdd.LivingDocGenerator</mainClass>
+                            <arguments>
+                                <argument>target/cucumber-reports/json/cucumber.json</argument>
+                                <argument>target/living-documentation</argument>
+                            </arguments>
+                            <includeProjectDependencies>true</includeProjectDependencies>
+                            <includePluginDependencies>true</includePluginDependencies>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.fasterxml.jackson.core</groupId>
+                        <artifactId>jackson-databind</artifactId>
+                        <version>2.15.2</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+    </build>
 
-</ns0:project>
+</project>
