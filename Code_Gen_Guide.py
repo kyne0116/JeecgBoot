@@ -1189,7 +1189,7 @@ def parse_arguments():
     parser.add_argument('--skip-module-management', action='store_true',
                        help='跳过模块管理（不检查和创建模块）')
 
-    parser.add_argument('--dry-run', action='store_true',
+    parser.add_argument('--try-run', action='store_true',
                        help='试运行模式（只显示将要执行的操作，不实际执行）')
 
     parser.add_argument('--verbose', '-v', action='store_true',
@@ -1287,7 +1287,7 @@ def main():
                 print(f"❌ 表单数据加载失败: {e}")
         return
 
-    if args.dry_run:
+    if args.try_run:
         print("🔍 试运行模式 - 将显示操作但不执行")
         print(f"📋 配置文件: {args.config}")
         print(f"🎯 业务系统: {args.module_name or '自动识别'}")
