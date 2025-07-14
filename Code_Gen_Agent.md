@@ -367,3 +367,252 @@ python Code_Gen_Guide.py --module-name hrms --form-config temp_employee_config.j
 
 **开始工作**: 请使用上述最佳实践描述您的业务需求，我将自动完成需求分析、配置生成和代码执行。
 ```
+
+---
+
+## 📁 Code_Gen 文件系统详解
+
+### 核心文件功能定位
+
+#### 🔧 主执行文件
+**Code_Gen_Guide.py** - 智能化工作流引擎
+```
+功能: 完整自动化代码生成工作流
+特点: 
+- 智能模块管理(检查/创建Maven模块)
+- 自动数据字典获取和匹配
+- 智能字段映射和配置生成
+- 完整CRUD代码生成
+- 配置文件临时处理和还原
+
+使用场景: 
+- 执行完整代码生成流程
+- 系统诊断和环境检查
+- 数据字典获取和管理
+```
+
+#### 🤖 AI助手配置
+**Code_Gen_Agent.md** - AI行为规范文档
+```
+功能: 定义AI助手的工作规范和响应模式
+内容:
+- 业务系统识别规则
+- 字段类型智能匹配
+- 命名规范和最佳实践
+- 工作流程和响应模板
+
+使用场景:
+- AI助手学习和参考
+- 确保一致的工作流程
+- 标准化响应格式
+```
+
+#### ⚙️ 系统配置文件
+**Code_Gen_Config.json** - 全局配置管理
+```json
+{
+  "project": {
+    "path_prefix": "/Users/admin/Work/Github/JeecgBoot"  // 项目根路径
+  },
+  "server": {
+    "base_url": "http://localhost:8080/jeecg-boot",     // 服务器地址
+    "username": "admin",                                 // 登录用户名
+    "password": "123456"                                 // 登录密码
+  },
+  "codegen": {
+    "vue_style": "vue3",                                // Vue版本
+    "code_types": "controller,service,dao,mapper,entity,vue"  // 生成类型
+  }
+}
+
+使用规则:
+- ✅ 可以修改: 项目路径、服务器配置
+- ❌ 禁止修改: codegen配置(影响生成逻辑)
+- 🔄 自动读取: 脚本运行时自动加载
+```
+
+#### 📋 基础模板文件
+**Code_Gen_Guide.json** - 7个系统字段模板
+```json
+{
+  "head": {
+    "tableName": "{{TABLE_NAME}}",     // 表名(模板变量)
+    "tableTxt": "{{TABLE_DESCRIPTION}}" // 表描述(模板变量)
+  },
+  "fields": [
+    // 0-6: 7个固定系统字段(永不修改)
+    {
+      "orderNum": 0,
+      "fieldName": "id",
+      "fieldTxt": "主键",
+      "fieldType": "string"
+      // ... 完整系统字段定义
+    }
+  ]
+}
+
+重要规则:
+- 🔒 永远保持模板状态，不要修改具体值
+- ✅ 业务字段从orderNum=7开始添加
+- 🚫 绝对不要修改0-6的系统字段
+- 📝 使用时复制并替换模板变量
+```
+
+#### 📚 字段模板库
+**Code_Gen_field_templates.json** - 字段类型定义库
+```json
+{
+  "text_field": {
+    "fieldType": "string",
+    "fieldShowType": "text",
+    "nullable": 1,
+    "required": 0
+  },
+  "dict_select_field": {
+    "fieldType": "string", 
+    "fieldShowType": "text",
+    "dictField": "{{DICT_CODE}}",  // 数据字典编码
+    "nullable": 1,
+    "required": 0
+  }
+  // ... 更多字段类型模板
+}
+
+使用方法:
+- 📖 查询可用字段类型
+- 🔄 复制模板并替换变量
+- ✅ 保证字段配置一致性
+```
+
+#### 🗃️ 数据字典缓存
+**Code_Gen_DICT.json** - 系统数据字典缓存
+```json
+{
+  "last_update": "2024-01-15 10:30:00",
+  "dictionaries": [
+    {
+      "dictCode": "sex",
+      "dictName": "性别",
+      "dictItems": [
+        {"itemText": "男", "itemValue": "1"},
+        {"itemValue": "女", "itemValue": "2"}
+      ]
+    }
+    // ... 所有系统数据字典
+  ]
+}
+
+自动管理:
+- ⏰ 24小时过期自动更新
+- 🔄 智能匹配算法数据源
+- 📦 缓存系统所有数据字典
+- 🚫 不要手动编辑此文件
+```
+
+#### 📄 用户指南文档
+**Code_Gen_Guide.md** - 详细使用说明
+```
+功能: 提供完整的使用指南和技术说明
+内容:
+- 命令行参数说明
+- 配置文件详解
+- 字段类型说明
+- 错误处理指南
+
+目标用户: 开发人员和系统管理员
+```
+
+### 文件使用技能掌握
+
+#### 🎯 正确的文件操作顺序
+
+1. **配置阶段**
+```bash
+# 1. 检查并配置全局设置
+编辑 Code_Gen_Config.json (仅项目路径和服务器配置)
+
+# 2. 基于模板创建业务配置
+复制 Code_Gen_Guide.json → temp_业务名_config.json
+替换模板变量并添加业务字段
+```
+
+2. **执行阶段**
+```bash
+# 3. 执行智能化工作流
+python Code_Gen_Guide.py --module-name 模块名 --form-config 配置文件
+
+# 4. 系统自动处理
+- 自动检查/更新 Code_Gen_DICT.json
+- 智能匹配并应用数据字典
+- 自动创建Maven模块(如需要)
+- 生成完整CRUD代码
+```
+
+#### ❌ 常见错误避免
+
+**禁止操作**:
+```
+❌ 直接修改 Code_Gen_Guide.json 的具体字段值
+❌ 手动编辑 Code_Gen_DICT.json 文件
+❌ 修改 Code_Gen_Config.json 的 codegen 配置
+❌ 在系统字段(0-6)中添加业务逻辑
+❌ 使用带下划线的实体名称
+```
+
+**必须操作**:
+```
+✅ 复制模板文件后再修改
+✅ 业务字段从 orderNum=7 开始
+✅ 遵循Java命名规范(小写无下划线)
+✅ 使用 us_ 前缀的表名
+✅ 保持模板文件的模板状态
+```
+
+#### 🔧 智能化特性使用
+
+**自动数据字典管理**:
+```python
+# 系统自动执行，无需手动干预
+if is_dict_expired():
+    auto_fetch_latest_dict()  # 自动获取最新字典
+    
+smart_match_fields()          # 智能匹配字段
+auto_apply_dict_config()      # 自动应用配置
+```
+
+**智能字段匹配**:
+```json
+// 系统自动识别并配置
+{
+  "fieldName": "employee_sex",
+  "fieldTxt": "员工性别", 
+  "dictField": "sex",           // 自动匹配
+  "fieldShowType": "radio"      // 智能判断
+}
+```
+
+#### 📋 文件依赖关系图
+
+```
+Code_Gen_Config.json (全局配置)
+         ↓
+Code_Gen_Guide.py (主引擎)
+         ↓
+Code_Gen_Guide.json (基础模板) → temp_xxx_config.json (业务配置)
+         ↓
+Code_Gen_field_templates.json (字段模板库)
+         ↓
+Code_Gen_DICT.json (数据字典缓存)
+         ↓
+生成的CRUD代码
+```
+
+#### 🎯 最佳实践总结
+
+1. **准备阶段**: 确保 Code_Gen_Config.json 配置正确
+2. **设计阶段**: 基于 Code_Gen_Guide.json 创建业务配置
+3. **执行阶段**: 调用 Code_Gen_Guide.py 完成自动化流程
+4. **验证阶段**: 检查生成的代码和数据字典集成
+5. **清理阶段**: 删除临时配置文件
+
+**记住**: 这是一个智能化系统，大部分工作都是自动完成的。您只需要专注于业务需求描述和配置文件创建，其他的交给系统自动处理。
