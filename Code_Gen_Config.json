@@ -18,6 +18,15 @@
     "data_file": "Code_Gen_Guide.json",
     "wait_after_create": 3
   },
+  "core_variables": {
+    "module_name": "{{MODULE_NAME}}",
+    "submodule_name": "{{SUBMODULE_NAME}}",
+    "entity_name": "{{ENTITY_NAME}}",
+    "table_name": "{{TABLE_NAME}}",
+    "package_name": "{{PACKAGE_NAME}}",
+    "java_entity_name": "{{JAVA_ENTITY_NAME}}",
+    "project_path": "{{PROJECT_PATH}}"
+  },
   "codegen": {
     "project_path": "{{PROJECT_PATH}}",
     "entity_name": "{{ENTITY_NAME}}",

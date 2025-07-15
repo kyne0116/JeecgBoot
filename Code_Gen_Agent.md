@@ -100,46 +100,96 @@ us_crm_leads_management       → org.jeecg.modules.crm.leads, 实体: Managemen
 ## Variables
 
 ```yaml
-# 核心参数变量定义
-REQUIRED_PARAMS:
-  table_name:
-    format: "us_{module}_{submodule}_{scenario}"
-    validation: "^us_[a-z]+_[a-z]+_[a-z]+$"
-    source: "AI_REASONING"
+# 三个核心变量定义 - 代码生成系统的基础
+CORE_VARIABLES:
+  # 第一层：模块名/系统名称 - 对应业务系统类型
+  MODULE_NAME:
+    description: "业务系统模块名称，表示一级业务领域"
+    options: ["finance", "hrms", "crm", "scm", "oa"]
+    format: "lowercase_english_word"
+    validation: "in_allowed_list"
+    example: "finance"
+    source: "BUSINESS_DOMAIN_ANALYSIS"
+    table_name_segment: 1
 
-  entity_name:
+  # 第二层：子模块名/系统模块 - 对应业务系统内的功能模块
+  SUBMODULE_NAME:
+    description: "系统内的功能子模块，表示二级业务领域"
+    format: "lowercase_english_word"
+    validation: "^[a-z][a-z0-9_]*$"
+    example: "invoice"
+    source: "FUNCTIONAL_ANALYSIS"
+    table_name_segment: 2
+
+  # 第三层：业务场景/实体名称 - 对应具体业务实体
+  ENTITY_NAME:
+    description: "具体业务实体或场景，表示操作对象"
+    format: "lowercase_for_table_camelcase_for_java"
+    validation: "^[a-z][a-z0-9_]*$"
+    example: "management"
+    java_example: "Management"
+    source: "BUSINESS_SCENARIO_EXTRACTION"
+    table_name_segment: 3
+
+# 派生变量 - 由核心变量计算得出
+DERIVED_VARIABLES:
+  # 表名 - 由三个核心变量组合而成
+  TABLE_NAME:
+    format: "us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}"
+    validation: "^us_[a-z]+_[a-z]+_[a-z]+$"
+    example: "us_finance_invoice_management"
+    source: "CORE_VARIABLES_COMBINATION"
+
+  # 包名 - 由模块名和子模块名组合而成
+  PACKAGE_NAME:
+    format: "org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
+    validation: "valid_java_package"
+    example: "org.jeecg.modules.finance.invoice"
+    source: "CORE_VARIABLES_COMBINATION"
+
+  # Java实体名 - 由业务场景转换而成
+  JAVA_ENTITY_NAME:
     format: "PascalCase"
     validation: "^[A-Z][a-zA-Z0-9]*$"
-    source: "EXTRACT_FROM_TABLE_NAME"
+    example: "Management"
+    source: "ENTITY_NAME_TRANSFORMATION"
 
-  module_name:
-    options: ["hrms", "crm", "scm", "oa", "finance"]
-    validation: "in_allowed_list"
-    source: "BUSINESS_DOMAIN_MAPPING"
+  # 项目路径 - 由配置和模块名组合而成
+  PROJECT_PATH:
+    format: "{PROJECT_PATH_PREFIX}/jeecg-boot/jeecg-boot-module/jeecg-module-{MODULE_NAME}"
+    example: "/Users/admin/Work/Github/JeecgBoot/jeecg-boot/jeecg-boot-module/jeecg-module-finance"
+    source: "CONFIG_AND_MODULE_COMBINATION"
 
+# 业务参数 - 用于代码生成的其他必要参数
+BUSINESS_PARAMS:
   table_description:
+    description: "表的中文描述，用于生成注释和前端显示"
     max_length: 50
     validation: "non_empty_chinese"
+    example: "销售发票管理表"
     source: "BUSINESS_REQUIREMENT_ANALYSIS"
 
-  package_name:
-    format: "org.jeecg.modules.{module}.{entity_name}"
-    validation: "valid_java_package"
-    source: "STANDARD_FORMAT_GENERATION"
-
   fields_config:
+    description: "表字段配置，包含字段名、类型、描述和约束"
     type: "array"
     format: "[{name,type,desc,required}]"
+    example: "[{name:'invoice_no',type:'text_field',desc:'发票编号',required:true}]"
     source: "FIELD_ANALYSIS_RESULT"
 
+# 可选参数 - 增强功能的非必要参数
 OPTIONAL_PARAMS:
   dict_mappings:
+    description: "数据字典映射，用于下拉选择等场景"
     type: "object"
-    format: "{status:'invoice_status'}"
+    format: "{field_name:'dict_code'}"
+    example: "{status:'invoice_status',type:'invoice_type'}"
     source: "INTELLIGENT_MATCHING"
 
   custom_validations:
+    description: "自定义字段验证规则"
     type: "array"
+    format: "[{field,rule,message}]"
+    example: "[{field:'amount',rule:'>=0',message:'金额不能为负'}]"
     source: "FIELD_ANALYSIS"
 
 # 系统常量
@@ -150,6 +200,7 @@ BUSINESS_MODULES:
   oa: "办公自动化系统"
   finance: "财务管理系统"
 
+# 字段模板类型
 FIELD_TEMPLATES:
   - text_field
   - number_field
@@ -170,17 +221,18 @@ FIELD_TEMPLATES:
 
 ## Workflow
 
-### 步骤 1: 业务需求分析与解构
+### 步骤 1: 业务需求分析与三核心变量提取
 
 ```
 📝 Input: <用户业务描述>
 🔍 Process:
   1.1 关键词提取 → 使用NLP技术识别业务领域和核心概念
-  1.2 系统映射 → 基于<BUSINESS_MODULES>进行智能匹配
-  1.3 场景分析 → 确定具体业务场景和功能边界
-  1.4 表名设计 → 严格按照<REQUIRED_PARAMS.table_name.format>生成
-  1.5 字段识别 → 分析并列举所需数据字段及其业务含义
-📤 Output: 标准化业务需求分析报告
+  1.2 模块名识别 → 基于<BUSINESS_MODULES>智能匹配MODULE_NAME
+  1.3 子模块分析 → 从功能描述中提取SUBMODULE_NAME
+  1.4 实体场景确定 → 从业务对象中识别ENTITY_NAME
+  1.5 表名生成 → 按照us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}格式组合
+  1.6 字段识别 → 分析并列举所需数据字段及其业务含义
+📤 Output: 包含三核心变量的标准化业务需求分析报告
 ```
 
 ### 步骤 2: 数据结构设计与建模
@@ -196,17 +248,18 @@ FIELD_TEMPLATES:
 📤 Output: 完整的数据结构设计方案
 ```
 
-### 步骤 3: 需求确认与执行模式选择 ⚡
+### 步骤 3: 三核心变量确认与执行模式选择 ⚡
 
 ```
 📝 Input: <数据结构设计方案>
 🔍 Process:
-  3.1 参数展示 → 清晰展示所有<REQUIRED_PARAMS>及其推理值
-  3.2 置信度评估 → 对每个参数的推理置信度进行评分
-  3.3 模式选择 → 提供/confirm和/execute两种执行模式
-  3.4 用户交互 → 等待用户明确选择执行模式
-  3.5 参数确认 → 根据用户选择进行参数确认或直接执行
-📤 Output: 确认的参数配置集合 + 执行模式指令
+  3.1 核心变量展示 → 清晰展示MODULE_NAME、SUBMODULE_NAME、ENTITY_NAME及其推理值
+  3.2 派生变量计算 → 自动计算TABLE_NAME、PACKAGE_NAME、JAVA_ENTITY_NAME等派生变量
+  3.3 置信度评估 → 对三个核心变量的推理置信度进行评分
+  3.4 模式选择 → 提供/confirm和/execute两种执行模式
+  3.5 用户交互 → 等待用户明确选择执行模式
+  3.6 变量确认 → 根据用户选择进行变量确认或直接执行
+📤 Output: 确认的三核心变量配置集合 + 执行模式指令
 ```
 
 ### 步骤 4: 配置文件生成与验证
@@ -311,21 +364,23 @@ FIELD_TEMPLATES:
 ```markdown
 ## 📋 业务需求分析结果
 
-### 🎯 业务系统识别
+### 🎯 三核心变量识别
 
-- **系统类型**: {system_type} ({system_name})
-- **子模块**: {sub_module}
-- **业务场景**: {business_scenario}
-- **标准表名**: `{table_name}`
-- **置信度**: {confidence_score}%
+- **模块名/系统名称**: {MODULE_NAME} ({system_description})
+- **子模块名/系统模块**: {SUBMODULE_NAME}
+- **业务场景/实体名称**: {ENTITY_NAME}
+- **置信度**: MODULE_NAME({module_confidence}%) | SUBMODULE_NAME({submodule_confidence}%) | ENTITY_NAME({entity_confidence}%)
 
-### 📊 数据结构设计
+### 📊 派生变量计算
 
-- **实体名称**: {entity_name}
-- **包名**: {package_name}
-- **字段总数**: {total_fields}个 (含{business_fields}个业务字段)
+- **标准表名**: `{TABLE_NAME}` (us*{MODULE_NAME}*{SUBMODULE*NAME}*{ENTITY_NAME})
+- **Java 实体名**: {JAVA_ENTITY_NAME}
+- **包名**: {PACKAGE_NAME} (org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME})
+- **项目路径**: {PROJECT_PATH}
 
 ### 🔍 字段设计详情
+
+- **字段总数**: {total_fields}个 (含{business_fields}个业务字段)
 
 | 序号 | 字段名 | 字段类型 | 中文名称 | 必填 | 数据字典 | 说明 |
 | ---- | ------ | -------- | -------- | ---- | -------- | ---- |
@@ -340,19 +395,32 @@ FIELD_TEMPLATES:
 ### 执行模式选择模板
 
 ```markdown
-## 🎯 需求确认与执行模式选择
+## 🎯 三核心变量确认与执行模式选择
 
-### 📋 关键参数验证
+### 📋 核心变量验证
 
-| 参数名称          | 推理值                | 置信度        | 验证状态            |
-| ----------------- | --------------------- | ------------- | ------------------- |
-| table_name        | `{table_name}`        | {confidence}% | {validation_status} |
-| entity_name       | `{entity_name}`       | {confidence}% | {validation_status} |
-| module_name       | `{module_name}`       | {confidence}% | {validation_status} |
-| table_description | `{table_description}` | {confidence}% | {validation_status} |
-| package_name      | `{package_name}`      | {confidence}% | {validation_status} |
-| fields_config     | {field_count}个字段   | {confidence}% | {validation_status} |
-| dict_mappings     | {dict_count}个映射    | {confidence}% | {validation_status} |
+| 变量类型          | 变量名称       | 推理值             | 置信度                  | 验证状态                      |
+| ----------------- | -------------- | ------------------ | ----------------------- | ----------------------------- |
+| 模块名/系统名称   | MODULE_NAME    | `{MODULE_NAME}`    | {module_confidence}%    | {module_validation_status}    |
+| 子模块名/系统模块 | SUBMODULE_NAME | `{SUBMODULE_NAME}` | {submodule_confidence}% | {submodule_validation_status} |
+| 业务场景/实体名称 | ENTITY_NAME    | `{ENTITY_NAME}`    | {entity_confidence}%    | {entity_validation_status}    |
+
+### 📊 派生变量验证
+
+| 派生变量         | 推理值               | 计算公式                                         | 验证状态                         |
+| ---------------- | -------------------- | ------------------------------------------------ | -------------------------------- |
+| TABLE_NAME       | `{TABLE_NAME}`       | us*{MODULE_NAME}*{SUBMODULE*NAME}*{ENTITY_NAME}  | {table_validation_status}        |
+| PACKAGE_NAME     | `{PACKAGE_NAME}`     | org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME} | {package_validation_status}      |
+| JAVA_ENTITY_NAME | `{JAVA_ENTITY_NAME}` | PascalCase({ENTITY_NAME})                        | {java_entity_validation_status}  |
+| PROJECT_PATH     | `{PROJECT_PATH}`     | {PREFIX}/jeecg-module-{MODULE_NAME}              | {project_path_validation_status} |
+
+### 📋 业务参数验证
+
+| 参数名称          | 推理值                | 置信度              | 验证状态                  |
+| ----------------- | --------------------- | ------------------- | ------------------------- |
+| table_description | `{table_description}` | {desc_confidence}%  | {desc_validation_status}  |
+| fields_config     | {field_count}个字段   | {field_confidence}% | {field_validation_status} |
+| dict_mappings     | {dict_count}个映射    | {dict_confidence}%  | {dict_validation_status}  |
 
 ### 🎮 执行模式选择
 
