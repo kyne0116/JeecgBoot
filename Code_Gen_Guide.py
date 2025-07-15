@@ -86,10 +86,114 @@ def load_config():
 # 加载配置
 CONFIG = load_config()
 
-# 全局标志变量
+# ==================== 三核心变量定义 ====================
+# 这三个变量是代码生成系统的核心，共同决定了生成代码的结构和命名
+MODULE_NAME = None      # 模块名/系统名称 (如: finance, hrms, crm)
+SUBMODULE_NAME = None   # 子模块名/系统模块 (如: invoice, payment, employee)
+ENTITY_NAME = None      # 业务场景/实体名称 (如: management, processing, info)
+
+# ==================== 派生变量定义 ====================
+# 这些变量由三核心变量计算得出
+TABLE_NAME = None       # 表名 (如: us_finance_invoice_management)
+PACKAGE_NAME = None     # 包名 (如: org.jeecg.modules.finance.invoice)
+JAVA_ENTITY_NAME = None # Java实体名 (如: Management)
+PROJECT_PATH = None     # 项目路径
+
+# ==================== 控制标志变量 ====================
 SKIP_MODULE_MANAGEMENT = False
 FORCE_SYSTEM = None
 CURRENT_TABLE_NAME = ""  # 当前表名，用于生成标准化包名
+
+# ==================== 三核心变量处理功能 ====================
+
+def set_core_variables_from_table_name(table_name):
+    """
+    从表名设置三核心变量
+
+    Args:
+        table_name (str): 完整表名，格式为 us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}
+
+    Returns:
+        bool: 设置是否成功
+    """
+    global MODULE_NAME, SUBMODULE_NAME, ENTITY_NAME
+    global TABLE_NAME, PACKAGE_NAME, JAVA_ENTITY_NAME, PROJECT_PATH
+
+    try:
+        components = parse_table_name_components(table_name)
+
+        # 设置三核心变量
+        MODULE_NAME = components['module_name']
+        SUBMODULE_NAME = components['sub_module']
+        ENTITY_NAME = components['business_scenario']
+
+        # 计算派生变量
+        TABLE_NAME = table_name
+        PACKAGE_NAME = f"org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
+        JAVA_ENTITY_NAME = convert_to_java_entity_name(ENTITY_NAME)
+
+        # 计算项目路径
+        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+        PROJECT_PATH = f"{project_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{MODULE_NAME}"
+
+        return True
+
+    except Exception as e:
+        print(f"❌ 从表名设置三核心变量失败: {e}")
+        return False
+
+def print_core_variables():
+    """打印三核心变量和派生变量的详细信息"""
+    print(f"\n📋 三核心变量详情:")
+    print(f"   模块名/系统名称          = {MODULE_NAME or 'None'}")
+    print(f"   子模块名/系统模块        = {SUBMODULE_NAME or 'None'}")
+    print(f"   业务场景/实体名称        = {ENTITY_NAME or 'None'}")
+
+    print(f"\n📊 派生变量详情:")
+    print(f"   表名                     = {TABLE_NAME or 'None'}")
+    print(f"   包名                     = {PACKAGE_NAME or 'None'}")
+    print(f"   Java实体名               = {JAVA_ENTITY_NAME or 'None'}")
+    print(f"   项目路径                 = {PROJECT_PATH or 'None'}")
+
+    print(f"\n🔍 变量说明:")
+    print(f"   - MODULE_NAME: 表示一级业务领域，对应业务系统类型")
+    print(f"   - SUBMODULE_NAME: 表示二级业务领域，对应业务系统内的功能模块")
+    print(f"   - ENTITY_NAME: 表示操作对象，对应具体业务实体")
+    print(f"   - TABLE_NAME: 由三核心变量组合而成的完整表名")
+    print(f"   - PACKAGE_NAME: 由MODULE_NAME和SUBMODULE_NAME组合而成的包名")
+    print(f"   - JAVA_ENTITY_NAME: 由ENTITY_NAME转换而成的Java实体名")
+    print(f"   - PROJECT_PATH: 由配置和MODULE_NAME组合而成的项目路径")
+
+def validate_core_variables():
+    """验证三核心变量的有效性"""
+    errors = []
+
+    # 验证MODULE_NAME
+    if not MODULE_NAME:
+        errors.append("MODULE_NAME不能为空")
+    elif MODULE_NAME not in ['finance', 'hrms', 'crm', 'scm', 'oa']:
+        errors.append(f"MODULE_NAME必须是预定义的业务系统之一: {MODULE_NAME}")
+
+    # 验证SUBMODULE_NAME
+    if not SUBMODULE_NAME:
+        errors.append("SUBMODULE_NAME不能为空")
+    elif not re.match(r'^[a-z][a-z0-9_]*$', SUBMODULE_NAME):
+        errors.append(f"SUBMODULE_NAME格式不正确: {SUBMODULE_NAME}")
+
+    # 验证ENTITY_NAME
+    if not ENTITY_NAME:
+        errors.append("ENTITY_NAME不能为空")
+    elif not re.match(r'^[a-z][a-z0-9_]*$', ENTITY_NAME):
+        errors.append(f"ENTITY_NAME格式不正确: {ENTITY_NAME}")
+
+    if errors:
+        print("❌ 三核心变量验证失败:")
+        for error in errors:
+            print(f"   - {error}")
+        return False
+    else:
+        print("✅ 三核心变量验证通过")
+        return True
 
 # ==================== Java命名规范转换功能 ====================
 
@@ -1030,6 +1134,14 @@ def jeecg_complete_workflow():
         # 设置全局变量，用于生成标准化包名
         global CURRENT_TABLE_NAME
         CURRENT_TABLE_NAME = table_name
+
+        # 从表名设置三核心变量
+        if set_core_variables_from_table_name(table_name):
+            print("✅ 三核心变量设置成功")
+            print_core_variables()
+            validate_core_variables()
+        else:
+            print("⚠️ 三核心变量设置失败，使用传统模式")
 
         if not table_name or table_name in ['tableNameEn', 'test_table']:
             # 如果没有设置表名或使用默认模板名，则生成随机表名
@@ -1978,28 +2090,37 @@ def main():
     FORCE_SYSTEM = args.module_name  # 使用新的参数名
 
     # 预处理工作流变量（确保在显示配置前就有实际值）
-    global PROJECT_PATH, ENTITY_NAME
+    global PROJECT_PATH, ENTITY_NAME, MODULE_NAME, SUBMODULE_NAME, PACKAGE_NAME, JAVA_ENTITY_NAME, TABLE_NAME
 
-    # 1. 处理模块名称和项目路径
-    if FORCE_SYSTEM:
-        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
-        PROJECT_PATH = f"{project_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{FORCE_SYSTEM}"
-    else:
-        PROJECT_PATH = CONFIG['codegen']['project_path']  # 保持原配置值
-
-    # 2. 处理实体名称
+    # 1. 处理表名和三核心变量
     if args.form_config:
         try:
             with open(args.form_config, 'r', encoding='utf-8') as f:
                 form_data = json.load(f)
                 table_name = form_data.get('head', {}).get('tableName', '')
                 CURRENT_TABLE_NAME = table_name  # 设置全局表名
-                ENTITY_NAME = extract_business_entity_from_table_name(table_name)
+
+                # 从表名设置三核心变量
+                if set_core_variables_from_table_name(table_name):
+                    print("✅ 从配置文件设置三核心变量成功")
+                else:
+                    print("⚠️ 从配置文件设置三核心变量失败，使用传统模式")
+                    # 传统模式下的处理
+                    ENTITY_NAME = extract_business_entity_from_table_name(table_name)
         except Exception as e:
             print(f"⚠️ 无法读取表单配置文件: {e}")
             ENTITY_NAME = CONFIG['codegen']['entity_name']  # 保持原配置值
     else:
         ENTITY_NAME = CONFIG['codegen']['entity_name']  # 保持原配置值
+
+    # 2. 处理模块名称和项目路径
+    if FORCE_SYSTEM:
+        MODULE_NAME = FORCE_SYSTEM
+        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+        PROJECT_PATH = f"{project_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{MODULE_NAME}"
+    else:
+        if not MODULE_NAME:  # 如果三核心变量设置失败
+            PROJECT_PATH = CONFIG['codegen']['project_path']  # 保持原配置值
 
     # 3. 更新全局变量（使用预处理后的值）
     update_global_vars()
