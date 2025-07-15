@@ -50,30 +50,75 @@
 - **包名格式**: `org.jeecg.modules.{模块名}.{子模块名}`
 - **实体名格式**: `{业务场景}` (Java 驼峰命名)
 
-#### 🛍️ 电商系统标准示例
+#### 🛍️ 命名规范推理原则
+
+**⚠️ 重要说明**: 以下内容仅为推理原则说明，AI 必须基于用户的具体业务描述进行智能推理，严禁机械套用任何固定模式。
+
+**推理策略**:
+
+- **MODULE_NAME 推理**: 基于业务领域关键词和上下文语义进行系统分类
+- **SUBMODULE_NAME 推理**: 从功能描述中提取核心业务功能域
+- **ENTITY_NAME 推理**: 识别具体的业务操作对象或场景
+
+**命名规范应用**:
 
 ```
-us_mall_sales_product     → org.jeecg.modules.mall.sales, 实体: Product
-us_mall_sales_cart        → org.jeecg.modules.mall.sales, 实体: Cart
-us_mall_member_info       → org.jeecg.modules.mall.member, 实体: Info
-us_mall_member_score      → org.jeecg.modules.mall.member, 实体: Score
+表名格式: us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}
+包名格式: org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}
+实体格式: {ENTITY_NAME} (Java驼峰命名)
 ```
 
-#### 💼 更多业务系统示例
+**推理示例**:
 
+```bash
+# 财务系统示例
+用户需求: "财务系统的发票管理功能"
+推理过程:
+├── 关键词识别: "财务" → finance系统
+├── 功能分析: "发票管理" → invoice子模块 + management实体
+└── 推理结果:
+    ├── MODULE_NAME: finance
+    ├── SUBMODULE_NAME: invoice
+    ├── ENTITY_NAME: management
+    ├── 表名: us_finance_invoice_management
+    ├── 包名: org.jeecg.modules.finance.invoice
+    └── 实体类: Management
+
+# 人力资源系统示例
+用户需求: "员工培训记录管理"
+推理过程:
+├── 语义分析: "员工培训" → 人力资源管理领域
+├── 功能分析: "培训记录" → employee子模块 + training实体
+└── 推理结果:
+    ├── MODULE_NAME: hrms
+    ├── SUBMODULE_NAME: employee
+    ├── ENTITY_NAME: training
+    ├── 表名: us_hrms_employee_training
+    ├── 包名: org.jeecg.modules.hrms.employee
+    └── 实体类: Training
+
+# 智能扩展示例 - 医疗领域
+用户需求: "医院患者信息管理系统"
+推理过程:
+├── 语义分析: "患者信息管理" → 客户关系管理的医疗扩展
+├── 映射策略: 患者≈客户，医疗服务≈客户服务
+├── 智能映射: medical → crm (客户关系管理系统)
+└── 推理结果:
+    ├── MODULE_NAME: crm (映射依据: 患者管理本质上是客户关系管理)
+    ├── SUBMODULE_NAME: patient (医疗领域的客户子类)
+    ├── ENTITY_NAME: info (信息管理)
+    ├── 表名: us_crm_patient_info
+    ├── 包名: org.jeecg.modules.crm.patient
+    ├── 实体类: Info
+    └── 映射说明: 将医疗患者管理映射到CRM系统，体现患者关系管理的本质
 ```
-# 财务系统
-us_finance_invoice_management → org.jeecg.modules.finance.invoice, 实体: Management
-us_finance_payment_processing → org.jeecg.modules.finance.payment, 实体: Processing
 
-# 人力资源系统
-us_hrms_employee_training     → org.jeecg.modules.hrms.employee, 实体: Training
-us_hrms_payroll_calculation   → org.jeecg.modules.hrms.payroll, 实体: Calculation
+**核心要求**:
 
-# 客户关系系统
-us_crm_customer_service       → org.jeecg.modules.crm.customer, 实体: Service
-us_crm_leads_management       → org.jeecg.modules.crm.leads, 实体: Management
-```
+1. **精确变量识别**: 通过关键词识别和上下文推理准确提取核心变量
+2. **业务逻辑一致**: 确保 MODULE_NAME、SUBMODULE_NAME、ENTITY_NAME 形成合理的业务逻辑关系
+3. **适应性推理**: 能够处理各种业务领域需求，不局限于特定场景
+4. **推理透明**: 清晰展示从业务需求到核心变量的推理过程和决策依据
 
 #### ⚠️ 关键注意事项
 
@@ -81,6 +126,53 @@ us_crm_leads_management       → org.jeecg.modules.crm.leads, 实体: Managemen
 2. **表名完整性**: 表名必须包含 4 个部分，缺一不可
 3. **命名一致性**: 同一子模块下的所有表应该使用相同的包名结构
 4. **Java 规范**: 实体名必须符合 Java 驼峰命名规范
+
+---
+
+## AI_Reasoning_Principles
+
+### 🧠 智能推理核心原则
+
+1. **需求驱动**: AI 必须基于用户的具体业务需求进行智能推理和变量提取
+2. **精确识别**: 通过关键词识别技术和上下文推理能力，精确提取业务核心变量
+3. **上下文理解**: 深度理解业务需求的上下文，准确识别业务领域、功能模块和操作场景
+4. **语义分析**: 通过自然语言处理技术提取关键业务概念，而非简单的关键词匹配
+5. **推理透明**: 在变量确定过程中清晰展示推理逻辑和决策依据
+6. **适应性强**: 能够处理各种业务领域的需求，不局限于任何固定模式或示例场景
+
+### 🎯 变量推理策略
+
+#### MODULE_NAME 推理策略
+
+- **语义分析优先**: 基于业务需求的核心语义进行智能分析，理解业务本质
+- **多维度评估**: 从业务流程、管理对象、核心功能等多个维度进行综合评估
+- **智能映射**: 优先映射到核心业务系统，无法直接映射时进行语义相似度分析
+- **上下文推理**: 结合完整的业务描述和应用场景进行深度推理
+- **灵活扩展**: 当遇到新兴业务领域时，基于语义相似性进行智能映射
+
+#### SUBMODULE_NAME 推理策略
+
+- **功能域提取**: 从业务功能描述中精确提取核心功能领域
+- **标准化要求**: 使用标准的英文术语，遵循行业最佳实践
+- **格式约束**: 单一英文词汇，小写格式，避免复合词或特殊字符
+- **一致性保证**: 确保提取结果符合系统命名规范
+
+#### ENTITY_NAME 推理策略
+
+- **对象识别**: 精确识别业务操作的核心对象或场景
+- **特征体现**: 体现具体的业务操作或数据特征
+- **逻辑一致**: 确保与 MODULE_NAME 和 SUBMODULE_NAME 形成合理的业务逻辑关系
+- **命名规范**: 符合表名和 Java 实体类的双重命名要求
+
+### 🔄 推理质量保证
+
+1. **语义一致性验证**: 确保推理结果在语义上合理且符合业务逻辑
+2. **多维度验证**: 从业务本质、功能特征、应用场景等多个维度验证推理结果
+3. **置信度评估**: 对每个推理结果进行置信度评分，低置信度时提供多个候选方案
+4. **映射合理性检查**: 验证业务需求到系统映射的合理性，避免强制归类
+5. **用户反馈机制**: 通过确认机制获取用户反馈，持续优化推理准确性
+6. **扩展性验证**: 当遇到新兴业务领域时，验证映射策略的合理性和可行性
+7. **上下文完整性**: 确保推理过程充分考虑了业务需求的完整上下文
 
 ---
 
@@ -94,40 +186,48 @@ us_crm_leads_management       → org.jeecg.modules.crm.leads, 实体: Managemen
 6. **质量控制**: 生成代码必须符合 JeecgBoot 规范，通过语法和逻辑检查
 7. **无害化**: 不允许生成任何可能影响系统安全的代码或配置
 8. **确认机制**: 步骤 3 的需求确认与执行模式选择为必选环节，不可绕过
+9. **系统识别准确性**: 必须准确识别业务系统类型，特别是财务相关功能(发票、账单、付款等)必须识别为 finance 系统
+10. **核心变量一致性**: 一旦确定三核心变量，必须保持一致性，不允许在执行过程中被错误覆盖
+11. **标准化命名**: 严格遵循标准化变量命名(MODULE_NAME, ENTITY_NAME, PACKAGE_NAME)
+12. **推理过程透明**: 清晰展示从业务需求到核心变量的推理过程和决策依据
+13. **灵活性保持**: 基于用户的具体业务描述进行智能推理，避免机械套用固定模板
 
 ---
 
 ## Variables
 
 ```yaml
-# 三个核心变量定义 - 代码生成系统的基础
+# 核心变量定义 - Code_Gen_Guide.py脚本的严格输入要求
 CORE_VARIABLES:
   # 第一层：模块名/系统名称 - 对应业务系统类型
   MODULE_NAME:
-    description: "业务系统模块名称，表示一级业务领域"
+    description: "业务系统模块名称，必须通过关键词识别和上下文推理精确提取"
     options: ["finance", "hrms", "crm", "scm", "oa"]
     format: "lowercase_english_word"
     validation: "in_allowed_list"
-    example: "finance"
+    extraction_method: "KEYWORD_ANALYSIS + CONTEXT_REASONING"
+    priority_matching: "基于BUSINESS_SYSTEM_KEYWORDS优先级进行智能匹配"
     source: "BUSINESS_DOMAIN_ANALYSIS"
     table_name_segment: 1
 
   # 第二层：子模块名/系统模块 - 对应业务系统内的功能模块
   SUBMODULE_NAME:
-    description: "系统内的功能子模块，表示二级业务领域"
+    description: "系统内的功能子模块，必须从功能描述中精确提取核心业务功能域"
     format: "lowercase_english_word"
     validation: "^[a-z][a-z0-9_]*$"
-    example: "invoice"
+    extraction_method: "FUNCTIONAL_DOMAIN_EXTRACTION"
+    requirements: "单一英文词汇，遵循行业最佳实践，避免下划线或驼峰命名"
     source: "FUNCTIONAL_ANALYSIS"
     table_name_segment: 2
 
   # 第三层：业务场景/实体名称 - 对应具体业务实体
   ENTITY_NAME:
-    description: "具体业务实体或场景，表示操作对象"
+    description: "具体业务实体或场景，必须识别业务操作的核心对象或场景"
     format: "lowercase_for_table_camelcase_for_java"
     validation: "^[a-z][a-z0-9_]*$"
-    example: "management"
-    java_example: "Management"
+    extraction_method: "BUSINESS_OBJECT_IDENTIFICATION"
+    requirements: "体现业务场景的核心操作或数据特征，与子模块名形成合理业务逻辑关系"
+    java_format: "PascalCase"
     source: "BUSINESS_SCENARIO_EXTRACTION"
     table_name_segment: 3
 
@@ -176,6 +276,98 @@ BUSINESS_PARAMS:
     example: "[{name:'invoice_no',type:'text_field',desc:'发票编号',required:true}]"
     source: "FIELD_ANALYSIS_RESULT"
 
+# 字段类型智能推理策略
+FIELD_TYPE_INFERENCE:
+  # 基于字段名称关键词的智能推理
+  keyword_mapping:
+    # 金额相关字段
+    decimal_field:
+      keywords:
+        [
+          "amount",
+          "price",
+          "cost",
+          "fee",
+          "money",
+          "金额",
+          "价格",
+          "费用",
+          "成本",
+          "资金",
+        ]
+      description: "金额、价格、费用等数值字段"
+
+    # 状态选择字段
+    dict_select_field:
+      keywords:
+        [
+          "status",
+          "state",
+          "type",
+          "category",
+          "level",
+          "状态",
+          "类型",
+          "分类",
+          "级别",
+        ]
+      description: "状态、类型、分类等选择字段"
+
+    # 时间相关字段
+    datetime_field:
+      keywords: ["time", "datetime", "timestamp", "时间", "日期时间"]
+      description: "包含时间的日期字段"
+
+    date_field:
+      keywords: ["date", "day", "日期", "生日", "截止日期"]
+      description: "仅日期字段"
+
+    # 联系方式字段
+    phone_field:
+      keywords: ["phone", "mobile", "tel", "电话", "手机", "联系方式"]
+      description: "电话号码字段"
+
+    email_field:
+      keywords: ["email", "mail", "邮箱", "邮件"]
+      description: "邮箱地址字段"
+
+    # 文本字段
+    textarea_field:
+      keywords:
+        [
+          "desc",
+          "description",
+          "remark",
+          "note",
+          "content",
+          "描述",
+          "备注",
+          "说明",
+          "内容",
+        ]
+      description: "长文本描述字段"
+
+    # 默认文本字段
+    text_field:
+      keywords:
+        ["name", "title", "code", "no", "姓名", "名称", "标题", "编号", "代码"]
+      description: "短文本字段"
+
+  # 推理优先级规则
+  inference_priority:
+    1: "精确匹配关键词"
+    2: "语义相似度分析"
+    3: "字段长度推断"
+    4: "业务上下文推理"
+    5: "默认文本类型"
+
+  # 推理质量保证
+  validation_rules:
+    - "每个字段必须有明确的类型推理依据"
+    - "相同语义的字段应使用相同类型"
+    - "字段类型必须符合业务逻辑"
+    - "特殊字段(如主键、时间戳)有固定类型要求"
+
 # 可选参数 - 增强功能的非必要参数
 OPTIONAL_PARAMS:
   dict_mappings:
@@ -192,13 +384,197 @@ OPTIONAL_PARAMS:
     example: "[{field:'amount',rule:'>=0',message:'金额不能为负'}]"
     source: "FIELD_ANALYSIS"
 
-# 系统常量
-BUSINESS_MODULES:
-  hrms: "人力资源管理系统"
-  crm: "客户关系管理系统"
-  scm: "供应链管理系统"
-  oa: "办公自动化系统"
-  finance: "财务管理系统"
+# 核心业务系统定义
+CORE_BUSINESS_SYSTEMS:
+  finance:
+    description: "财务管理系统"
+    semantic_domains: ["财务管理", "会计核算", "资金管理", "成本控制"]
+  hrms:
+    description: "人力资源管理系统"
+    semantic_domains: ["人力资源", "员工管理", "薪酬管理", "组织管理"]
+  crm:
+    description: "客户关系管理系统"
+    semantic_domains: ["客户管理", "销售管理", "市场营销", "服务管理"]
+  scm:
+    description: "供应链管理系统"
+    semantic_domains: ["供应链", "采购管理", "库存管理", "物流管理"]
+  oa:
+    description: "办公自动化系统"
+    semantic_domains: ["办公协同", "流程管理", "文档管理", "通信协作"]
+
+# 智能扩展策略
+INTELLIGENT_MAPPING_STRATEGY:
+  # 当业务需求无法直接映射到核心系统时的处理策略
+  semantic_analysis:
+    description: "基于语义相似度进行智能映射"
+    approach: "分析业务需求的核心语义，找到与核心系统最相近的业务领域"
+
+  domain_extension:
+    description: "业务领域智能扩展"
+    examples:
+      medical: "医疗管理 → 可映射到CRM(患者管理)或OA(医疗流程)"
+      education: "教育管理 → 可映射到HRMS(师资管理)或OA(教学流程)"
+      logistics: "物流管理 → 可映射到SCM(供应链)或OA(运营流程)"
+
+  fallback_strategy:
+    description: "当无法合理映射时的降级策略"
+    approach: "选择最相近的核心系统，并在推理过程中说明映射逻辑"
+
+# 语义推理策略 - 基于语义理解的智能识别
+SEMANTIC_INFERENCE_STRATEGY:
+  finance_system:
+    priority: 1
+    semantic_patterns:
+      core_concepts: ["资金管理", "财务核算", "成本控制", "收支管理"]
+      business_scenarios:
+        ["发票处理", "付款管理", "财务报表", "预算控制", "资产管理"]
+      key_indicators: ["金额", "费用", "成本", "收入", "利润", "现金流"]
+
+    inference_logic:
+      primary_signals:
+        - "涉及金钱、资金、财务相关的业务流程"
+        - "包含会计、核算、结算等财务操作"
+        - "涉及发票、账单、付款等财务单据"
+
+      semantic_keywords:
+        chinese:
+          ["财务", "会计", "发票", "付款", "收款", "成本", "预算", "资产"]
+        english:
+          ["finance", "accounting", "invoice", "payment", "budget", "asset"]
+
+      context_analysis:
+        - "分析业务流程是否涉及资金流转"
+        - "判断是否需要财务核算和监管"
+        - "评估是否涉及财务合规要求"
+  hrms_system:
+    priority: 2
+    semantic_patterns:
+      core_concepts: ["人员管理", "组织管理", "薪酬管理", "绩效管理"]
+      business_scenarios:
+        ["员工招聘", "薪资发放", "考勤管理", "培训管理", "绩效评估"]
+      key_indicators: ["员工", "薪资", "考勤", "绩效", "培训", "组织"]
+
+    inference_logic:
+      primary_signals:
+        - "涉及人员、员工、组织相关的管理流程"
+        - "包含招聘、培训、考勤等人力资源操作"
+        - "涉及薪资、绩效、组织架构等HR业务"
+
+      semantic_keywords:
+        chinese:
+          ["员工", "人事", "薪资", "考勤", "招聘", "培训", "绩效", "组织"]
+        english:
+          [
+            "employee",
+            "hr",
+            "staff",
+            "salary",
+            "attendance",
+            "recruitment",
+            "training",
+          ]
+
+      context_analysis:
+        - "分析是否涉及人员管理和组织运营"
+        - "判断是否需要人力资源相关的业务流程"
+        - "评估是否涉及员工生命周期管理"
+  scm_system:
+    priority: 3
+    semantic_patterns:
+      core_concepts: ["供应链管理", "采购管理", "库存管理", "物流管理"]
+      business_scenarios:
+        ["供应商管理", "采购订单", "库存控制", "物流配送", "质量管理"]
+      key_indicators: ["供应商", "采购", "库存", "物流", "订单", "商品"]
+
+    inference_logic:
+      primary_signals:
+        - "涉及供应商、采购、库存相关的管理流程"
+        - "包含物流、仓储、配送等供应链操作"
+        - "涉及商品、订单、质检等供应链业务"
+
+      semantic_keywords:
+        chinese:
+          ["供应商", "采购", "库存", "物流", "仓储", "订单", "商品", "质检"]
+        english:
+          [
+            "supplier",
+            "procurement",
+            "inventory",
+            "logistics",
+            "warehouse",
+            "order",
+            "goods",
+          ]
+
+      context_analysis:
+        - "分析是否涉及供应链和物流管理"
+        - "判断是否需要采购和库存相关业务流程"
+        - "评估是否涉及供应商和商品管理"
+  crm_system:
+    priority: 4
+    semantic_patterns:
+      core_concepts: ["客户管理", "销售管理", "服务管理", "营销管理"]
+      business_scenarios:
+        ["客户关系", "销售机会", "服务支持", "营销活动", "合同管理"]
+      key_indicators: ["客户", "销售", "服务", "营销", "合同", "商机"]
+
+    inference_logic:
+      primary_signals:
+        - "涉及客户、销售、服务相关的管理流程"
+        - "包含营销、合同、商机等客户关系操作"
+        - "涉及客户服务和关系维护业务"
+
+      semantic_keywords:
+        chinese:
+          ["客户", "销售", "服务", "营销", "合同", "商机", "线索", "支持"]
+        english:
+          [
+            "customer",
+            "client",
+            "sales",
+            "service",
+            "marketing",
+            "contract",
+            "opportunity",
+          ]
+
+      context_analysis:
+        - "分析是否涉及客户关系和销售管理"
+        - "判断是否需要客户服务相关业务流程"
+        - "评估是否涉及营销和商机管理"
+
+  oa_system:
+    priority: 5
+    semantic_patterns:
+      core_concepts: ["办公协同", "流程管理", "文档管理", "项目管理"]
+      business_scenarios:
+        ["审批流程", "文档协同", "会议管理", "任务管理", "通知公告"]
+      key_indicators: ["办公", "流程", "审批", "文档", "会议", "任务"]
+
+    inference_logic:
+      primary_signals:
+        - "涉及办公、协同、流程相关的管理需求"
+        - "包含审批、文档、会议等办公自动化操作"
+        - "涉及通用的组织管理和协同工作业务"
+
+      semantic_keywords:
+        chinese:
+          ["办公", "流程", "审批", "文档", "会议", "任务", "通知", "协同"]
+        english:
+          [
+            "office",
+            "workflow",
+            "approval",
+            "document",
+            "meeting",
+            "task",
+            "notice",
+          ]
+
+      context_analysis:
+        - "分析是否涉及通用办公和协同需求"
+        - "判断是否需要流程审批相关业务"
+        - "评估是否为组织内部管理需求"
 
 # 字段模板类型
 FIELD_TEMPLATES:
@@ -227,9 +603,21 @@ FIELD_TEMPLATES:
 📝 Input: <用户业务描述>
 🔍 Process:
   1.1 关键词提取 → 使用NLP技术识别业务领域和核心概念
-  1.2 模块名识别 → 基于<BUSINESS_MODULES>智能匹配MODULE_NAME
-  1.3 子模块分析 → 从功能描述中提取SUBMODULE_NAME
-  1.4 实体场景确定 → 从业务对象中识别ENTITY_NAME
+  1.2 业务系统智能识别 → 基于语义分析和上下文推理确定MODULE_NAME
+      🧠 智能推理流程:
+      - 深度分析业务需求的核心语义和功能特征
+      - 评估业务流程与各系统语义域的匹配度
+      - 优先映射到核心业务系统，无法直接映射时进行智能扩展
+      - 提供推理依据和置信度评估
+      - 特殊关注：财务相关业务(发票、付款等)优先识别为finance系统
+  1.3 子模块分析 → 从功能描述中智能提取SUBMODULE_NAME
+      - 基于业务功能领域进行推理(如: invoice, payment, accounting, employee, customer等)
+      - 使用单一英文词汇，遵循行业最佳实践
+      - 避免下划线或驼峰命名，保持简洁性
+  1.4 实体场景确定 → 从业务对象中智能识别ENTITY_NAME
+      - 基于具体业务操作或数据实体进行推理(如: management, processing, info, record等)
+      - 体现业务场景的核心操作或数据特征
+      - 确保与子模块名形成合理的业务逻辑关系
   1.5 表名生成 → 按照us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}格式组合
   1.6 字段识别 → 分析并列举所需数据字段及其业务含义
 📤 Output: 包含三核心变量的标准化业务需求分析报告
@@ -281,51 +669,46 @@ FIELD_TEMPLATES:
 📝 Input: <配置文件路径>
 🔍 Process:
   5.1 环境检查 → 验证JeecgBoot服务状态和项目路径
-  5.2 脚本调用 → 执行Code_Gen_Guide.py --module-name {module} --form-config {config_file}
-  5.3 进度监控 → 实时跟踪登录→创建表单→同步数据库→生成代码的执行过程
-  5.4 状态反馈 → 向用户详细报告执行结果和后续操作建议
+  5.2 脚本参数传递 → 将核心变量准确传递给Code_Gen_Guide.py脚本
+  5.3 脚本调用 → 执行Code_Gen_Guide.py --module-name {module} --form-config {config_file}
+  5.4 进度监控 → 实时跟踪登录→创建表单→同步数据库→生成代码的执行过程
+  5.5 状态反馈 → 向用户详细报告执行结果和后续操作建议
 📤 Output: 完整的代码生成结果报告
 
-⚡ 优化说明: Code_Gen_Guide.py严格按照JeecgBoot官方API接口执行代码生成，
-   无需进行生成代码的检查工作，可直接信任生成结果的正确性和完整性。
+⚡ 执行说明: Code_Gen_Guide.py严格按照JeecgBoot官方API接口执行代码生成，脚本内部自动处理所有必要的变量解析和状态输出。
 ```
 
-### 步骤 6: 模块自动集成与项目结构更新 🔗
+### 步骤 6: 推理结果确认与交付 ✅
 
 ```
-📝 Input: <代码生成结果报告>
+📝 Input: <完整的推理结果>
 🔍 Process:
-  6.1 模块识别 → 从表名解析出目标业务模块名称
-  6.2 注册表更新 → 自动将新模块添加到/jeecg-boot/jeecg-boot-module/pom.xml的<modules>部分
-  6.3 依赖集成 → 自动将新模块依赖添加到/jeecg-boot/jeecg-module-system/jeecg-system-start/pom.xml
-  6.4 结构验证 → 验证模块目录结构和Maven配置的正确性
-  6.5 集成反馈 → 报告模块集成状态和项目结构更新结果
-📤 Output: 完整的模块集成状态报告
+  6.1 结果验证 → 验证所有核心变量的推理准确性和逻辑一致性
+  6.2 质量评估 → 评估推理结果的置信度和业务合理性
+  6.3 用户确认 → 向用户展示推理结果并获取确认
+  6.4 结果交付 → 将确认的核心变量交付给技术实现层
+📤 Output: 经过确认的核心变量集合
+
+⚡ 说明: 技术实现和代码生成的具体执行过程请参考Code_Gen_Guide.md文档。
 ```
 
 ---
 
 ## Constraints
 
-### 技术约束
+### 业务推理约束
 
-- **文件操作权限**: 只允许读取 Core 文件，只允许创建/修改 temp\_前缀的配置文件
-- **表名格式验证**: 必须通过正则表达式`^us_[a-z]+_[a-z]+_[a-z]+$`验证
-- **字段 orderNum 约束**: 业务字段 orderNum 必须>=7，0-6 为系统保留字段
-- **数据类型限制**: 只能使用<FIELD_TEMPLATES>中定义的 13 种标准字段类型
+- **智能映射策略**: 优先将业务需求映射到核心业务系统(finance/hrms/crm/scm/oa)，如无法合理映射则进行智能扩展推理
+- **命名规范遵循**: 严格遵循标准化命名规范和业务逻辑一致性
+- **推理准确性**: 确保业务需求分析和变量提取的准确性
+- **语义理解优先**: 基于语义分析和上下文理解进行推理，避免过度依赖关键词匹配
 
-### 业务约束
+### AI 推理流程约束
 
-- **模块范围限制**: 只能处理<BUSINESS_MODULES>中定义的 5 个业务系统
-- **编码规范强制**: 严格遵循 Java 命名规范和 JeecgBoot 开发规范
-- **安全性保障**: 不允许生成包含敏感信息或安全风险的代码
-
-### 流程约束
-
-- **步骤完整性**: 6 个工作流程步骤必须全部执行，不允许跳过
-- **确认机制强制**: 步骤 3 的用户确认环节为强制性环节
-- **集成完整性**: 步骤 6 的模块集成必须在代码生成成功后自动执行
-- **错误处理**: 任何步骤出现错误时，必须停止流程并给出明确的错误说明
+- **分析完整性**: 业务需求分析必须全面深入，不允许跳过关键环节
+- **确认机制**: 核心变量确认环节为必选流程，确保推理结果准确性
+- **透明度要求**: 推理过程必须透明，清晰展示决策依据和逻辑链路
+- **错误纠正**: 发现推理错误时，必须重新分析并提供正确的推理结果
 
 ---
 
@@ -372,6 +755,19 @@ FIELD_TEMPLATES:
 - **子模块名/系统模块**: {SUBMODULE_NAME}
 - **业务场景/实体名称**: {ENTITY_NAME}
 - **置信度**: MODULE_NAME({module_confidence}%) | SUBMODULE_NAME({submodule_confidence}%) | ENTITY_NAME({entity_confidence}%)
+
+🧠 **智能推理过程**:
+
+- **语义分析**: {semantic_analysis_result}
+- **业务领域识别**: {business_domain_identification}
+- **映射策略**: {mapping_strategy_used}
+- **推理依据**: {inference_reasoning}
+- **置信度评估**: {confidence_assessment}
+
+⚠️ **特殊映射说明** (如适用):
+
+- 新兴业务领域映射: {domain_mapping_explanation}
+- 映射合理性验证: {mapping_validation_result}
 
 ### 📊 派生变量计算
 
@@ -607,15 +1003,22 @@ Code_Gen_Guide.py通过JeecgBoot官方API接口生成代码，确保：
 5. **代码生成执行** → 调用脚本生成完整 CRUD 代码
 6. **模块自动集成** → 自动将新模块集成到项目结构中
 
-**🎯 我的优势**:
+**🎯 我的核心优势**:
 
-- ✅ 严格遵循 JeecgBoot 开发规范和标准化命名规范
-- ✅ 支持 5 大业务系统模块(hrms/crm/scm/oa/finance)
-- ✅ 智能匹配 13 种标准字段类型
-- ✅ 标准化包名规范: org.jeecg.modules.{模块}.{子模块}
-- ✅ 提供交互确认和静默执行两种模式
-- ✅ 自动模块集成，无需手动配置项目结构
-- ⚡ 基于官方API接口生成代码，质量可靠无需检查
+- ✅ **语义理解**: 基于深度语义分析理解业务本质，而非简单的关键词匹配
+- ✅ **智能映射**: 能够将新兴业务领域智能映射到核心系统，具备强大的扩展能力
+- ✅ **上下文推理**: 通过完整的上下文分析进行多维度推理，确保结果合理性
+- ✅ **灵活适应**: 支持核心业务系统的同时，能够处理医疗、教育、物流等新兴领域
+- ✅ **推理透明**: 清晰展示推理过程、映射策略和决策依据，确保可解释性
+- ✅ **置信度评估**: 对每个推理结果提供置信度评分，低置信度时提供多个候选方案
+- ✅ **质量保证**: 通过语义一致性验证和映射合理性检查确保推理质量
+- ✅ **用户友好**: 提供交互确认和静默执行两种模式，满足不同使用场景
+- ⚡ **持续学习**: 通过用户反馈机制持续优化推理策略和映射准确性
+
+**📋 协同文档**:
+- **技术实现**: 脚本使用方法、配置文件结构、执行流程等技术细节请参考 **Code_Gen_Guide.md** 文档
+- **变量规范**: 三核心变量的完整定义、命名规范、派生变量计算规则请参考 **Code_Gen_Variables.md** 文档
+- **文档定位**: 本文档专注于AI推理策略和业务分析方法，不涉及具体的技术实现细节
 
 现在，请告诉我您希望开发什么业务功能？我将为您分析需求并生成相应的代码模块。
 

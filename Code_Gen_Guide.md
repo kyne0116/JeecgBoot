@@ -1,188 +1,279 @@
 # JeecgBoot Code_Gen 技术实现指南
 
-> **文档定位**: Code_Gen工作流的技术实现指南和使用手册（面向AI理解优化）  
-> **配合文档**: Code_Gen_Agent.md (AI行为规范)
+> **文档定位**: Code_Gen 系统的技术实现指南和操作手册
+> **配合文档**: Code_Gen_Agent.md (AI 行为规范和提示词框架)
+> **目标用户**: AI 开发者、系统使用者、技术维护人员
 
 ---
 
 ## 📋 系统架构概览
 
-### 工作流程图
+### 🔄 完整工作流程
+
 ```
-用户业务需求 → 需求分析 → 确认与选择 → 配置生成 → 代码生成 → 完整模块
-     ↓            ↓           ↓           ↓           ↓          ↓
-   自然语言    关键词提取   参数确认     JSON配置   脚本执行   完整CRUD
+用户业务需求 → AI需求分析 → 变量提取 → 配置生成 → 脚本执行 → 代码生成 → 模块集成
+     ↓             ↓          ↓         ↓         ↓         ↓         ↓
+   自然语言    关键词识别   核心变量   JSON配置   Python脚本  完整CRUD   项目集成
 ```
 
+### 🎯 文件角色定位
+
+| 文件名称                  | 角色定位     | 主要职责                                              | 使用场景                      |
+| ------------------------- | ------------ | ----------------------------------------------------- | ----------------------------- |
+| **Code_Gen_Agent.md**     | AI 行为规范  | AI 推理策略、变量提取规则、业务分析方法、字段类型推理 | AI 理解用户需求、提取核心变量 |
+| **Code_Gen_Guide.md**     | 技术实现指南 | 脚本使用方法、配置文件结构、执行流程、环境要求        | 技术实现、系统操作、问题排查  |
+| **Code_Gen_Variables.md** | 变量规范文档 | 三核心变量定义、命名规范、派生变量计算规则            | 变量标准化、命名规范参考      |
+| **Code_Gen_Guide.py**     | 执行引擎     | 接收变量、处理配置、生成代码、模块集成                | 自动化代码生成执行            |
+
+### 📋 文档协同关系
+
+- **AI 推理阶段**: 主要参考 **Code_Gen_Agent.md**，进行业务需求分析和变量提取
+- **技术实现阶段**: 主要参考 **Code_Gen_Guide.md**，进行脚本调用和配置管理
+- **问题排查阶段**: 两个文档结合使用，从 AI 推理到技术实现全链路分析
+
+**重要提醒**: 本文档专注于技术实现细节，AI 推理策略和业务分析方法请参考 Code_Gen_Agent.md 文档。
+
 ### 文件依赖关系
+
 ```mermaid
 graph TD
     A[Code_Gen_Guide.py] --> B[Code_Gen_Config.json]
     A --> C[Code_Gen_Guide.json]
     A --> D[Code_Gen_field_templates.json]
     A --> E[Code_Gen_DICT.json]
-    
+
     C --> F[temp_{entity}_config.json]
     D --> F
     E --> F
-    
+
     A --> G[jeecg-boot项目]
     F --> A
-    
+
     A --> H[生成的代码文件]
     G --> H
 ```
 
 ### 核心组件说明
 
-| 组件名称 | 类型 | 功能定位 | 主要职责 |
-|----------|------|----------|----------|
-| **Code_Gen_Guide.py** | 执行引擎 | 主工作流脚本 | 登录、创建表单、同步数据库、生成代码 |
-| **Code_Gen_Config.json** | 系统配置 | 全局参数配置 | 服务器地址、认证信息、项目路径 |
-| **Code_Gen_Guide.json** | 配置模板 | 标准表单模板 | 7个系统字段定义、表单基础结构 |
-| **Code_Gen_field_templates.json** | 字段模板库 | 字段类型定义 | 各种字段类型的完整配置模板 |
-| **Code_Gen_DICT.json** | 数据字典 | 字典数据缓存 | 系统数据字典的本地缓存 |
+| 组件名称                          | 类型       | 功能定位     | 主要职责                             |
+| --------------------------------- | ---------- | ------------ | ------------------------------------ |
+| **Code_Gen_Guide.py**             | 执行引擎   | 主工作流脚本 | 登录、创建表单、同步数据库、生成代码 |
+| **Code_Gen_Config.json**          | 系统配置   | 全局参数配置 | 服务器地址、认证信息、项目路径       |
+| **Code_Gen_Guide.json**           | 配置模板   | 标准表单模板 | 7 个系统字段定义、表单基础结构       |
+| **Code_Gen_field_templates.json** | 字段模板库 | 字段类型定义 | 各种字段类型的完整配置模板           |
+| **Code_Gen_DICT.json**            | 数据字典   | 字典数据缓存 | 系统数据字典的本地缓存               |
 
 ---
 
-## 🔧 核心文件详解
+## 🚀 Code_Gen_Guide.py 脚本使用指南
 
-### 1. Code_Gen_Guide.py - 主执行脚本
+### 📖 脚本概述
 
-**功能**: 核心工作流执行引擎，负责完整的代码生成流程
+**Code_Gen_Guide.py** 是 CodeGen 系统的核心执行引擎，负责接收 AI 提取的核心变量，处理配置文件，并执行完整的代码生成流程。
 
-## ⚠️ JeecgBoot 标准化命名规范（严格执行）
+### 🔧 脚本调用方式
 
-**核心原则**: 所有代码生成必须严格遵循以下标准化命名规范，确保代码架构的一致性和可维护性
+#### 基本调用格式
 
-### 🎯 完整命名规范定义
-
-#### **1. 表名格式**
-```
-us_{模块名}_{子模块名}_{业务场景}
-```
-
-#### **2. 包名格式**  
-```
-org.jeecg.modules.{模块名}.{子模块名}
-```
-
-#### **3. 实体名格式**
-```
-{业务场景}
-```
-
-### 📋 电商系统标准示例
-
-#### 示例1：销售模块的产品信息管理
 ```bash
-需求描述: "电商系统中的销售模块的产品信息管理"
-解析结果:
-├── 模块名: mall
-├── 子模块: sales  
-├── 业务场景: product
-└── 生成结果:
-    ├── 表名: us_mall_sales_product
-    ├── 包名: org.jeecg.modules.mall.sales
-    └── 实体名: product
+python Code_Gen_Guide.py [OPTIONS]
 ```
 
-#### 示例2：销售模块的购物车管理
-```bash
-需求描述: "电商系统中的销售模块的购物车管理"
-解析结果:
-├── 模块名: mall
-├── 子模块: sales
-├── 业务场景: cart
-└── 生成结果:
-    ├── 表名: us_mall_sales_cart
-    ├── 包名: org.jeecg.modules.mall.sales
-    └── 实体名: cart
+#### 必需的输入变量
+
+脚本需要接收以下四个核心变量：
+
+| 变量名称                | 类型   | 描述           | 示例值                                                       |
+| ----------------------- | ------ | -------------- | ------------------------------------------------------------ |
+| **PROJECT_PATH_PREFIX** | String | 项目根路径前缀 | `/Users/admin/Work/Github/JeecgBoot`                         |
+| **PROJECT_PATH**        | String | 完整项目路径   | `{PREFIX}/jeecg-boot/jeecg-boot-module/jeecg-module-finance` |
+| **ENTITY_NAME**         | String | 实体名称       | `management`                                                 |
+| **PACKAGE_NAME**        | String | 包名           | `org.jeecg.modules.finance.invoice`                          |
+
+#### 命令行参数详解
+
+| 参数                    | 必填 | 类型   | 描述             | 示例                            |
+| ----------------------- | ---- | ------ | ---------------- | ------------------------------- |
+| `--module-name`         | ✅   | String | 目标模块名称     | `finance`                       |
+| `--form-config`         | ✅   | String | 配置文件路径     | `temp_management_config.json`   |
+| `--dict`                | ❌   | Flag   | 更新数据字典缓存 | 无参数                          |
+| `--validate-table-name` | ❌   | String | 验证表名格式     | `us_finance_invoice_management` |
+| `--fix-table-name`      | ❌   | String | 自动修复表名格式 | `biz_product_management`        |
+| `--help`                | ❌   | Flag   | 显示帮助信息     | 无参数                          |
+
+### 🔄 脚本执行流程
+
+#### 步骤 1: 变量接收与验证
+
+```python
+def receive_core_variables():
+    """接收并验证核心变量"""
+    # 1. 从命令行参数或配置文件读取核心变量
+    # 2. 验证变量格式和完整性
+    # 3. 打印变量值供调试使用
+    # 4. 返回验证通过的变量集合
 ```
 
-#### 示例3：会员管理模块的会员信息管理
-```bash
-需求描述: "电商系统中的会员管理模块的会员信息管理"
-解析结果:
-├── 模块名: mall
-├── 子模块: member
-├── 业务场景: info
-└── 生成结果:
-    ├── 表名: us_mall_member_info
-    ├── 包名: org.jeecg.modules.mall.member
-    └── 实体名: info
+#### 步骤 2: 配置文件处理
+
+```python
+def process_config_files():
+    """处理配置文件"""
+    # 1. 读取Code_Gen_Config.json系统配置
+    # 2. 加载temp_*_config.json表单配置
+    # 3. 临时修改jeecg_config.properties
+    # 4. 验证配置文件完整性
 ```
 
-#### 示例4：会员管理模块的会员积分管理
-```bash
-需求描述: "电商系统中的会员管理模块的会员积分管理"
-解析结果:
-├── 模块名: mall
-├── 子模块: member
-├── 业务场景: score
-└── 生成结果:
-    ├── 表名: us_mall_member_score
-    ├── 包名: org.jeecg.modules.mall.member
-    └── 实体名: score
+#### 步骤 3: 环境检查
+
+```python
+def check_environment():
+    """检查执行环境"""
+    # 1. 验证JeecgBoot服务状态
+    # 2. 检查Maven配置
+    # 3. 验证数据库连接
+    # 4. 确认项目路径存在
 ```
 
-### ✅ 更多标准示例
-```bash
-# 财务系统
-us_finance_invoice_management     → org.jeecg.modules.finance.invoice, 实体: management
-us_finance_payment_processing     → org.jeecg.modules.finance.payment, 实体: processing
-us_finance_report_analytics       → org.jeecg.modules.finance.report, 实体: analytics
+#### 步骤 4: 模块管理
 
-# 人力资源系统  
-us_hrms_employee_training         → org.jeecg.modules.hrms.employee, 实体: training
-us_hrms_payroll_calculation       → org.jeecg.modules.hrms.payroll, 实体: calculation
-us_hrms_attendance_tracking       → org.jeecg.modules.hrms.attendance, 实体: tracking
-
-# 客户关系系统
-us_crm_customer_service           → org.jeecg.modules.crm.customer, 实体: service
-us_crm_leads_management           → org.jeecg.modules.crm.leads, 实体: management
-us_crm_opportunity_tracking       → org.jeecg.modules.crm.opportunity, 实体: tracking
+```python
+def manage_module():
+    """管理Maven模块"""
+    # 1. 检查目标模块是否存在
+    # 2. 如不存在则创建Maven模块
+    # 3. 更新父级pom.xml
+    # 4. 更新系统依赖配置
 ```
 
-### ❌ 错误示例对比
-```bash
-❌ 错误格式:
-mall_sales_product              # 缺少us_前缀
-us_mall_product                 # 缺少子模块名
-us_mall_sales_product_info      # 业务场景过长
-biz_product_management          # 使用错误前缀
+#### 步骤 5: 代码生成执行
 
-✅ 正确格式:
-us_mall_sales_product           # 标准格式
-us_mall_sales_cart              # 标准格式  
-us_mall_member_info             # 标准格式
+```python
+def execute_code_generation():
+    """执行代码生成"""
+    # 1. 登录JeecgBoot系统
+    # 2. 创建在线表单
+    # 3. 同步数据库结构
+    # 4. 生成完整CRUD代码
+```
+
+#### 步骤 6: 配置恢复
+
+```python
+def restore_configuration():
+    """恢复配置文件"""
+    # 1. 恢复jeecg_config.properties为模板状态
+    # 2. 清理临时配置文件
+    # 3. 输出执行结果报告
+```
+
+### 💡 具体使用示例
+
+#### 示例 1: 生成财务发票管理模块
+
+```bash
+# 前置条件: 已有temp_management_config.json配置文件
+python Code_Gen_Guide.py --module-name finance --form-config temp_management_config.json
+
+# 执行过程:
+# 1. 读取核心变量: MODULE_NAME=finance, ENTITY_NAME=management
+# 2. 验证表名: us_finance_invoice_management
+# 3. 创建/检查jeecg-module-finance模块
+# 4. 登录JeecgBoot系统
+# 5. 创建在线表单
+# 6. 同步数据库结构
+# 7. 生成完整CRUD代码
+
+# 预期输出:
+# ✅ 模块检查完成: jeecg-module-finance
+# ✅ 登录成功: admin
+# ✅ 表单创建成功: us_finance_invoice_management
+# ✅ 数据库同步完成
+# ✅ 代码生成完成: org.jeecg.modules.finance.invoice
+```
+
+#### 示例 2: 生成人力资源培训模块
+
+```bash
+python Code_Gen_Guide.py --module-name hrms --form-config temp_training_config.json
+
+# 核心变量:
+# PROJECT_PATH_PREFIX: /Users/admin/Work/Github/JeecgBoot
+# PROJECT_PATH: /Users/admin/Work/Github/JeecgBoot/jeecg-boot/jeecg-boot-module/jeecg-module-hrms
+# ENTITY_NAME: training
+# PACKAGE_NAME: org.jeecg.modules.hrms.employee
+```
+
+#### 示例 3: 更新数据字典
+
+```bash
+python Code_Gen_Guide.py --dict
+
+# 执行过程:
+# 1. 连接JeecgBoot系统
+# 2. 获取最新数据字典
+# 3. 更新Code_Gen_DICT.json缓存
+# 4. 输出更新结果
+```
+
+#### 示例 4: 验证和修复表名
+
+```bash
+# 验证表名格式
+python Code_Gen_Guide.py --validate-table-name "biz_product_management"
+# 输出: ❌ 表名格式错误，建议修改为: us_business_product_management
+
+# 自动修复表名
+python Code_Gen_Guide.py --fix-table-name "biz_product_management"
+# 输出: ✅ 表名已修复为: us_business_product_management
+```
+
+## 📋 命名规范参考
+
+**说明**: 以下命名规范供技术实现参考，详细的 AI 推理策略请参考 Code_Gen_Agent.md 文档。
+
+### 🎯 标准命名格式
+
+- **表名格式**: `us_{模块名}_{子模块名}_{业务场景}`
+- **包名格式**: `org.jeecg.modules.{模块名}.{子模块名}`
+- **实体名格式**: `{业务场景}` (Java 驼峰命名)
+
+### 📋 命名格式示例
+
+```bash
+# 基本格式示例
+us_finance_invoice_management     → org.jeecg.modules.finance.invoice, 实体: Management
+us_hrms_employee_training         → org.jeecg.modules.hrms.employee, 实体: Training
+us_crm_customer_service           → org.jeecg.modules.crm.customer, 实体: Service
 ```
 
 ### 🔧 命名组件说明
-- **模块名**: 顶级业务领域 (mall, finance, hrms, crm, scm等)
-- **子模块名**: 具体功能模块 (sales, member, invoice, employee等)  
-- **业务场景**: 具体业务对象/操作 (product, cart, info, score, management等)
 
-### 📐 架构设计原则
-1. **包名使用模块+子模块**: 形成清晰的业务层次结构
-2. **实体名使用业务场景**: 精确描述具体的业务对象  
-3. **表名包含完整信息**: 便于数据库管理和理解
-4. **命名简洁明确**: 避免冗长和歧义的命名
+- **模块名**: 顶级业务领域 (finance, hrms, crm, scm, oa)
+- **子模块名**: 具体功能模块 (invoice, employee, customer 等)
+- **业务场景**: 具体业务对象/操作 (management, training, service 等)
+
+**注意**:
+
+- 详细的命名推理策略和业务分析方法请参考 **Code_Gen_Agent.md** 文档
+- 三核心变量的完整定义和使用规范请参考 **Code_Gen_Variables.md** 文档
 
 **主要函数**:
+
 ```python
 def extract_business_entity_from_table_name(table_name):
     """从表名中提取业务实体名，严格遵循us_{模块}_{子模块}_{场景}格式"""
     # 输入: "us_finance_invoice_sales"
     # 输出: "sales"
-    
+
 def jeecg_complete_workflow(module_name, form_config):
     """完整工作流程: 登录→创建表单→同步数据库→生成代码"""
     # 1. 登录JeecgBoot系统
     # 2. 创建在线表单
     # 3. 同步数据库结构
     # 4. 生成完整代码
-    
+
 def load_config():
     """加载系统配置"""
     # 加载Code_Gen_Config.json配置文件
@@ -190,6 +281,7 @@ def load_config():
 ```
 
 **命令行参数**:
+
 ```bash
 python Code_Gen_Guide.py [OPTIONS]
 
@@ -203,6 +295,7 @@ OPTIONS:
 ```
 
 **使用示例**:
+
 ```bash
 # 生成代码
 python Code_Gen_Guide.py --module-name finance --form-config temp_sales_config.json
@@ -217,63 +310,135 @@ python Code_Gen_Guide.py --validate-table-name "biz_product_management"
 python Code_Gen_Guide.py --fix-table-name "biz_product_management"
 ```
 
-### 2. Code_Gen_Config.json - 系统配置
+---
 
-**功能**: 系统全局配置参数，控制脚本行为
+## 📁 Code*Gen*\*.json 配置文件详解
 
-**配置结构**:
+### 1. Code_Gen_Config.json - 系统全局配置
+
+#### 📖 配置文件概述
+
+**Code_Gen_Config.json** 是系统的全局配置文件，控制脚本的执行行为、服务器连接、项目路径等核心参数。
+
+#### 🔧 完整配置结构
+
 ```json
 {
   "project": {
-    "path_prefix": "/path/to/JeecgBoot"
+    "path_prefix": "/Users/admin/Work/Github/JeecgBoot",
+    "module_template": "jeecg-module-{module_name}",
+    "backup_enabled": true
   },
   "server": {
     "base_url": "http://localhost:8080/jeecg-boot",
     "username": "admin",
-    "password": "123456"
+    "password": "123456",
+    "verify_ssl": false
   },
   "timeouts": {
     "login": 10,
     "create": 30,
     "sync": 30,
-    "codegen": 60
+    "codegen": 60,
+    "connection": 5
   },
   "codegen": {
     "vue_style": "vue3",
-    "code_types": "controller,service,dao,mapper,entity,vue"
+    "code_types": "controller,service,dao,mapper,entity,vue",
+    "package_style": "service",
+    "jsp_mode": "one",
+    "jform_type": "1"
+  },
+  "logging": {
+    "level": "INFO",
+    "file_enabled": true,
+    "console_enabled": true
   }
 }
 ```
 
-**可配置项说明**:
-| 配置项 | 类型 | 描述 | 默认值 | 是否必填 |
-|--------|------|------|--------|----------|
-| `project.path_prefix` | String | JeecgBoot项目路径 | `/Users/admin/Work/Github/JeecgBoot` | ✅ |
-| `server.base_url` | String | 服务器地址 | `http://localhost:8080/jeecg-boot` | ✅ |
-| `server.username` | String | 登录用户名 | `admin` | ✅ |
-| `server.password` | String | 登录密码 | `123456` | ✅ |
-| `codegen.vue_style` | String | Vue版本 | `vue3` | ❌ |
-| `codegen.code_types` | String | 生成代码类型 | `controller,service,dao,mapper,entity,vue` | ❌ |
+#### 📋 配置项详细说明
 
-### 3. Code_Gen_Guide.json - 配置模板
+##### Project 配置
 
-**功能**: 标准表单配置模板，包含系统必需字段
+| 配置项                    | 类型    | 描述                     | 示例值                               | 必填 |
+| ------------------------- | ------- | ------------------------ | ------------------------------------ | ---- |
+| `project.path_prefix`     | String  | JeecgBoot 项目根路径前缀 | `/Users/admin/Work/Github/JeecgBoot` | ✅   |
+| `project.module_template` | String  | 模块目录命名模板         | `jeecg-module-{module_name}`         | ❌   |
+| `project.backup_enabled`  | Boolean | 是否启用配置备份         | `true`                               | ❌   |
+
+##### Server 配置
+
+| 配置项              | 类型    | 描述                 | 示例值                             | 必填 |
+| ------------------- | ------- | -------------------- | ---------------------------------- | ---- |
+| `server.base_url`   | String  | JeecgBoot 服务器地址 | `http://localhost:8080/jeecg-boot` | ✅   |
+| `server.username`   | String  | 登录用户名           | `admin`                            | ✅   |
+| `server.password`   | String  | 登录密码             | `123456`                           | ✅   |
+| `server.verify_ssl` | Boolean | 是否验证 SSL 证书    | `false`                            | ❌   |
+
+##### CodeGen 配置
+
+| 配置项                  | 类型   | 描述         | 默认值                                     | 必填 |
+| ----------------------- | ------ | ------------ | ------------------------------------------ | ---- |
+| `codegen.vue_style`     | String | Vue 版本选择 | `vue3`                                     | ❌   |
+| `codegen.code_types`    | String | 生成代码类型 | `controller,service,dao,mapper,entity,vue` | ❌   |
+| `codegen.package_style` | String | 包结构风格   | `service`                                  | ❌   |
+
+#### 🌍 环境差异配置
+
+##### Mac 环境配置示例
+
+```json
+{
+  "project": {
+    "path_prefix": "/Users/admin/Work/Github/JeecgBoot"
+  }
+}
+```
+
+##### Windows 环境配置示例
+
+```json
+{
+  "project": {
+    "path_prefix": "D:\\Dev\\Workspace\\JeecgBoot"
+  }
+}
+```
+
+#### ⚡ PROJECT_PATH_PREFIX 的作用机制
+
+**PROJECT_PATH_PREFIX** 是整个系统的核心配置，影响所有路径相关的操作：
+
+1. **模块路径生成**: `{PROJECT_PATH_PREFIX}/jeecg-boot/jeecg-boot-module/jeecg-module-{MODULE_NAME}`
+2. **代码输出路径**: 基于 PROJECT_PATH_PREFIX 确定代码生成的目标目录
+3. **Maven 配置更新**: 用于更新父级 pom.xml 和依赖配置的路径
+4. **临时文件处理**: 临时配置文件的存储和清理路径
+
+### 2. Code_Gen_Guide.json - 标准表单模板
+
+#### 📖 模板文件概述
+
+**Code_Gen_Guide.json** 是标准表单配置模板，包含 JeecgBoot 系统必需的 7 个系统字段和表单基础结构。AI 推理生成的 temp\_\*\_config.json 文件都基于此模板创建。
+
+#### 🔧 文件结构详解
 
 **结构说明**:
+
 ```json
 {
   "head": {
-    "tableName": "{{TABLE_NAME}}",        // 模板变量-表名
-    "tableTxt": "{{TABLE_DESCRIPTION}}",  // 模板变量-表描述
-    "tableType": 1,                       // 固定值-表类型
-    "formCategory": "temp",               // 固定值-表单分类
-    "idType": "UUID",                     // 固定值-主键类型
-    "isCheckbox": "Y",                    // 固定值-是否支持复选
-    "themeTemplate": "normal",            // 固定值-主题模板
-    "formTemplate": "1",                  // 固定值-表单模板
-    "scroll": 1,                          // 固定值-滚动设置
-    "isPage": "Y",                        // 固定值-是否分页
-    "isTree": "N"                         // 固定值-是否树形
+    "tableName": "{{TABLE_NAME}}", // 模板变量-表名
+    "tableTxt": "{{TABLE_DESCRIPTION}}", // 模板变量-表描述
+    "tableType": 1, // 固定值-表类型
+    "formCategory": "temp", // 固定值-表单分类
+    "idType": "UUID", // 固定值-主键类型
+    "isCheckbox": "Y", // 固定值-是否支持复选
+    "themeTemplate": "normal", // 固定值-主题模板
+    "formTemplate": "1", // 固定值-表单模板
+    "scroll": 1, // 固定值-滚动设置
+    "isPage": "Y", // 固定值-是否分页
+    "isTree": "N" // 固定值-是否树形
   },
   "fields": [
     // 0-6: 7个系统字段 (不可修改)
@@ -292,16 +457,75 @@ python Code_Gen_Guide.py --fix-table-name "biz_product_management"
 ```
 
 **使用规则**:
+
 - 🚫 **禁止修改**: `head`部分的固定值字段
-- 🚫 **禁止修改**: `fields`数组中orderNum 0-6的系统字段
+- 🚫 **禁止修改**: `fields`数组中 orderNum 0-6 的系统字段
 - ✅ **允许替换**: `{{TABLE_NAME}}`和`{{TABLE_DESCRIPTION}}`模板变量
 - ✅ **允许添加**: orderNum 7+的业务字段
 
-### 4. Code_Gen_field_templates.json - 字段模板库
+#### 📋 Head 部分配置说明
 
-**功能**: 提供各种字段类型的完整配置模板
+| 字段名称       | 类型    | 描述         | 可修改 | 说明                         |
+| -------------- | ------- | ------------ | ------ | ---------------------------- |
+| `tableName`    | String  | 数据库表名   | ✅     | 由 AI 推理的 TABLE_NAME 替换 |
+| `tableTxt`     | String  | 表的中文描述 | ✅     | 由 AI 推理的业务描述替换     |
+| `tableType`    | Integer | 表类型       | ❌     | 固定值 1，表示普通表         |
+| `formCategory` | String  | 表单分类     | ❌     | 固定值"temp"，表示临时表单   |
+| `idType`       | String  | 主键类型     | ❌     | 固定值"UUID"                 |
+| `isCheckbox`   | String  | 是否支持复选 | ❌     | 固定值"Y"                    |
 
-**字段类型定义**:
+#### 🔧 如何基于模板生成 temp\_\*\_config.json
+
+##### 步骤 1: 复制基础模板
+
+```python
+def copy_base_template():
+    """复制Code_Gen_Guide.json作为基础模板"""
+    with open('Code_Gen_Guide.json', 'r', encoding='utf-8') as f:
+        template = json.load(f)
+    return template
+```
+
+##### 步骤 2: 替换模板变量
+
+```python
+def replace_template_variables(template, table_name, table_description):
+    """替换{{TABLE_NAME}}和{{TABLE_DESCRIPTION}}"""
+    template['head']['tableName'] = table_name
+    template['head']['tableTxt'] = table_description
+    return template
+```
+
+##### 步骤 3: 添加业务字段
+
+```python
+def add_business_fields(template, fields_config):
+    """添加orderNum>=7的业务字段"""
+    order_num = 7  # 从7开始
+    for field in fields_config:
+        field_config = create_field_config(field, order_num)
+        template['fields'].append(field_config)
+        order_num += 1
+    return template
+```
+
+#### ⚡ AI 推理驱动的参数传递协同机制
+
+**配置文件与脚本执行的协同关系**:
+
+1. **AI 推理阶段**: Code_Gen_Agent.md 指导 AI 从用户需求中提取核心变量
+2. **配置生成阶段**: 基于 Code*Gen_Guide.json 模板和 AI 推理结果生成 temp*\*\_config.json
+3. **脚本执行阶段**: Code_Gen_Guide.py 读取配置文件并执行代码生成
+4. **变量传递链路**: 用户需求 → AI 推理 → 核心变量 → 配置文件 → 脚本执行
+
+### 3. Code_Gen_field_templates.json - 字段模板库
+
+#### 📖 字段模板概述
+
+**Code_Gen_field_templates.json** 提供 13 种标准字段类型的完整配置模板，AI 在生成业务字段时会根据字段语义智能选择合适的模板类型。
+
+#### 🔧 13 种标准字段类型定义
+
 ```json
 {
   "text_field": {
@@ -341,53 +565,89 @@ python Code_Gen_Guide.py --fix-table-name "biz_product_management"
 }
 ```
 
-**支持的字段类型**:
-| 类型名称 | 用途 | 数据库类型 | 前端组件 | 特殊配置 |
-|----------|------|------------|----------|----------|
-| `text_field` | 文本字段 | string | input | 无 |
-| `number_field` | 数字字段 | int | input-number | 无 |
-| `decimal_field` | 小数字段 | decimal | input-number | 精度设置 |
-| `date_field` | 日期字段 | date | date-picker | 无 |
-| `datetime_field` | 日期时间字段 | datetime | datetime-picker | 无 |
-| `textarea_field` | 多行文本字段 | text | textarea | 行数设置 |
-| `dict_select_field` | 字典下拉字段 | string | select | 需要dictField |
-| `dict_radio_field` | 字典单选字段 | string | radio | 需要dictField |
-| `file_upload_field` | 文件上传字段 | string | upload | 文件类型限制 |
-| `image_upload_field` | 图片上传字段 | string | upload | 图片限制 |
-| `rich_text_field` | 富文本字段 | text | rich-editor | 无 |
-| `phone_field` | 手机号字段 | string | input | 格式验证 |
-| `email_field` | 邮箱字段 | string | input | 格式验证 |
+#### 📋 字段类型详细说明
+
+| 类型名称             | 用途         | 数据库类型 | 前端组件        | 特殊配置       | 应用场景               |
+| -------------------- | ------------ | ---------- | --------------- | -------------- | ---------------------- |
+| `text_field`         | 文本字段     | string     | input           | 无             | 姓名、编号、标题等     |
+| `number_field`       | 数字字段     | int        | input-number    | 无             | 数量、年龄、排序等     |
+| `decimal_field`      | 小数字段     | decimal    | input-number    | 精度设置       | 金额、比率、分数等     |
+| `date_field`         | 日期字段     | date       | date-picker     | 无             | 生日、截止日期等       |
+| `datetime_field`     | 日期时间字段 | datetime   | datetime-picker | 无             | 创建时间、预约时间等   |
+| `textarea_field`     | 多行文本字段 | text       | textarea        | 行数设置       | 描述、备注、说明等     |
+| `dict_select_field`  | 字典下拉字段 | string     | select          | 需要 dictField | 状态、类型、分类等     |
+| `dict_radio_field`   | 字典单选字段 | string     | radio           | 需要 dictField | 性别、是否、级别等     |
+| `file_upload_field`  | 文件上传字段 | string     | upload          | 文件类型限制   | 附件、文档、证书等     |
+| `image_upload_field` | 图片上传字段 | string     | upload          | 图片限制       | 头像、照片、图标等     |
+| `rich_text_field`    | 富文本字段   | text       | rich-editor     | 无             | 详细描述、公告内容等   |
+| `phone_field`        | 手机号字段   | string     | input           | 格式验证       | 联系电话、紧急联系人等 |
+| `email_field`        | 邮箱字段     | string     | input           | 格式验证       | 邮箱地址、通知邮箱等   |
+
+#### 🎯 字段模板的应用场景和选择原则
+
+##### 基础字段选择原则
+
+```yaml
+文本类数据:
+  - 短文本(≤100字符): text_field
+  - 长文本(>100字符): textarea_field
+  - 富文本内容: rich_text_field
+
+数值类数据:
+  - 整数: number_field
+  - 小数: decimal_field (设置精度)
+
+时间类数据:
+  - 仅日期: date_field
+  - 日期+时间: datetime_field
+
+选择类数据:
+  - 下拉选择: dict_select_field
+  - 单选按钮: dict_radio_field
+
+文件类数据:
+  - 通用文件: file_upload_field
+  - 图片文件: image_upload_field
+
+格式验证数据:
+  - 手机号: phone_field
+  - 邮箱: email_field
+```
+
+**注意**: 字段类型的智能推理策略请参考 Code_Gen_Agent.md 文档。
 
 ### 5. Code_Gen_DICT.json - 数据字典
 
 **功能**: 系统数据字典的本地缓存，用于字段类型匹配
 
 **数据结构**:
+
 ```json
 [
   {
     "dictCode": "sex",
     "dictName": "性别",
     "dictItems": [
-      {"itemValue": "1", "itemText": "男"},
-      {"itemValue": "2", "itemText": "女"}
+      { "itemValue": "1", "itemText": "男" },
+      { "itemValue": "2", "itemText": "女" }
     ]
   },
   {
     "dictCode": "yes_no",
     "dictName": "是否",
     "dictItems": [
-      {"itemValue": "Y", "itemText": "是"},
-      {"itemValue": "N", "itemText": "否"}
+      { "itemValue": "Y", "itemText": "是" },
+      { "itemValue": "N", "itemText": "否" }
     ]
   }
 ]
 ```
 
 **更新机制**:
-- 缓存时间: 24小时
+
+- 缓存时间: 24 小时
 - 更新命令: `python Code_Gen_Guide.py --dict`
-- 数据来源: JeecgBoot系统的数据字典管理
+- 数据来源: JeecgBoot 系统的数据字典管理
 
 ---
 
@@ -396,6 +656,7 @@ python Code_Gen_Guide.py --fix-table-name "biz_product_management"
 ### 配置文件生成流程
 
 #### 1. 模板复制
+
 ```python
 def copy_base_template():
     """复制基础配置模板"""
@@ -405,6 +666,7 @@ def copy_base_template():
 ```
 
 #### 2. 变量替换
+
 ```python
 def replace_template_variables(template, table_name, table_description):
     """替换模板变量"""
@@ -414,11 +676,12 @@ def replace_template_variables(template, table_name, table_description):
 ```
 
 #### 3. 字段添加
+
 ```python
 def add_business_fields(template, fields_config):
     """添加业务字段"""
     order_num = 7  # 从7开始（0-6为系统字段）
-    
+
     for field in fields_config:
         field_template = load_field_template(field['type'])
         field_config = {
@@ -432,18 +695,19 @@ def add_business_fields(template, fields_config):
             "isShowForm": "1",
             "isShowList": "1"
         }
-        
+
         # 数据字典字段特殊处理
         if field.get('dict_code'):
             field_config['dictField'] = field['dict_code']
-        
+
         template['fields'].append(field_config)
         order_num += 1
-    
+
     return template
 ```
 
 #### 4. 文件保存
+
 ```python
 def save_config_file(config, entity_name):
     """保存配置文件"""
@@ -456,11 +720,12 @@ def save_config_file(config, entity_name):
 ### 代码生成执行流程
 
 #### 1. 模块管理
+
 ```python
 def ensure_module_exists(module_name):
     """确保Maven模块存在"""
     module_path = f"/jeecg-boot/jeecg-module-{module_name}"
-    
+
     if not os.path.exists(module_path):
         # 创建Maven模块
         create_maven_module(module_name)
@@ -469,17 +734,18 @@ def ensure_module_exists(module_name):
 ```
 
 #### 2. 系统认证
+
 ```python
 def login_jeecg_system():
     """登录JeecgBoot系统"""
     config = load_config()
     login_url = f"{config['server']['base_url']}/sys/login"
-    
+
     response = requests.post(login_url, json={
         "username": config['server']['username'],
         "password": config['server']['password']
     })
-    
+
     if response.status_code == 200:
         return response.json()['result']['token']
     else:
@@ -487,14 +753,15 @@ def login_jeecg_system():
 ```
 
 #### 3. 表单创建
+
 ```python
 def create_online_form(token, config_data):
     """创建在线表单"""
     create_url = f"{config['server']['base_url']}/online/cgform/api/create"
-    
+
     headers = {"X-Access-Token": token}
     response = requests.post(create_url, json=config_data, headers=headers)
-    
+
     if response.status_code == 200:
         return response.json()['result']['id']
     else:
@@ -502,23 +769,25 @@ def create_online_form(token, config_data):
 ```
 
 #### 4. 数据库同步
+
 ```python
 def sync_database(token, form_id):
     """同步数据库结构"""
     sync_url = f"{config['server']['base_url']}/online/cgform/api/syncDb/{form_id}"
-    
+
     headers = {"X-Access-Token": token}
     response = requests.post(sync_url, headers=headers)
-    
+
     return response.status_code == 200
 ```
 
 #### 5. 代码生成
+
 ```python
 def generate_code(token, form_id, module_name):
     """生成代码"""
     codegen_url = f"{config['server']['base_url']}/online/cgform/api/generateCode"
-    
+
     headers = {"X-Access-Token": token}
     data = {
         "ids": form_id,
@@ -530,7 +799,7 @@ def generate_code(token, form_id, module_name):
         "vueStyle": "vue3",
         "codeTypes": "controller,service,dao,mapper,entity,vue"
     }
-    
+
     response = requests.post(codegen_url, json=data, headers=headers)
     return response.status_code == 200
 ```
@@ -538,6 +807,7 @@ def generate_code(token, form_id, module_name):
 ### 文件输出结构说明
 
 #### 生成的文件结构
+
 ```
 /jeecg-boot/jeecg-module-{模块名}/
 ├── src/main/java/org/jeecg/modules/{模块名}/{实体名}/
@@ -560,17 +830,18 @@ def generate_code(token, form_id, module_name):
 ```
 
 #### 文件内容说明
-| 文件类型 | 主要内容 | 功能说明 |
-|----------|----------|----------|
-| `Entity.java` | 实体类定义、字段映射、注解配置 | 数据表的Java对象表示 |
-| `Controller.java` | REST API接口、请求处理、参数验证 | 前端请求的入口点 |
-| `Service.java` | 业务逻辑接口定义 | 业务逻辑的抽象 |
-| `ServiceImpl.java` | 具体业务逻辑实现 | 实际的业务处理代码 |
-| `Mapper.java` | 数据访问接口、SQL方法定义 | 数据库操作的接口 |
-| `Mapper.xml` | SQL语句、结果映射 | 具体的SQL实现 |
-| `List.vue` | 列表展示、查询、操作按钮 | 数据列表页面 |
-| `Form.vue` | 表单录入、编辑、验证 | 数据录入页面 |
-| `Modal.vue` | 弹窗组件、详情展示 | 弹窗式操作组件 |
+
+| 文件类型           | 主要内容                          | 功能说明               |
+| ------------------ | --------------------------------- | ---------------------- |
+| `Entity.java`      | 实体类定义、字段映射、注解配置    | 数据表的 Java 对象表示 |
+| `Controller.java`  | REST API 接口、请求处理、参数验证 | 前端请求的入口点       |
+| `Service.java`     | 业务逻辑接口定义                  | 业务逻辑的抽象         |
+| `ServiceImpl.java` | 具体业务逻辑实现                  | 实际的业务处理代码     |
+| `Mapper.java`      | 数据访问接口、SQL 方法定义        | 数据库操作的接口       |
+| `Mapper.xml`       | SQL 语句、结果映射                | 具体的 SQL 实现        |
+| `List.vue`         | 列表展示、查询、操作按钮          | 数据列表页面           |
+| `Form.vue`         | 表单录入、编辑、验证              | 数据录入页面           |
+| `Modal.vue`        | 弹窗组件、详情展示                | 弹窗式操作组件         |
 
 ---
 
@@ -579,19 +850,22 @@ def generate_code(token, form_id, module_name):
 ### 命令行参数说明
 
 #### 基本用法
+
 ```bash
 python Code_Gen_Guide.py --module-name <模块名> --form-config <配置文件>
 ```
 
 #### 参数详解
-| 参数 | 必填 | 类型 | 描述 | 示例 |
-|------|------|------|------|------|
-| `--module-name` | ✅ | String | 目标模块名称 | `finance` |
-| `--form-config` | ✅ | String | 配置文件路径 | `temp_sales_config.json` |
-| `--dict` | ❌ | Flag | 更新数据字典 | 无参数 |
-| `--help` | ❌ | Flag | 显示帮助信息 | 无参数 |
+
+| 参数            | 必填 | 类型   | 描述         | 示例                     |
+| --------------- | ---- | ------ | ------------ | ------------------------ |
+| `--module-name` | ✅   | String | 目标模块名称 | `finance`                |
+| `--form-config` | ✅   | String | 配置文件路径 | `temp_sales_config.json` |
+| `--dict`        | ❌   | Flag   | 更新数据字典 | 无参数                   |
+| `--help`        | ❌   | Flag   | 显示帮助信息 | 无参数                   |
 
 #### 使用示例
+
 ```bash
 # 生成财务模块的销售管理代码
 python Code_Gen_Guide.py --module-name finance --form-config temp_sales_config.json
@@ -606,6 +880,7 @@ python Code_Gen_Guide.py --dict
 ### 配置文件格式规范
 
 #### 标准配置文件结构
+
 ```json
 {
   "head": {
@@ -665,48 +940,54 @@ python Code_Gen_Guide.py --dict
 ```
 
 #### 字段配置规范
-| 属性名 | 类型 | 必填 | 描述 | 示例值 |
-|--------|------|------|------|--------|
-| `orderNum` | Integer | ✅ | 排序号(从7开始) | `7` |
-| `dbFieldName` | String | ✅ | 数据库字段名 | `invoice_number` |
-| `dbFieldTxt` | String | ✅ | 字段显示名 | `发票号码` |
-| `dbType` | String | ✅ | 数据库类型 | `string/int/decimal/date/datetime/text` |
-| `dbLength` | Integer | ✅ | 字段长度 | `50` |
-| `dbPointLength` | Integer | ❌ | 小数位数 | `2` |
-| `dbIsNull` | String | ✅ | 是否可空 | `0`(非空) / `1`(可空) |
-| `fieldMustInput` | String | ✅ | 是否必填 | `0`(非必填) / `1`(必填) |
-| `isShowForm` | String | ✅ | 表单中显示 | `0`(不显示) / `1`(显示) |
-| `isShowList` | String | ✅ | 列表中显示 | `0`(不显示) / `1`(显示) |
-| `fieldShowType` | String | ✅ | 前端组件类型 | `text/select/radio/textarea/date/datetime` |
-| `dictField` | String | ❌ | 数据字典编码 | `invoice_status` |
+
+| 属性名           | 类型    | 必填 | 描述              | 示例值                                     |
+| ---------------- | ------- | ---- | ----------------- | ------------------------------------------ |
+| `orderNum`       | Integer | ✅   | 排序号(从 7 开始) | `7`                                        |
+| `dbFieldName`    | String  | ✅   | 数据库字段名      | `invoice_number`                           |
+| `dbFieldTxt`     | String  | ✅   | 字段显示名        | `发票号码`                                 |
+| `dbType`         | String  | ✅   | 数据库类型        | `string/int/decimal/date/datetime/text`    |
+| `dbLength`       | Integer | ✅   | 字段长度          | `50`                                       |
+| `dbPointLength`  | Integer | ❌   | 小数位数          | `2`                                        |
+| `dbIsNull`       | String  | ✅   | 是否可空          | `0`(非空) / `1`(可空)                      |
+| `fieldMustInput` | String  | ✅   | 是否必填          | `0`(非必填) / `1`(必填)                    |
+| `isShowForm`     | String  | ✅   | 表单中显示        | `0`(不显示) / `1`(显示)                    |
+| `isShowList`     | String  | ✅   | 列表中显示        | `0`(不显示) / `1`(显示)                    |
+| `fieldShowType`  | String  | ✅   | 前端组件类型      | `text/select/radio/textarea/date/datetime` |
+| `dictField`      | String  | ❌   | 数据字典编码      | `invoice_status`                           |
 
 ### 常见问题处理
 
 #### 1. 模块不存在错误
+
 ```
 错误: 模块 'finance' 不存在
 解决: 脚本会自动创建Maven模块，检查项目路径配置
 ```
 
 #### 2. 登录失败
+
 ```
 错误: 登录JeecgBoot系统失败
 解决: 检查Code_Gen_Config.json中的服务器地址和认证信息
 ```
 
 #### 3. 表名格式错误
+
 ```
 错误: 表名格式不符合 us_{模块}_{子模块}_{场景} 标准
 解决: 修改配置文件中的tableName字段
 ```
 
 #### 4. 字段类型不支持
+
 ```
 错误: 字段类型 'custom_field' 不存在
 解决: 使用Code_Gen_field_templates.json中定义的标准字段类型
 ```
 
 #### 5. 数据字典匹配失败
+
 ```
 错误: 数据字典 'custom_status' 不存在
 解决: 运行 python Code_Gen_Guide.py --dict 更新字典缓存
@@ -719,7 +1000,9 @@ python Code_Gen_Guide.py --dict
 ### 字段类型扩展方法
 
 #### 1. 添加新字段类型
+
 在`Code_Gen_field_templates.json`中添加新的字段类型定义：
+
 ```json
 {
   "custom_field": {
@@ -738,7 +1021,9 @@ python Code_Gen_Guide.py --dict
 ```
 
 #### 2. 扩展字段属性
+
 添加特殊字段属性：
+
 ```json
 {
   "enhanced_text_field": {
@@ -759,7 +1044,9 @@ python Code_Gen_Guide.py --dict
 ### 模板定制说明
 
 #### 1. 自定义表单模板
+
 修改`Code_Gen_Guide.json`中的基础配置：
+
 ```json
 {
   "head": {
@@ -771,7 +1058,9 @@ python Code_Gen_Guide.py --dict
 ```
 
 #### 2. 自定义字段默认值
+
 为字段添加默认值配置：
+
 ```json
 {
   "orderNum": 7,
@@ -787,28 +1076,33 @@ python Code_Gen_Guide.py --dict
 ### 数据字典维护
 
 #### 1. 手动更新字典缓存
+
 ```bash
 python Code_Gen_Guide.py --dict
 ```
 
 #### 2. 自定义字典数据
+
 在`Code_Gen_DICT.json`中添加自定义字典：
+
 ```json
 [
   {
     "dictCode": "custom_status",
     "dictName": "自定义状态",
     "dictItems": [
-      {"itemValue": "active", "itemText": "激活"},
-      {"itemValue": "inactive", "itemText": "停用"},
-      {"itemValue": "pending", "itemText": "待审核"}
+      { "itemValue": "active", "itemText": "激活" },
+      { "itemValue": "inactive", "itemText": "停用" },
+      { "itemValue": "pending", "itemText": "待审核" }
     ]
   }
 ]
 ```
 
 #### 3. 字典匹配优化
+
 为提高字典匹配准确率，建议：
+
 - 使用标准的字典命名规范
 - 保持字典项文本的一致性
 - 定期更新字典缓存
@@ -818,25 +1112,167 @@ python Code_Gen_Guide.py --dict
 ## 🎯 最佳实践
 
 ### 1. 命名规范
+
 - 表名: `us_{模块}_{子模块}_{业务场景}`
 - 字段名: 使用下划线分隔，见名知意
-- 实体名: 使用Java驼峰命名规范
+- 实体名: 使用 Java 驼峰命名规范
 
 ### 2. 配置管理
+
 - 定期备份配置文件
 - 使用版本控制管理配置变更
 - 建立配置文件的标准化模板
 
 ### 3. 错误处理
+
 - 详细记录执行日志
 - 建立错误码映射表
 - 提供清晰的错误信息和解决方案
 
 ### 4. 性能优化
+
 - 合理设置超时时间
 - 优化数据库字段类型和长度
 - 使用缓存减少重复请求
 
 ---
 
-**📚 技术支持**: 本文档提供Code_Gen系统的完整技术实现细节，配合Code_Gen_Agent.md使用可实现完整的代码生成功能。
+## 🤝 与 Code_Gen_Agent.md 的协同学习指南
+
+### 📚 文件角色定位详解
+
+#### Code_Gen_Agent.md - AI 行为规范和提示词框架
+
+**定位**: AI 理解和推理的行为规范文档
+**主要内容**:
+
+- AI 推理策略和变量提取规则
+- 业务系统识别和分类方法
+- 标准化命名规范和验证机制
+- 用户需求分析和确认流程
+
+**使用场景**:
+
+- AI 理解用户的自然语言业务需求
+- 从业务描述中提取核心变量(MODULE_NAME, SUBMODULE_NAME, ENTITY_NAME)
+- 进行业务系统分类和字段类型推理
+- 生成标准化的配置参数
+
+#### Code_Gen_Guide.md - 技术实现指南和操作手册
+
+**定位**: 技术实现和系统操作的详细指南
+**主要内容**:
+
+- Code_Gen_Guide.py 脚本的使用方法和参数说明
+- 配置文件的结构、字段含义和配置方法
+- 代码生成的执行流程和环境要求
+- 问题排查和最佳实践指导
+
+**使用场景**:
+
+- 了解脚本的调用方式和参数配置
+- 理解配置文件的结构和作用机制
+- 排查代码生成过程中的技术问题
+- 进行系统维护和功能扩展
+
+### 🏗️ CodeGen 系统整体架构
+
+#### 完整的代码生成链路
+
+```
+用户业务需求 → Code_Gen_Agent.md → AI需求分析 → 关键词识别 → 变量提取 → 核心变量确认
+     ↓
+Code_Gen_Guide.json模板 → temp_*_config.json生成 → Code_Gen_Guide.py脚本
+     ↓
+环境检查 → 模块管理 → JeecgBoot登录 → 表单创建 → 数据库同步 → 代码生成 → 模块集成
+     ↓
+完整CRUD模块
+```
+
+#### 各文件在代码生成流程中的作用
+
+| 阶段         | 主要文件                      | 作用                 | 输入                | 输出                     |
+| ------------ | ----------------------------- | -------------------- | ------------------- | ------------------------ |
+| **需求分析** | Code_Gen_Agent.md             | 指导 AI 理解业务需求 | 用户自然语言描述    | 核心变量(MODULE_NAME 等) |
+| **配置生成** | Code_Gen_Guide.json           | 提供标准模板         | 核心变量 + 字段配置 | temp\_\*\_config.json    |
+| **字段处理** | Code_Gen_field_templates.json | 提供字段模板         | 字段类型需求        | 完整字段配置             |
+| **脚本执行** | Code_Gen_Guide.py             | 执行代码生成         | 配置文件 + 核心变量 | 完整 CRUD 代码           |
+| **系统配置** | Code_Gen_Config.json          | 提供系统参数         | 环境配置需求        | 系统运行参数             |
+
+### 📖 学习路径建议
+
+#### 针对 AI 开发者的学习重点
+
+##### 第一阶段: 理解 AI 推理框架
+
+1. **深入学习 Code_Gen_Agent.md**
+
+   - 掌握 AI 推理策略和变量提取规则
+   - 理解业务系统分类和命名规范
+   - 熟悉用户需求分析和确认流程
+
+2. **理解变量传递机制**
+   - 学习核心变量的定义和作用
+   - 掌握从自然语言到结构化变量的转换过程
+   - 理解 AI 推理的质量保证机制
+
+##### 第二阶段: 掌握技术实现细节
+
+1. **学习 Code_Gen_Guide.md 的技术部分**
+
+   - 了解脚本的调用方式和参数配置
+   - 理解配置文件的生成和处理机制
+   - 掌握字段类型的智能推理方法
+
+2. **实践 AI 推理到脚本执行的完整流程**
+   - 模拟用户需求分析过程
+   - 练习变量提取和配置文件生成
+   - 验证 AI 推理结果的正确性
+
+#### 针对系统使用者的学习重点
+
+##### 第一阶段: 掌握系统操作
+
+1. **学习 Code_Gen_Guide.md 的操作部分**
+
+   - 掌握脚本的基本使用方法
+   - 了解配置文件的结构和配置方法
+   - 学习环境搭建和依赖配置
+
+2. **理解代码生成流程**
+   - 熟悉从配置到代码的生成过程
+   - 掌握常见问题的排查方法
+   - 学习最佳实践和优化技巧
+
+##### 第二阶段: 深入理解系统架构
+
+1. **学习 Code_Gen_Agent.md 的业务规范**
+
+   - 理解业务需求的标准化表达方式
+   - 掌握命名规范和字段类型选择
+   - 了解 AI 推理的基本原理
+
+2. **掌握系统扩展和定制**
+   - 学习字段模板的扩展方法
+   - 掌握配置文件的定制技巧
+   - 了解系统的可扩展性设计
+
+### 🎯 协同使用最佳实践
+
+#### 文档配合使用建议
+
+1. **需求分析阶段**: 主要参考 Code_Gen_Agent.md，理解 AI 推理策略
+2. **技术实现阶段**: 主要参考 Code_Gen_Guide.md，掌握操作方法
+3. **问题排查阶段**: 两个文档结合使用，从 AI 推理到技术实现全链路排查
+4. **系统优化阶段**: 深入理解两个文档的设计理念，进行针对性改进
+
+#### 学习效果验证
+
+- 能够独立完成从用户需求到代码生成的完整流程
+- 具备 AI 推理结果的验证和优化能力
+- 掌握系统配置和环境搭建的方法
+- 具备常见问题的快速排查和解决能力
+
+---
+
+**📚 技术支持**: 本文档提供 Code_Gen 系统的完整技术实现细节，配合 Code_Gen_Agent.md 使用可实现完整的代码生成功能。
