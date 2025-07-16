@@ -43,5 +43,13 @@
   "display": {
     "token_length": 50,
     "max_records": 5
+  },
+  "compilation": {
+    "enabled": true,
+    "maven_command": "mvn",
+    "compile_args": ["clean", "compile", "-DskipTests"],
+    "timeout": 300,
+    "verify_target_classes": true,
+    "auto_create_pom": true
   }
 }
