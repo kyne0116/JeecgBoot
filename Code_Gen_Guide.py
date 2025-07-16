@@ -824,6 +824,193 @@ def integrate_module_to_project(module_name):
 
     return success
 
+# ==================== 编译相关功能 ====================
+
+def create_module_pom_xml(module_name, project_path):
+    """为新生成的模块创建pom.xml文件"""
+    print(f"📝 创建模块pom.xml: {module_name}")
+
+    # 构建pom.xml文件路径
+    pom_path = Path(project_path) / 'pom.xml'
+
+    # 检查是否已存在
+    if pom_path.exists():
+        print(f"✅ pom.xml已存在: {pom_path}")
+        return True
+
+    # 确保目录存在
+    pom_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # 生成pom.xml内容
+    pom_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>jeecg-boot-module</artifactId>
+        <groupId>org.jeecgframework.boot</groupId>
+        <version>3.8.1</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>jeecg-module-{module_name}</artifactId>
+    <description>{module_name}管理模块</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jeecgframework.boot</groupId>
+            <artifactId>jeecg-boot-base-core</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>'''
+
+    try:
+        with open(pom_path, 'w', encoding='utf-8') as f:
+            f.write(pom_content)
+        print(f"✅ 成功创建pom.xml: {pom_path}")
+        return True
+    except Exception as e:
+        print(f"❌ 创建pom.xml失败: {e}")
+        return False
+
+def compile_project():
+    """编译整个项目"""
+    compilation_config = CONFIG.get('compilation', {})
+
+    if not compilation_config.get('enabled', True):
+        print("⏭️ 编译功能已禁用，跳过编译步骤")
+        return True
+
+    print("⚙️ 开始编译项目...")
+
+    # 获取配置
+    maven_command = compilation_config.get('maven_command', 'mvn')
+    compile_args = compilation_config.get('compile_args', ['clean', 'compile', '-DskipTests'])
+    timeout = compilation_config.get('timeout', 300)
+
+    # 构建完整命令
+    cmd = [maven_command] + compile_args
+
+    # 获取项目根目录
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    work_dir = Path(project_prefix) / 'jeecg-boot'
+
+    print(f"   命令: {' '.join(cmd)}")
+    print(f"   工作目录: {work_dir}")
+    print(f"   超时时间: {timeout}秒")
+
+    try:
+        # 执行编译命令
+        result = subprocess.run(
+            cmd,
+            cwd=work_dir,
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
+
+        if result.returncode == 0:
+            print("✅ 项目编译成功")
+            # 显示编译摘要
+            output_lines = result.stdout.split('\n')
+            for line in output_lines:
+                if 'BUILD SUCCESS' in line or 'Reactor Summary' in line:
+                    print(f"   {line}")
+            return True
+        else:
+            print("❌ 项目编译失败")
+            print(f"   返回码: {result.returncode}")
+            if result.stderr:
+                print(f"   错误信息: {result.stderr[:500]}...")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print(f"❌ 编译超时（{timeout}秒）")
+        return False
+    except FileNotFoundError:
+        print(f"❌ Maven命令未找到: {maven_command}")
+        print("   请确保Maven已安装并在PATH中，或在配置文件中指定正确路径")
+        return False
+    except Exception as e:
+        print(f"❌ 编译异常: {e}")
+        return False
+
+def verify_compilation_success():
+    """验证编译结果"""
+    compilation_config = CONFIG.get('compilation', {})
+
+    if not compilation_config.get('verify_target_classes', True):
+        print("⏭️ 跳过编译验证")
+        return True
+
+    print("🔍 验证编译结果...")
+
+    # 获取项目根目录
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    jeecg_boot_dir = Path(project_prefix) / 'jeecg-boot'
+
+    # 检查关键模块的target/classes目录
+    key_modules = [
+        'jeecg-boot-base-core',
+        'jeecg-module-system/jeecg-system-biz',
+        'jeecg-module-system/jeecg-system-start'
+    ]
+
+    success_count = 0
+    total_count = len(key_modules)
+
+    for module in key_modules:
+        target_classes = jeecg_boot_dir / module / 'target' / 'classes'
+        if target_classes.exists() and target_classes.is_dir():
+            print(f"   ✅ {module}: target/classes存在")
+            success_count += 1
+        else:
+            print(f"   ❌ {module}: target/classes不存在")
+
+    # 检查新生成的财务模块（如果存在）
+    finance_module = jeecg_boot_dir / 'jeecg-boot-module' / 'jeecg-module-finance' / 'target' / 'classes'
+    if finance_module.exists():
+        print(f"   ✅ jeecg-module-finance: target/classes存在")
+        success_count += 1
+        total_count += 1
+
+    if success_count == total_count:
+        print(f"✅ 编译验证通过 ({success_count}/{total_count})")
+        return True
+    else:
+        print(f"⚠️ 编译验证部分通过 ({success_count}/{total_count})")
+        return False
+
+def post_generation_fixes():
+    """代码生成后的自动修复"""
+    print("🔧 执行代码生成后自动修复...")
+
+    compilation_config = CONFIG.get('compilation', {})
+
+    # 1. 自动创建模块pom.xml
+    if compilation_config.get('auto_create_pom', True):
+        try:
+            if CURRENT_TABLE_NAME:
+                components = parse_table_name_components(CURRENT_TABLE_NAME)
+                module_name = components['module_name']
+
+                # 构建模块路径
+                project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+                module_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}'
+
+                if create_module_pom_xml(module_name, module_path):
+                    print(f"✅ 模块pom.xml创建成功: {module_name}")
+                else:
+                    print(f"⚠️ 模块pom.xml创建失败: {module_name}")
+            else:
+                print("⚠️ 无法解析表名，跳过pom.xml创建")
+        except Exception as e:
+            print(f"⚠️ 自动创建pom.xml失败: {e}")
+
+    # 2. 其他修复项可以在这里添加
+    print("✅ 自动修复完成")
+
 # 提取配置变量（保持向后兼容）
 BASE_URL = CONFIG['server']['base_url']
 LOGIN_USERNAME = CONFIG['server']['username']
@@ -1517,7 +1704,44 @@ def jeecg_complete_workflow():
         print(f"⚠️ 模块集成失败: {e}")
         print("   代码生成已完成，请手动检查模块集成")
 
-    # 8. 完成
+    # 8. 代码生成后自动修复
+    print(f"\n{'='*50}")
+    print("🔧 执行代码生成后自动修复...")
+    try:
+        post_generation_fixes()
+        print("✅ 自动修复完成")
+    except Exception as e:
+        print(f"⚠️ 自动修复失败: {e}")
+        print("   代码生成已完成，请手动检查")
+
+    # 9. 自动编译项目
+    compilation_config = CONFIG.get('compilation', {})
+    if compilation_config.get('enabled', True):
+        print(f"\n{'='*50}")
+        print("⚙️ 自动编译项目...")
+        try:
+            if compile_project():
+                print("✅ 项目编译成功")
+
+                # 10. 验证编译结果
+                print(f"\n{'='*50}")
+                print("🔍 验证编译结果...")
+                if verify_compilation_success():
+                    print("✅ 编译验证通过，代码已准备就绪")
+                else:
+                    print("⚠️ 编译验证部分通过，建议检查")
+            else:
+                print("❌ 项目编译失败")
+                print("   建议手动执行: mvn clean compile -DskipTests")
+        except Exception as e:
+            print(f"⚠️ 编译过程异常: {e}")
+            print("   建议手动执行编译")
+    else:
+        print(f"\n{'='*50}")
+        print("⏭️ 跳过自动编译（已禁用）")
+        print("   如需编译，请手动执行: mvn clean compile -DskipTests")
+
+    # 11. 完成
     print(f"\n{'='*50}")
     print("🎉 完整工作流完成!")
     print(f"📋 表名: {table_name}")
@@ -1542,10 +1766,19 @@ def jeecg_complete_workflow():
             print(f"   实体类: {ENTITY_NAME}")
     
     print(f"\n🚀 下一步操作:")
-    print(f"   1. 启动后端服务: mvn spring-boot:run")
-    print(f"   2. 启动前端服务: pnpm dev")
-    print(f"   3. 访问系统: http://localhost:3100")
-    print(f"   4. 在菜单管理中配置新功能菜单")
+    compilation_config = CONFIG.get('compilation', {})
+    if compilation_config.get('enabled', True):
+        print(f"   1. 代码已自动编译完成 ✅")
+        print(f"   2. 通过VS Code启动后端服务（使用launch.json）")
+        print(f"   3. 启动前端服务: pnpm dev")
+        print(f"   4. 访问系统: http://localhost:3100")
+        print(f"   5. 在菜单管理中配置新功能菜单")
+    else:
+        print(f"   1. 手动编译项目: mvn clean compile -DskipTests")
+        print(f"   2. 通过VS Code启动后端服务（使用launch.json）")
+        print(f"   3. 启动前端服务: pnpm dev")
+        print(f"   4. 访问系统: http://localhost:3100")
+        print(f"   5. 在菜单管理中配置新功能菜单")
     print(f"{'='*50}")
 
     # 显示结果摘要（不保存文件）
@@ -2058,6 +2291,16 @@ def parse_arguments():
     parser.add_argument('--fix-table-name', type=str,
                        help='自动修复表名格式')
 
+    # 编译相关参数
+    parser.add_argument('--skip-compilation', action='store_true',
+                       help='跳过自动编译步骤')
+
+    parser.add_argument('--maven-path', type=str,
+                       help='指定Maven可执行文件路径')
+
+    parser.add_argument('--skip-pom-creation', action='store_true',
+                       help='跳过自动创建pom.xml文件')
+
     return parser.parse_args()
 
 def main():
@@ -2088,6 +2331,16 @@ def main():
     global SKIP_MODULE_MANAGEMENT, FORCE_SYSTEM, CURRENT_TABLE_NAME
     SKIP_MODULE_MANAGEMENT = args.skip_module_management
     FORCE_SYSTEM = args.module_name  # 使用新的参数名
+
+    # 处理编译相关参数
+    if args.skip_compilation:
+        CONFIG['compilation']['enabled'] = False
+
+    if args.maven_path:
+        CONFIG['compilation']['maven_command'] = args.maven_path
+
+    if args.skip_pom_creation:
+        CONFIG['compilation']['auto_create_pom'] = False
 
     # 预处理工作流变量（确保在显示配置前就有实际值）
     global PROJECT_PATH, ENTITY_NAME, MODULE_NAME, SUBMODULE_NAME, PACKAGE_NAME, JAVA_ENTITY_NAME, TABLE_NAME
