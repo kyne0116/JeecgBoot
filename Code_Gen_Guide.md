@@ -18,18 +18,24 @@
 
 ### 🎯 文件角色定位
 
-| 文件名称                  | 角色定位     | 主要职责                                              | 使用场景                      |
-| ------------------------- | ------------ | ----------------------------------------------------- | ----------------------------- |
-| **Code_Gen_Agent.md**     | AI 行为规范  | AI 推理策略、变量提取规则、业务分析方法、字段类型推理 | AI 理解用户需求、提取核心变量 |
-| **Code_Gen_Guide.md**     | 技术实现指南 | 脚本使用方法、配置文件结构、执行流程、环境要求        | 技术实现、系统操作、问题排查  |
-| **Code_Gen_Variables.md** | 变量规范文档 | 三核心变量定义、命名规范、派生变量计算规则            | 变量标准化、命名规范参考      |
-| **Code_Gen_Guide.py**     | 执行引擎     | 接收变量、处理配置、生成代码、模块集成                | 自动化代码生成执行            |
+| 文件名称              | 角色定位     | 主要职责                                              | 功能边界                        |
+| --------------------- | ------------ | ----------------------------------------------------- | ------------------------------- |
+| **Code_Gen_Guide.py** | 执行工具     | 严格按照 JeecgBoot 官方 API 规范执行，不进行智能分析  | 只负责 API 调用，不做业务推理   |
+| **Code_Gen_Guide.md** | 技术实现指南 | 脚本使用方法、配置文件结构、数据字典获取流程          | 技术实现、系统操作、问题排查    |
+| **Code_Gen_Agent.md** | AI 智能框架  | AI 推理策略、智能分析、数据字典匹配决策、配置文件生成 | AI 理解需求、智能分析、决策制定 |
 
 ### 📋 文档协同关系
 
 - **AI 推理阶段**: 主要参考 **Code_Gen_Agent.md**，进行业务需求分析和变量提取
 - **技术实现阶段**: 主要参考 **Code_Gen_Guide.md**，进行脚本调用和配置管理
 - **问题排查阶段**: 两个文档结合使用，从 AI 推理到技术实现全链路分析
+
+### 🔄 工作流程
+
+1. **AI 获取数据字典**: 调用 `python3 Code_Gen_Guide.py --dict` 获取最新数据字典
+2. **AI 智能分析**: 基于用户需求和数据字典进行智能匹配分析
+3. **AI 生成配置**: 生成包含正确字段配置的临时 JSON 文件
+4. **脚本执行**: 调用 `Code_Gen_Guide.py` 执行 API 请求工作流
 
 **重要提醒**: 本文档专注于技术实现细节，AI 推理策略和业务分析方法请参考 Code_Gen_Agent.md 文档。
 
@@ -71,6 +77,22 @@ graph TD
 
 **Code_Gen_Guide.py** 是 CodeGen 系统的核心执行引擎，负责接收 AI 提取的核心变量，处理配置文件，并执行完整的代码生成流程。
 
+### 核心功能
+
+#### 智能编译与模块集成
+
+- **自动创建 pom.xml**：为新生成的模块自动创建标准的 Maven 配置文件
+- **智能编译策略**：优先编译新生成的模块，使用 `mvn clean install -DskipTests` 确保模块安装到本地仓库
+- **编译结果验证**：验证 target/classes 目录和 jar 包是否正确生成
+- **后端服务管理**：检查服务状态，验证新模块是否已加载
+
+#### 问题解决能力
+
+针对常见的 **404 错误问题**（模块 Controller 没有被 Spring Boot 正确加载）进行了改进：
+
+- **根本原因**：模块代码生成正确，但没有被正确编译和安装到 Maven 本地仓库
+- **解决方案**：自动重新编译模块并重启服务建议，确保新编译的模块被加载
+
 ### 🔧 脚本调用方式
 
 #### 基本调用格式
@@ -85,7 +107,7 @@ python Code_Gen_Guide.py [OPTIONS]
 
 | 变量名称                | 类型   | 描述           | 示例值                                                       |
 | ----------------------- | ------ | -------------- | ------------------------------------------------------------ |
-| **PROJECT_PATH_PREFIX** | String | 项目根路径前缀 | `/Users/admin/Work/Github/JeecgBoot`                         |
+| **PROJECT_PATH_PREFIX** | String | 项目根路径前缀 | `从Code_Gen_Config.json读取project.path_prefix`              |
 | **PROJECT_PATH**        | String | 完整项目路径   | `{PREFIX}/jeecg-boot/jeecg-boot-module/jeecg-module-finance` |
 | **ENTITY_NAME**         | String | 实体名称       | `management`                                                 |
 | **PACKAGE_NAME**        | String | 包名           | `org.jeecg.modules.finance.invoice`                          |
@@ -96,10 +118,116 @@ python Code_Gen_Guide.py [OPTIONS]
 | ----------------------- | ---- | ------ | ---------------- | ------------------------------- |
 | `--module-name`         | ✅   | String | 目标模块名称     | `finance`                       |
 | `--form-config`         | ✅   | String | 配置文件路径     | `temp_management_config.json`   |
-| `--dict`                | ❌   | Flag   | 更新数据字典缓存 | 无参数                          |
+| `--dict`                | ❌   | Flag   | 获取最新数据字典 | 无参数                          |
 | `--validate-table-name` | ❌   | String | 验证表名格式     | `us_finance_invoice_management` |
 | `--fix-table-name`      | ❌   | String | 自动修复表名格式 | `biz_product_management`        |
+| `--compile-only`        | ❌   | Flag   | 仅执行编译操作   | 无参数                          |
+| `--skip-compile`        | ❌   | Flag   | 跳过编译步骤     | 无参数                          |
 | `--help`                | ❌   | Flag   | 显示帮助信息     | 无参数                          |
+
+### 📚 数据字典获取流程
+
+#### 🚀 **外部用户必读：获取最新数据字典**
+
+**重要提醒**: 在使用 AI 进行代码生成之前，必须先执行以下命令获取最新的系统数据字典：
+
+```bash
+# 获取最新数据字典并保存到Code_Gen_DICT.json
+python3 Code_Gen_Guide.py --dict
+```
+
+**执行步骤**：
+
+1. **打开终端/命令行**，切换到 JeecgBoot 项目根目录
+2. **确保 JeecgBoot 服务正在运行** (http://localhost:8080/jeecg-boot)
+3. **执行数据字典获取命令**：
+   ```bash
+   python3 Code_Gen_Guide.py --dict
+   ```
+4. **等待执行完成**，看到 "🎉 数据字典获取完成！" 提示
+
+**执行结果**：
+
+- ✅ 自动登录 JeecgBoot 系统
+- ✅ 调用数据字典 API 获取最新数据
+- ✅ 保存到`Code_Gen_DICT.json`文件
+- ✅ 输出数据字典条目数量和预览信息
+
+**成功标志**：
+
+- 项目根目录下生成/更新了 `Code_Gen_DICT.json` 文件
+- 控制台显示类似 "总共获取到 XX 条数据字典记录" 的信息
+
+**数据字典文件结构**：
+
+```json
+[
+  {
+    "dictCode": "sex",
+    "dictName": "性别",
+    "dictItems": [
+      { "itemText": "男", "itemValue": "1" },
+      { "itemText": "女", "itemValue": "2" }
+    ]
+  },
+  {
+    "dictCode": "yes_no",
+    "dictName": "是否",
+    "dictItems": [
+      { "itemText": "是", "itemValue": "Y" },
+      { "itemText": "否", "itemValue": "N" }
+    ]
+  }
+]
+```
+
+#### AI 使用数据字典的流程
+
+1. **获取数据字典**: 调用`--dict`参数获取最新数据字典
+2. **分析用户需求**: 理解用户的业务字段需求
+3. **智能匹配**: 将业务字段与数据字典进行语义匹配
+4. **生成配置**: 在临时 JSON 文件中应用匹配的数据字典配置
+5. **执行脚本**: 使用生成的配置文件调用脚本执行
+
+#### 🧠 数据字典智能匹配逻辑
+
+**匹配算法实现**：
+
+```yaml
+字段匹配流程:
+  1. 精确匹配检查:
+     - 字段描述 == 数据字典名称 → 置信度 100%
+     - 示例: "性别" → dictCode "sex"
+
+  2. 语义匹配检查:
+     - 关键词相似度分析 → 置信度 70-90%
+     - 示例: "状态" → dictCode "status", "state"
+
+  3. 模糊匹配检查:
+     - 部分关键词匹配 → 置信度 50-70%
+     - 示例: "用户类型" → dictCode "user_type", "type"
+
+  4. 字段类型决策:
+     - 置信度 >= 70%: 使用 dict_select_field
+     - 置信度 >= 50%: 提示用户确认
+     - 置信度 < 50%: 使用普通字段类型
+```
+
+**数据字典字段配置示例**：
+
+```json
+{
+  "orderNum": 8,
+  "dbFieldName": "status",
+  "dbFieldTxt": "状态",
+  "dbType": "string",
+  "dbLength": 20,
+  "fieldShowType": "select",
+  "dictField": "invoice_status", // 匹配的数据字典编码
+  "isShowForm": "1",
+  "isShowList": "1"
+}
+```
 
 ### 🔄 脚本执行流程
 
@@ -158,7 +286,18 @@ def execute_code_generation():
     # 4. 生成完整CRUD代码
 ```
 
-#### 步骤 6: 配置恢复
+#### 步骤 6: 编译与验证
+
+```python
+def compile_and_verify():
+    """编译模块并验证结果"""
+    # 1. 自动创建模块pom.xml（如果不存在）
+    # 2. 执行Maven编译：mvn clean install -DskipTests
+    # 3. 验证target/classes目录和jar包
+    # 4. 检查Maven本地仓库中的jar包
+```
+
+#### 步骤 7: 配置恢复
 
 ```python
 def restore_configuration():
@@ -166,6 +305,7 @@ def restore_configuration():
     # 1. 恢复jeecg_config.properties为模板状态
     # 2. 清理临时配置文件
     # 3. 输出执行结果报告
+    # 4. 提供服务重启建议
 ```
 
 ### 💡 具体使用示例
@@ -199,8 +339,8 @@ python Code_Gen_Guide.py --module-name finance --form-config temp_management_con
 python Code_Gen_Guide.py --module-name hrms --form-config temp_training_config.json
 
 # 核心变量:
-# PROJECT_PATH_PREFIX: /Users/admin/Work/Github/JeecgBoot
-# PROJECT_PATH: /Users/admin/Work/Github/JeecgBoot/jeecg-boot/jeecg-boot-module/jeecg-module-hrms
+# PROJECT_PATH_PREFIX: 从Code_Gen_Config.json读取project.path_prefix
+# PROJECT_PATH: {PREFIX}/jeecg-boot/jeecg-boot-module/jeecg-module-hrms
 # ENTITY_NAME: training
 # PACKAGE_NAME: org.jeecg.modules.hrms.employee
 ```
@@ -325,7 +465,7 @@ python Code_Gen_Guide.py --fix-table-name "biz_product_management"
 ```json
 {
   "project": {
-    "path_prefix": "/Users/admin/Work/Github/JeecgBoot",
+    "path_prefix": "{{PROJECT_ROOT_PATH}}",
     "module_template": "jeecg-module-{module_name}",
     "backup_enabled": true
   },
@@ -349,6 +489,15 @@ python Code_Gen_Guide.py --fix-table-name "biz_product_management"
     "jsp_mode": "one",
     "jform_type": "1"
   },
+  "compilation": {
+    "enabled": true,
+    "maven_command": "mvn",
+    "compile_args": ["clean", "install", "-DskipTests"],
+    "timeout": 300,
+    "verify_target_classes": true,
+    "auto_create_pom": true,
+    "prefer_module_compilation": true
+  },
   "logging": {
     "level": "INFO",
     "file_enabled": true,
@@ -361,11 +510,11 @@ python Code_Gen_Guide.py --fix-table-name "biz_product_management"
 
 ##### Project 配置
 
-| 配置项                    | 类型    | 描述                     | 示例值                               | 必填 |
-| ------------------------- | ------- | ------------------------ | ------------------------------------ | ---- |
-| `project.path_prefix`     | String  | JeecgBoot 项目根路径前缀 | `/Users/admin/Work/Github/JeecgBoot` | ✅   |
-| `project.module_template` | String  | 模块目录命名模板         | `jeecg-module-{module_name}`         | ❌   |
-| `project.backup_enabled`  | Boolean | 是否启用配置备份         | `true`                               | ❌   |
+| 配置项                    | 类型    | 描述                     | 示例值                       | 必填 |
+| ------------------------- | ------- | ------------------------ | ---------------------------- | ---- |
+| `project.path_prefix`     | String  | JeecgBoot 项目根路径前缀 | `{{PROJECT_ROOT_PATH}}`      | ✅   |
+| `project.module_template` | String  | 模块目录命名模板         | `jeecg-module-{module_name}` | ❌   |
+| `project.backup_enabled`  | Boolean | 是否启用配置备份         | `true`                       | ❌   |
 
 ##### Server 配置
 
@@ -384,6 +533,18 @@ python Code_Gen_Guide.py --fix-table-name "biz_product_management"
 | `codegen.code_types`    | String | 生成代码类型 | `controller,service,dao,mapper,entity,vue` | ❌   |
 | `codegen.package_style` | String | 包结构风格   | `service`                                  | ❌   |
 
+##### Compilation 配置
+
+| 配置项                                  | 类型    | 描述               | 默认值                                | 必填 |
+| --------------------------------------- | ------- | ------------------ | ------------------------------------- | ---- |
+| `compilation.enabled`                   | Boolean | 是否启用自动编译   | `true`                                | ❌   |
+| `compilation.maven_command`             | String  | Maven 命令         | `mvn`                                 | ❌   |
+| `compilation.compile_args`              | Array   | 编译参数           | `["clean", "install", "-DskipTests"]` | ❌   |
+| `compilation.timeout`                   | Integer | 编译超时时间（秒） | `300`                                 | ❌   |
+| `compilation.verify_target_classes`     | Boolean | 验证编译结果       | `true`                                | ❌   |
+| `compilation.auto_create_pom`           | Boolean | 自动创建 pom.xml   | `true`                                | ❌   |
+| `compilation.prefer_module_compilation` | Boolean | 优先编译单个模块   | `true`                                | ❌   |
+
 #### 🌍 环境差异配置
 
 ##### Mac 环境配置示例
@@ -391,7 +552,7 @@ python Code_Gen_Guide.py --fix-table-name "biz_product_management"
 ```json
 {
   "project": {
-    "path_prefix": "/Users/admin/Work/Github/JeecgBoot"
+    "path_prefix": "{{PROJECT_ROOT_PATH}}"
   }
 }
 ```
@@ -430,28 +591,39 @@ python Code_Gen_Guide.py --fix-table-name "biz_product_management"
   "head": {
     "tableName": "{{TABLE_NAME}}", // 模板变量-表名
     "tableTxt": "{{TABLE_DESCRIPTION}}", // 模板变量-表描述
-    "tableType": 1, // 固定值-表类型
-    "formCategory": "temp", // 固定值-表单分类
+    "tableType": "1", // 固定值-表类型
+    "tableVersion": "1", // 固定值-表版本
     "idType": "UUID", // 固定值-主键类型
     "isCheckbox": "Y", // 固定值-是否支持复选
-    "themeTemplate": "normal", // 固定值-主题模板
-    "formTemplate": "1", // 固定值-表单模板
-    "scroll": 1, // 固定值-滚动设置
+    "isDbSynch": "Y", // 固定值-数据库同步
     "isPage": "Y", // 固定值-是否分页
-    "isTree": "N" // 固定值-是否树形
+    "isTree": "N", // 固定值-是否树形
+    "queryMode": "single", // 固定值-查询模式
+    "relationType": "0" // 固定值-关联类型
   },
   "fields": [
-    // 0-6: 7个系统字段 (不可修改)
+    // 1-7: 7个系统字段 (按orderNum顺序排列，不可修改)
     {
-      "orderNum": 0,
+      "orderNum": 1,
       "dbFieldName": "id",
-      "dbFieldTxt": "Primary Key",
-      "dbType": "string",
-      "dbIsKey": "1",
-      "dbIsNull": "0"
+      "dbFieldTxt": "主键",
+      "dbType": "VARCHAR",
+      "dbIsKey": 1,
+      "dbIsNull": 0
+    },
+    {
+      "orderNum": 2,
+      "dbFieldName": "create_by",
+      "dbFieldTxt": "创建人"
+    },
+    // ... 其他5个系统字段 (create_time, update_by, update_time, sys_org_code, del_flag)
+
+    // 8+: 业务字段区域 (可基于BUSINESS_FIELD模板添加字段)
+    {
+      "orderNum": 8,
+      "dbFieldName": "{{BUSINESS_FIELD}}",
+      "dbFieldTxt": "{{BUSINESS_FIELD_DESC}}"
     }
-    // ... 其他6个系统字段
-    // 7+: 业务字段区域 (可添加字段)
   ]
 }
 ```
@@ -459,20 +631,68 @@ python Code_Gen_Guide.py --fix-table-name "biz_product_management"
 **使用规则**:
 
 - 🚫 **禁止修改**: `head`部分的固定值字段
-- 🚫 **禁止修改**: `fields`数组中 orderNum 0-6 的系统字段
+- 🚫 **禁止修改**: `fields`数组中 orderNum 1-7 的系统字段（按顺序排列）
 - ✅ **允许替换**: `{{TABLE_NAME}}`和`{{TABLE_DESCRIPTION}}`模板变量
-- ✅ **允许添加**: orderNum 7+的业务字段
+- ✅ **允许基于模板添加**: orderNum 8+的业务字段（基于`{{BUSINESS_FIELD}}`模板）
+
+**重要提醒：保持模板通用性**
+
+`Code_Gen_Guide.json` 必须保持通用的变量占位符格式，不能硬编码具体值：
+
+```json
+// ✅ 正确：使用通用占位符
+{
+  "head": {
+    "tableName": "{{TABLE_NAME}}",
+    "tableTxt": "{{TABLE_DESCRIPTION}}"
+  },
+  "fields": [
+    // 7个系统字段按orderNum 1-7顺序排列
+    { "orderNum": 1, "dbFieldName": "id" },
+    { "orderNum": 2, "dbFieldName": "create_by" },
+    // 业务字段基于模板添加
+    {
+      "orderNum": 8,
+      "dbFieldName": "{{BUSINESS_FIELD}}",
+      "dbFieldTxt": "{{BUSINESS_FIELD_DESC}}"
+    }
+  ]
+}
+```
+
+硬编码具体值会破坏模板的通用性，使其只能用于特定场景。
 
 #### 📋 Head 部分配置说明
 
-| 字段名称       | 类型    | 描述         | 可修改 | 说明                         |
-| -------------- | ------- | ------------ | ------ | ---------------------------- |
-| `tableName`    | String  | 数据库表名   | ✅     | 由 AI 推理的 TABLE_NAME 替换 |
-| `tableTxt`     | String  | 表的中文描述 | ✅     | 由 AI 推理的业务描述替换     |
-| `tableType`    | Integer | 表类型       | ❌     | 固定值 1，表示普通表         |
-| `formCategory` | String  | 表单分类     | ❌     | 固定值"temp"，表示临时表单   |
-| `idType`       | String  | 主键类型     | ❌     | 固定值"UUID"                 |
-| `isCheckbox`   | String  | 是否支持复选 | ❌     | 固定值"Y"                    |
+| 字段名称       | 类型   | 描述         | 可修改 | 说明                         |
+| -------------- | ------ | ------------ | ------ | ---------------------------- |
+| `tableName`    | String | 数据库表名   | ✅     | 由 AI 推理的 TABLE_NAME 替换 |
+| `tableTxt`     | String | 表的中文描述 | ✅     | 由 AI 推理的业务描述替换     |
+| `tableType`    | String | 表类型       | ❌     | 固定值"1"，表示普通表        |
+| `tableVersion` | String | 表版本       | ❌     | 固定值"1"                    |
+| `idType`       | String | 主键类型     | ❌     | 固定值"UUID"                 |
+| `isCheckbox`   | String | 是否支持复选 | ❌     | 固定值"Y"                    |
+| `isDbSynch`    | String | 数据库同步   | ❌     | 固定值"Y"                    |
+| `isPage`       | String | 是否分页     | ❌     | 固定值"Y"                    |
+| `isTree`       | String | 是否树形     | ❌     | 固定值"N"                    |
+| `queryMode`    | String | 查询模式     | ❌     | 固定值"single"               |
+| `relationType` | String | 关联类型     | ❌     | 固定值"0"                    |
+
+#### 📋 Fields 部分配置说明
+
+**系统字段（orderNum 1-7）**：按顺序排列，不可修改
+
+| orderNum | 字段名称       | 中文名称 | 说明                    |
+| -------- | -------------- | -------- | ----------------------- |
+| 1        | `id`           | 主键     | UUID 主键，必须字段     |
+| 2        | `create_by`    | 创建人   | 记录创建者              |
+| 3        | `create_time`  | 创建时间 | 记录创建时间            |
+| 4        | `update_by`    | 更新人   | 记录最后更新者          |
+| 5        | `update_time`  | 更新时间 | 记录最后更新时间        |
+| 6        | `sys_org_code` | 组织机构 | 组织机构代码            |
+| 7        | `del_flag`     | 删除标志 | 逻辑删除标志，默认值"0" |
+
+**业务字段（orderNum 8+）**：基于 `{{BUSINESS_FIELD}}` 模板添加
 
 #### 🔧 如何基于模板生成 temp\_\*\_config.json
 
@@ -509,12 +729,12 @@ def add_business_fields(template, fields_config):
     return template
 ```
 
-#### ⚡ AI 推理驱动的参数传递协同机制
+#### ⚡ 参数传递协同机制
 
 **配置文件与脚本执行的协同关系**:
 
 1. **AI 推理阶段**: Code_Gen_Agent.md 指导 AI 从用户需求中提取核心变量
-2. **配置生成阶段**: 基于 Code*Gen_Guide.json 模板和 AI 推理结果生成 temp*\*\_config.json
+2. **配置生成阶段**: 基于 Code_Gen_Guide.json 模板和 AI 推理结果生成 temp_config.json
 3. **脚本执行阶段**: Code_Gen_Guide.py 读取配置文件并执行代码生成
 4. **变量传递链路**: 用户需求 → AI 推理 → 核心变量 → 配置文件 → 脚本执行
 
@@ -993,6 +1213,39 @@ python Code_Gen_Guide.py --dict
 解决: 运行 python Code_Gen_Guide.py --dict 更新字典缓存
 ```
 
+#### 6. 编译失败问题
+
+```
+错误: Maven编译失败
+解决方案:
+  1. 检查Maven是否正确安装: mvn --version
+  2. 检查项目路径是否正确
+  3. 手动执行: mvn clean install -DskipTests
+  4. 检查pom.xml文件是否存在和格式正确
+```
+
+#### 7. 404 错误问题
+
+```
+问题: 前端请求返回404而不是401，Controller未被加载
+根本原因: 模块代码生成正确，但没有被正确编译和安装到Maven本地仓库
+解决步骤:
+  1. 重新编译模块: mvn clean install -DskipTests
+  2. 重启后端服务
+  3. 验证模块是否正确加载
+```
+
+#### 8. 服务状态检查
+
+```
+功能: 检查后端服务状态和新模块加载情况
+命令: python Code_Gen_Guide.py --check-service
+检查项:
+  - 服务是否正常运行
+  - 新模块Controller是否已注册
+  - 接口路径是否可访问
+```
+
 ---
 
 ## 🔧 扩展开发指南
@@ -1198,64 +1451,6 @@ Code_Gen_Guide.json模板 → temp_*_config.json生成 → Code_Gen_Guide.py脚�
 | **字段处理** | Code_Gen_field_templates.json | 提供字段模板         | 字段类型需求        | 完整字段配置             |
 | **脚本执行** | Code_Gen_Guide.py             | 执行代码生成         | 配置文件 + 核心变量 | 完整 CRUD 代码           |
 | **系统配置** | Code_Gen_Config.json          | 提供系统参数         | 环境配置需求        | 系统运行参数             |
-
-### 📖 学习路径建议
-
-#### 针对 AI 开发者的学习重点
-
-##### 第一阶段: 理解 AI 推理框架
-
-1. **深入学习 Code_Gen_Agent.md**
-
-   - 掌握 AI 推理策略和变量提取规则
-   - 理解业务系统分类和命名规范
-   - 熟悉用户需求分析和确认流程
-
-2. **理解变量传递机制**
-   - 学习核心变量的定义和作用
-   - 掌握从自然语言到结构化变量的转换过程
-   - 理解 AI 推理的质量保证机制
-
-##### 第二阶段: 掌握技术实现细节
-
-1. **学习 Code_Gen_Guide.md 的技术部分**
-
-   - 了解脚本的调用方式和参数配置
-   - 理解配置文件的生成和处理机制
-   - 掌握字段类型的智能推理方法
-
-2. **实践 AI 推理到脚本执行的完整流程**
-   - 模拟用户需求分析过程
-   - 练习变量提取和配置文件生成
-   - 验证 AI 推理结果的正确性
-
-#### 针对系统使用者的学习重点
-
-##### 第一阶段: 掌握系统操作
-
-1. **学习 Code_Gen_Guide.md 的操作部分**
-
-   - 掌握脚本的基本使用方法
-   - 了解配置文件的结构和配置方法
-   - 学习环境搭建和依赖配置
-
-2. **理解代码生成流程**
-   - 熟悉从配置到代码的生成过程
-   - 掌握常见问题的排查方法
-   - 学习最佳实践和优化技巧
-
-##### 第二阶段: 深入理解系统架构
-
-1. **学习 Code_Gen_Agent.md 的业务规范**
-
-   - 理解业务需求的标准化表达方式
-   - 掌握命名规范和字段类型选择
-   - 了解 AI 推理的基本原理
-
-2. **掌握系统扩展和定制**
-   - 学习字段模板的扩展方法
-   - 掌握配置文件的定制技巧
-   - 了解系统的可扩展性设计
 
 ### 🎯 协同使用最佳实践
 

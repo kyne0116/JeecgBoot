@@ -18,15 +18,6 @@
     "data_file": "Code_Gen_Guide.json",
     "wait_after_create": 3
   },
-  "core_variables": {
-    "module_name": "{{MODULE_NAME}}",
-    "submodule_name": "{{SUBMODULE_NAME}}",
-    "entity_name": "{{ENTITY_NAME}}",
-    "table_name": "{{TABLE_NAME}}",
-    "package_name": "{{PACKAGE_NAME}}",
-    "java_entity_name": "{{JAVA_ENTITY_NAME}}",
-    "project_path": "{{PROJECT_PATH}}"
-  },
   "codegen": {
     "project_path": "{{PROJECT_PATH}}",
     "entity_name": "{{ENTITY_NAME}}",
@@ -36,6 +27,19 @@
     "vue_style": "vue3",
     "code_types": "controller,service,dao,mapper,entity,vue"
   },
+  "compilation": {
+    "enabled": true,
+    "maven_command": "mvn",
+    "compile_args": [
+      "clean",
+      "compile",
+      "-DskipTests"
+    ],
+    "timeout": 300,
+    "verify_target_classes": true,
+    "auto_create_pom": true,
+    "prefer_module_compilation": true
+  },
   "query": {
     "page_size": 50,
     "page_no": 1
@@ -43,13 +47,5 @@
   "display": {
     "token_length": 50,
     "max_records": 5
-  },
-  "compilation": {
-    "enabled": true,
-    "maven_command": "mvn",
-    "compile_args": ["clean", "compile", "-DskipTests"],
-    "timeout": 300,
-    "verify_target_classes": true,
-    "auto_create_pom": true
   }
 }

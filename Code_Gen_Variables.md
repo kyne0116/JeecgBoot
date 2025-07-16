@@ -175,9 +175,9 @@ JAVA_ENTITY_NAME = "Management"
 **示例**:
 
 ```
-PROJECT_PATH_PREFIX = "/Users/admin/Work/Github/JeecgBoot"
+PROJECT_PATH_PREFIX = "从Code_Gen_Config.json读取project.path_prefix"
 MODULE_NAME = "finance"
-PROJECT_PATH = "/Users/admin/Work/Github/JeecgBoot/jeecg-boot/jeecg-boot-module/jeecg-module-finance"
+PROJECT_PATH = "{PREFIX}/jeecg-boot/jeecg-boot-module/jeecg-module-finance"
 ```
 
 ## 📋 最佳实践

@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-JeecgBoot 通用表单工作流脚本
-完整流程：登录 → 创建表单 → 获取ID → 同步数据库 → 生成代码
-支持：配置文件驱动、模板系统、命令行参数、批量操作
+JeecgBoot 表单工作流执行工具 v2.0
+功能定位：纯粹的API调用工具，严格按照JeecgBoot官方API规范执行
+核心流程：登录 → 创建表单 → 获取ID → 同步数据库 → 生成代码
+设计原则：
+- 不进行任何业务逻辑推理或智能分析
+- 不篡改或修改任何API请求调用方式
+- 严格按照配置文件和参数执行API调用
+- 所有智能分析功能由AI在Code_Gen_Agent.md框架下处理
 """
 
 import requests
@@ -24,9 +29,10 @@ import os
 def load_config():
     """加载配置文件"""
     config_file = 'Code_Gen_Config.json'
+    # 默认配置（仅在配置文件不存在时使用）
     default_config = {
         "project": {
-            "path_prefix": "/Users/admin/Work/Github/JeecgBoot"
+            "path_prefix": "/Users/admin/Work/Github/JeecgBoot"  # 默认路径，应在Code_Gen_Config.json中配置
         },
         "server": {
             "base_url": "http://localhost:8080/jeecg-boot",
@@ -52,6 +58,15 @@ def load_config():
             "package_style": "service",
             "vue_style": "vue3",
             "code_types": "controller,service,dao,mapper,entity,vue"
+        },
+        "compilation": {
+            "enabled": True,
+            "maven_command": "mvn",
+            "compile_args": ["clean", "compile", "-DskipTests"],
+            "timeout": 300,
+            "verify_target_classes": True,
+            "auto_create_pom": True,
+            "prefer_module_compilation": True
         },
         "query": {
             "page_size": 50,
@@ -824,6 +839,83 @@ def integrate_module_to_project(module_name):
 
     return success
 
+# ==================== 服务管理功能 ====================
+
+def check_backend_service_status():
+    """检查后端服务状态"""
+    try:
+        response = requests.get(f"{BASE_URL}/actuator/health", timeout=5)
+        if response.status_code == 200:
+            return True, "服务正常运行"
+        else:
+            return False, f"服务异常: HTTP {response.status_code}"
+    except requests.exceptions.ConnectionError:
+        return False, "服务未启动或连接失败"
+    except requests.exceptions.Timeout:
+        return False, "服务响应超时"
+    except Exception as e:
+        return False, f"检查服务状态失败: {e}"
+
+def suggest_service_restart():
+    """提供服务重启建议"""
+    print(f"\n🔄 后端服务重启建议:")
+    print(f"   ")
+    print(f"   📋 重启步骤:")
+    print(f"      1. 检查当前服务状态:")
+    print(f"         ps aux | grep java | grep jeecg")
+    print(f"      ")
+    print(f"      2. 停止现有服务:")
+    print(f"         - 如果通过VS Code启动: 在终端中按 Ctrl+C")
+    print(f"         - 如果通过命令行启动: kill -9 <进程ID>")
+    print(f"      ")
+    print(f"      3. 重新启动服务:")
+    print(f"         - 推荐: 通过VS Code的launch.json启动")
+    print(f"         - 或命令行: cd jeecg-module-system/jeecg-system-start")
+    print(f"         - 执行: mvn spring-boot:run -Dspring-boot.run.profiles=mac")
+    print(f"      ")
+    print(f"      4. 验证启动成功:")
+    print(f"         - 等待看到 'Application is running' 消息")
+    print(f"         - 测试: curl http://localhost:8080/jeecg-boot/actuator/health")
+    print(f"   ")
+    print(f"   ⚠️ 重要提示:")
+    print(f"      - 新模块代码需要重启服务才能生效")
+    print(f"      - 确保使用 profile=mac 配置")
+    print(f"      - 服务端口: 8080")
+
+def verify_new_module_loaded(module_name=None):
+    """验证新模块是否已加载"""
+    if not module_name and CURRENT_TABLE_NAME:
+        try:
+            components = parse_table_name_components(CURRENT_TABLE_NAME)
+            module_name = components['module_name']
+        except:
+            pass
+
+    if not module_name:
+        print("⚠️ 无法确定模块名称，跳过模块加载验证")
+        return False
+
+    print(f"🔍 验证模块加载状态: jeecg-module-{module_name}")
+
+    try:
+        # 检查actuator/mappings端点
+        response = requests.get(f"{BASE_URL}/actuator/mappings", timeout=10)
+        if response.status_code == 200:
+            mappings_data = response.text
+            # 查找模块相关的映射
+            if f"modules.{module_name}" in mappings_data:
+                print(f"✅ 模块已加载: jeecg-module-{module_name}")
+                return True
+            else:
+                print(f"❌ 模块未加载: jeecg-module-{module_name}")
+                return False
+        else:
+            print(f"⚠️ 无法检查模块加载状态: HTTP {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"⚠️ 检查模块加载状态失败: {e}")
+        return False
+
 # ==================== 编译相关功能 ====================
 
 def create_module_pom_xml(module_name, project_path):
@@ -872,6 +964,65 @@ def create_module_pom_xml(module_name, project_path):
         return True
     except Exception as e:
         print(f"❌ 创建pom.xml失败: {e}")
+        return False
+
+def compile_module(module_name):
+    """编译指定模块并安装到本地仓库"""
+    compilation_config = CONFIG.get('compilation', {})
+
+    print(f"⚙️ 编译模块: jeecg-module-{module_name}")
+
+    # 获取配置
+    maven_command = compilation_config.get('maven_command', 'mvn')
+    timeout = compilation_config.get('timeout', 300)
+
+    # 构建模块路径
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    module_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}'
+
+    if not module_dir.exists():
+        print(f"❌ 模块目录不存在: {module_dir}")
+        return False
+
+    # 编译并安装模块
+    cmd = [maven_command, 'clean', 'install', '-DskipTests']
+
+    print(f"   命令: {' '.join(cmd)}")
+    print(f"   工作目录: {module_dir}")
+    print(f"   超时时间: {timeout}秒")
+
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=module_dir,
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
+
+        if result.returncode == 0:
+            print(f"✅ 模块编译成功: jeecg-module-{module_name}")
+            # 显示关键信息
+            output_lines = result.stdout.split('\n')
+            for line in output_lines:
+                if 'BUILD SUCCESS' in line or 'Installing' in line:
+                    print(f"   {line}")
+            return True
+        else:
+            print(f"❌ 模块编译失败: jeecg-module-{module_name}")
+            print(f"   返回码: {result.returncode}")
+            if result.stderr:
+                print(f"   错误信息: {result.stderr[:500]}...")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print(f"❌ 模块编译超时（{timeout}秒）")
+        return False
+    except FileNotFoundError:
+        print(f"❌ Maven命令未找到: {maven_command}")
+        return False
+    except Exception as e:
+        print(f"❌ 模块编译异常: {e}")
         return False
 
 def compile_project():
@@ -936,6 +1087,63 @@ def compile_project():
         print(f"❌ 编译异常: {e}")
         return False
 
+def verify_module_compilation(module_name):
+    """验证指定模块的编译结果"""
+    print(f"🔍 验证模块编译结果: jeecg-module-{module_name}")
+
+    # 获取项目根目录
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    module_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}'
+
+    success_checks = 0
+    total_checks = 3
+
+    # 1. 检查target/classes目录
+    target_classes = module_dir / 'target' / 'classes'
+    if target_classes.exists() and target_classes.is_dir():
+        print(f"   ✅ target/classes目录存在")
+        success_checks += 1
+    else:
+        print(f"   ❌ target/classes目录不存在")
+
+    # 2. 检查jar包是否生成
+    target_dir = module_dir / 'target'
+    jar_files = list(target_dir.glob(f'jeecg-module-{module_name}*.jar')) if target_dir.exists() else []
+    if jar_files:
+        print(f"   ✅ jar包已生成: {jar_files[0].name}")
+        success_checks += 1
+    else:
+        print(f"   ❌ jar包未生成")
+
+    # 3. 检查Maven本地仓库中的jar包
+    try:
+        # 检查本地Maven仓库
+        home_dir = Path.home()
+        maven_repo = home_dir / '.m2' / 'repository' / 'org' / 'jeecgframework' / 'boot' / f'jeecg-module-{module_name}'
+        if maven_repo.exists():
+            version_dirs = [d for d in maven_repo.iterdir() if d.is_dir()]
+            if version_dirs:
+                latest_version = sorted(version_dirs)[-1]
+                jar_in_repo = latest_version / f'jeecg-module-{module_name}-{latest_version.name}.jar'
+                if jar_in_repo.exists():
+                    print(f"   ✅ 本地仓库jar包存在: {latest_version.name}")
+                    success_checks += 1
+                else:
+                    print(f"   ❌ 本地仓库jar包不存在")
+            else:
+                print(f"   ❌ 本地仓库无版本目录")
+        else:
+            print(f"   ❌ 本地仓库模块目录不存在")
+    except Exception as e:
+        print(f"   ⚠️ 检查本地仓库失败: {e}")
+
+    if success_checks >= 2:
+        print(f"✅ 模块编译验证通过 ({success_checks}/{total_checks})")
+        return True
+    else:
+        print(f"❌ 模块编译验证失败 ({success_checks}/{total_checks})")
+        return False
+
 def verify_compilation_success():
     """验证编译结果"""
     compilation_config = CONFIG.get('compilation', {})
@@ -968,12 +1176,20 @@ def verify_compilation_success():
         else:
             print(f"   ❌ {module}: target/classes不存在")
 
-    # 检查新生成的财务模块（如果存在）
-    finance_module = jeecg_boot_dir / 'jeecg-boot-module' / 'jeecg-module-finance' / 'target' / 'classes'
-    if finance_module.exists():
-        print(f"   ✅ jeecg-module-finance: target/classes存在")
-        success_count += 1
-        total_count += 1
+    # 检查新生成的模块（基于当前表名）
+    if CURRENT_TABLE_NAME:
+        try:
+            components = parse_table_name_components(CURRENT_TABLE_NAME)
+            module_name = components['module_name']
+            module_target = jeecg_boot_dir / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'target' / 'classes'
+            if module_target.exists():
+                print(f"   ✅ jeecg-module-{module_name}: target/classes存在")
+                success_count += 1
+            else:
+                print(f"   ❌ jeecg-module-{module_name}: target/classes不存在")
+            total_count += 1
+        except Exception as e:
+            print(f"   ⚠️ 无法检查新生成模块: {e}")
 
     if success_count == total_count:
         print(f"✅ 编译验证通过 ({success_count}/{total_count})")
@@ -1273,7 +1489,7 @@ def print_workflow_variables():
     print("=" * 80)
 
 def jeecg_complete_workflow():
-    """JeecgBoot完整表单工作流"""
+    """JeecgBoot完整表单工作流 - 纯粹的API调用工具"""
 
     print("\n🚀 开始执行 JeecgBoot 表单工作流")
     print("=" * 50)
@@ -1299,24 +1515,38 @@ def jeecg_complete_workflow():
         print(f"❌ 登录异常: {e}")
         return
 
-    # 2. 自动确保数据字典数据最新
-    print("\n2️⃣ 智能数据字典检查...")
-    if not auto_ensure_dict_data():
-        print("⚠️ 数据字典获取失败，将跳过智能匹配")
-        dict_data = []
+    # 2. 数据字典状态检查（仅检查，不进行智能匹配）
+    print("\n2️⃣ 数据字典状态检查...")
+    dict_file_exists = Path('Code_Gen_DICT.json').exists()
+    if dict_file_exists:
+        try:
+            dict_data = load_dict_data()
+            print(f"✅ 数据字典文件存在: {len(dict_data)}条记录")
+        except Exception as e:
+            print(f"⚠️ 数据字典文件损坏: {e}")
     else:
-        dict_data = load_dict_data()
-        print(f"✅ 加载数据字典: {len(dict_data)}条记录")
+        print("ℹ️ 数据字典文件不存在，可使用 --dict 参数获取最新数据字典")
 
     # 3. 准备表单数据
     print("\n3️⃣ 准备表单数据...")
     try:
         with open(FORM_DATA_FILE, 'r', encoding='utf-8') as f:
-            form_data = json.load(f)
+            config_data = json.load(f)
 
-        # 使用JSON文件中预设的表名，如果没有则生成随机表名
-        table_name = form_data['head'].get('tableName')
-        table_txt = form_data['head'].get('tableTxt')
+        # 检查是否是新格式的配置文件（包含table和fields）
+        if 'table' in config_data and 'fields' in config_data:
+            # 新格式：从配置文件生成完整的表单数据
+            form_data = create_form_from_config(FORM_DATA_FILE)
+            if not form_data:
+                print("❌ 无法从配置文件生成表单数据")
+                return
+            table_name = form_data['head'].get('tableName')
+            table_txt = form_data['head'].get('tableTxt')
+        else:
+            # 旧格式：直接使用表单数据
+            form_data = config_data
+            table_name = form_data['head'].get('tableName')
+            table_txt = form_data['head'].get('tableTxt')
         
         # 设置全局变量，用于生成标准化包名
         global CURRENT_TABLE_NAME
@@ -1343,53 +1573,25 @@ def jeecg_complete_workflow():
         print(f"✅ 表名: {table_name}")
         print(f"✅ 表描述: {table_txt}")
 
-        # 4. 智能字段分析和数据字典匹配
-        print("\n4️⃣ 智能字段数据字典匹配...")
-        if dict_data:
-            enhanced_count = 0
-            suggested_count = 0
-            
-            for field in form_data.get('fields', []):
-                field_desc = field.get('dbFieldTxt', '')
-                if field_desc and field.get('orderNum', 0) >= 7:  # 只处理业务字段
-                    matches = match_dict_field(field_desc, dict_data)
-                    if matches:
-                        best_match = matches[0]
-                        
-                        # 自动应用高分匹配
-                        if best_match['score'] >= 8:  # 高分匹配自动应用
-                            # 更新字段配置为数据字典字段
-                            if '是否' in field_desc or '启用' in field_desc:
-                                field['fieldShowType'] = 'radio'
-                                field['queryShowType'] = 'radio'
-                            else:
-                                field['fieldShowType'] = 'text'  # 下拉选择
-                            
-                            field['dictField'] = best_match['dict_code']
-                            field['dictTable'] = ''
-                            field['dictText'] = ''
-                            
-                            enhanced_count += 1
-                            print(f"   ✓ {field_desc} -> {best_match['dict_name']} ({best_match['match_type']}, 分数:{best_match['score']})")
-                        
-                        # 显示中等匹配的建议
-                        elif best_match['score'] >= 5:  # 中等匹配显示建议
-                            suggested_count += 1
-                            print(f"   💡 建议: {field_desc} -> {best_match['dict_name']} ({best_match['match_type']}, 分数:{best_match['score']})")
-                            
-                            # 显示所有候选项（前3个）
-                            if len(matches) > 1:
-                                for i, match in enumerate(matches[:3], 1):
-                                    print(f"      {i}. {match['dict_name']} ({match['match_type']}, 分数:{match['score']})")
-            
-            if enhanced_count > 0:
-                print(f"✅ 智能匹配完成: {enhanced_count}个字段已自动关联数据字典")
-            if suggested_count > 0:
-                print(f"💡 发现 {suggested_count}个字段的潜在匹配建议（可手动配置）")
-            if enhanced_count == 0 and suggested_count == 0:
-                print("ℹ️ 未发现需要数据字典匹配的字段")
+        # 4. 表单数据验证
+        print("\n4️⃣ 表单数据验证...")
+
+        # 验证表单数据结构
+        print(f"🔍 验证表单数据结构:")
+        print(f"   form_data类型: {type(form_data)}")
+        if isinstance(form_data, dict):
+            fields = form_data.get('fields')
+            print(f"   fields类型: {type(fields)}")
+            print(f"   fields长度: {len(fields) if fields else 'None'}")
+            if fields:
+                print(f"   前3个字段名: {[f.get('dbFieldName', 'N/A') for f in fields[:3]]}")
+                print("✅ 表单数据结构验证通过")
+            else:
+                print("   ❌ fields为None或空！")
+                return
         else:
-            print("⚠️ 跳过智能匹配: 数据字典数据不可用")
+            print("   ❌ form_data不是字典类型！")
+            return
 
     except Exception as e:
         print(f"❌ 准备数据失败: {e}")
@@ -1474,6 +1676,8 @@ def jeecg_complete_workflow():
         create_url = f"{BASE_URL}/online/cgform/api/addAll"
         print(f"   创建URL: {create_url}")
         print(f"   使用Token: {token[:DISPLAY_TOKEN_LENGTH]}...")
+
+
 
         response = requests.post(create_url, json=form_data, headers=headers, timeout=REQUEST_TIMEOUT_CREATE)
 
@@ -1714,32 +1918,95 @@ def jeecg_complete_workflow():
         print(f"⚠️ 自动修复失败: {e}")
         print("   代码生成已完成，请手动检查")
 
-    # 9. 自动编译项目
+    # 9. 智能编译策略
     compilation_config = CONFIG.get('compilation', {})
     if compilation_config.get('enabled', True):
         print(f"\n{'='*50}")
-        print("⚙️ 自动编译项目...")
-        try:
-            if compile_project():
-                print("✅ 项目编译成功")
+        print("⚙️ 智能编译策略...")
 
-                # 10. 验证编译结果
+        compilation_success = False
+        module_compilation_success = False
+
+        try:
+            # 优先编译新生成的模块
+            if CURRENT_TABLE_NAME:
+                try:
+                    components = parse_table_name_components(CURRENT_TABLE_NAME)
+                    module_name = components['module_name']
+
+                    print(f"🎯 优先编译新生成模块: jeecg-module-{module_name}")
+                    if compile_module(module_name):
+                        print(f"✅ 模块编译成功: jeecg-module-{module_name}")
+                        module_compilation_success = True
+
+                        # 验证模块编译结果
+                        print(f"\n🔍 验证模块编译结果...")
+                        if verify_module_compilation(module_name):
+                            print(f"✅ 模块编译验证通过: jeecg-module-{module_name}")
+                        else:
+                            print(f"⚠️ 模块编译验证失败: jeecg-module-{module_name}")
+                    else:
+                        print(f"❌ 模块编译失败: jeecg-module-{module_name}")
+                        print("   尝试整体项目编译...")
+                except Exception as e:
+                    print(f"⚠️ 模块编译异常: {e}")
+                    print("   尝试整体项目编译...")
+
+            # 如果模块编译失败或未执行，则编译整个项目
+            if not module_compilation_success:
+                print(f"🔄 执行整体项目编译...")
+                if compile_project():
+                    print("✅ 整体项目编译成功")
+                    compilation_success = True
+                else:
+                    print("❌ 整体项目编译失败")
+            else:
+                compilation_success = True
+
+            # 10. 最终验证编译结果
+            if compilation_success:
                 print(f"\n{'='*50}")
-                print("🔍 验证编译结果...")
+                print("🔍 最终验证编译结果...")
                 if verify_compilation_success():
                     print("✅ 编译验证通过，代码已准备就绪")
+
+                    # 提供重启服务建议
+                    print(f"\n🔄 重要提示:")
+                    print(f"   新模块已编译完成，建议重启后端服务以加载新代码")
+                    print(f"   1. 停止当前后端服务")
+                    print(f"   2. 通过VS Code重新启动后端服务")
+                    print(f"   3. 验证新功能是否正常工作")
                 else:
                     print("⚠️ 编译验证部分通过，建议检查")
             else:
-                print("❌ 项目编译失败")
-                print("   建议手动执行: mvn clean compile -DskipTests")
+                print("❌ 编译失败")
+                print("   建议手动执行:")
+                if CURRENT_TABLE_NAME:
+                    try:
+                        components = parse_table_name_components(CURRENT_TABLE_NAME)
+                        module_name = components['module_name']
+                        print(f"   1. cd jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}")
+                        print(f"   2. mvn clean install -DskipTests")
+                    except:
+                        pass
+                print(f"   或: mvn clean compile -DskipTests (整体编译)")
+
         except Exception as e:
             print(f"⚠️ 编译过程异常: {e}")
             print("   建议手动执行编译")
     else:
         print(f"\n{'='*50}")
         print("⏭️ 跳过自动编译（已禁用）")
-        print("   如需编译，请手动执行: mvn clean compile -DskipTests")
+        print("   如需编译，请手动执行:")
+        if CURRENT_TABLE_NAME:
+            try:
+                components = parse_table_name_components(CURRENT_TABLE_NAME)
+                module_name = components['module_name']
+                print(f"   1. cd jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}")
+                print(f"   2. mvn clean install -DskipTests")
+            except:
+                pass
+        print(f"   或: mvn clean compile -DskipTests (整体编译)")
 
     # 11. 完成
     print(f"\n{'='*50}")
@@ -1768,17 +2035,47 @@ def jeecg_complete_workflow():
     print(f"\n🚀 下一步操作:")
     compilation_config = CONFIG.get('compilation', {})
     if compilation_config.get('enabled', True):
-        print(f"   1. 代码已自动编译完成 ✅")
-        print(f"   2. 通过VS Code启动后端服务（使用launch.json）")
-        print(f"   3. 启动前端服务: pnpm dev")
-        print(f"   4. 访问系统: http://localhost:3100")
-        print(f"   5. 在菜单管理中配置新功能菜单")
+        print(f"   ✅ 代码生成和编译已完成")
+        print(f"   ")
+        print(f"   🔄 重启后端服务（重要）:")
+        print(f"      - 如果后端服务正在运行，请先停止")
+        print(f"      - 通过VS Code重新启动后端服务（profile=mac）")
+        print(f"      - 等待服务完全启动（看到'Application is running'）")
+        print(f"   ")
+        print(f"   🌐 验证新功能:")
+        print(f"      - 启动前端服务: pnpm dev")
+        print(f"      - 访问系统: http://localhost:3102")
+        print(f"      - 登录后在菜单管理中配置新功能菜单")
+        print(f"   ")
+        print(f"   📋 API测试:")
+        if CURRENT_TABLE_NAME:
+            try:
+                components = parse_table_name_components(CURRENT_TABLE_NAME)
+                entity_name_lower = components['entity_name'].lower()
+                print(f"      - 测试API: http://localhost:8080/jeecg-boot/management/{entity_name_lower}/list")
+            except:
+                print(f"      - 测试API: http://localhost:8080/jeecg-boot/management/{ENTITY_NAME}/list")
+        print(f"      - 应该返回401（需要认证）而不是404（找不到资源）")
     else:
-        print(f"   1. 手动编译项目: mvn clean compile -DskipTests")
-        print(f"   2. 通过VS Code启动后端服务（使用launch.json）")
-        print(f"   3. 启动前端服务: pnpm dev")
-        print(f"   4. 访问系统: http://localhost:3100")
-        print(f"   5. 在菜单管理中配置新功能菜单")
+        print(f"   ⚠️ 需要手动编译:")
+        if CURRENT_TABLE_NAME:
+            try:
+                components = parse_table_name_components(CURRENT_TABLE_NAME)
+                module_name = components['module_name']
+                print(f"      1. cd jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}")
+                print(f"      2. mvn clean install -DskipTests")
+            except:
+                pass
+        print(f"      或: mvn clean compile -DskipTests (整体编译)")
+        print(f"   ")
+        print(f"   🔄 重启后端服务:")
+        print(f"      - 编译完成后，重启后端服务")
+        print(f"      - 通过VS Code启动后端服务（profile=mac）")
+        print(f"   ")
+        print(f"   🌐 验证新功能:")
+        print(f"      - 启动前端服务: pnpm dev")
+        print(f"      - 访问系统: http://localhost:3102")
+        print(f"      - 登录后在菜单管理中配置新功能菜单")
     print(f"{'='*50}")
 
     # 显示结果摘要（不保存文件）
@@ -1798,6 +2095,38 @@ def jeecg_complete_workflow():
     print(f"   ENTITY_NAME              = {ENTITY_NAME}")
     print(f"   PACKAGE_NAME             = {package_name}")
     print(f"   状态: 成功")
+
+    # 12. 检查后端服务状态并提供建议
+    print(f"\n{'='*50}")
+    print("🔍 检查后端服务状态...")
+
+    service_running, status_message = check_backend_service_status()
+    print(f"   服务状态: {status_message}")
+
+    if service_running:
+        print(f"   ✅ 后端服务正在运行")
+
+        # 检查新模块是否已加载
+        if CURRENT_TABLE_NAME:
+            try:
+                components = parse_table_name_components(CURRENT_TABLE_NAME)
+                module_name = components['module_name']
+
+                print(f"   🔍 检查新模块加载状态...")
+                if verify_new_module_loaded(module_name):
+                    print(f"   ✅ 新模块已加载，可以直接使用")
+                else:
+                    print(f"   ⚠️ 新模块未加载，需要重启服务")
+                    suggest_service_restart()
+            except Exception as e:
+                print(f"   ⚠️ 无法检查模块加载状态: {e}")
+                suggest_service_restart()
+        else:
+            print(f"   ⚠️ 建议重启服务以确保新代码生效")
+            suggest_service_restart()
+    else:
+        print(f"   ❌ 后端服务未运行")
+        suggest_service_restart()
 
     print("\n✅ 代码已生成到指定项目路径，可以启动JeecgBoot查看效果！")
 
@@ -1864,132 +2193,9 @@ def load_dict_data():
         print(f"⚠️ 加载数据字典失败: {e}")
         return []
 
-def calculate_similarity(str1, str2):
-    """计算两个字符串的相似度（简单的编辑距离算法）"""
-    if not str1 or not str2:
-        return 0.0
-    
-    len1, len2 = len(str1), len(str2)
-    dp = [[0] * (len2 + 1) for _ in range(len1 + 1)]
-    
-    for i in range(len1 + 1):
-        dp[i][0] = i
-    for j in range(len2 + 1):
-        dp[0][j] = j
-    
-    for i in range(1, len1 + 1):
-        for j in range(1, len2 + 1):
-            if str1[i-1] == str2[j-1]:
-                dp[i][j] = dp[i-1][j-1]
-            else:
-                dp[i][j] = min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1
-    
-    max_len = max(len1, len2)
-    similarity = (max_len - dp[len1][len2]) / max_len
-    return similarity
+# calculate_similarity函数已移除 - 智能分析功能现在由AI处理
 
-def match_dict_field(field_description, dict_data):
-    """智能匹配数据字典字段（增强版）"""
-    # 扩展的数据字典语义映射
-    semantic_mapping = {
-        "性别": ["sex", "gender"],
-        "状态": ["status", "state", "condition"], 
-        "类型": ["type", "category", "kind", "class"],
-        "等级": ["level", "grade", "rank", "tier"],
-        "优先级": ["priority", "importance"],
-        "是否": ["yes_no", "flag", "enable", "switch"],
-        "审核": ["audit_result", "approve_status", "review"],
-        "级别": ["level", "grade", "rank"],
-        "分类": ["category", "type", "classification"],
-        "状况": ["status", "state", "situation"],
-        "启用": ["enable", "flag", "yes_no", "active"],
-        "有效": ["valid", "flag", "yes_no", "effective"],
-        "部门": ["department", "dept", "division"],
-        "职位": ["position", "job", "role", "post"],
-        "用户": ["user", "member", "person"]
-    }
-    
-    # 查找匹配的语义词
-    matched_dict_codes = []
-    semantic_scores = {}
-    
-    for semantic_word, dict_codes in semantic_mapping.items():
-        if semantic_word in field_description:
-            matched_dict_codes.extend(dict_codes)
-            for code in dict_codes:
-                semantic_scores[code] = 10  # 精确语义匹配
-    
-    # 在实际数据字典中查找匹配项
-    dict_matches = []
-    for dict_item in dict_data:
-        dict_code = dict_item.get('dictCode', '').lower()
-        dict_name = dict_item.get('dictName', '').lower()
-        
-        best_score = 0
-        match_type = ""
-        
-        # 1. 精确匹配检查
-        if dict_code in matched_dict_codes:
-            best_score = semantic_scores.get(dict_code, 10)
-            match_type = '语义精确匹配'
-        
-        # 2. 部分匹配检查
-        elif any(code in dict_code for code in matched_dict_codes):
-            best_score = 8
-            match_type = '语义部分匹配'
-        
-        # 3. 名称匹配检查
-        elif any(semantic_word in dict_name for semantic_word in semantic_mapping.keys() if semantic_word in field_description):
-            best_score = 6
-            match_type = '名称语义匹配'
-        
-        # 4. 模糊匹配检查（新增）
-        else:
-            # 检查字段描述与字典名称的相似度
-            similarity = calculate_similarity(field_description, dict_name)
-            if similarity > 0.6:  # 相似度阈值
-                best_score = int(similarity * 5)  # 转换为分数（最高5分）
-                match_type = f'模糊匹配({similarity:.2f})'
-            
-            # 检查字段描述与字典编码的相似度
-            code_similarity = calculate_similarity(field_description.lower(), dict_code)
-            if code_similarity > 0.5:
-                code_score = int(code_similarity * 4)  # 最高4分
-                if code_score > best_score:
-                    best_score = code_score
-                    match_type = f'编码模糊匹配({code_similarity:.2f})'
-        
-        # 添加到结果中（只添加有意义的匹配）
-        if best_score > 0:
-            dict_matches.append({
-                'dict_code': dict_item.get('dictCode'),
-                'dict_name': dict_item.get('dictName'),
-                'score': best_score,
-                'match_type': match_type
-            })
-    
-    # 按得分排序，返回最佳匹配
-    dict_matches.sort(key=lambda x: x['score'], reverse=True)
-    return dict_matches[:5] if dict_matches else []  # 返回前5个最佳匹配
-
-def auto_ensure_dict_data():
-    """自动确保数据字典数据存在且最新"""
-    print("\n🔍 检查数据字典状态...")
-    
-    is_valid, status_msg = check_dict_file_status()
-    print(f"   {status_msg}")
-    
-    if not is_valid:
-        print("📚 自动获取最新数据字典...")
-        if fetch_system_dict():
-            print("✅ 数据字典更新完成")
-            return True
-        else:
-            print("❌ 数据字典获取失败")
-            return False
-    else:
-        print("✅ 数据字典文件有效，跳过更新")
-        return True
+# 智能匹配相关函数已移除 - 这些功能现在由AI在Code_Gen_Agent.md框架下处理
 
 def fetch_system_dict():
     """获取系统数据字典并保存到Code_Gen_DICT.json"""
@@ -2168,42 +2374,7 @@ def create_field_from_template(field_type, field_name, field_description, order_
 
     return replace_template_vars(template)
 
-def create_field_with_smart_dict(field_type, field_name, field_description, order_num, dict_data=None, **kwargs):
-    """智能创建字段，自动匹配数据字典"""
-    
-    # 如果没有提供数据字典数据，尝试加载
-    if dict_data is None:
-        dict_data = load_dict_data()
-    
-    # 智能匹配数据字典
-    dict_matches = match_dict_field(field_description, dict_data)
-    
-    # 如果有匹配的数据字典且字段类型适合使用数据字典
-    if dict_matches and field_type in ['select_field', 'text_field']:
-        best_match = dict_matches[0]  # 使用最佳匹配
-        dict_code = best_match['dict_code']
-        
-        print(f"🎯 智能匹配数据字典: {field_description} → {dict_code} ({best_match['dict_name']})")
-        print(f"   匹配类型: {best_match['match_type']}, 得分: {best_match['score']}")
-        
-        # 根据原字段类型选择合适的数据字典字段类型
-        if field_type == 'select_field':
-            dict_field_type = 'dict_select_field'
-        else:
-            dict_field_type = 'dict_select_field'  # 默认使用下拉选择
-        
-        # 创建数据字典字段
-        return create_field_from_template(
-            dict_field_type, 
-            field_name, 
-            field_description, 
-            order_num,
-            dict_code=dict_code,
-            **kwargs
-        )
-    
-    # 没有匹配的数据字典，使用原始字段类型
-    return create_field_from_template(field_type, field_name, field_description, order_num, **kwargs)
+# create_field_with_smart_dict函数已移除 - 智能匹配功能现在由AI处理
 
 def create_form_from_config(config_file):
     """从配置文件创建表单"""
