@@ -6,6 +6,109 @@
 
 ---
 
+## 📋 JSON 报文结构说明
+
+### 🎯 完整 JSON 结构要求
+
+基于 JeecgBoot 在线表单 API 的要求，JSON 配置文件必须包含以下完整结构：
+
+#### **head 对象（必需）**
+
+```json
+{
+  "head": {
+    "tableName": "us_模块_子模块_实体", // 表名，必须符合命名规范
+    "tableTxt": "表描述", // 表描述，不能为空
+    "tableType": 1, // 表类型，必须是整数1
+    "formCategory": "temp", // 表单类别，temp或main
+    "idType": "UUID", // 主键类型
+    "isCheckbox": "Y", // 是否支持复选框
+    "themeTemplate": "normal", // 主题模板
+    "formTemplate": "1", // 表单模板
+    "scroll": 1, // 是否滚动，必须是整数
+    "isPage": "Y", // 是否分页
+    "isTree": "N", // 是否树形结构
+    "extConfigJson": "{...}", // 扩展配置JSON字符串
+    "isDesForm": "N", // 是否设计表单
+    "desFormCode": "" // 设计表单代码
+  }
+}
+```
+
+#### **fields 数组（必需）**
+
+每个字段对象必须包含以下属性：
+
+```json
+{
+  "dbFieldName": "字段名", // 数据库字段名
+  "dbFieldTxt": "字段描述", // 字段描述
+  "queryShowType": "text", // 查询显示类型
+  "queryDictTable": "", // 查询字典表
+  "queryDictField": "", // 查询字典字段
+  "queryDictText": "", // 查询字典文本
+  "queryDefVal": "", // 查询默认值
+  "queryConfigFlag": "0", // 查询配置标志
+  "mainTable": "", // 主表
+  "mainField": "", // 主字段
+  "fieldHref": "", // 字段链接
+  "fieldValidType": "", // 字段验证类型
+  "fieldMustInput": "0", // 字段必须输入
+  "dictTable": "", // 数据字典表
+  "dictField": "", // 数据字典字段
+  "dictText": "", // 数据字典文本
+  "isShowForm": "0", // 是否在表单中显示
+  "isShowList": "0", // 是否在列表中显示
+  "sortFlag": "0", // 排序标志
+  "isReadOnly": "0", // 是否只读
+  "fieldShowType": "text", // 字段显示类型
+  "fieldLength": 200, // 字段长度
+  "isQuery": "0", // 是否可查询
+  "queryMode": "single", // 查询模式
+  "fieldDefaultValue": "", // 字段默认值
+  "converter": "", // 转换器
+  "fieldExtendJson": "", // 字段扩展JSON
+  "fieldConfig": "", // 字段配置
+  "dbLength": 36, // 数据库字段长度
+  "dbPointLength": 0, // 小数点长度
+  "dbDefaultVal": "", // 数据库默认值
+  "dbType": "string", // 数据库字段类型
+  "dbIsKey": "1", // 是否主键（字符串）
+  "dbIsNull": "0", // 是否允许为空（字符串）
+  "dbIsPersist": "1", // 是否持久化（关键字段！）
+  "orderNum": 0 // 排序号
+}
+```
+
+#### **其他必需数组**
+
+```json
+{
+  "indexs": [], // 索引数组
+  "deleteFieldIds": [], // 删除字段ID数组
+  "deleteIndexIds": [] // 删除索引ID数组
+}
+```
+
+### 🚨 关键注意事项
+
+1. **数据类型严格要求**：
+
+   - `tableType`: 必须是整数 1，不能是字符串"1"
+   - `scroll`: 必须是整数 0 或 1，不能是字符串
+   - `dbIsKey`, `dbIsNull`, `dbIsPersist`: 必须是字符串"0"或"1"
+
+2. **必需字段不能缺失**：
+
+   - `dbIsPersist`: 这是关键字段，缺失会导致 API 调用失败
+   - 所有查询相关字段：`queryShowType`, `queryDictTable`等
+   - 所有显示相关字段：`fieldShowType`, `isShowForm`等
+
+3. **系统字段要求**：
+   - 必须包含 7 个系统字段：id, create_by, create_time, update_by, update_time, sys_org_code, del_flag
+   - 系统字段的 orderNum 从 0 开始递增
+   - 业务字段的 orderNum 从 7 开始
+
 ## 📋 系统架构概览
 
 ### 🔄 完整工作流程

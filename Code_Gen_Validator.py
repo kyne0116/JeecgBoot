@@ -21,8 +21,24 @@ class CodeGenValidator:
         self.schema_file = schema_file
         self.schema = self._load_schema()
         self.required_system_fields = [
-            "id", "create_by", "create_time", 
+            "id", "create_by", "create_time",
             "update_by", "update_time", "sys_org_code", "del_flag"
+        ]
+        self.required_head_fields = [
+            "tableName", "tableTxt", "tableType", "formCategory", "idType",
+            "isCheckbox", "themeTemplate", "formTemplate", "scroll",
+            "isPage", "isTree", "extConfigJson", "isDesForm", "desFormCode"
+        ]
+        self.required_field_attributes = [
+            "dbFieldName", "dbFieldTxt", "queryShowType", "queryDictTable",
+            "queryDictField", "queryDictText", "queryDefVal", "queryConfigFlag",
+            "mainTable", "mainField", "fieldHref", "fieldValidType",
+            "fieldMustInput", "dictTable", "dictField", "dictText",
+            "isShowForm", "isShowList", "sortFlag", "isReadOnly",
+            "fieldShowType", "fieldLength", "isQuery", "queryMode",
+            "fieldDefaultValue", "converter", "fieldExtendJson", "fieldConfig",
+            "dbLength", "dbPointLength", "dbDefaultVal", "dbType",
+            "dbIsKey", "dbIsNull", "dbIsPersist", "orderNum"
         ]
     
     def _load_schema(self) -> Dict:
@@ -70,6 +86,20 @@ class CodeGenValidator:
         if 'head' not in config or config['head'] is None:
             errors.append("🚨 关键错误: head对象缺失或为null")
             return errors
+
+        # 验证head必需字段
+        head = config['head']
+        for required_field in self.required_head_fields:
+            if required_field not in head:
+                errors.append(f"🚨 head缺少必需字段: {required_field}")
+
+        # 验证tableType数据类型
+        if 'tableType' in head and not isinstance(head['tableType'], int):
+            errors.append("🚨 tableType必须是整数类型，不能是字符串")
+
+        # 验证scroll数据类型
+        if 'scroll' in head and not isinstance(head['scroll'], int):
+            errors.append("🚨 scroll必须是整数类型，不能是字符串")
         
         # 验证fields数组
         if 'fields' not in config or config['fields'] is None:
@@ -108,20 +138,44 @@ class CodeGenValidator:
         for i, field in enumerate(config['fields']):
             field_errors = self._validate_field(field, i + 1)
             errors.extend(field_errors)
+
+        # 验证是否包含indexs, deleteFieldIds, deleteIndexIds
+        required_arrays = ['indexs', 'deleteFieldIds', 'deleteIndexIds']
+        for array_name in required_arrays:
+            if array_name not in config:
+                errors.append(f"🚨 缺少必需数组: {array_name}")
+            elif not isinstance(config[array_name], list):
+                errors.append(f"🚨 {array_name}必须是数组类型")
         
         return errors
     
     def _validate_field(self, field: Dict, field_index: int) -> List[str]:
         """验证单个字段"""
         errors = []
-        required_attrs = ['dbFieldName', 'dbFieldTxt', 'dbType', 'dbLength', 'dbIsKey', 'dbIsNull', 'orderNum']
-        
-        for attr in required_attrs:
-            if attr not in field or field[attr] is None:
+
+        # 验证所有必需属性
+        for attr in self.required_field_attributes:
+            if attr not in field:
                 errors.append(f"⚠️ 字段{field_index}: 缺少必需属性 {attr}")
+            elif field[attr] is None:
+                errors.append(f"⚠️ 字段{field_index}: 属性 {attr} 不能为null")
             elif attr in ['dbFieldName', 'dbFieldTxt'] and field[attr] == '':
                 errors.append(f"⚠️ 字段{field_index}: {attr} 不能为空字符串")
-        
+
+        # 验证dbIsPersist字段存在
+        if 'dbIsPersist' not in field:
+            errors.append(f"🚨 字段{field_index}: 缺少关键字段 dbIsPersist")
+
+        # 验证数据类型
+        if 'dbIsKey' in field and field['dbIsKey'] not in ['0', '1']:
+            errors.append(f"⚠️ 字段{field_index}: dbIsKey必须是字符串'0'或'1'")
+
+        if 'dbIsNull' in field and field['dbIsNull'] not in ['0', '1']:
+            errors.append(f"⚠️ 字段{field_index}: dbIsNull必须是字符串'0'或'1'")
+
+        if 'dbIsPersist' in field and field['dbIsPersist'] not in ['0', '1']:
+            errors.append(f"⚠️ 字段{field_index}: dbIsPersist必须是字符串'0'或'1'")
+
         return errors
     
     def generate_validation_report(self, config_file: str) -> str:
