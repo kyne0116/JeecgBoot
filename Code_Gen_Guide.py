@@ -210,6 +210,31 @@ def validate_core_variables():
         print("✅ 三核心变量验证通过")
         return True
 
+def validate_template_variables():
+    """验证所有变量是否包含未解析的模板变量"""
+    errors = []
+
+    # 检查关键变量是否包含模板变量
+    variables_to_check = {
+        'PROJECT_PATH': PROJECT_PATH,
+        'ENTITY_NAME': ENTITY_NAME,
+        'PACKAGE_NAME': PACKAGE_NAME,
+        'TABLE_NAME': TABLE_NAME
+    }
+
+    for var_name, var_value in variables_to_check.items():
+        if var_value and ('{{' in str(var_value) or '}}' in str(var_value)):
+            errors.append(f"{var_name} 包含未解析的模板变量: {var_value}")
+
+    if errors:
+        print("❌ 模板变量验证失败:")
+        for error in errors:
+            print(f"   - {error}")
+        return False
+    else:
+        print("✅ 模板变量验证通过")
+        return True
+
 # ==================== Java命名规范转换功能 ====================
 
 def parse_table_name_components(table_name):
@@ -519,6 +544,9 @@ def backup_and_replace_jeecg_config(project_path, package_name):
     backup_path = config_path.with_suffix('.properties.backup')
 
     print(f"📝 临时替换配置文件变量: {config_path}")
+    print(f"   🔍 输入参数:")
+    print(f"      project_path = {project_path}")
+    print(f"      package_name = {package_name}")
 
     try:
         # 备份原文件
@@ -531,13 +559,29 @@ def backup_and_replace_jeecg_config(project_path, package_name):
         with open(config_path, 'r', encoding='utf-8') as f:
             content = f.read()
 
+        print(f"   📄 原文件内容:")
+        for i, line in enumerate(content.split('\n')[:10], 1):  # 显示前10行
+            print(f"      {i:2d}: {line}")
+
         # 替换变量
+        original_content = content
         content = content.replace('{{PROJECT_PATH}}', str(project_path))
         content = content.replace('{{PACKAGE_NAME}}', package_name)
+
+        # 检查是否有替换发生
+        if content == original_content:
+            print(f"   ⚠️ 警告: 没有找到需要替换的模板变量")
+            print(f"   🔍 检查文件中是否包含 {{{{PROJECT_PATH}}}} 或 {{{{PACKAGE_NAME}}}}")
+        else:
+            print(f"   ✅ 变量替换成功")
 
         # 写入替换后的内容
         with open(config_path, 'w', encoding='utf-8') as f:
             f.write(content)
+
+        print(f"   📄 替换后内容:")
+        for i, line in enumerate(content.split('\n')[:10], 1):  # 显示前10行
+            print(f"      {i:2d}: {line}")
 
         print(f"   ✅ 已替换变量:")
         print(f"      PROJECT_PATH = {project_path}")
@@ -547,6 +591,8 @@ def backup_and_replace_jeecg_config(project_path, package_name):
 
     except Exception as e:
         print(f"   ❌ 配置文件替换失败: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def restore_jeecg_config():
@@ -1241,8 +1287,22 @@ REQUEST_TIMEOUT_CODEGEN = CONFIG['timeouts']['codegen']
 FORM_DATA_FILE = CONFIG['form']['data_file']
 WAIT_TIME_AFTER_CREATE = CONFIG['form']['wait_after_create']
 
-PROJECT_PATH = CONFIG['codegen']['project_path']
-ENTITY_NAME = CONFIG['codegen']['entity_name']
+# 注意：PROJECT_PATH 和 ENTITY_NAME 在主函数中会被重新设置，这里只是初始化
+# 避免直接使用配置中的模板变量
+config_project_path = CONFIG['codegen']['project_path']
+config_entity_name = CONFIG['codegen']['entity_name']
+
+if config_project_path and not config_project_path.startswith('{{'):
+    PROJECT_PATH = config_project_path
+else:
+    # 使用默认路径，避免模板变量
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    PROJECT_PATH = f"{project_prefix}/jeecg-boot"
+
+if config_entity_name and not config_entity_name.startswith('{{'):
+    ENTITY_NAME = config_entity_name
+else:
+    ENTITY_NAME = "defaultentity"  # 使用默认值
 JSP_MODE = CONFIG['codegen']['jsp_mode']
 JFORM_TYPE = CONFIG['codegen']['jform_type']
 PACKAGE_STYLE = CONFIG['codegen']['package_style']
@@ -1814,6 +1874,12 @@ def jeecg_complete_workflow():
         print(f"   PROJECT_PATH             = {PROJECT_PATH}")
         print(f"   ENTITY_NAME              = {ENTITY_NAME}")
         print(f"   PACKAGE_NAME             = {package_name}")
+
+        # 验证模板变量是否已正确解析
+        print(f"\n🔍 验证模板变量解析:")
+        if not validate_template_variables():
+            print("❌ 检测到未解析的模板变量，停止代码生成")
+            return
 
         print(f"\n🔧 其他配置:")
         print(f"   JSP模式                  = {JSP_MODE}")
@@ -2533,9 +2599,21 @@ def main():
                     ENTITY_NAME = extract_business_entity_from_table_name(table_name)
         except Exception as e:
             print(f"⚠️ 无法读取表单配置文件: {e}")
-            ENTITY_NAME = CONFIG['codegen']['entity_name']  # 保持原配置值
+            # 不要直接使用配置中的模板变量，检查是否为模板变量
+            config_entity_name = CONFIG['codegen']['entity_name']
+            if config_entity_name and not config_entity_name.startswith('{{'):
+                ENTITY_NAME = config_entity_name
+            else:
+                ENTITY_NAME = "defaultentity"  # 使用默认值
+                print(f"⚠️ 配置中的entity_name是模板变量，使用默认值: {ENTITY_NAME}")
     else:
-        ENTITY_NAME = CONFIG['codegen']['entity_name']  # 保持原配置值
+        # 不要直接使用配置中的模板变量，检查是否为模板变量
+        config_entity_name = CONFIG['codegen']['entity_name']
+        if config_entity_name and not config_entity_name.startswith('{{'):
+            ENTITY_NAME = config_entity_name
+        else:
+            ENTITY_NAME = "defaultentity"  # 使用默认值
+            print(f"⚠️ 配置中的entity_name是模板变量，使用默认值: {ENTITY_NAME}")
 
     # 2. 处理模块名称和项目路径
     if FORCE_SYSTEM:
@@ -2544,7 +2622,9 @@ def main():
         PROJECT_PATH = f"{project_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{MODULE_NAME}"
     else:
         if not MODULE_NAME:  # 如果三核心变量设置失败
-            PROJECT_PATH = CONFIG['codegen']['project_path']  # 保持原配置值
+            # 不要直接使用配置中的模板变量，而是使用默认路径
+            project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+            PROJECT_PATH = f"{project_prefix}/jeecg-boot"  # 使用默认路径
 
     # 3. 更新全局变量（使用预处理后的值）
     update_global_vars()
@@ -2595,8 +2675,26 @@ def main():
         print(f"📋 配置文件: {args.config}")
         print(f"🎯 业务系统: {args.module_name or '自动识别'}")
         print(f"📋 表单配置: {args.form_config or '使用默认'}")
-        print(f"🏗️ 项目路径: {CONFIG['codegen']['project_path']}")
-        print(f"📦 实体名称: {CONFIG['codegen']['entity_name']}")
+        print(f"🏗️ 项目路径: {PROJECT_PATH}")  # 使用预处理后的值
+        print(f"📦 实体名称: {ENTITY_NAME}")    # 使用预处理后的值
+
+        # 显示三核心变量
+        print(f"\n📋 三核心变量:")
+        print(f"   MODULE_NAME      = {MODULE_NAME}")
+        print(f"   SUBMODULE_NAME   = {SUBMODULE_NAME}")
+        print(f"   ENTITY_NAME      = {ENTITY_NAME}")
+
+        # 显示派生变量
+        print(f"\n📊 派生变量:")
+        print(f"   TABLE_NAME       = {TABLE_NAME}")
+        print(f"   PACKAGE_NAME     = {PACKAGE_NAME}")
+        print(f"   JAVA_ENTITY_NAME = {JAVA_ENTITY_NAME}")
+        print(f"   PROJECT_PATH     = {PROJECT_PATH}")
+
+        # 验证模板变量
+        print(f"\n🔍 模板变量验证:")
+        validate_template_variables()
+
         return
 
     if args.dict:
