@@ -563,17 +563,38 @@ def backup_and_replace_jeecg_config(project_path, package_name):
         for i, line in enumerate(content.split('\n')[:10], 1):  # 显示前10行
             print(f"      {i:2d}: {line}")
 
-        # 替换变量
+        # 替换变量 - 支持模板变量和实际值两种情况
         original_content = content
+
+        # 首先尝试替换模板变量
         content = content.replace('{{PROJECT_PATH}}', str(project_path))
         content = content.replace('{{PACKAGE_NAME}}', package_name)
 
+        # 如果没有模板变量，则直接替换配置值
+        import re
+
+        # 替换 project_path 行
+        content = re.sub(
+            r'^project_path=.*$',
+            f'project_path={project_path}',
+            content,
+            flags=re.MULTILINE
+        )
+
+        # 替换 bussi_package 行
+        content = re.sub(
+            r'^bussi_package=.*$',
+            f'bussi_package={package_name}',
+            content,
+            flags=re.MULTILINE
+        )
+
         # 检查是否有替换发生
         if content == original_content:
-            print(f"   ⚠️ 警告: 没有找到需要替换的模板变量")
-            print(f"   🔍 检查文件中是否包含 {{{{PROJECT_PATH}}}} 或 {{{{PACKAGE_NAME}}}}")
+            print(f"   ⚠️ 警告: 没有找到需要替换的配置项")
+            print(f"   🔍 检查文件中是否包含 project_path 或 bussi_package 配置")
         else:
-            print(f"   ✅ 变量替换成功")
+            print(f"   ✅ 配置替换成功")
 
         # 写入替换后的内容
         with open(config_path, 'w', encoding='utf-8') as f:
@@ -1890,6 +1911,9 @@ def jeecg_complete_workflow():
         print(f"   强制系统                 = {FORCE_SYSTEM or 'None'}")
 
         # 准备代码生成参数
+        # 构建正确的entityPackage：应该是 模块名.子模块名，而不是实体名
+        entity_package = f"{MODULE_NAME}.{SUBMODULE_NAME}" if MODULE_NAME and SUBMODULE_NAME else ENTITY_NAME
+
         codegen_data = {
             "projectPath": PROJECT_PATH,
             "jspMode": JSP_MODE,
@@ -1897,7 +1921,7 @@ def jeecg_complete_workflow():
             "jformType": JFORM_TYPE,
             "tableName_tmp": table_name,
             "entityName": entity_name,
-            "entityPackage": ENTITY_NAME,
+            "entityPackage": entity_package,  # 修复：使用正确的包路径
             "bussiPackage": package_name,  # 添加正确的业务包名
             "packageStyle": PACKAGE_STYLE,
             "vueStyle": VUE_STYLE,
@@ -1908,8 +1932,12 @@ def jeecg_complete_workflow():
 
         # 打印完整的代码生成请求参数
         print(f"\n📋 代码生成请求参数:")
+        print(f"   🔧 关键参数修复说明:")
+        print(f"      entityPackage = {entity_package} (修复前: {ENTITY_NAME})")
+        print(f"      bussiPackage  = {package_name}")
+        print(f"   📋 完整参数列表:")
         for key, value in codegen_data.items():
-            print(f"   {key:<20} = {value}")
+            print(f"      {key:<20} = {value}")
 
         # 代码生成前：备份并替换配置文件变量
         config_replaced = backup_and_replace_jeecg_config(PROJECT_PATH, package_name)
