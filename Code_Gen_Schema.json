@@ -1,0 +1,234 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JeecgBoot在线表单配置Schema",
+  "description": "用于验证临时JSON配置文件的结构和内容，防止NullPointerException",
+  "type": "object",
+  "required": ["head", "fields"],
+  "properties": {
+    "head": {
+      "type": "object",
+      "required": [
+        "tableName",
+        "tableTxt", 
+        "tableType",
+        "isCheckbox",
+        "isDbSynch",
+        "isPage",
+        "isTree",
+        "idType"
+      ],
+      "properties": {
+        "tableName": {
+          "type": "string",
+          "pattern": "^us_[a-z]+_[a-z]+_[a-z]+$",
+          "description": "表名必须符合us_{模块}_{子模块}_{实体}格式"
+        },
+        "tableTxt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "表描述不能为空"
+        },
+        "tableType": {
+          "type": "string",
+          "enum": ["1"],
+          "description": "表类型固定为1"
+        },
+        "tableVersion": {
+          "type": "string",
+          "enum": ["1"],
+          "description": "表版本固定为1"
+        },
+        "isCheckbox": {
+          "type": "string",
+          "enum": ["Y", "N"],
+          "description": "是否支持复选框"
+        },
+        "isDbSynch": {
+          "type": "string", 
+          "enum": ["Y", "N"],
+          "description": "是否同步数据库"
+        },
+        "isPage": {
+          "type": "string",
+          "enum": ["Y", "N"], 
+          "description": "是否分页"
+        },
+        "isTree": {
+          "type": "string",
+          "enum": ["Y", "N"],
+          "description": "是否树形结构"
+        },
+        "idType": {
+          "type": "string",
+          "enum": ["UUID", "ASSIGN_ID", "AUTO"],
+          "description": "主键类型"
+        },
+        "queryMode": {
+          "type": "string",
+          "enum": ["single", "group"],
+          "description": "查询模式"
+        },
+        "relationType": {
+          "type": "string",
+          "enum": ["0", "1"],
+          "description": "关联类型"
+        }
+      },
+      "additionalProperties": true
+    },
+    "fields": {
+      "type": "array",
+      "minItems": 8,
+      "description": "字段数组必须至少包含7个系统字段+1个业务字段",
+      "items": {
+        "type": "object",
+        "required": [
+          "dbFieldName",
+          "dbFieldTxt", 
+          "dbType",
+          "dbLength",
+          "dbIsKey",
+          "dbIsNull",
+          "orderNum"
+        ],
+        "properties": {
+          "dbFieldName": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+            "description": "字段名必须以字母开头"
+          },
+          "dbFieldTxt": {
+            "type": "string", 
+            "minLength": 1,
+            "description": "字段描述不能为空"
+          },
+          "dbType": {
+            "type": "string",
+            "enum": [
+              "VARCHAR", "string", "int", "BigDecimal", 
+              "Date", "Datetime", "text", "LONGTEXT"
+            ],
+            "description": "数据库字段类型"
+          },
+          "dbLength": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "字段长度"
+          },
+          "dbIsKey": {
+            "type": "integer",
+            "enum": [0, 1],
+            "description": "是否主键"
+          },
+          "dbIsNull": {
+            "type": "integer", 
+            "enum": [0, 1],
+            "description": "是否允许为空"
+          },
+          "orderNum": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "字段排序号"
+          },
+          "fieldShowType": {
+            "type": "string",
+            "description": "字段显示类型"
+          },
+          "isShowForm": {
+            "type": "string",
+            "enum": ["0", "1"],
+            "description": "是否在表单中显示"
+          },
+          "isShowList": {
+            "type": "string", 
+            "enum": ["0", "1"],
+            "description": "是否在列表中显示"
+          },
+          "isQuery": {
+            "type": "string",
+            "enum": ["0", "1"], 
+            "description": "是否可查询"
+          },
+          "dictField": {
+            "type": "string",
+            "description": "数据字典字段编码"
+          },
+          "dictTable": {
+            "type": "string",
+            "description": "数据字典表"
+          },
+          "dictText": {
+            "type": "string",
+            "description": "数据字典文本"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false,
+
+  "definitions": {
+    "systemFields": {
+      "description": "系统必需字段定义",
+      "type": "object",
+      "properties": {
+        "requiredSystemFields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "id",
+              "create_by",
+              "create_time",
+              "update_by",
+              "update_time",
+              "sys_org_code",
+              "del_flag"
+            ]
+          },
+          "minItems": 7,
+          "uniqueItems": true,
+          "description": "必须包含的7个系统字段"
+        }
+      }
+    },
+    "fieldValidation": {
+      "description": "字段验证规则",
+      "type": "object",
+      "properties": {
+        "nullPointerPrevention": {
+          "type": "object",
+          "properties": {
+            "fieldsArrayCheck": {
+              "description": "fields数组不能为null或空",
+              "type": "boolean",
+              "const": true
+            },
+            "requiredFieldsCheck": {
+              "description": "必需字段不能为null",
+              "type": "boolean",
+              "const": true
+            },
+            "systemFieldsIntegrity": {
+              "description": "系统字段完整性检查",
+              "type": "boolean",
+              "const": true
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "errorMessages": {
+    "head.required": "head对象是必需的，不能为null",
+    "fields.required": "fields数组是必需的，不能为null",
+    "fields.minItems": "fields数组至少需要8个字段（7个系统字段+1个业务字段）",
+    "head.tableName.pattern": "表名必须符合us_{模块}_{子模块}_{实体}格式",
+    "fields.items.dbFieldName.minLength": "字段名不能为空",
+    "fields.items.dbFieldTxt.minLength": "字段描述不能为空"
+  }
+}
