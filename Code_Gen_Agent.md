@@ -889,52 +889,82 @@ FIELD_TEMPLATES:
 - 🏗️ 字段结构验证: 每个字段对象必须包含完整的属性结构
 - 🔗 API格式验证: JSON结构必须与JeecgBoot API期望格式完全匹配
 
-🛡️ NullPointerException防护规范:
+🛡️ 基于样例文件的标准JSON结构:
 ```json
-// 必须确保的JSON结构
+// 必须确保的完整JSON结构（基于Code_Gen_Example.json优化）
 {
   "head": {
-    "tableName": "us_hrms_education_teacher",  // 必需，不能为null
-    "tableTxt": "教师信息管理表",              // 必需，不能为null
-    "tableType": "1",                         // 必需，不能为null
-    "idType": "UUID",                         // 必需，不能为null
-    "isCheckbox": "Y",                        // 必需，不能为null
-    "isDbSynch": "Y",                         // 必需，不能为null
-    "isPage": "Y",                            // 必需，不能为null
-    "isTree": "N"                             // 必需，不能为null
+    "tableName": "us_模块_子模块_实体",        // 必需，符合命名规范
+    "tableTxt": "表描述",                     // 必需，不能为空
+    "tableType": 1,                          // 🚨 必须是整数，不能是字符串
+    "formCategory": "temp",                  // 必需，表单类别
+    "idType": "UUID",                        // 必需，主键类型
+    "isCheckbox": "Y",                       // 必需，是否支持复选框
+    "themeTemplate": "normal",               // 必需，主题模板
+    "formTemplate": "1",                     // 必需，表单模板
+    "scroll": 1,                             // 🚨 必须是整数，不能是字符串
+    "isPage": "Y",                           // 必需，是否分页
+    "isTree": "N",                           // 必需，是否树形结构
+    "extConfigJson": "{\"reportPrintShow\":0,...}", // 必需，扩展配置
+    "isDesForm": "N",                        // 必需，是否设计表单
+    "desFormCode": ""                        // 必需，设计表单代码
   },
-  "fields": [                                 // 🚨 关键：必须是数组，不能为null或undefined
-    // 系统字段（必须包含）
+  "fields": [                                // 🚨 关键：必须是数组，不能为null
+    // 系统字段（必须包含完整属性）
     {
-      "orderNum": 1,
       "dbFieldName": "id",
       "dbFieldTxt": "主键",
-      "dbType": "VARCHAR",
-      "dbLength": 36,
-      "dbIsKey": 1,
-      "dbIsNull": 0
-    },
-    // ... 其他系统字段
-    // 业务字段（至少1个）
-    {
-      "orderNum": 8,
-      "dbFieldName": "teacher_name",
-      "dbFieldTxt": "教师姓名",
-      "dbType": "string",
-      "dbLength": 50,
-      "fieldShowType": "text",
-      "isShowForm": "1",
-      "isShowList": "1"
+      "queryShowType": "text",               // 🚨 必需属性
+      "queryDictTable": "",                  // 🚨 必需属性
+      "queryDictField": "",                  // 🚨 必需属性
+      "queryDictText": "",                   // 🚨 必需属性
+      "queryDefVal": "",                     // 🚨 必需属性
+      "queryConfigFlag": "0",                // 🚨 必需属性
+      "mainTable": "",                       // 🚨 必需属性
+      "mainField": "",                       // 🚨 必需属性
+      "fieldHref": "",                       // 🚨 必需属性
+      "fieldValidType": "",                  // 🚨 必需属性
+      "fieldMustInput": "0",                 // 🚨 必需属性
+      "dictTable": "",                       // 🚨 必需属性
+      "dictField": "",                       // 🚨 必需属性
+      "dictText": "",                        // 🚨 必需属性
+      "isShowForm": "0",                     // 🚨 必需属性
+      "isShowList": "0",                     // 🚨 必需属性
+      "sortFlag": "0",                       // 🚨 必需属性
+      "isReadOnly": "1",                     // 🚨 必需属性
+      "fieldShowType": "text",               // 🚨 必需属性
+      "fieldLength": 200,                    // 🚨 必需属性
+      "isQuery": "0",                        // 🚨 必需属性
+      "queryMode": "single",                 // 🚨 必需属性
+      "fieldDefaultValue": "",               // 🚨 必需属性
+      "converter": "",                       // 🚨 必需属性
+      "fieldExtendJson": "",                 // 🚨 必需属性
+      "fieldConfig": "",                     // 🚨 必需属性
+      "dbLength": 36,                        // 🚨 必需属性
+      "dbPointLength": 0,                    // 🚨 必需属性
+      "dbDefaultVal": "",                    // 🚨 必需属性
+      "dbType": "string",                    // 🚨 必需属性
+      "dbIsKey": "1",                        // 🚨 必须是字符串，不能是数字
+      "dbIsNull": "0",                       // 🚨 必须是字符串，不能是数字
+      "dbIsPersist": "1",                    // 🚨 关键字段！必须包含
+      "orderNum": 0                          // 🚨 必需属性
     }
-  ]
+    // ... 其他6个系统字段（create_by, create_time, update_by, update_time, sys_org_code, del_flag）
+    // ... 业务字段（orderNum从7开始）
+  ],
+  "indexs": [],                              // 🚨 必需数组
+  "deleteFieldIds": [],                      // 🚨 必需数组
+  "deleteIndexIds": []                       // 🚨 必需数组
 }
 ```
 
-❌ 导致 NullPointerException 的错误情况:
-- fields 字段缺失: "fields": null
-- fields 为空数组: "fields": []
-- fields 不是数组: "fields": "some_string"
-- 字段对象缺少必需属性
+❌ 导致API调用失败的错误情况:
+- head.tableType使用字符串: "tableType": "1" ❌ 应该是: "tableType": 1 ✅
+- head.scroll使用字符串: "scroll": "1" ❌ 应该是: "scroll": 1 ✅
+- 缺少dbIsPersist字段: 这是关键字段，缺失会导致API失败
+- 缺少查询相关字段: queryShowType, queryDictTable等
+- 缺少必需数组: indexs, deleteFieldIds, deleteIndexIds
+- 字段属性不完整: 每个字段必须包含所有必需属性
 ```
 
 ### 步骤 6: 代码生成执行与结果监控 🚀
