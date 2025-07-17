@@ -46,6 +46,13 @@
     "cleanup_source": false,
     "create_target_dirs": true
   },
+  "database_execution": {
+    "enabled": true,
+    "method": "mysql_client",
+    "timeout": 30,
+    "auto_commit": true,
+    "config_file_path": "jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/resources/application-dev.yml"
+  },
   "query": {
     "page_size": 50,
     "page_no": 1

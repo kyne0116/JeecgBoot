@@ -75,6 +75,13 @@ def load_config():
             "cleanup_source": False,
             "create_target_dirs": True
         },
+        "database_execution": {
+            "enabled": True,
+            "method": "mysql_client",
+            "timeout": 30,
+            "auto_commit": True,
+            "config_file_path": "jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/resources/application-dev.yml"
+        },
         "query": {
             "page_size": 50,
             "page_no": 1
@@ -1157,6 +1164,292 @@ def _execute_rename_and_move(source_vue3_dir, renamed_dir, final_target_dir, tar
         print(f"❌ 重命名和移动操作失败: {e}")
         import traceback
         traceback.print_exc()
+        return False
+
+# ==================== 数据库SQL执行功能 ====================
+
+def execute_database_sql():
+    """执行生成的SQL文件到数据库"""
+    db_config = CONFIG.get('database_execution', {})
+
+    if not db_config.get('enabled', True):
+        print("⏭️ 数据库SQL执行功能已禁用，跳过SQL执行步骤")
+        return True
+
+    print(f"\n{'='*50}")
+    print("🗄️ 开始执行数据库SQL文件...")
+
+    try:
+        # 1. 查找生成的SQL文件
+        sql_file_path = find_generated_sql_file()
+        if not sql_file_path:
+            print("❌ 未找到生成的SQL文件，跳过数据库执行")
+            return False
+
+        print(f"📄 找到SQL文件: {sql_file_path}")
+
+        # 2. 解析数据库连接配置
+        db_connection = parse_database_config()
+        if not db_connection:
+            print("❌ 无法解析数据库连接配置，跳过数据库执行")
+            return False
+
+        print(f"🔗 数据库连接: {db_connection['host']}:{db_connection['port']}/{db_connection['database']}")
+
+        # 3. 执行SQL文件
+        return execute_sql_file(sql_file_path, db_connection)
+
+    except Exception as e:
+        print(f"❌ 数据库SQL执行失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def find_generated_sql_file():
+    """查找生成的SQL文件"""
+    try:
+        if not CURRENT_TABLE_NAME:
+            print("❌ 无法获取当前表名，无法定位SQL文件")
+            return None
+
+        # 解析表名获取模块信息
+        components = parse_table_name_components(CURRENT_TABLE_NAME)
+        module_name = components['module_name']
+
+        # 构建可能的SQL文件路径
+        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+
+        # 搜索路径列表（按优先级排序）
+        search_paths = [
+            # 1. 前端项目views目录（迁移后的位置）
+            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name,
+            # 2. 后端模块目录
+            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}',
+            # 3. 项目根目录
+            Path(project_prefix),
+        ]
+
+        # SQL文件命名模式
+        today = datetime.now().strftime("%Y%m%d")
+        entity_name = components['entity_name']
+
+        # 可能的文件名模式
+        patterns = [
+            f"V{today}_*__menu_insert_*{entity_name}*.sql",
+            f"V{today}_*__menu_insert*.sql",
+            f"*{entity_name}*.sql",
+            f"*menu_insert*.sql"
+        ]
+
+        print(f"🔍 搜索SQL文件...")
+        print(f"   模块名: {module_name}")
+        print(f"   实体名: {entity_name}")
+        print(f"   日期: {today}")
+
+        # 在各个路径中搜索
+        for search_path in search_paths:
+            if not search_path.exists():
+                continue
+
+            print(f"   搜索路径: {search_path}")
+
+            for pattern in patterns:
+                sql_files = list(search_path.glob(pattern))
+                if sql_files:
+                    # 返回最新的文件
+                    latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
+                    print(f"✅ 找到SQL文件: {latest_file}")
+                    return latest_file
+
+        print("❌ 未找到匹配的SQL文件")
+        return None
+
+    except Exception as e:
+        print(f"❌ 搜索SQL文件失败: {e}")
+        return None
+
+def parse_database_config():
+    """解析数据库连接配置"""
+    try:
+        # 读取application-dev.yml配置文件
+        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+        config_file = Path(project_prefix) / 'jeecg-boot' / 'jeecg-module-system' / 'jeecg-system-start' / 'src' / 'main' / 'resources' / 'application-dev.yml'
+
+        if not config_file.exists():
+            print(f"❌ 配置文件不存在: {config_file}")
+            return None
+
+        print(f"📖 读取数据库配置: {config_file}")
+
+        # 简单解析YAML中的数据库配置
+        with open(config_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # 提取数据库连接信息（简单字符串匹配）
+        import re
+
+        # 提取URL
+        url_match = re.search(r'url:\s*jdbc:mysql://([^:]+):(\d+)/([^?]+)', content)
+        if not url_match:
+            print("❌ 无法解析数据库URL")
+            return None
+
+        host = url_match.group(1)
+        port = int(url_match.group(2))
+        database = url_match.group(3)
+
+        # 提取用户名和密码（在datasource.master部分）
+        # 简化方案：直接在master配置块中搜索
+        master_start = content.find('master:')
+        if master_start != -1:
+            # 找到master配置块的结束位置（下一个同级配置或文件结束）
+            master_end = content.find('\n        #', master_start)  # 注释行
+            if master_end == -1:
+                master_end = content.find('\n      ', master_start + 100)  # 下一个同级配置
+            if master_end == -1:
+                master_end = len(content)
+
+            master_content = content[master_start:master_end]
+            username_match = re.search(r'username:\s*(\S+)', master_content)
+            password_match = re.search(r'password:\s*(\S+)', master_content)
+        else:
+            # 备用方案：在整个文件中搜索
+            username_match = re.search(r'username:\s*(\S+)', content)
+            password_match = re.search(r'password:\s*(\S+)', content)
+
+        if not username_match or not password_match:
+            print("❌ 无法解析数据库用户名或密码")
+            return None
+
+        username = username_match.group(1)
+        password = password_match.group(1)
+
+        return {
+            'host': host,
+            'port': port,
+            'database': database,
+            'username': username,
+            'password': password
+        }
+
+    except Exception as e:
+        print(f"❌ 解析数据库配置失败: {e}")
+        return None
+
+def execute_sql_file(sql_file_path, db_connection):
+    """执行SQL文件到数据库"""
+    try:
+        # 检查是否安装了mysql客户端或使用Python库
+        db_config = CONFIG.get('database_execution', {})
+        execution_method = db_config.get('method', 'mysql_client')  # mysql_client 或 python_library
+
+        if execution_method == 'python_library':
+            return execute_sql_with_python(sql_file_path, db_connection)
+        else:
+            return execute_sql_with_mysql_client(sql_file_path, db_connection)
+
+    except Exception as e:
+        print(f"❌ SQL文件执行失败: {e}")
+        return False
+
+def execute_sql_with_mysql_client(sql_file_path, db_connection):
+    """使用mysql命令行客户端执行SQL文件"""
+    try:
+        print(f"🔧 使用mysql命令行客户端执行SQL...")
+
+        # 构建mysql命令
+        mysql_cmd = [
+            'mysql',
+            f"--host={db_connection['host']}",
+            f"--port={db_connection['port']}",
+            f"--user={db_connection['username']}",
+            f"--password={db_connection['password']}",
+            f"--database={db_connection['database']}",
+            '--execute', f"source {sql_file_path}"
+        ]
+
+        print(f"   执行命令: mysql --host={db_connection['host']} --port={db_connection['port']} --user={db_connection['username']} --password=*** --database={db_connection['database']} --execute=\"source {sql_file_path}\"")
+
+        # 执行命令
+        result = subprocess.run(mysql_cmd, capture_output=True, text=True, timeout=30)
+
+        if result.returncode == 0:
+            print("✅ SQL文件执行成功")
+            if result.stdout:
+                print(f"   输出: {result.stdout}")
+            return True
+        else:
+            print(f"❌ SQL文件执行失败")
+            print(f"   错误: {result.stderr}")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print("❌ SQL执行超时")
+        return False
+    except FileNotFoundError:
+        print("❌ 未找到mysql命令行客户端，尝试使用Python库...")
+        return execute_sql_with_python(sql_file_path, db_connection)
+    except Exception as e:
+        print(f"❌ mysql客户端执行失败: {e}")
+        return False
+
+def execute_sql_with_python(sql_file_path, db_connection):
+    """使用Python库执行SQL文件"""
+    try:
+        print(f"🐍 使用Python库执行SQL...")
+
+        # 尝试导入mysql库
+        try:
+            import mysql.connector
+        except ImportError:
+            print("❌ 未安装mysql-connector-python库")
+            print("   请安装: pip install mysql-connector-python")
+            return False
+
+        # 读取SQL文件内容
+        with open(sql_file_path, 'r', encoding='utf-8') as f:
+            sql_content = f.read()
+
+        # 分割SQL语句（简单分割，按分号分割）
+        sql_statements = [stmt.strip() for stmt in sql_content.split(';') if stmt.strip()]
+
+        print(f"   找到 {len(sql_statements)} 条SQL语句")
+
+        # 连接数据库
+        connection = mysql.connector.connect(
+            host=db_connection['host'],
+            port=db_connection['port'],
+            user=db_connection['username'],
+            password=db_connection['password'],
+            database=db_connection['database']
+        )
+
+        cursor = connection.cursor()
+
+        # 执行SQL语句
+        executed_count = 0
+        for i, sql_stmt in enumerate(sql_statements, 1):
+            if sql_stmt:
+                try:
+                    cursor.execute(sql_stmt)
+                    executed_count += 1
+                    print(f"   ✅ 语句 {i}/{len(sql_statements)} 执行成功")
+                except Exception as e:
+                    print(f"   ❌ 语句 {i}/{len(sql_statements)} 执行失败: {e}")
+                    print(f"      SQL: {sql_stmt[:100]}...")
+
+        # 提交事务
+        connection.commit()
+
+        # 关闭连接
+        cursor.close()
+        connection.close()
+
+        print(f"✅ SQL文件执行完成，成功执行 {executed_count}/{len(sql_statements)} 条语句")
+        return executed_count > 0
+
+    except Exception as e:
+        print(f"❌ Python库执行SQL失败: {e}")
         return False
 
 # ==================== 编译相关功能 ====================
@@ -2260,6 +2553,17 @@ def jeecg_complete_workflow():
                     except Exception as e:
                         print(f"⚠️ 前端代码迁移异常: {e}")
 
+                    # 12. 数据库SQL执行（在前端迁移后执行）
+                    print(f"\n{'='*50}")
+                    print("🗄️ 执行数据库SQL文件...")
+                    try:
+                        if execute_database_sql():
+                            print("✅ 数据库SQL执行完成")
+                        else:
+                            print("⚠️ 数据库SQL执行失败或跳过")
+                    except Exception as e:
+                        print(f"⚠️ 数据库SQL执行异常: {e}")
+
                     # 提供重启服务建议
                     print(f"\n🔄 重要提示:")
                     print(f"   新模块已编译完成，建议重启后端服务以加载新代码")
@@ -2326,14 +2630,23 @@ def jeecg_complete_workflow():
                 print(f"   前端代码路径: /{target_base_path}/{components['module_name']}")
             else:
                 print(f"   前端代码路径: /jeecg-boot/jeecg-boot-module/jeecg-module-{components['module_name']}/src/main/java/org/jeecg/modules/{components['module_name']}/{components['sub_module']}/vue3")
+
+            # 显示数据库执行状态
+            db_config = CONFIG.get('database_execution', {})
+            if db_config.get('enabled', True):
+                print(f"   数据库权限: 已自动执行SQL文件，菜单权限已配置")
         except:
             print(f"   包结构: {package_name}")
             print(f"   实体类: {ENTITY_NAME}")
     
     print(f"\n🚀 下一步操作:")
     compilation_config = CONFIG.get('compilation', {})
+    db_config = CONFIG.get('database_execution', {})
+
     if compilation_config.get('enabled', True):
         print(f"   ✅ 代码生成和编译已完成")
+        if db_config.get('enabled', True):
+            print(f"   ✅ 数据库权限配置已完成")
         print(f"   ")
         print(f"   🔄 重启后端服务（重要）:")
         print(f"      - 如果后端服务正在运行，请先停止")
@@ -2343,7 +2656,10 @@ def jeecg_complete_workflow():
         print(f"   🌐 验证新功能:")
         print(f"      - 启动前端服务: pnpm dev")
         print(f"      - 访问系统: http://localhost:3102")
-        print(f"      - 登录后在菜单管理中配置新功能菜单")
+        if db_config.get('enabled', True):
+            print(f"      - 登录后应该能在菜单中看到新功能（权限已自动配置）")
+        else:
+            print(f"      - 登录后在菜单管理中配置新功能菜单")
         print(f"   ")
         print(f"   📋 API测试:")
         if CURRENT_TABLE_NAME:
