@@ -20,6 +20,7 @@ import re
 import subprocess
 import platform
 import xml.etree.ElementTree as ET
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -67,6 +68,12 @@ def load_config():
             "verify_target_classes": True,
             "auto_create_pom": True,
             "prefer_module_compilation": True
+        },
+        "frontend_migration": {
+            "enabled": True,
+            "target_base_path": "jeecgboot-vue3/src/views",
+            "cleanup_source": False,
+            "create_target_dirs": True
         },
         "query": {
             "page_size": 50,
@@ -983,6 +990,175 @@ def verify_new_module_loaded(module_name=None):
         print(f"⚠️ 检查模块加载状态失败: {e}")
         return False
 
+# ==================== 前端代码迁移功能 ====================
+
+def migrate_frontend_code():
+    """前端代码目录迁移和重组 - 重命名vue3为模块名并移动到views目录"""
+    migration_config = CONFIG.get('frontend_migration', {})
+
+    if not migration_config.get('enabled', True):
+        print("⏭️ 前端代码迁移功能已禁用，跳过迁移步骤")
+        return True
+
+    print(f"\n{'='*50}")
+    print("📁 开始前端代码目录迁移和重组...")
+
+    try:
+        # 1. 解析当前表名获取模块信息
+        if not CURRENT_TABLE_NAME:
+            print("❌ 无法获取当前表名，跳过前端代码迁移")
+            return False
+
+        components = parse_table_name_components(CURRENT_TABLE_NAME)
+        module_name = components['module_name']
+        sub_module = components['sub_module']
+
+        print(f"📋 模块信息:")
+        print(f"   模块名: {module_name}")
+        print(f"   子模块: {sub_module}")
+
+        # 2. 构建路径
+        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+
+        # 源路径：后端模块中的vue3目录
+        source_vue3_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3'
+
+        # 重命名后的路径：将vue3重命名为模块名
+        renamed_dir = source_vue3_dir.parent / module_name
+
+        # 最终目标路径：前端项目的views目录下的模块目录
+        target_base_path = migration_config.get('target_base_path', 'jeecgboot-vue3/src/views')
+        target_views_base = Path(project_prefix) / target_base_path
+        final_target_dir = target_views_base / module_name
+
+        print(f"📂 路径信息:")
+        print(f"   源vue3目录: {source_vue3_dir}")
+        print(f"   重命名目录: {renamed_dir}")
+        print(f"   最终目标: {final_target_dir}")
+
+        # 3. 验证源目录存在且包含vue3前端文件
+        if not source_vue3_dir.exists():
+            print(f"❌ 源vue3目录不存在: {source_vue3_dir}")
+            return False
+
+        # 检查是否包含前端文件
+        vue_files = list(source_vue3_dir.glob('*.vue'))
+        ts_files = list(source_vue3_dir.glob('*.ts'))
+        js_files = list(source_vue3_dir.glob('*.js'))
+
+        if not (vue_files or ts_files or js_files):
+            print(f"❌ 源目录中未找到前端文件: {source_vue3_dir}")
+            return False
+
+        print(f"✅ 源目录验证通过，找到 {len(vue_files)} 个Vue文件，{len(ts_files)} 个TS文件，{len(js_files)} 个JS文件")
+
+        # 4. 执行重命名和移动操作
+        return _execute_rename_and_move(source_vue3_dir, renamed_dir, final_target_dir, target_views_base, migration_config)
+
+    except Exception as e:
+        print(f"❌ 前端代码迁移失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def _execute_rename_and_move(source_vue3_dir, renamed_dir, final_target_dir, target_views_base, migration_config):
+    """执行重命名和移动操作"""
+    print(f"\n🔄 执行重命名和移动操作...")
+
+    try:
+        # 步骤1：重命名vue3目录为模块名
+        print(f"1️⃣ 重命名vue3目录为模块名...")
+
+        # 检查重命名目标是否已存在
+        if renamed_dir.exists():
+            print(f"⚠️ 重命名目标目录已存在: {renamed_dir}")
+            if migration_config.get('cleanup_source', False):
+                print(f"   删除已存在的目录...")
+                shutil.rmtree(renamed_dir)
+            else:
+                print(f"   跳过重命名步骤")
+                # 如果目录已存在，直接使用现有目录
+                pass
+
+        # 执行重命名操作
+        if not renamed_dir.exists():
+            source_vue3_dir.rename(renamed_dir)
+            print(f"✅ 重命名成功: vue3 → {renamed_dir.name}")
+
+        # 验证重命名后的目录
+        if not renamed_dir.exists():
+            print(f"❌ 重命名后目录不存在: {renamed_dir}")
+            return False
+
+        # 统计目录中的文件
+        vue_files = list(renamed_dir.glob('*.vue'))
+        ts_files = list(renamed_dir.glob('*.ts'))
+        js_files = list(renamed_dir.glob('*.js'))
+        all_files = list(renamed_dir.rglob('*'))
+        file_count = len([f for f in all_files if f.is_file()])
+
+        print(f"📋 重命名目录内容: {file_count} 个文件")
+        print(f"   Vue文件: {len(vue_files)} 个")
+        print(f"   TS文件: {len(ts_files)} 个")
+        print(f"   JS文件: {len(js_files)} 个")
+
+        # 步骤2：确保目标views目录存在
+        print(f"\n2️⃣ 准备目标目录...")
+        if migration_config.get('create_target_dirs', True):
+            target_views_base.mkdir(parents=True, exist_ok=True)
+            print(f"✅ 目标views目录已准备: {target_views_base}")
+
+        # 检查最终目标是否已存在
+        if final_target_dir.exists():
+            print(f"⚠️ 最终目标目录已存在: {final_target_dir}")
+            if migration_config.get('cleanup_source', False):
+                print(f"   删除已存在的目标目录...")
+                shutil.rmtree(final_target_dir)
+            else:
+                print(f"❌ 目标目录已存在，停止迁移以避免覆盖")
+                return False
+
+        # 步骤3：移动整个目录到views下
+        print(f"\n3️⃣ 移动目录到前端项目...")
+        print(f"   源目录: {renamed_dir}")
+        print(f"   目标位置: {final_target_dir}")
+
+        # 使用shutil.move进行目录移动
+        shutil.move(str(renamed_dir), str(final_target_dir))
+
+        # 验证移动结果
+        if final_target_dir.exists():
+            # 重新统计移动后的文件
+            final_all_files = list(final_target_dir.rglob('*'))
+            final_file_count = len([f for f in final_all_files if f.is_file()])
+
+            print(f"✅ 目录移动成功!")
+            print(f"   最终位置: {final_target_dir}")
+            print(f"   文件数量: {final_file_count} 个")
+
+            # 显示主要文件
+            main_files = []
+            for pattern in ['*.vue', '*.ts', '*.js']:
+                main_files.extend(final_target_dir.glob(pattern))
+
+            if main_files:
+                print(f"\n📁 主要文件列表:")
+                for file in main_files[:10]:  # 显示前10个
+                    print(f"      {file.name}")
+                if len(main_files) > 10:
+                    print(f"      ... 还有 {len(main_files) - 10} 个文件")
+
+            return True
+        else:
+            print(f"❌ 目录移动失败，目标目录不存在")
+            return False
+
+    except Exception as e:
+        print(f"❌ 重命名和移动操作失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 # ==================== 编译相关功能 ====================
 
 def create_module_pom_xml(module_name, project_path):
@@ -1560,6 +1736,15 @@ def print_workflow_variables():
     print(f"   SKIP_MODULE_MANAGEMENT   = {SKIP_MODULE_MANAGEMENT}")
     print(f"   FORCE_SYSTEM             = {FORCE_SYSTEM or 'None (自动识别)'}")
 
+    # 前端迁移配置
+    migration_config = CONFIG.get('frontend_migration', {})
+    print("\n📁 前端迁移配置:")
+    print(f"   迁移功能启用             = {migration_config.get('enabled', True)}")
+    print(f"   目标基础路径             = {migration_config.get('target_base_path', 'jeecgboot-vue3/src/views')}")
+    print(f"   清理源目录               = {migration_config.get('cleanup_source', False)}")
+    print(f"   创建目标目录             = {migration_config.get('create_target_dirs', True)}")
+    print(f"   迁移方式                 = 重命名vue3为模块名并整体移动")
+
     # 运行环境信息
     print("\n💻 运行环境信息:")
     print(f"   操作系统                 = {platform.system()} {platform.release()}")
@@ -2064,6 +2249,17 @@ def jeecg_complete_workflow():
                 if verify_compilation_success():
                     print("✅ 编译验证通过，代码已准备就绪")
 
+                    # 11. 前端代码迁移（在编译验证成功后执行）
+                    print(f"\n{'='*50}")
+                    print("📁 执行前端代码迁移...")
+                    try:
+                        if migrate_frontend_code():
+                            print("✅ 前端代码迁移完成")
+                        else:
+                            print("⚠️ 前端代码迁移失败或跳过")
+                    except Exception as e:
+                        print(f"⚠️ 前端代码迁移异常: {e}")
+
                     # 提供重启服务建议
                     print(f"\n🔄 重要提示:")
                     print(f"   新模块已编译完成，建议重启后端服务以加载新代码")
@@ -2118,10 +2314,18 @@ def jeecg_complete_workflow():
     if CURRENT_TABLE_NAME:
         try:
             components = parse_table_name_components(CURRENT_TABLE_NAME)
-            print(f"   模块路径: /jeecg-boot/jeecg-boot-module/jeecg-module-{components['module_name']}")
+            print(f"   后端模块路径: /jeecg-boot/jeecg-boot-module/jeecg-module-{components['module_name']}")
             print(f"   包结构: org.jeecg.modules.{components['module_name']}.{components['sub_module']}")
             print(f"   实体类: {components['entity_name']}")
-            print(f"   前端组件: 已同步生成Vue3组件")
+            print(f"   前端组件: 已生成Vue3组件并迁移到前端项目")
+
+            # 显示前端代码位置
+            migration_config = CONFIG.get('frontend_migration', {})
+            if migration_config.get('enabled', True):
+                target_base_path = migration_config.get('target_base_path', 'jeecgboot-vue3/src/views')
+                print(f"   前端代码路径: /{target_base_path}/{components['module_name']}")
+            else:
+                print(f"   前端代码路径: /jeecg-boot/jeecg-boot-module/jeecg-module-{components['module_name']}/src/main/java/org/jeecg/modules/{components['module_name']}/{components['sub_module']}/vue3")
         except:
             print(f"   包结构: {package_name}")
             print(f"   实体类: {ENTITY_NAME}")

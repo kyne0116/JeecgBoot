@@ -40,6 +40,12 @@
     "auto_create_pom": true,
     "prefer_module_compilation": true
   },
+  "frontend_migration": {
+    "enabled": true,
+    "target_base_path": "jeecgboot-vue3/src/views",
+    "cleanup_source": false,
+    "create_target_dirs": true
+  },
   "query": {
     "page_size": 50,
     "page_no": 1
