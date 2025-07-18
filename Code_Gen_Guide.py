@@ -1072,7 +1072,26 @@ def migrate_frontend_code():
         project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
 
         # 源路径：后端模块中的vue3目录
-        source_vue3_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3'
+        # 注意：JeecgBoot API生成的实际路径可能与我们的解析逻辑不同
+        # 需要检查多个可能的路径
+        possible_source_paths = [
+            # 1. 按照我们的解析逻辑：module_name/sub_module
+            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3',
+            # 2. 按照JeecgBoot实际生成逻辑：module_name/business_scenario
+            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / components['business_scenario'] / 'vue3',
+        ]
+
+        # 找到实际存在的源路径
+        source_vue3_dir = None
+        for path in possible_source_paths:
+            if path.exists():
+                source_vue3_dir = path
+                print(f"✅ 找到实际的vue3源路径: {source_vue3_dir}")
+                break
+
+        if not source_vue3_dir:
+            # 如果都不存在，使用第一个作为默认值（用于后续的容错搜索）
+            source_vue3_dir = possible_source_paths[0]
 
         # 3. 首先查找并解析SQL文件以获取正确的前端路径
         correct_frontend_path = extract_frontend_path_from_sql()
@@ -1454,7 +1473,7 @@ def execute_database_sql():
         return False
 
 def find_generated_sql_file():
-    """查找生成的SQL文件"""
+    """查找生成的SQL文件 - 优先在前端迁移后的位置搜索"""
     try:
         if not CURRENT_TABLE_NAME:
             print("❌ 无法获取当前表名，无法定位SQL文件")
@@ -1463,30 +1482,15 @@ def find_generated_sql_file():
         # 解析表名获取模块信息
         components = parse_table_name_components(CURRENT_TABLE_NAME)
         module_name = components['module_name']
+        sub_module = components['sub_module']
+        business_scenario = components['business_scenario']
+        entity_name = components['entity_name']
 
         # 构建可能的SQL文件路径
         project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
 
-        # 搜索路径列表（按优先级排序）
-        sub_module = components['sub_module']
-        search_paths = [
-            # 1. 前端项目views目录（迁移后的位置 - 新的正确路径）
-            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name / sub_module,
-            # 2. 前端项目views目录（迁移后的位置 - 旧的错误路径，向后兼容）
-            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name,
-            # 3. 后端模块目录中的vue3目录
-            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3',
-            # 4. 后端模块目录
-            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}',
-            # 5. 项目根目录
-            Path(project_prefix),
-        ]
-
         # SQL文件命名模式
         today = datetime.now().strftime("%Y%m%d")
-        entity_name = components['entity_name']
-
-        # 可能的文件名模式
         patterns = [
             f"V{today}_*__menu_insert_*{entity_name}*.sql",
             f"V{today}_*__menu_insert*.sql",
@@ -1499,26 +1503,123 @@ def find_generated_sql_file():
         print(f"   实体名: {entity_name}")
         print(f"   日期: {today}")
 
-        # 在各个路径中搜索
-        for search_path in search_paths:
-            if not search_path.exists():
-                continue
+        # 第一优先级：前端迁移后的位置（根据SQL文件内容解析的正确路径）
+        frontend_path = extract_frontend_path_from_sql_in_backend()
+        if frontend_path:
+            frontend_sql_path = Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / frontend_path
+            if frontend_sql_path.exists():
+                print(f"   🎯 优先搜索前端迁移位置: {frontend_sql_path}")
+                for pattern in patterns:
+                    sql_files = list(frontend_sql_path.glob(pattern))
+                    if sql_files:
+                        latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
+                        print(f"✅ 在前端目录找到SQL文件: {latest_file}")
+                        return latest_file
 
-            print(f"   搜索路径: {search_path}")
+        # 第二优先级：前端项目views目录的其他可能位置
+        frontend_search_paths = [
+            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / entity_name,
+            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name / sub_module,
+            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name,
+        ]
 
-            for pattern in patterns:
-                sql_files = list(search_path.glob(pattern))
-                if sql_files:
-                    # 返回最新的文件
-                    latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
-                    print(f"✅ 找到SQL文件: {latest_file}")
-                    return latest_file
+        for search_path in frontend_search_paths:
+            if search_path.exists():
+                print(f"   搜索前端路径: {search_path}")
+                for pattern in patterns:
+                    sql_files = list(search_path.glob(pattern))
+                    if sql_files:
+                        latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
+                        print(f"✅ 在前端目录找到SQL文件: {latest_file}")
+                        return latest_file
+
+        # 第三优先级：后端模块目录（原始生成位置）
+        backend_search_paths = [
+            # 后端模块目录中的vue3目录（按business_scenario路径 - JeecgBoot实际生成路径）
+            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / business_scenario / 'vue3',
+            # 后端模块目录中的vue3目录（按sub_module路径）
+            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3',
+            # 后端模块目录
+            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}',
+            # 项目根目录
+            Path(project_prefix),
+        ]
+
+        for search_path in backend_search_paths:
+            if search_path.exists():
+                print(f"   搜索后端路径: {search_path}")
+                for pattern in patterns:
+                    sql_files = list(search_path.glob(pattern))
+                    if sql_files:
+                        latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
+                        print(f"✅ 在后端目录找到SQL文件: {latest_file}")
+                        return latest_file
 
         print("❌ 未找到匹配的SQL文件")
         return None
 
     except Exception as e:
         print(f"❌ 搜索SQL文件失败: {e}")
+        return None
+
+def extract_frontend_path_from_sql_in_backend():
+    """从后端目录的SQL文件中解析前端路径"""
+    try:
+        if not CURRENT_TABLE_NAME:
+            return None
+
+        # 解析表名获取模块信息
+        components = parse_table_name_components(CURRENT_TABLE_NAME)
+        module_name = components['module_name']
+        sub_module = components['sub_module']
+        business_scenario = components['business_scenario']
+        entity_name = components['entity_name']
+
+        # 构建后端SQL文件搜索路径
+        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+        today = datetime.now().strftime("%Y%m%d")
+
+        # 在后端目录搜索SQL文件
+        backend_search_paths = [
+            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / business_scenario / 'vue3',
+            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3',
+        ]
+
+        patterns = [
+            f"V{today}_*__menu_insert_*{entity_name}*.sql",
+            f"V{today}_*__menu_insert*.sql",
+            f"*{entity_name}*.sql",
+            f"*menu_insert*.sql"
+        ]
+
+        for search_path in backend_search_paths:
+            if not search_path.exists():
+                continue
+
+            for pattern in patterns:
+                sql_files = list(search_path.glob(pattern))
+                if sql_files:
+                    # 找到SQL文件，解析其中的前端路径
+                    latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
+
+                    # 读取SQL文件内容
+                    with open(latest_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+
+                    # 解析注释中的前端路径
+                    import re
+                    pattern_regex = r'-- 注意：该页面对应的前台目录为views/([^文]+)文件夹下'
+                    match = re.search(pattern_regex, content)
+
+                    if match:
+                        frontend_path = match.group(1).strip()
+                        print(f"📄 从后端SQL文件解析到前端路径: {frontend_path}")
+                        return frontend_path
+
+        return None
+
+    except Exception as e:
+        print(f"❌ 从后端SQL文件解析前端路径失败: {e}")
         return None
 
 def parse_database_config():
