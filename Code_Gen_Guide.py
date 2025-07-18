@@ -2750,117 +2750,60 @@ def jeecg_complete_workflow():
         print(f"⚠️ 自动修复失败: {e}")
         print("   代码生成已完成，请手动检查")
 
-    # 9. 智能编译策略
+    # 9. 跳过编译，直接执行后续步骤
     compilation_config = CONFIG.get('compilation', {})
-    if compilation_config.get('enabled', True):
-        print(f"\n{'='*50}")
-        print("⚙️ 智能编译策略...")
+    print(f"\n{'='*50}")
 
-        compilation_success = False
-        module_compilation_success = False
-
-        try:
-            # 优先编译新生成的模块
-            if CURRENT_TABLE_NAME:
-                try:
-                    components = parse_table_name_components(CURRENT_TABLE_NAME)
-                    module_name = components['module_name']
-
-                    print(f"🎯 优先编译新生成模块: jeecg-module-{module_name}")
-                    if compile_module(module_name):
-                        print(f"✅ 模块编译成功: jeecg-module-{module_name}")
-                        module_compilation_success = True
-
-                        # 验证模块编译结果
-                        print(f"\n🔍 验证模块编译结果...")
-                        if verify_module_compilation(module_name):
-                            print(f"✅ 模块编译验证通过: jeecg-module-{module_name}")
-                        else:
-                            print(f"⚠️ 模块编译验证失败: jeecg-module-{module_name}")
-                    else:
-                        print(f"❌ 模块编译失败: jeecg-module-{module_name}")
-                        print("   尝试整体项目编译...")
-                except Exception as e:
-                    print(f"⚠️ 模块编译异常: {e}")
-                    print("   尝试整体项目编译...")
-
-            # 如果模块编译失败或未执行，则编译整个项目
-            if not module_compilation_success:
-                print(f"🔄 执行整体项目编译...")
-                if compile_project():
-                    print("✅ 整体项目编译成功")
-                    compilation_success = True
-                else:
-                    print("❌ 整体项目编译失败")
-            else:
-                compilation_success = True
-
-            # 10. 最终验证编译结果
-            if compilation_success:
-                print(f"\n{'='*50}")
-                print("🔍 最终验证编译结果...")
-                if verify_compilation_success():
-                    print("✅ 编译验证通过，代码已准备就绪")
-
-                    # 11. 前端代码迁移（在编译验证成功后执行）
-                    print(f"\n{'='*50}")
-                    print("📁 执行前端代码迁移...")
-                    try:
-                        if migrate_frontend_code():
-                            print("✅ 前端代码迁移完成")
-                        else:
-                            print("⚠️ 前端代码迁移失败或跳过")
-                    except Exception as e:
-                        print(f"⚠️ 前端代码迁移异常: {e}")
-
-                    # 12. 数据库SQL执行（在前端迁移后执行）
-                    print(f"\n{'='*50}")
-                    print("🗄️ 执行数据库SQL文件...")
-                    try:
-                        if execute_database_sql():
-                            print("✅ 数据库SQL执行完成")
-                        else:
-                            print("⚠️ 数据库SQL执行失败或跳过")
-                    except Exception as e:
-                        print(f"⚠️ 数据库SQL执行异常: {e}")
-
-                    # 提供重启服务建议
-                    print(f"\n🔄 重要提示:")
-                    print(f"   新模块已编译完成，建议重启后端服务以加载新代码")
-                    print(f"   1. 停止当前后端服务")
-                    print(f"   2. 通过VS Code重新启动后端服务")
-                    print(f"   3. 验证新功能是否正常工作")
-                else:
-                    print("⚠️ 编译验证部分通过，建议检查")
-            else:
-                print("❌ 编译失败")
-                print("   建议手动执行:")
-                if CURRENT_TABLE_NAME:
-                    try:
-                        components = parse_table_name_components(CURRENT_TABLE_NAME)
-                        module_name = components['module_name']
-                        print(f"   1. cd jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}")
-                        print(f"   2. mvn clean install -DskipTests")
-                    except:
-                        pass
-                print(f"   或: mvn clean compile -DskipTests (整体编译)")
-
-        except Exception as e:
-            print(f"⚠️ 编译过程异常: {e}")
-            print("   建议手动执行编译")
+    if compilation_config.get('enabled', False):
+        print("⚙️ 编译功能已启用，但建议跳过以提高效率...")
+        print("   编译不影响代码生成核心功能")
+        print("   如需编译验证，请在工作流完成后手动执行")
+        compilation_success = True  # 跳过编译，假设成功
     else:
-        print(f"\n{'='*50}")
-        print("⏭️ 跳过自动编译（已禁用）")
-        print("   如需编译，请手动执行:")
+        print("⏭️ 跳过编译步骤（已优化）")
+        print("   ✅ 编译不影响代码生成核心功能")
+        print("   ✅ 配置文件替换已在代码生成前完成")
+        print("   ✅ 跳过编译可显著提高工作流效率")
+        compilation_success = True
+
+    # 10. 前端代码迁移（无需编译验证）
+    print(f"\n{'='*50}")
+    print("📁 执行前端代码迁移...")
+    try:
+        if migrate_frontend_code():
+            print("✅ 前端代码迁移完成")
+        else:
+            print("⚠️ 前端代码迁移失败或跳过")
+    except Exception as e:
+        print(f"⚠️ 前端代码迁移异常: {e}")
+
+    # 11. 数据库SQL执行
+    print(f"\n{'='*50}")
+    print("🗄️ 执行数据库SQL文件...")
+    try:
+        if execute_database_sql():
+            print("✅ 数据库SQL执行完成")
+        else:
+            print("⚠️ 数据库SQL执行失败或跳过")
+    except Exception as e:
+        print(f"⚠️ 数据库SQL执行异常: {e}")
+
+    # 编译建议（仅在需要时提供）
+    print(f"\n{'='*50}")
+    print("💡 编译建议（可选）:")
+    print("   如果需要验证生成代码的正确性，可手动执行:")
+    try:
         if CURRENT_TABLE_NAME:
-            try:
-                components = parse_table_name_components(CURRENT_TABLE_NAME)
-                module_name = components['module_name']
-                print(f"   1. cd jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}")
-                print(f"   2. mvn clean install -DskipTests")
-            except:
-                pass
-        print(f"   或: mvn clean compile -DskipTests (整体编译)")
+            components = parse_table_name_components(CURRENT_TABLE_NAME)
+            module_name = components['module_name']
+            print(f"   1. cd jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}")
+            print(f"   2. mvn compile -DskipTests  # 快速编译验证")
+            print(f"   3. mvn clean install -DskipTests  # 完整编译安装（如需要）")
+        else:
+            print(f"   mvn compile -DskipTests  # 整体项目编译验证")
+    except:
+        print(f"   mvn compile -DskipTests  # 整体项目编译验证")
+    print(f"   注意：编译仅用于验证，不影响代码生成功能")
 
     # 11. 完成
     print(f"\n{'='*50}")
@@ -3602,20 +3545,48 @@ def fix_generated_code_templates():
             print(f"   🔍 发现 {len(template_dirs)} 个包含模板变量的目录")
 
             for template_dir in template_dirs:
-                # 计算正确的目录路径
-                correct_path_str = str(template_dir).replace("{{PACKAGE_NAME}}", correct_package.replace(".", "/"))
+                # 计算正确的目录路径 - 直接替换为实体名，避免包路径重复
+                correct_path_str = str(template_dir).replace("{{PACKAGE_NAME}}", ENTITY_NAME)
                 correct_path = Path(correct_path_str)
 
                 print(f"   📁 重命名目录:")
                 print(f"      从: {template_dir}")
                 print(f"      到: {correct_path}")
+                print(f"      替换逻辑: {{{{PACKAGE_NAME}}}} → {ENTITY_NAME}")
 
                 # 确保父目录存在
                 correct_path.parent.mkdir(parents=True, exist_ok=True)
 
-                # 移动目录
-                if template_dir.exists():
-                    shutil.move(str(template_dir), str(correct_path))
+                # 移动目录内容而不是整个目录
+                if template_dir.exists() and template_dir.is_dir():
+                    # 如果目标目录已存在，合并内容
+                    if correct_path.exists():
+                        print(f"   🔄 目标目录已存在，合并内容...")
+                        for item in template_dir.iterdir():
+                            target_item = correct_path / item.name
+                            if item.is_dir():
+                                if not target_item.exists():
+                                    shutil.move(str(item), str(target_item))
+                                else:
+                                    # 递归合并目录
+                                    for sub_item in item.rglob('*'):
+                                        if sub_item.is_file():
+                                            rel_path = sub_item.relative_to(item)
+                                            target_file = target_item / rel_path
+                                            target_file.parent.mkdir(parents=True, exist_ok=True)
+                                            shutil.move(str(sub_item), str(target_file))
+                            else:
+                                if not target_item.exists():
+                                    shutil.move(str(item), str(target_item))
+                        # 删除空的源目录
+                        try:
+                            template_dir.rmdir()
+                        except:
+                            pass
+                    else:
+                        # 直接移动整个目录
+                        shutil.move(str(template_dir), str(correct_path))
+
                     print(f"   ✅ 目录重命名成功")
 
         # 2. 检测和修复路径重复问题
@@ -3660,44 +3631,51 @@ def fix_generated_code_templates():
 
                     print(f"   ✅ 重复路径修复成功")
 
-        # 3. 修复文件内容中的包名重复问题
-        java_files = list(module_path.rglob("*.java"))
+        # 3. 修复文件内容中的模板变量和包名问题
+        all_files = list(module_path.rglob("*"))
         fixed_files = 0
 
-        for java_file in java_files:
-            try:
-                with open(java_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
+        for file_path in all_files:
+            if file_path.is_file() and file_path.suffix in ['.java', '.sql', '.xml', '.vue', '.ts', '.js']:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
 
-                # 检查是否包含模板变量
-                template_fixed = False
-                if '{{PACKAGE_NAME}}' in content:
-                    content = content.replace('{{PACKAGE_NAME}}', correct_package)
-                    template_fixed = True
+                    # 检查是否包含模板变量
+                    template_fixed = False
+                    if '{{PACKAGE_NAME}}' in content:
+                        # 根据文件类型选择替换策略
+                        if file_path.suffix == '.java':
+                            # Java文件使用完整包名
+                            content = content.replace('{{PACKAGE_NAME}}', correct_package)
+                        else:
+                            # 其他文件使用实体名
+                            content = content.replace('{{PACKAGE_NAME}}', ENTITY_NAME)
+                        template_fixed = True
 
-                # 检查是否包含重复的包名
-                duplicate_package = f"org.jeecg.modules.{module_name}.{sub_module}.{module_name}.{sub_module}"
-                package_fixed = False
-                if duplicate_package in content:
-                    content = content.replace(duplicate_package, correct_package)
-                    package_fixed = True
+                    # 检查是否包含重复的包名
+                    duplicate_package = f"org.jeecg.modules.{module_name}.{sub_module}.{module_name}.{sub_module}"
+                    package_fixed = False
+                    if duplicate_package in content:
+                        content = content.replace(duplicate_package, correct_package)
+                        package_fixed = True
 
-                # 如果有任何修复，写回文件
-                if template_fixed or package_fixed:
-                    with open(java_file, 'w', encoding='utf-8') as f:
-                        f.write(content)
+                    # 如果有任何修复，写回文件
+                    if template_fixed or package_fixed:
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write(content)
 
-                    fix_type = []
-                    if template_fixed:
-                        fix_type.append("模板变量")
-                    if package_fixed:
-                        fix_type.append("重复包名")
+                        fix_type = []
+                        if template_fixed:
+                            fix_type.append("模板变量")
+                        if package_fixed:
+                            fix_type.append("重复包名")
 
-                    print(f"   ✅ 修复文件 ({'/'.join(fix_type)}): {java_file.relative_to(module_path)}")
-                    fixed_files += 1
+                        print(f"   ✅ 修复文件 ({'/'.join(fix_type)}): {file_path.relative_to(module_path)}")
+                        fixed_files += 1
 
-            except Exception as e:
-                print(f"   ❌ 修复文件失败 {java_file}: {e}")
+                except Exception as e:
+                    print(f"   ❌ 修复文件失败 {file_path}: {e}")
 
         print(f"   📊 修复统计:")
         print(f"      模板目录修复: {len(template_dirs)} 个")

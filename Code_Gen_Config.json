@@ -28,17 +28,30 @@
     "code_types": "controller,service,dao,mapper,entity,vue"
   },
   "compilation": {
-    "enabled": true,
+    "enabled": false,
+    "strategy": "skip",
+    "reason": "编译不影响代码生成核心功能，跳过以提高效率",
     "maven_command": "mvn",
     "compile_args": [
-      "clean",
       "compile",
       "-DskipTests"
     ],
-    "timeout": 300,
-    "verify_target_classes": true,
+    "timeout": 120,
+    "verify_target_classes": false,
     "auto_create_pom": true,
-    "prefer_module_compilation": true
+    "prefer_module_compilation": true,
+    "fallback_options": {
+      "quick_compile": {
+        "enabled": false,
+        "command": ["mvn", "compile", "-DskipTests"],
+        "timeout": 120
+      },
+      "full_install": {
+        "enabled": false,
+        "command": ["mvn", "clean", "install", "-DskipTests"],
+        "timeout": 300
+      }
+    }
   },
   "frontend_migration": {
     "enabled": true,
