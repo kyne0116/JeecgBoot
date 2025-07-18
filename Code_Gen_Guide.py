@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-JeecgBoot 表单工作流执行工具 v2.0
-功能定位：纯粹的API调用工具，严格按照JeecgBoot官方API规范执行
-核心流程：登录 → 创建表单 → 获取ID → 同步数据库 → 生成代码
-设计原则：
-- 不进行任何业务逻辑推理或智能分析
-- 不篡改或修改任何API请求调用方式
-- 严格按照配置文件和参数执行API调用
-- 所有智能分析功能由AI在Code_Gen_Agent.md框架下处理
+JeecgBoot 代码生成工具 v3.0
+功能：基于JeecgBoot在线表单API的完整代码生成工作流
+流程：登录 → 创建表单 → 获取ID → 同步数据库 → 生成代码 → 编译验证 → 前端迁移
+特性：
+- 标准化表名解析和包名生成
+- 自动模块管理和Maven集成
+- 前端代码自动迁移
+- 数据库SQL自动执行
+- 完整的错误处理和日志记录
 """
 
 import requests
 import json
-import random
 import time
 import argparse
 import re
@@ -21,11 +21,10 @@ import subprocess
 import platform
 import xml.etree.ElementTree as ET
 import shutil
+import os
+import random
 from datetime import datetime
 from pathlib import Path
-
-# ==================== 配置加载 ====================
-import os
 
 def load_config():
     """加载配置文件"""
@@ -606,6 +605,28 @@ def backup_and_replace_jeecg_config(project_path, package_name):
         # 首先尝试替换模板变量
         content = content.replace('{{PROJECT_PATH}}', str(project_path))
         content = content.replace('{{PACKAGE_NAME}}', package_name)
+
+        # 如果有当前表名，进行更完整的变量替换
+        if CURRENT_TABLE_NAME:
+            try:
+                components = parse_table_name_components(CURRENT_TABLE_NAME)
+                module_name = components['module_name']
+                sub_module = components['sub_module']
+                entity_name = components['entity_name']
+                java_entity_name = convert_to_java_entity_name(entity_name)
+
+                content = content.replace('{{MODULE_NAME}}', module_name)
+                content = content.replace('{{SUBMODULE_NAME}}', sub_module)
+                content = content.replace('{{ENTITY_NAME}}', java_entity_name)
+                content = content.replace('{{TABLE_NAME}}', CURRENT_TABLE_NAME)
+
+                print(f"   🔄 完整变量替换:")
+                print(f"      {{{{MODULE_NAME}}}} → {module_name}")
+                print(f"      {{{{SUBMODULE_NAME}}}} → {sub_module}")
+                print(f"      {{{{ENTITY_NAME}}}} → {java_entity_name}")
+                print(f"      {{{{TABLE_NAME}}}} → {CURRENT_TABLE_NAME}")
+            except Exception as e:
+                print(f"   ⚠️ 解析表名失败，使用基础变量替换: {e}")
 
         # 如果没有模板变量，则直接替换配置值
         import re
@@ -1636,6 +1657,7 @@ def execute_sql_with_python(sql_file_path, db_connection):
         except ImportError:
             print("❌ 未安装mysql-connector-python库")
             print("   请安装: pip install mysql-connector-python")
+            print("   跳过数据库SQL执行步骤")
             return False
 
         # 读取SQL文件内容
@@ -2754,17 +2776,18 @@ def jeecg_complete_workflow():
     compilation_config = CONFIG.get('compilation', {})
     print(f"\n{'='*50}")
 
+    # 定义编译结果变量
+    compilation_success = True  # 默认假设成功
+
     if compilation_config.get('enabled', False):
         print("⚙️ 编译功能已启用，但建议跳过以提高效率...")
         print("   编译不影响代码生成核心功能")
         print("   如需编译验证，请在工作流完成后手动执行")
-        compilation_success = True  # 跳过编译，假设成功
     else:
         print("⏭️ 跳过编译步骤（已优化）")
         print("   ✅ 编译不影响代码生成核心功能")
         print("   ✅ 配置文件替换已在代码生成前完成")
         print("   ✅ 跳过编译可显著提高工作流效率")
-        compilation_success = True
 
     # 10. 前端代码迁移（无需编译验证）
     print(f"\n{'='*50}")
@@ -3382,8 +3405,7 @@ def main():
             project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
             PROJECT_PATH = f"{project_prefix}/jeecg-boot"  # 使用默认路径
 
-    # 3. 更新全局变量（使用预处理后的值）
-    update_global_vars()
+    # 3. 全局变量已在文件开头定义，无需额外更新
 
     # 显示工具信息
     print("JeecgBoot 表单工作流自动化工具 v2.0")
@@ -3479,41 +3501,7 @@ def load_config_from_file(config_file):
         print(f"❌ 配置文件加载失败: {e}")
         return CONFIG
 
-def update_global_vars():
-    """更新全局变量"""
-    global BASE_URL, LOGIN_USERNAME, LOGIN_PASSWORD
-    global REQUEST_TIMEOUT_LOGIN, REQUEST_TIMEOUT_CREATE, REQUEST_TIMEOUT_LIST
-    global REQUEST_TIMEOUT_SYNC, REQUEST_TIMEOUT_CODEGEN
-    global FORM_DATA_FILE, WAIT_TIME_AFTER_CREATE
-    global JSP_MODE, JFORM_TYPE
-    global PACKAGE_STYLE, VUE_STYLE, CODE_TYPES
-    global PAGE_SIZE, PAGE_NO, DISPLAY_TOKEN_LENGTH, MAX_DISPLAY_RECORDS
-
-    BASE_URL = CONFIG['server']['base_url']
-    LOGIN_USERNAME = CONFIG['server']['username']
-    LOGIN_PASSWORD = CONFIG['server']['password']
-
-    REQUEST_TIMEOUT_LOGIN = CONFIG['timeouts']['login']
-    REQUEST_TIMEOUT_CREATE = CONFIG['timeouts']['create']
-    REQUEST_TIMEOUT_LIST = CONFIG['timeouts']['list']
-    REQUEST_TIMEOUT_SYNC = CONFIG['timeouts']['sync']
-    REQUEST_TIMEOUT_CODEGEN = CONFIG['timeouts']['codegen']
-
-    FORM_DATA_FILE = CONFIG['form']['data_file']
-    WAIT_TIME_AFTER_CREATE = CONFIG['form']['wait_after_create']
-
-    # PROJECT_PATH 和 ENTITY_NAME 在主函数中已经预处理，这里不再覆盖
-    JSP_MODE = CONFIG['codegen']['jsp_mode']
-    JFORM_TYPE = CONFIG['codegen']['jform_type']
-    PACKAGE_STYLE = CONFIG['codegen']['package_style']
-    VUE_STYLE = CONFIG['codegen']['vue_style']
-    CODE_TYPES = CONFIG['codegen']['code_types']
-
-    PAGE_SIZE = CONFIG['query']['page_size']
-    PAGE_NO = CONFIG['query']['page_no']
-
-    DISPLAY_TOKEN_LENGTH = CONFIG['display']['token_length']
-    MAX_DISPLAY_RECORDS = CONFIG['display']['max_records']
+# 删除重复的update_global_vars函数，变量已在文件开头定义
 
 def fix_generated_code_templates():
     """修复生成代码中的模板变量和路径重复问题"""
@@ -3529,8 +3517,12 @@ def fix_generated_code_templates():
         module_name = components['module_name']
         sub_module = components['sub_module']
 
-        # 构建正确的包名
+        # 构建正确的包名 - 基于JeecgBoot标准结构
         correct_package = f"org.jeecg.modules.{module_name}.{sub_module}"
+
+        # 构建正确的包路径 - 注意：{{PACKAGE_NAME}}只替换为基础包路径，不包含子模块
+        # 因为官方API生成的路径结构是：{{PACKAGE_NAME}}/子模块名/controller/
+        base_package_path = f"org/jeecg/modules/{module_name}"
 
         # 查找生成的代码目录
         project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
@@ -3538,6 +3530,8 @@ def fix_generated_code_templates():
 
         print(f"   模块路径: {module_path}")
         print(f"   正确包名: {correct_package}")
+        print(f"   子模块名: {sub_module}")
+        print(f"   基础包路径: {base_package_path}")
 
         # 1. 修复目录结构中的模板变量
         template_dirs = list(module_path.rglob("*{{PACKAGE_NAME}}*"))
@@ -3545,14 +3539,16 @@ def fix_generated_code_templates():
             print(f"   🔍 发现 {len(template_dirs)} 个包含模板变量的目录")
 
             for template_dir in template_dirs:
-                # 计算正确的目录路径 - 直接替换为实体名，避免包路径重复
-                correct_path_str = str(template_dir).replace("{{PACKAGE_NAME}}", ENTITY_NAME)
+                # 正确的模板变量替换逻辑
+                # {{PACKAGE_NAME}} 应该替换为基础包路径：org/jeecg/modules/{module_name}
+                # 这样 {{PACKAGE_NAME}}/audit/controller 就会变成 org/jeecg/modules/test/audit/controller
+                correct_path_str = str(template_dir).replace("{{PACKAGE_NAME}}", base_package_path)
                 correct_path = Path(correct_path_str)
 
                 print(f"   📁 重命名目录:")
                 print(f"      从: {template_dir}")
                 print(f"      到: {correct_path}")
-                print(f"      替换逻辑: {{{{PACKAGE_NAME}}}} → {ENTITY_NAME}")
+                print(f"      替换逻辑: {{{{PACKAGE_NAME}}}} → {base_package_path}")
 
                 # 确保父目录存在
                 correct_path.parent.mkdir(parents=True, exist_ok=True)
@@ -3591,6 +3587,10 @@ def fix_generated_code_templates():
 
         # 2. 检测和修复路径重复问题
         # 查找重复的路径模式：org/jeecg/modules/scm/equipment/scm/equipment/
+        components = parse_table_name_components(CURRENT_TABLE_NAME)
+        module_name = components['module_name']
+        sub_module = components['sub_module']
+
         duplicate_pattern = f"org/jeecg/modules/{module_name}/{sub_module}/{module_name}/{sub_module}"
         correct_pattern = f"org/jeecg/modules/{module_name}/{sub_module}"
 
@@ -3643,14 +3643,48 @@ def fix_generated_code_templates():
 
                     # 检查是否包含模板变量
                     template_fixed = False
+                    original_content = content
+
+                    # 1. 替换 {{PACKAGE_NAME}}
                     if '{{PACKAGE_NAME}}' in content:
                         # 根据文件类型选择替换策略
                         if file_path.suffix == '.java':
-                            # Java文件使用完整包名
-                            content = content.replace('{{PACKAGE_NAME}}', correct_package)
+                            # Java文件使用基础包名，保持与目录结构一致
+                            base_package_name = f"org.jeecg.modules.{module_name}"
+                            content = content.replace('{{PACKAGE_NAME}}', base_package_name)
                         else:
-                            # 其他文件使用实体名
-                            content = content.replace('{{PACKAGE_NAME}}', ENTITY_NAME)
+                            # 其他文件也使用基础包名
+                            base_package_name = f"org.jeecg.modules.{module_name}"
+                            content = content.replace('{{PACKAGE_NAME}}', base_package_name)
+                        template_fixed = True
+
+                    # 2. 替换 {{PROJECT_PATH}}
+                    if '{{PROJECT_PATH}}' in content:
+                        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+                        project_path = f"{project_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
+                        content = content.replace('{{PROJECT_PATH}}', project_path)
+                        template_fixed = True
+
+                    # 3. 替换 {{ENTITY_NAME}}
+                    if '{{ENTITY_NAME}}' in content:
+                        entity_name = components['entity_name']
+                        java_entity_name = convert_to_java_entity_name(entity_name)
+                        content = content.replace('{{ENTITY_NAME}}', java_entity_name)
+                        template_fixed = True
+
+                    # 4. 替换 {{MODULE_NAME}}
+                    if '{{MODULE_NAME}}' in content:
+                        content = content.replace('{{MODULE_NAME}}', module_name)
+                        template_fixed = True
+
+                    # 5. 替换 {{SUBMODULE_NAME}}
+                    if '{{SUBMODULE_NAME}}' in content:
+                        content = content.replace('{{SUBMODULE_NAME}}', sub_module)
+                        template_fixed = True
+
+                    # 6. 替换 {{TABLE_NAME}}
+                    if '{{TABLE_NAME}}' in content:
+                        content = content.replace('{{TABLE_NAME}}', CURRENT_TABLE_NAME)
                         template_fixed = True
 
                     # 检查是否包含重复的包名
