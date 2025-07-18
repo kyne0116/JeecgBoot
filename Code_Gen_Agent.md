@@ -587,7 +587,8 @@ CORE_BUSINESS_SYSTEMS:
     semantic_domains: ["客户管理", "销售管理", "市场营销", "服务管理"]
   scm:
     description: "供应链管理系统"
-    semantic_domains: ["供应链", "采购管理", "库存管理", "物流管理"]
+    semantic_domains:
+      ["供应链", "采购管理", "库存管理", "物流管理", "设备管理", "资产管理"]
   oa:
     description: "办公自动化系统"
     semantic_domains: ["办公协同", "流程管理", "文档管理", "通信协作"]
@@ -673,18 +674,57 @@ SEMANTIC_INFERENCE_STRATEGY:
     semantic_patterns:
       core_concepts: ["供应链管理", "采购管理", "库存管理", "物流管理"]
       business_scenarios:
-        ["供应商管理", "采购订单", "库存控制", "物流配送", "质量管理"]
-      key_indicators: ["供应商", "采购", "库存", "物流", "订单", "商品"]
+        [
+          "供应商管理",
+          "采购订单",
+          "库存控制",
+          "物流配送",
+          "质量管理",
+          "设备管理",
+          "资产管理",
+          "设备维护",
+        ]
+      key_indicators:
+        [
+          "供应商",
+          "采购",
+          "库存",
+          "物流",
+          "订单",
+          "商品",
+          "设备",
+          "资产",
+          "硬件",
+          "器材",
+        ]
 
     inference_logic:
       primary_signals:
         - "涉及供应商、采购、库存相关的管理流程"
         - "包含物流、仓储、配送等供应链操作"
         - "涉及商品、订单、质检等供应链业务"
+        - "包含设备、资产、硬件等物理资源管理"
+        - "涉及设备维护、资产盘点、器材管理等场景"
 
       semantic_keywords:
         chinese:
-          ["供应商", "采购", "库存", "物流", "仓储", "订单", "商品", "质检"]
+          [
+            "供应商",
+            "采购",
+            "库存",
+            "物流",
+            "仓储",
+            "订单",
+            "商品",
+            "质检",
+            "设备",
+            "资产",
+            "硬件",
+            "器材",
+            "键盘",
+            "显示器",
+            "设备管理",
+          ]
         english:
           [
             "supplier",
@@ -694,12 +734,21 @@ SEMANTIC_INFERENCE_STRATEGY:
             "warehouse",
             "order",
             "goods",
+            "device",
+            "equipment",
+            "asset",
+            "hardware",
+            "keyboard",
+            "monitor",
+            "device_management",
           ]
 
       context_analysis:
         - "分析是否涉及供应链和物流管理"
         - "判断是否需要采购和库存相关业务流程"
         - "评估是否涉及供应商和商品管理"
+        - "检查是否包含设备、资产、硬件等物理资源管理"
+        - "识别设备维护、资产盘点、器材管理等业务场景"
   crm_system:
     priority: 4
     semantic_patterns:

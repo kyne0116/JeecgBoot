@@ -194,8 +194,10 @@ def print_core_variables():
     print(f"   - PROJECT_PATH: 由配置和MODULE_NAME组合而成的项目路径")
 
 def validate_core_variables():
-    """验证三核心变量的有效性"""
+    """验证三核心变量的有效性和一致性"""
     errors = []
+
+    print(f"\n🔍 三核心变量一致性验证:")
 
     # 验证MODULE_NAME
     if not MODULE_NAME:
@@ -214,6 +216,27 @@ def validate_core_variables():
         errors.append("ENTITY_NAME不能为空")
     elif not re.match(r'^[a-z][a-z0-9_]*$', ENTITY_NAME):
         errors.append(f"ENTITY_NAME格式不正确: {ENTITY_NAME}")
+
+    # 验证派生变量一致性
+    if MODULE_NAME and SUBMODULE_NAME and ENTITY_NAME:
+        expected_table_name = f"us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}"
+        expected_package_name = f"org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
+        expected_project_path_suffix = f"jeecg-module-{MODULE_NAME}"
+
+        print(f"   📊 派生变量一致性检查:")
+        print(f"      期望表名: {expected_table_name}")
+        print(f"      实际表名: {TABLE_NAME or 'None'}")
+        print(f"      期望包名: {expected_package_name}")
+        print(f"      实际包名: {PACKAGE_NAME or 'None'}")
+
+        if TABLE_NAME and TABLE_NAME != expected_table_name:
+            errors.append(f"表名不一致: 期望 {expected_table_name}, 实际 {TABLE_NAME}")
+
+        if PACKAGE_NAME and PACKAGE_NAME != expected_package_name:
+            errors.append(f"包名不一致: 期望 {expected_package_name}, 实际 {PACKAGE_NAME}")
+
+        if PROJECT_PATH and expected_project_path_suffix not in PROJECT_PATH:
+            errors.append(f"项目路径不一致: 期望包含 {expected_project_path_suffix}, 实际 {PROJECT_PATH}")
 
     if errors:
         print("❌ 三核心变量验证失败:")
@@ -1000,7 +1023,7 @@ def verify_new_module_loaded(module_name=None):
 # ==================== 前端代码迁移功能 ====================
 
 def migrate_frontend_code():
-    """前端代码目录迁移和重组 - 重命名vue3为模块名并移动到views目录"""
+    """前端代码目录迁移和重组 - 解析SQL注释获取正确路径并移动到views目录"""
     migration_config = CONFIG.get('frontend_migration', {})
 
     if not migration_config.get('enabled', True):
@@ -1024,29 +1047,72 @@ def migrate_frontend_code():
         print(f"   模块名: {module_name}")
         print(f"   子模块: {sub_module}")
 
-        # 2. 构建路径
+        # 2. 构建路径 - 增加容错机制
         project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
 
         # 源路径：后端模块中的vue3目录
         source_vue3_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3'
 
-        # 重命名后的路径：将vue3重命名为模块名
-        renamed_dir = source_vue3_dir.parent / module_name
+        # 3. 首先查找并解析SQL文件以获取正确的前端路径
+        correct_frontend_path = extract_frontend_path_from_sql()
+        if correct_frontend_path:
+            print(f"📄 从SQL文件解析到正确的前端路径: {correct_frontend_path}")
+            # 使用SQL文件中指定的路径
+            target_base_path = migration_config.get('target_base_path', 'jeecgboot-vue3/src/views')
+            target_views_base = Path(project_prefix) / target_base_path
+            final_target_dir = target_views_base / correct_frontend_path
+        else:
+            print("⚠️ 未能从SQL文件解析到前端路径，使用默认路径")
+            # 使用默认路径：module_name/sub_module
+            target_base_path = migration_config.get('target_base_path', 'jeecgboot-vue3/src/views')
+            target_views_base = Path(project_prefix) / target_base_path
+            final_target_dir = target_views_base / module_name / sub_module
 
-        # 最终目标路径：前端项目的views目录下的模块目录
-        target_base_path = migration_config.get('target_base_path', 'jeecgboot-vue3/src/views')
-        target_views_base = Path(project_prefix) / target_base_path
-        final_target_dir = target_views_base / module_name
+        # 重命名后的路径：将vue3重命名为子模块名
+        renamed_dir = source_vue3_dir.parent / sub_module
 
         print(f"📂 路径信息:")
         print(f"   源vue3目录: {source_vue3_dir}")
         print(f"   重命名目录: {renamed_dir}")
         print(f"   最终目标: {final_target_dir}")
 
-        # 3. 验证源目录存在且包含vue3前端文件
+        # 3. 验证源目录存在且包含vue3前端文件 - 增加容错搜索
         if not source_vue3_dir.exists():
             print(f"❌ 源vue3目录不存在: {source_vue3_dir}")
-            return False
+
+            # 容错机制1：检查前端项目中是否已有文件（可能之前已迁移但路径错误）
+            current_frontend_dir = Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name
+            if current_frontend_dir.exists():
+                vue_files = list(current_frontend_dir.glob('*.vue'))
+                ts_files = list(current_frontend_dir.glob('*.ts'))
+                js_files = list(current_frontend_dir.glob('*.js'))
+
+                if vue_files or ts_files or js_files:
+                    print(f"✅ 在前端项目中找到已迁移的文件: {current_frontend_dir}")
+                    print(f"   找到 {len(vue_files)} 个Vue文件，{len(ts_files)} 个TS文件，{len(js_files)} 个JS文件")
+
+                    # 直接从前端项目的错误位置迁移到正确位置
+                    return _migrate_from_frontend_wrong_location(current_frontend_dir, final_target_dir, migration_config)
+
+            # 容错机制2：在其他可能的模块中搜索vue3目录
+            print(f"🔍 启动后端模块容错搜索机制...")
+            alternative_modules = ['system', 'scm', 'finance', 'hrms', 'crm', 'oa']
+            found_alternative = False
+
+            for alt_module in alternative_modules:
+                if alt_module == module_name:
+                    continue
+                alt_source_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{alt_module}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3'
+                if alt_source_dir.exists():
+                    print(f"✅ 在模块 {alt_module} 中找到vue3目录: {alt_source_dir}")
+                    source_vue3_dir = alt_source_dir
+                    renamed_dir = source_vue3_dir.parent / sub_module
+                    found_alternative = True
+                    break
+
+            if not found_alternative:
+                print(f"❌ 在所有位置都未找到前端文件")
+                return False
 
         # 检查是否包含前端文件
         vue_files = list(source_vue3_dir.glob('*.vue'))
@@ -1068,13 +1134,174 @@ def migrate_frontend_code():
         traceback.print_exc()
         return False
 
+def extract_frontend_path_from_sql():
+    """从生成的SQL文件中解析正确的前端路径"""
+    try:
+        # 查找SQL文件
+        sql_file_path = find_generated_sql_file()
+        if not sql_file_path:
+            print("⚠️ 未找到SQL文件，无法解析前端路径")
+            return None
+
+        print(f"📄 解析SQL文件: {sql_file_path}")
+
+        # 读取SQL文件内容
+        with open(sql_file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # 解析注释中的前端路径
+        # 格式：-- 注意：该页面对应的前台目录为views/scm/device文件夹下
+        import re
+        pattern = r'-- 注意：该页面对应的前台目录为views/([^文]+)文件夹下'
+        match = re.search(pattern, content)
+
+        if match:
+            frontend_path = match.group(1).strip()
+            print(f"✅ 解析到前端路径: views/{frontend_path}")
+            return frontend_path
+        else:
+            print("⚠️ SQL文件中未找到前端路径注释")
+            return None
+
+    except Exception as e:
+        print(f"❌ 解析SQL文件前端路径失败: {e}")
+        return None
+
+def _migrate_from_frontend_wrong_location(source_dir, target_dir, migration_config):
+    """从前端项目的错误位置迁移到正确位置"""
+    print(f"\n🔄 从前端项目错误位置迁移到正确位置...")
+    print(f"   源目录: {source_dir}")
+    print(f"   目标目录: {target_dir}")
+
+    try:
+        # 检查是否是移动到子目录的情况（避免移动目录到自身）
+        if target_dir.is_relative_to(source_dir):
+            print(f"⚠️ 检测到目标目录是源目录的子目录，使用特殊处理方式")
+            return _migrate_to_subdirectory(source_dir, target_dir, migration_config)
+
+        # 确保目标目录的父目录存在
+        target_dir.parent.mkdir(parents=True, exist_ok=True)
+
+        # 检查目标目录是否已存在
+        if target_dir.exists():
+            print(f"⚠️ 目标目录已存在: {target_dir}")
+            if migration_config.get('cleanup_source', False):
+                print(f"   删除已存在的目标目录...")
+                shutil.rmtree(target_dir)
+            else:
+                print(f"❌ 目标目录已存在，停止迁移以避免覆盖")
+                return False
+
+        # 移动整个目录
+        shutil.move(str(source_dir), str(target_dir))
+
+        # 验证移动结果
+        if target_dir.exists():
+            files = list(target_dir.rglob('*'))
+            file_count = len([f for f in files if f.is_file()])
+
+            print(f"✅ 前端文件迁移成功!")
+            print(f"   最终位置: {target_dir}")
+            print(f"   文件数量: {file_count} 个")
+
+            # 显示主要文件
+            main_files = []
+            for pattern in ['*.vue', '*.ts', '*.js']:
+                main_files.extend(target_dir.glob(pattern))
+
+            if main_files:
+                print(f"\n📁 主要文件列表:")
+                for file in main_files[:10]:  # 显示前10个
+                    print(f"      {file.name}")
+                if len(main_files) > 10:
+                    print(f"      ... 还有 {len(main_files) - 10} 个文件")
+
+            return True
+        else:
+            print(f"❌ 迁移失败，目标目录不存在")
+            return False
+
+    except Exception as e:
+        print(f"❌ 前端文件迁移失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def _migrate_to_subdirectory(source_dir, target_dir, migration_config):
+    """将目录内容迁移到其子目录"""
+    print(f"\n🔄 将目录内容迁移到子目录...")
+
+    try:
+        # 创建临时目录
+        import tempfile
+        temp_dir = Path(tempfile.mkdtemp(prefix='jeecg_migration_'))
+        print(f"   创建临时目录: {temp_dir}")
+
+        # 1. 先将所有文件移动到临时目录
+        print(f"   步骤1: 移动文件到临时目录")
+        moved_items = []
+        for item in source_dir.iterdir():
+            if item.name != target_dir.name:  # 不移动目标目录本身
+                temp_item = temp_dir / item.name
+                shutil.move(str(item), str(temp_item))
+                moved_items.append(item.name)
+                print(f"      移动: {item.name}")
+
+        # 2. 确保目标目录存在
+        target_dir.mkdir(parents=True, exist_ok=True)
+        print(f"   步骤2: 创建目标目录: {target_dir}")
+
+        # 3. 将文件从临时目录移动到目标目录
+        print(f"   步骤3: 移动文件到目标目录")
+        for item_name in moved_items:
+            temp_item = temp_dir / item_name
+            target_item = target_dir / item_name
+            shutil.move(str(temp_item), str(target_item))
+            print(f"      移动: {item_name}")
+
+        # 4. 清理临时目录
+        shutil.rmtree(temp_dir)
+        print(f"   步骤4: 清理临时目录")
+
+        # 验证结果
+        if target_dir.exists():
+            files = list(target_dir.rglob('*'))
+            file_count = len([f for f in files if f.is_file()])
+
+            print(f"✅ 子目录迁移成功!")
+            print(f"   最终位置: {target_dir}")
+            print(f"   文件数量: {file_count} 个")
+
+            # 显示主要文件
+            main_files = []
+            for pattern in ['*.vue', '*.ts', '*.js']:
+                main_files.extend(target_dir.glob(pattern))
+
+            if main_files:
+                print(f"\n📁 主要文件列表:")
+                for file in main_files[:10]:  # 显示前10个
+                    print(f"      {file.name}")
+                if len(main_files) > 10:
+                    print(f"      ... 还有 {len(main_files) - 10} 个文件")
+
+            return True
+        else:
+            print(f"❌ 子目录迁移失败，目标目录不存在")
+            return False
+
+    except Exception as e:
+        print(f"❌ 子目录迁移失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 def _execute_rename_and_move(source_vue3_dir, renamed_dir, final_target_dir, target_views_base, migration_config):
     """执行重命名和移动操作"""
     print(f"\n🔄 执行重命名和移动操作...")
 
     try:
-        # 步骤1：重命名vue3目录为模块名
-        print(f"1️⃣ 重命名vue3目录为模块名...")
+        # 步骤1：重命名vue3目录为子模块名
+        print(f"1️⃣ 重命名vue3目录为子模块名...")
 
         # 检查重命名目标是否已存在
         if renamed_dir.exists():
@@ -1220,12 +1447,17 @@ def find_generated_sql_file():
         project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
 
         # 搜索路径列表（按优先级排序）
+        sub_module = components['sub_module']
         search_paths = [
-            # 1. 前端项目views目录（迁移后的位置）
+            # 1. 前端项目views目录（迁移后的位置 - 新的正确路径）
+            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name / sub_module,
+            # 2. 前端项目views目录（迁移后的位置 - 旧的错误路径，向后兼容）
             Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name,
-            # 2. 后端模块目录
+            # 3. 后端模块目录中的vue3目录
+            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3',
+            # 4. 后端模块目录
             Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}',
-            # 3. 项目根目录
+            # 5. 项目根目录
             Path(project_prefix),
         ]
 
@@ -2173,9 +2405,18 @@ def jeecg_complete_workflow():
                 print(f"❌ 模块管理失败，终止工作流")
                 return
 
-            # 更新项目路径配置
+            # 更新项目路径配置 - 使用变量一致性验证
             global PROJECT_PATH, ENTITY_NAME
             project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+
+            # 变量一致性检查：确保module_name与MODULE_NAME一致
+            if MODULE_NAME and MODULE_NAME != module_name:
+                print(f"⚠️ 检测到模块名不一致:")
+                print(f"   表名解析结果: MODULE_NAME = {MODULE_NAME}")
+                print(f"   工作流参数: module_name = {module_name}")
+                print(f"   🔧 使用表名解析结果确保一致性")
+                module_name = MODULE_NAME  # 强制使用表名解析的结果
+
             PROJECT_PATH = str(Path(f"{project_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}").resolve())
 
             # 从表名提取业务实体名（支持新的命名规范）
@@ -2183,10 +2424,19 @@ def jeecg_complete_workflow():
 
             print(f"🔧 更新项目路径: {PROJECT_PATH}")
             print(f"📦 更新实体名称: {ENTITY_NAME}")
+            print(f"✅ 模块名一致性验证通过: {module_name}")
 
             # 生成完整包名（基于模块名称和实体名称）
             # 生成完整包名（基于标准化命名规范）
             package_name = generate_standardized_package_name(force_system=FORCE_SYSTEM)
+
+            # 执行变量一致性验证
+            print(f"\n🔍 执行变量一致性验证...")
+            if not validate_core_variables():
+                print(f"❌ 变量一致性验证失败，可能影响代码生成质量")
+                print(f"   建议检查表名格式和模块映射逻辑")
+            else:
+                print(f"✅ 变量一致性验证通过，继续执行工作流")
 
             # 打印详细的路径信息
             print(f"\n📋 动态更新后的路径变量:")
@@ -2389,8 +2639,10 @@ def jeecg_complete_workflow():
         print(f"   强制系统                 = {FORCE_SYSTEM or 'None'}")
 
         # 准备代码生成参数
-        # 构建正确的entityPackage：应该是 模块名.子模块名，而不是实体名
-        entity_package = f"{MODULE_NAME}.{SUBMODULE_NAME}" if MODULE_NAME and SUBMODULE_NAME else ENTITY_NAME
+        # 修复entityPackage参数：避免路径重复问题
+        # JeecgBoot模板中 ${bussiPackage}/${entityPackage} 会导致路径重复
+        # 正确做法：entityPackage应该为空或者是业务实体名，不应该重复bussiPackage的路径
+        entity_package = ENTITY_NAME  # 使用业务实体名，避免路径重复
 
         codegen_data = {
             "projectPath": PROJECT_PATH,
@@ -2411,8 +2663,9 @@ def jeecg_complete_workflow():
         # 打印完整的代码生成请求参数
         print(f"\n📋 代码生成请求参数:")
         print(f"   🔧 关键参数修复说明:")
-        print(f"      entityPackage = {entity_package} (修复前: {ENTITY_NAME})")
-        print(f"      bussiPackage  = {package_name}")
+        print(f"      entityPackage = {entity_package} (避免路径重复)")
+        print(f"      bussiPackage  = {package_name} (完整包路径)")
+        print(f"      预期生成路径 = {package_name.replace('.', '/')}/{entity_package}/")
         print(f"   📋 完整参数列表:")
         for key, value in codegen_data.items():
             print(f"      {key:<20} = {value}")
@@ -2439,6 +2692,13 @@ def jeecg_complete_workflow():
             if result.get('success'):
                 print("✅ 代码生成成功")
                 print(f"   响应消息: {result.get('message', 'N/A')}")
+
+                # 立即修复生成代码中的模板变量问题
+                print("\n🔧 修复生成代码中的模板变量问题...")
+                if fix_generated_code_templates():
+                    print("✅ 模板变量修复完成")
+                else:
+                    print("❌ 模板变量修复失败，但继续执行后续步骤")
             else:
                 print(f"❌ 代码生成失败: {result.get('message', '未知错误')}")
                 print(f"   完整响应: {result}")
@@ -2627,7 +2887,12 @@ def jeecg_complete_workflow():
             migration_config = CONFIG.get('frontend_migration', {})
             if migration_config.get('enabled', True):
                 target_base_path = migration_config.get('target_base_path', 'jeecgboot-vue3/src/views')
-                print(f"   前端代码路径: /{target_base_path}/{components['module_name']}")
+                # 尝试从SQL文件解析正确路径
+                correct_frontend_path = extract_frontend_path_from_sql()
+                if correct_frontend_path:
+                    print(f"   前端代码路径: /{target_base_path}/{correct_frontend_path}")
+                else:
+                    print(f"   前端代码路径: /{target_base_path}/{components['module_name']}/{components['sub_module']}")
             else:
                 print(f"   前端代码路径: /jeecg-boot/jeecg-boot-module/jeecg-module-{components['module_name']}/src/main/java/org/jeecg/modules/{components['module_name']}/{components['sub_module']}/vue3")
 
@@ -3306,6 +3571,151 @@ def update_global_vars():
 
     DISPLAY_TOKEN_LENGTH = CONFIG['display']['token_length']
     MAX_DISPLAY_RECORDS = CONFIG['display']['max_records']
+
+def fix_generated_code_templates():
+    """修复生成代码中的模板变量和路径重复问题"""
+    print(f"\n🔧 修复生成代码中的模板变量和路径重复问题...")
+
+    try:
+        # 获取当前表名信息
+        if not CURRENT_TABLE_NAME:
+            print("❌ 当前表名为空，无法修复代码")
+            return False
+
+        components = parse_table_name_components(CURRENT_TABLE_NAME)
+        module_name = components['module_name']
+        sub_module = components['sub_module']
+
+        # 构建正确的包名
+        correct_package = f"org.jeecg.modules.{module_name}.{sub_module}"
+
+        # 查找生成的代码目录
+        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+        module_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}'
+
+        print(f"   模块路径: {module_path}")
+        print(f"   正确包名: {correct_package}")
+
+        # 1. 修复目录结构中的模板变量
+        template_dirs = list(module_path.rglob("*{{PACKAGE_NAME}}*"))
+        if template_dirs:
+            print(f"   🔍 发现 {len(template_dirs)} 个包含模板变量的目录")
+
+            for template_dir in template_dirs:
+                # 计算正确的目录路径
+                correct_path_str = str(template_dir).replace("{{PACKAGE_NAME}}", correct_package.replace(".", "/"))
+                correct_path = Path(correct_path_str)
+
+                print(f"   📁 重命名目录:")
+                print(f"      从: {template_dir}")
+                print(f"      到: {correct_path}")
+
+                # 确保父目录存在
+                correct_path.parent.mkdir(parents=True, exist_ok=True)
+
+                # 移动目录
+                if template_dir.exists():
+                    shutil.move(str(template_dir), str(correct_path))
+                    print(f"   ✅ 目录重命名成功")
+
+        # 2. 检测和修复路径重复问题
+        # 查找重复的路径模式：org/jeecg/modules/scm/equipment/scm/equipment/
+        duplicate_pattern = f"org/jeecg/modules/{module_name}/{sub_module}/{module_name}/{sub_module}"
+        correct_pattern = f"org/jeecg/modules/{module_name}/{sub_module}"
+
+        duplicate_dirs = list(module_path.rglob(f"*/{module_name}/{sub_module}/{module_name}/{sub_module}"))
+        if duplicate_dirs:
+            print(f"   🔍 发现 {len(duplicate_dirs)} 个重复路径目录")
+
+            for duplicate_dir in duplicate_dirs:
+                # 计算正确的目录路径
+                duplicate_str = str(duplicate_dir)
+                correct_str = duplicate_str.replace(f"/{module_name}/{sub_module}/{module_name}/{sub_module}", f"/{module_name}/{sub_module}")
+                correct_path = Path(correct_str)
+
+                print(f"   📁 修复重复路径:")
+                print(f"      从: {duplicate_dir}")
+                print(f"      到: {correct_path}")
+
+                # 确保目标目录的父目录存在
+                correct_path.parent.mkdir(parents=True, exist_ok=True)
+
+                # 移动目录内容
+                if duplicate_dir.exists() and duplicate_dir.is_dir():
+                    # 如果目标目录已存在，合并内容
+                    if correct_path.exists():
+                        # 移动所有子项到正确位置
+                        for item in duplicate_dir.iterdir():
+                            target_item = correct_path / item.name
+                            if not target_item.exists():
+                                shutil.move(str(item), str(target_item))
+                        # 删除空的重复目录
+                        try:
+                            duplicate_dir.rmdir()
+                        except:
+                            pass
+                    else:
+                        # 直接移动整个目录
+                        shutil.move(str(duplicate_dir), str(correct_path))
+
+                    print(f"   ✅ 重复路径修复成功")
+
+        # 3. 修复文件内容中的包名重复问题
+        java_files = list(module_path.rglob("*.java"))
+        fixed_files = 0
+
+        for java_file in java_files:
+            try:
+                with open(java_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # 检查是否包含模板变量
+                template_fixed = False
+                if '{{PACKAGE_NAME}}' in content:
+                    content = content.replace('{{PACKAGE_NAME}}', correct_package)
+                    template_fixed = True
+
+                # 检查是否包含重复的包名
+                duplicate_package = f"org.jeecg.modules.{module_name}.{sub_module}.{module_name}.{sub_module}"
+                package_fixed = False
+                if duplicate_package in content:
+                    content = content.replace(duplicate_package, correct_package)
+                    package_fixed = True
+
+                # 如果有任何修复，写回文件
+                if template_fixed or package_fixed:
+                    with open(java_file, 'w', encoding='utf-8') as f:
+                        f.write(content)
+
+                    fix_type = []
+                    if template_fixed:
+                        fix_type.append("模板变量")
+                    if package_fixed:
+                        fix_type.append("重复包名")
+
+                    print(f"   ✅ 修复文件 ({'/'.join(fix_type)}): {java_file.relative_to(module_path)}")
+                    fixed_files += 1
+
+            except Exception as e:
+                print(f"   ❌ 修复文件失败 {java_file}: {e}")
+
+        print(f"   📊 修复统计:")
+        print(f"      模板目录修复: {len(template_dirs)} 个")
+        print(f"      重复路径修复: {len(duplicate_dirs) if 'duplicate_dirs' in locals() else 0} 个")
+        print(f"      文件内容修复: {fixed_files} 个")
+
+        if len(template_dirs) > 0 or (duplicate_dirs and len(duplicate_dirs) > 0) or fixed_files > 0:
+            print(f"   ✅ 代码修复完成")
+            return True
+        else:
+            print(f"   ℹ️ 未发现需要修复的问题")
+            return True
+
+    except Exception as e:
+        print(f"   ❌ 代码修复失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 if __name__ == "__main__":
     main()
