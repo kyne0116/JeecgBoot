@@ -1639,46 +1639,79 @@ def parse_database_config():
         with open(config_file, 'r', encoding='utf-8') as f:
             content = f.read()
 
+        # 增强调试：显示解析过程
+        print(f"🔍 开始解析数据库配置...")
+
         # 提取数据库连接信息（简单字符串匹配）
         import re
 
-        # 提取URL
-        url_match = re.search(r'url:\s*jdbc:mysql://([^:]+):(\d+)/([^?]+)', content)
+        # 提取URL - 改进正则表达式以处理URL参数
+        url_pattern = r'url:\s*jdbc:mysql://([^:]+):(\d+)/([^?\s]+)'
+        url_match = re.search(url_pattern, content)
         if not url_match:
             print("❌ 无法解析数据库URL")
+            print(f"🔍 搜索模式: {url_pattern}")
+            # 显示URL相关的行用于调试
+            url_lines = [line.strip() for line in content.split('\n') if 'url:' in line and 'jdbc:mysql' in line]
+            if url_lines:
+                print(f"🔍 找到的URL行: {url_lines[0]}")
             return None
 
         host = url_match.group(1)
         port = int(url_match.group(2))
         database = url_match.group(3)
 
-        # 提取用户名和密码（在datasource.master部分）
-        # 简化方案：直接在master配置块中搜索
+        print(f"✅ URL解析成功: {host}:{port}/{database}")
+
+        # 改进master配置块解析逻辑
         master_start = content.find('master:')
-        if master_start != -1:
-            # 找到master配置块的结束位置（下一个同级配置或文件结束）
-            master_end = content.find('\n        #', master_start)  # 注释行
-            if master_end == -1:
-                master_end = content.find('\n      ', master_start + 100)  # 下一个同级配置
-            if master_end == -1:
-                master_end = len(content)
+        if master_start == -1:
+            print("❌ 未找到master配置块")
+            return None
 
-            master_content = content[master_start:master_end]
-            username_match = re.search(r'username:\s*(\S+)', master_content)
-            password_match = re.search(r'password:\s*(\S+)', master_content)
-        else:
-            # 备用方案：在整个文件中搜索
-            username_match = re.search(r'username:\s*(\S+)', content)
-            password_match = re.search(r'password:\s*(\S+)', content)
+        print(f"✅ 找到master配置块，位置: {master_start}")
 
-        if not username_match or not password_match:
-            print("❌ 无法解析数据库用户名或密码")
+        # 找到master配置块的结束位置 - 改进逻辑
+        # 查找下一个同级配置（以相同缩进开始的行）
+        lines = content[master_start:].split('\n')
+        master_lines = [lines[0]]  # 包含 "master:" 行
+
+        # 从第二行开始，收集属于master块的行
+        for i, line in enumerate(lines[1:], 1):
+            # 如果是空行或注释行，跳过
+            if not line.strip() or line.strip().startswith('#'):
+                continue
+            # 如果缩进级别回到master同级或更高级别，停止
+            if line and not line.startswith('          '):  # master的子项应该有更深的缩进
+                break
+            master_lines.append(line)
+
+        master_content = '\n'.join(master_lines)
+        print(f"🔍 Master配置块内容:")
+        for line in master_lines[:5]:  # 只显示前5行用于调试
+            print(f"   {line}")
+
+        # 在master配置块中搜索用户名和密码
+        username_match = re.search(r'username:\s*(\S+)', master_content)
+        password_match = re.search(r'password:\s*(\S+)', master_content)
+
+        if not username_match:
+            print("❌ 无法解析数据库用户名")
+            print(f"🔍 在master块中搜索username模式")
+            return None
+
+        if not password_match:
+            print("❌ 无法解析数据库密码")
+            print(f"🔍 在master块中搜索password模式")
             return None
 
         username = username_match.group(1)
         password = password_match.group(1)
 
-        return {
+        print(f"✅ 用户名解析成功: {username}")
+        print(f"✅ 密码解析成功: {'*' * len(password)}")
+
+        db_config = {
             'host': host,
             'port': port,
             'database': database,
@@ -1686,8 +1719,13 @@ def parse_database_config():
             'password': password
         }
 
+        print(f"✅ 数据库配置解析完成: {host}:{port}/{database} (用户: {username})")
+        return db_config
+
     except Exception as e:
         print(f"❌ 解析数据库配置失败: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def execute_sql_file(sql_file_path, db_connection):
@@ -1749,6 +1787,9 @@ def execute_sql_with_mysql_client(sql_file_path, db_connection):
 
 def execute_sql_with_python(sql_file_path, db_connection):
     """使用Python库执行SQL文件"""
+    connection = None
+    cursor = None
+
     try:
         print(f"🐍 使用Python库执行SQL...")
 
@@ -1770,42 +1811,113 @@ def execute_sql_with_python(sql_file_path, db_connection):
 
         print(f"   找到 {len(sql_statements)} 条SQL语句")
 
-        # 连接数据库
-        connection = mysql.connector.connect(
-            host=db_connection['host'],
-            port=db_connection['port'],
-            user=db_connection['username'],
-            password=db_connection['password'],
-            database=db_connection['database']
-        )
+        # 连接数据库 - 增强错误处理
+        print(f"🔗 尝试连接数据库: {db_connection['host']}:{db_connection['port']}/{db_connection['database']}")
+        try:
+            connection = mysql.connector.connect(
+                host=db_connection['host'],
+                port=db_connection['port'],
+                user=db_connection['username'],
+                password=db_connection['password'],
+                database=db_connection['database'],
+                autocommit=False  # 明确设置事务模式
+            )
+            print("✅ 数据库连接成功")
+        except mysql.connector.Error as db_error:
+            print(f"❌ 数据库连接失败: {db_error}")
+            print(f"   错误代码: {db_error.errno}")
+            print(f"   错误信息: {db_error.msg}")
+            return False
+        except Exception as e:
+            print(f"❌ 数据库连接异常: {e}")
+            return False
+
+        # 验证连接状态
+        if not connection.is_connected():
+            print("❌ 数据库连接状态异常")
+            return False
 
         cursor = connection.cursor()
 
         # 执行SQL语句
         executed_count = 0
+        failed_count = 0
+        duplicate_count = 0
+
         for i, sql_stmt in enumerate(sql_statements, 1):
             if sql_stmt:
                 try:
                     cursor.execute(sql_stmt)
                     executed_count += 1
                     print(f"   ✅ 语句 {i}/{len(sql_statements)} 执行成功")
+                except mysql.connector.Error as sql_error:
+                    # 检查是否是重复键错误
+                    if sql_error.errno == 1062:  # Duplicate entry error
+                        duplicate_count += 1
+                        print(f"   ⚠️  语句 {i}/{len(sql_statements)} 重复记录，跳过")
+                        print(f"      SQL: {sql_stmt[:100]}...")
+                    else:
+                        failed_count += 1
+                        print(f"   ❌ 语句 {i}/{len(sql_statements)} 执行失败: {sql_error}")
+                        print(f"      错误代码: {sql_error.errno}")
+                        print(f"      SQL: {sql_stmt[:100]}...")
                 except Exception as e:
-                    print(f"   ❌ 语句 {i}/{len(sql_statements)} 执行失败: {e}")
+                    failed_count += 1
+                    print(f"   ❌ 语句 {i}/{len(sql_statements)} 执行异常: {e}")
                     print(f"      SQL: {sql_stmt[:100]}...")
 
         # 提交事务
-        connection.commit()
+        if executed_count > 0:
+            try:
+                connection.commit()
+                print(f"✅ 事务提交成功")
+            except Exception as e:
+                print(f"❌ 事务提交失败: {e}")
+                connection.rollback()
+                return False
 
-        # 关闭连接
-        cursor.close()
-        connection.close()
+        # 显示执行结果统计
+        total_processed = executed_count + duplicate_count
+        print(f"✅ SQL文件执行完成:")
+        print(f"   📊 总语句数: {len(sql_statements)}")
+        print(f"   ✅ 成功执行: {executed_count}")
+        if duplicate_count > 0:
+            print(f"   ⚠️  重复跳过: {duplicate_count}")
+        if failed_count > 0:
+            print(f"   ❌ 执行失败: {failed_count}")
+        print(f"   📈 处理成功率: {total_processed}/{len(sql_statements)} ({total_processed/len(sql_statements)*100:.1f}%)")
 
-        print(f"✅ SQL文件执行完成，成功执行 {executed_count}/{len(sql_statements)} 条语句")
-        return executed_count > 0
+        # 验证关键记录是否存在
+        if executed_count > 0 or duplicate_count > 0:
+            print(f"🔍 验证数据库记录...")
+            try:
+                # 检查主菜单记录（通常是第一条INSERT语句）
+                cursor.execute("SELECT COUNT(*) FROM sys_permission WHERE name LIKE '%教师信息管理表%' OR name LIKE '%invoice%' OR name LIKE '%财务%'")
+                count = cursor.fetchone()[0]
+                if count > 0:
+                    print(f"   ✅ 数据库中找到 {count} 条相关权限记录")
+                else:
+                    print(f"   ⚠️  数据库中未找到相关权限记录")
+            except Exception as e:
+                print(f"   ⚠️  验证记录时出错: {e}")
+
+        return total_processed > 0
 
     except Exception as e:
         print(f"❌ Python库执行SQL失败: {e}")
+        import traceback
+        traceback.print_exc()
         return False
+    finally:
+        # 确保连接被正确关闭
+        try:
+            if cursor:
+                cursor.close()
+            if connection and connection.is_connected():
+                connection.close()
+                print("🔌 数据库连接已关闭")
+        except Exception as e:
+            print(f"⚠️  关闭数据库连接时出错: {e}")
 
 # ==================== 编译相关功能 ====================
 
