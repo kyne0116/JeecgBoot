@@ -96,6 +96,8 @@
                             </arguments>
                             <includeProjectDependencies>true</includeProjectDependencies>
                             <includePluginDependencies>true</includePluginDependencies>
+                            <classpathScope>test</classpathScope>
+                            <skip>${skipTests}</skip>
                         </configuration>
                     </execution>
                 </executions>
