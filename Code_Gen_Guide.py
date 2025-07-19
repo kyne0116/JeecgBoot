@@ -3,12 +3,13 @@
 """
 JeecgBoot 代码生成工具 v3.0
 功能：基于JeecgBoot在线表单API的完整代码生成工作流
-流程：登录 → 创建表单 → 获取ID → 同步数据库 → 生成代码 → 编译验证 → 前端迁移
+流程：登录 → 创建表单 → 获取ID → 同步数据库 → 生成代码 → 编译验证 → 前端迁移 → 权限授权
 特性：
 - 标准化表名解析和包名生成
 - 自动模块管理和Maven集成
 - 前端代码自动迁移
 - 数据库SQL自动执行
+- 自动权限授权（管理员角色）
 - 完整的错误处理和日志记录
 """
 
@@ -80,6 +81,14 @@ def load_config():
             "timeout": 30,
             "auto_commit": True,
             "config_file_path": "jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/resources/application-dev.yml"
+        },
+        "permission_authorization": {
+            "enabled": True,
+            "admin_role_id": "f6817f48af4fb3af11b9e8bf182f618b",
+            "timeout": 30,
+            "retry_attempts": 3,
+            "auto_grant_to_admin": True,
+            "description": "自动为管理员角色授权新生成模块的权限"
         },
         "query": {
             "page_size": 50,
@@ -1919,6 +1928,231 @@ def execute_sql_with_python(sql_file_path, db_connection):
         except Exception as e:
             print(f"⚠️  关闭数据库连接时出错: {e}")
 
+# ==================== 权限授权功能 ====================
+
+def auto_grant_permissions():
+    """自动为管理员角色授权新生成模块的权限"""
+    try:
+        # 检查权限授权配置
+        permission_config = CONFIG.get('permission_authorization', {})
+
+        if not permission_config.get('enabled', True):
+            print("⏭️ 权限授权功能已禁用，跳过权限授权步骤")
+            return True
+
+        print(f"🔐 开始自动权限授权流程...")
+        print(f"   配置: {permission_config.get('description', '自动权限授权')}")
+
+        # 1. 登录获取Token
+        print(f"1️⃣ 正在登录获取Token...")
+        token = get_auth_token()
+        if not token:
+            print("❌ 无法获取认证Token，跳过权限授权")
+            return False
+
+        print(f"✅ 认证Token获取成功: {token[:DISPLAY_TOKEN_LENGTH]}...")
+
+        # 2. 查询管理员角色现有权限
+        print(f"2️⃣ 查询管理员角色现有权限...")
+        existing_permissions = query_role_permissions(token)
+        if existing_permissions is None:
+            print("❌ 无法查询现有权限，跳过权限授权")
+            return False
+
+        print(f"✅ 查询到现有权限数量: {len(existing_permissions)}")
+
+        # 3. 解析新生成的权限ID
+        print(f"3️⃣ 解析新生成的权限ID...")
+        new_permission_ids = parse_new_permission_ids()
+        if not new_permission_ids:
+            print("❌ 未找到新生成的权限ID，跳过权限授权")
+            return False
+
+        print(f"✅ 解析到新权限数量: {len(new_permission_ids)}")
+        for i, perm_id in enumerate(new_permission_ids, 1):
+            print(f"   {i}. {perm_id}")
+
+        # 4. 合并权限ID列表
+        print(f"4️⃣ 合并权限ID列表...")
+        all_permission_ids = list(set(existing_permissions + new_permission_ids))
+        added_count = len(all_permission_ids) - len(existing_permissions)
+
+        print(f"✅ 权限合并完成:")
+        print(f"   现有权限: {len(existing_permissions)} 个")
+        print(f"   新增权限: {len(new_permission_ids)} 个")
+        print(f"   实际新增: {added_count} 个（去重后）")
+        print(f"   合并总数: {len(all_permission_ids)} 个")
+
+        # 5. 保存权限到管理员角色
+        print(f"5️⃣ 保存权限到管理员角色...")
+        if save_role_permissions(token, existing_permissions, all_permission_ids):
+            print("✅ 权限授权成功完成")
+            return True
+        else:
+            print("❌ 权限保存失败")
+            return False
+
+    except Exception as e:
+        print(f"❌ 自动权限授权失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def get_auth_token():
+    """获取认证Token"""
+    try:
+        login_data = {"username": LOGIN_USERNAME, "password": LOGIN_PASSWORD}
+        response = requests.post(f"{BASE_URL}/sys/mLogin", json=login_data, timeout=REQUEST_TIMEOUT_LOGIN)
+
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                return result['result']['token']
+            else:
+                print(f"❌ 登录失败: {result.get('message', '未知错误')}")
+                return None
+        else:
+            print(f"❌ 登录请求失败: HTTP {response.status_code}")
+            return None
+
+    except Exception as e:
+        print(f"❌ 登录异常: {e}")
+        return None
+
+def query_role_permissions(token):
+    """查询管理员角色的现有权限"""
+    try:
+        # 从配置文件获取管理员角色ID
+        permission_config = CONFIG.get('permission_authorization', {})
+        admin_role_id = permission_config.get('admin_role_id', "f6817f48af4fb3af11b9e8bf182f618b")
+
+        headers = {
+            'authorization': f'Bearer {token}',
+            'x-access-token': token,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+
+        url = f"{BASE_URL}/sys/permission/queryRolePermission"
+        params = {'roleId': admin_role_id}
+
+        print(f"   请求URL: {url}")
+        print(f"   角色ID: {admin_role_id}")
+
+        response = requests.post(url, params=params, headers=headers, timeout=30)
+
+        print(f"   响应状态码: {response.status_code}")
+
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                permission_ids = result.get('result', [])
+                print(f"   ✅ 成功查询到 {len(permission_ids)} 个现有权限")
+                return permission_ids
+            else:
+                print(f"   ❌ 查询失败: {result.get('message', '未知错误')}")
+                return None
+        else:
+            print(f"   ❌ 查询请求失败: HTTP {response.status_code}")
+            print(f"   响应内容: {response.text}")
+            return None
+
+    except Exception as e:
+        print(f"   ❌ 查询权限异常: {e}")
+        return None
+
+def parse_new_permission_ids():
+    """从生成的SQL文件中解析新增的权限ID"""
+    try:
+        # 查找生成的SQL文件
+        sql_file_path = find_generated_sql_file()
+        if not sql_file_path:
+            print("   ❌ 未找到生成的SQL文件")
+            return []
+
+        print(f"   📄 解析SQL文件: {sql_file_path}")
+
+        # 读取SQL文件内容
+        with open(sql_file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # 解析INSERT语句中的权限ID
+        import re
+
+        # 匹配sys_permission表的INSERT语句中的id字段
+        # 格式：INSERT INTO sys_permission(id, parent_id, name, ...)
+        # VALUES('权限ID', '父权限ID', '权限名称', ...)
+        pattern = r"INSERT\s+INTO\s+sys_permission\s*\([^)]*\)\s*VALUES\s*\(\s*'([^']+)'"
+        matches = re.findall(pattern, content, re.IGNORECASE | re.MULTILINE)
+
+        if matches:
+            print(f"   ✅ 从SQL文件解析到 {len(matches)} 个权限ID")
+            for i, perm_id in enumerate(matches, 1):
+                print(f"      {i}. {perm_id}")
+            return matches
+        else:
+            print("   ⚠️ 未在SQL文件中找到权限ID")
+            # 尝试其他可能的格式
+            pattern2 = r"VALUES\s*\(\s*'([a-f0-9-]{32,36})'"
+            matches2 = re.findall(pattern2, content, re.IGNORECASE)
+            if matches2:
+                print(f"   ✅ 使用备用模式解析到 {len(matches2)} 个可能的权限ID")
+                return matches2
+            return []
+
+    except Exception as e:
+        print(f"   ❌ 解析权限ID失败: {e}")
+        return []
+
+def save_role_permissions(token, existing_permissions, all_permissions):
+    """保存权限到管理员角色"""
+    try:
+        # 从配置文件获取管理员角色ID
+        permission_config = CONFIG.get('permission_authorization', {})
+        admin_role_id = permission_config.get('admin_role_id', "f6817f48af4fb3af11b9e8bf182f618b")
+
+        headers = {
+            'authorization': f'Bearer {token}',
+            'x-access-token': token,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+
+        # 构建请求数据
+        request_data = {
+            "roleId": admin_role_id,
+            "permissionIds": ",".join(all_permissions),
+            "lastpermissionIds": ",".join(existing_permissions)
+        }
+
+        url = f"{BASE_URL}/sys/permission/saveRolePermission"
+
+        print(f"   请求URL: {url}")
+        print(f"   角色ID: {admin_role_id}")
+        print(f"   权限总数: {len(all_permissions)}")
+        print(f"   原有权限数: {len(existing_permissions)}")
+
+        response = requests.post(url, json=request_data, headers=headers, timeout=30)
+
+        print(f"   响应状态码: {response.status_code}")
+
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                print(f"   ✅ 权限保存成功: {result.get('message', '操作成功')}")
+                return True
+            else:
+                print(f"   ❌ 权限保存失败: {result.get('message', '未知错误')}")
+                return False
+        else:
+            print(f"   ❌ 权限保存请求失败: HTTP {response.status_code}")
+            print(f"   响应内容: {response.text}")
+            return False
+
+    except Exception as e:
+        print(f"   ❌ 保存权限异常: {e}")
+        return False
+
 # ==================== 编译相关功能 ====================
 
 def create_module_pom_xml(module_name, project_path):
@@ -3019,6 +3253,22 @@ def jeecg_complete_workflow():
     try:
         if execute_database_sql():
             print("✅ 数据库SQL执行完成")
+
+            # 12. 自动权限授权
+            permission_config = CONFIG.get('permission_authorization', {})
+            if permission_config.get('enabled', True):
+                print(f"\n{'='*50}")
+                print("🔐 自动为管理员角色授权新生成模块的权限...")
+                try:
+                    if auto_grant_permissions():
+                        print("✅ 权限授权完成")
+                    else:
+                        print("⚠️ 权限授权失败或跳过")
+                except Exception as e:
+                    print(f"⚠️ 权限授权异常: {e}")
+            else:
+                print(f"\n{'='*50}")
+                print("⏭️ 权限授权功能已禁用，跳过权限授权步骤")
         else:
             print("⚠️ 数据库SQL执行失败或跳过")
     except Exception as e:
@@ -3041,7 +3291,7 @@ def jeecg_complete_workflow():
         print(f"   mvn compile -DskipTests  # 整体项目编译验证")
     print(f"   注意：编译仅用于验证，不影响代码生成功能")
 
-    # 11. 完成
+    # 13. 完成
     print(f"\n{'='*50}")
     print("🎉 完整工作流完成!")
     print(f"📋 表名: {table_name}")
@@ -3079,6 +3329,7 @@ def jeecg_complete_workflow():
             db_config = CONFIG.get('database_execution', {})
             if db_config.get('enabled', True):
                 print(f"   数据库权限: 已自动执行SQL文件，菜单权限已配置")
+                print(f"   权限授权: 已自动为管理员角色授权新模块权限")
         except:
             print(f"   包结构: {package_name}")
             print(f"   实体类: {ENTITY_NAME}")
@@ -3102,6 +3353,7 @@ def jeecg_complete_workflow():
         print(f"      - 访问系统: http://localhost:3102")
         if db_config.get('enabled', True):
             print(f"      - 登录后应该能在菜单中看到新功能（权限已自动配置）")
+            print(f"      - 管理员角色已自动获得新模块的所有权限")
         else:
             print(f"      - 登录后在菜单管理中配置新功能菜单")
         print(f"   ")
@@ -3154,7 +3406,7 @@ def jeecg_complete_workflow():
     print(f"   PACKAGE_NAME             = {package_name}")
     print(f"   状态: 成功")
 
-    # 12. 检查后端服务状态并提供建议
+    # 14. 检查后端服务状态并提供建议
     print(f"\n{'='*50}")
     print("🔍 检查后端服务状态...")
 
