@@ -5849,6 +5849,8 @@ CREATE TABLE `sys_depart`  (
   `org_category` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '1' COMMENT '机构类别 1公司，2组织机构，3岗位',
   `org_type` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '机构类型 1一级部门 2子部门',
   `org_code` varchar(64) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '机构编码',
+  `uums_org_code` varchar(64) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT 'UUMS组织编码',
+  `uums_parent_org_code` varchar(64) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT 'UUMS父组织编码',
   `mobile` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '手机号',
   `fax` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '传真',
   `address` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '地址',
@@ -5866,21 +5868,23 @@ CREATE TABLE `sys_depart`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uniq_depart_org_code`(`org_code`) USING BTREE,
   INDEX `idx_sd_parent_id`(`parent_id`) USING BTREE,
-  INDEX `idx_sd_depart_order`(`depart_order`) USING BTREE
+  INDEX `idx_sd_depart_order`(`depart_order`) USING BTREE,
+  UNIQUE INDEX `uniq_sd_uums_org_code`(`uums_org_code`) USING BTREE,
+  INDEX `idx_sd_uums_parent_org_code`(`uums_parent_org_code`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '组织机构表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of sys_depart
 -- ----------------------------
-INSERT INTO `sys_depart` VALUES ('1582683631414632450', 'c6d7cb4deeac411cb3384b1b31278596', '销售公关岗位', NULL, NULL, 0, NULL, '3', '2', 'A01A06', NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2022-10-19 18:42:37', NULL, NULL, 0, 1);
-INSERT INTO `sys_depart` VALUES ('4f1765520d6346f9bd9c79e2479e5b12', 'c6d7cb4deeac411cb3384b1b31278596', '市场部', NULL, NULL, 0, NULL, '1', '2', 'A01A03', NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-20 17:15:34', 'admin', '2019-02-26 16:36:18', 0, 1);
-INSERT INTO `sys_depart` VALUES ('5159cde220114246b045e574adceafe9', '6d35e179cd814e3299bd588ea7daed3f', '研发部', NULL, NULL, 0, NULL, '1', '2', 'A02A02', NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-26 16:44:38', 'admin', '2019-03-07 09:36:53', 0, 1);
-INSERT INTO `sys_depart` VALUES ('57197590443c44f083d42ae24ef26a2c', 'c6d7cb4deeac411cb3384b1b31278596', '研发部', NULL, NULL, 0, NULL, '1', '2', 'A01A05', NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-21 16:14:41', 'admin', '2019-03-27 19:05:49', 0, 0);
-INSERT INTO `sys_depart` VALUES ('63775228b7b041a99825f79760590b7d', '57197590443c44f083d42ae24ef26a2c', '研发经理', NULL, NULL, 0, NULL, '3', '3', 'A01A05A01', NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2020-05-02 15:29:09', NULL, NULL, 0, 1);
-INSERT INTO `sys_depart` VALUES ('67fc001af12a4f9b8458005d3f19934a', 'c6d7cb4deeac411cb3384b1b31278596', '财务部', NULL, NULL, 0, NULL, '1', '2', 'A01A04', NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-21 16:14:35', 'admin', '2019-02-25 12:49:41', 0, 1);
-INSERT INTO `sys_depart` VALUES ('6d35e179cd814e3299bd588ea7daed3f', '', '北京卓尔互动', NULL, NULL, 0, NULL, '1', '1', 'A02', NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-26 16:36:39', 'admin', '2020-05-02 18:21:22', 0, 0);
-INSERT INTO `sys_depart` VALUES ('a7d7e77e06c84325a40932163adcdaa6', '6d35e179cd814e3299bd588ea7daed3f', '财务部', NULL, NULL, 0, NULL, '1', '2', 'A02A01', NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-26 16:36:47', 'admin', '2022-10-14 18:57:56', 0, 1);
-INSERT INTO `sys_depart` VALUES ('c6d7cb4deeac411cb3384b1b31278596', '', '北京国炬软件', NULL, NULL, 0, NULL, '1', '1', 'A01', NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-11 14:21:51', 'admin', '2020-05-02 18:21:27', 0, 0);
+INSERT INTO `sys_depart` VALUES ('1582683631414632450', 'c6d7cb4deeac411cb3384b1b31278596', '销售公关岗位', NULL, NULL, 0, NULL, '3', '2', 'A01A06', NULL, NULL,NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2022-10-19 18:42:37', NULL, NULL, 0, 1);
+INSERT INTO `sys_depart` VALUES ('4f1765520d6346f9bd9c79e2479e5b12', 'c6d7cb4deeac411cb3384b1b31278596', '市场部', NULL, NULL, 0, NULL, '1', '2', 'A01A03', NULL, NULL,NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-20 17:15:34', 'admin', '2019-02-26 16:36:18', 0, 1);
+INSERT INTO `sys_depart` VALUES ('5159cde220114246b045e574adceafe9', '6d35e179cd814e3299bd588ea7daed3f', '研发部', NULL, NULL, 0, NULL, '1', '2', 'A02A02', NULL, NULL,NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-26 16:44:38', 'admin', '2019-03-07 09:36:53', 0, 1);
+INSERT INTO `sys_depart` VALUES ('57197590443c44f083d42ae24ef26a2c', 'c6d7cb4deeac411cb3384b1b31278596', '研发部', NULL, NULL, 0, NULL, '1', '2', 'A01A05', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-21 16:14:41', 'admin', '2019-03-27 19:05:49', 0, 0);
+INSERT INTO `sys_depart` VALUES ('63775228b7b041a99825f79760590b7d', '57197590443c44f083d42ae24ef26a2c', '研发经理', NULL, NULL, 0, NULL, '3', '3', 'A01A05A01', NULL, NULL,NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2020-05-02 15:29:09', NULL, NULL, 0, 1);
+INSERT INTO `sys_depart` VALUES ('67fc001af12a4f9b8458005d3f19934a', 'c6d7cb4deeac411cb3384b1b31278596', '财务部', NULL, NULL, 0, NULL, '1', '2', 'A01A04', NULL, NULL,NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-21 16:14:35', 'admin', '2019-02-25 12:49:41', 0, 1);
+INSERT INTO `sys_depart` VALUES ('6d35e179cd814e3299bd588ea7daed3f', '', '北京卓尔互动', NULL, NULL, 0, NULL, '1', '1', 'A02', NULL, NULL,NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-26 16:36:39', 'admin', '2020-05-02 18:21:22', 0, 0);
+INSERT INTO `sys_depart` VALUES ('a7d7e77e06c84325a40932163adcdaa6', '6d35e179cd814e3299bd588ea7daed3f', '财务部', NULL, NULL, 0, NULL, '1', '2', 'A02A01', NULL, NULL,NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-26 16:36:47', 'admin', '2022-10-14 18:57:56', 0, 1);
+INSERT INTO `sys_depart` VALUES ('c6d7cb4deeac411cb3384b1b31278596', '', '北京国炬软件', NULL, NULL, 0, NULL, '1', '1', 'A01', NULL, NULL,NULL, NULL, NULL, NULL, NULL, '0', NULL, NULL, 'admin', '2019-02-11 14:21:51', 'admin', '2020-05-02 18:21:27', 0, 0);
 
 -- ----------------------------
 -- Table structure for sys_depart_permission

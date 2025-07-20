@@ -25,6 +25,10 @@ public class SysDepartModel {
     private String orgType;
     /**机构编码*/
     private String orgCode;
+    /**UUMS机构编码*/
+    private String uumsOrgCode;
+    /**UUMS父机构编码*/
+    private String uumsParentOrgCode;
     /**手机号*/
     private String mobile;
     /**传真*/
@@ -112,6 +116,22 @@ public class SysDepartModel {
 
     public void setOrgCode(String orgCode) {
         this.orgCode = orgCode;
+    }
+
+    public String getUumsOrgCode() {
+        return uumsOrgCode;
+    }
+
+    public void setUumsOrgCode(String uumsOrgCode) {
+        this.uumsOrgCode = uumsOrgCode;
+    }
+
+    public String getUumsParentOrgCode() {
+        return uumsParentOrgCode;
+    }
+
+    public void setUumsParentOrgCode(String uumsParentOrgCode) {
+        this.uumsParentOrgCode = uumsParentOrgCode;
     }
 
     public String getMobile() {
