@@ -52,6 +52,10 @@ public class SysDepartTreeModel implements Serializable{
     private String orgType;
 
     private String orgCode;
+    
+    private String uumsOrgCode;
+    
+    private String uumsParentOrgCode;
 
     private String mobile;
 
@@ -101,6 +105,8 @@ public class SysDepartTreeModel implements Serializable{
         this.orgCategory = sysDepart.getOrgCategory();
         this.orgType = sysDepart.getOrgType();
         this.orgCode = sysDepart.getOrgCode();
+        this.uumsOrgCode = sysDepart.getUumsOrgCode();
+        this.uumsParentOrgCode = sysDepart.getUumsParentOrgCode();
         this.mobile = sysDepart.getMobile();
         this.fax = sysDepart.getFax();
         this.address = sysDepart.getAddress();
@@ -219,6 +225,22 @@ public class SysDepartTreeModel implements Serializable{
 
     public void setOrgCode(String orgCode) {
         this.orgCode = orgCode;
+    }
+
+    public String getUumsOrgCode() {
+        return uumsOrgCode;
+    }
+
+    public void setUumsOrgCode(String uumsOrgCode) {
+        this.uumsOrgCode = uumsOrgCode;
+    }
+
+    public String getUumsParentOrgCode() {
+        return uumsParentOrgCode;
+    }
+
+    public void setUumsParentOrgCode(String uumsParentOrgCode) {
+        this.uumsParentOrgCode = uumsParentOrgCode;
     }
 
     public String getMobile() {
@@ -373,6 +395,8 @@ public class SysDepartTreeModel implements Serializable{
                 Objects.equals(orgCategory, model.orgCategory) &&
                 Objects.equals(orgType, model.orgType) &&
                 Objects.equals(orgCode, model.orgCode) &&
+                Objects.equals(uumsOrgCode, model.uumsOrgCode) &&
+                Objects.equals(uumsParentOrgCode, model.uumsParentOrgCode) &&
                 Objects.equals(mobile, model.mobile) &&
                 Objects.equals(fax, model.fax) &&
                 Objects.equals(address, model.address) &&
@@ -395,9 +419,9 @@ public class SysDepartTreeModel implements Serializable{
     public int hashCode() {
 
         return Objects.hash(id, parentId, departName, departNameEn, departNameAbbr,
-        		departOrder, description, orgCategory, orgType, orgCode, mobile, fax, address, 
-        		memo, status, delFlag, qywxIdentifier, createBy, createTime, updateBy, updateTime,
-        		children,directorUserIds);
+        		departOrder, description, orgCategory, orgType, orgCode, uumsOrgCode, uumsParentOrgCode,
+        		mobile, fax, address, memo, status, delFlag, qywxIdentifier, createBy, createTime, 
+        		updateBy, updateTime, children, directorUserIds);
     }
 
 }

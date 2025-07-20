@@ -76,6 +76,12 @@ public class SysDepart implements Serializable {
 	private String qywxIdentifier;
 	/**对接钉钉的部门ID*/
 	private String dingIdentifier;
+	/**UUMS机构编码*/
+	@Excel(name="UUMS机构编码",width=15)
+	private String uumsOrgCode;
+	/**UUMS父机构编码*/
+	@Excel(name="UUMS父机构编码",width=15)
+	private String uumsParentOrgCode;
 	/**创建人*/
 	private String createBy;
 	/**创建日期*/
@@ -134,6 +140,10 @@ public class SysDepart implements Serializable {
                 Objects.equals(memo, depart.memo) &&
                 Objects.equals(status, depart.status) &&
                 Objects.equals(delFlag, depart.delFlag) &&
+                Objects.equals(qywxIdentifier, depart.qywxIdentifier) &&
+                Objects.equals(dingIdentifier, depart.dingIdentifier) &&
+                Objects.equals(uumsOrgCode, depart.uumsOrgCode) &&
+                Objects.equals(uumsParentOrgCode, depart.uumsParentOrgCode) &&
                 Objects.equals(createBy, depart.createBy) &&
                 Objects.equals(createTime, depart.createTime) &&
                 Objects.equals(updateBy, depart.updateBy) &&
@@ -149,6 +159,7 @@ public class SysDepart implements Serializable {
         return Objects.hash(super.hashCode(), id, parentId, departName, 
         		departNameEn, departNameAbbr, departOrder, description,orgCategory, 
         		orgType, orgCode, mobile, fax, address, memo, status, 
-        		delFlag, createBy, createTime, updateBy, updateTime, tenantId);
+        		delFlag, qywxIdentifier, dingIdentifier, uumsOrgCode, uumsParentOrgCode,
+        		createBy, createTime, updateBy, updateTime, tenantId);
     }
 }
