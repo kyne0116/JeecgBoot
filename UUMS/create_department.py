@@ -676,6 +676,294 @@ def print_api_results(results, success_count, failure_count):
     print("="*80)
 
 
+def sort_departments_by_hierarchy(file_path):
+    """
+    组织数据父子关系梳理：确保父节点始终出现在子节点之前
+    使用拓扑排序算法处理部门层级关系
+    
+    Args:
+        file_path (str): Excel文件路径
+        
+    Returns:
+        bool: 排序是否成功
+    """
+    try:
+        print("🔄 开始组织数据父子关系梳理...")
+        
+        # 读取Excel文件，保持原始数据格式
+        df = pd.read_excel(file_path, dtype=str)
+        
+        # 确保有足够的列
+        if df.shape[1] < 4:
+            print(f"❌ 错误: Excel文件至少需要4列，当前只有{df.shape[1]}列")
+            return False
+        
+        print(f"📊 读取到 {len(df)} 行数据（含表头）")
+        
+        # 获取C列和D列的值，保持原始格式
+        # 检测是否有表头行
+        has_header = True
+        first_row = df.iloc[0] if len(df) > 0 else None
+        if first_row is not None:
+            # 判断第一行是否为表头（C列和D列包含非数字内容或标准表头文字）
+            c_val = str(first_row.iloc[2]).strip() if pd.notna(first_row.iloc[2]) else ""
+            d_val = str(first_row.iloc[3]).strip() if pd.notna(first_row.iloc[3]) else ""
+            # 如果C列是纯数字，很可能不是表头
+            if c_val.isdigit() or len(c_val) > 10:  # 部门编码通常较长
+                has_header = False
+        
+        print(f"📊 检测到{'有' if has_header else '无'}表头行")
+        
+        # 根据是否有表头决定起始行
+        start_row = 1 if has_header else 0
+        data_rows = df.iloc[start_row:] if len(df) > start_row else pd.DataFrame()
+        
+        dept_data = []
+        for i, (idx, row) in enumerate(data_rows.iterrows()):
+            dept_code = str(row.iloc[2]).strip() if pd.notna(row.iloc[2]) else ""
+            parent_code = str(row.iloc[3]).strip() if pd.notna(row.iloc[3]) else ""
+            
+            # 跳过空的部门编码
+            if not dept_code:
+                continue
+                
+            dept_data.append({
+                'original_index': idx,  # 原始DataFrame中的索引
+                'dept_code': dept_code,
+                'parent_code': parent_code if parent_code else None,
+                'original_row': row
+            })
+        
+        print(f"📋 有效部门记录: {len(dept_data)} 个")
+        
+        # 构建部门编码到索引的映射
+        code_to_data = {item['dept_code']: item for item in dept_data}
+        
+        # 使用拓扑排序算法对部门进行层级排序
+        def topological_sort(departments):
+            """拓扑排序实现"""
+            # 构建入度表和邻接表
+            in_degree = {}  # 入度计数
+            adj_list = {}   # 邻接表：父节点 -> [子节点列表]
+            all_nodes = set()
+            
+            # 初始化
+            for dept in departments:
+                dept_code = dept['dept_code']
+                parent_code = dept['parent_code']
+                all_nodes.add(dept_code)
+                
+                if dept_code not in in_degree:
+                    in_degree[dept_code] = 0
+                if dept_code not in adj_list:
+                    adj_list[dept_code] = []
+                
+                if parent_code and parent_code in code_to_data:
+                    all_nodes.add(parent_code)
+                    if parent_code not in in_degree:
+                        in_degree[parent_code] = 0
+                    if parent_code not in adj_list:
+                        adj_list[parent_code] = []
+                    
+                    # 父节点指向子节点
+                    adj_list[parent_code].append(dept_code)
+                    in_degree[dept_code] += 1
+            
+            # 找到所有入度为0的节点（根节点）
+            queue = []
+            for node in all_nodes:
+                if in_degree[node] == 0:
+                    queue.append(node)
+            
+            sorted_codes = []
+            
+            # 拓扑排序
+            while queue:
+                current = queue.pop(0)
+                sorted_codes.append(current)
+                
+                # 减少相邻节点的入度
+                for neighbor in adj_list[current]:
+                    in_degree[neighbor] -= 1
+                    if in_degree[neighbor] == 0:
+                        queue.append(neighbor)
+            
+            # 检查是否存在环
+            if len(sorted_codes) != len(all_nodes):
+                remaining_nodes = all_nodes - set(sorted_codes)
+                print(f"⚠️ 检测到循环依赖，涉及节点: {remaining_nodes}")
+                return None
+            
+            return sorted_codes
+        
+        print("🔍 执行拓扑排序算法...")
+        sorted_dept_codes = topological_sort(dept_data)
+        
+        if sorted_dept_codes is None:
+            print("❌ 排序失败：存在循环依赖关系")
+            return False
+        
+        print(f"✅ 拓扑排序完成，排序后顺序:")
+        
+        # 构建新的DataFrame，按照排序后的顺序
+        sorted_rows = []
+        dept_level = {}  # 记录部门层级
+        processed_count = 0
+        
+        # 如果有表头行，首先添加表头行
+        if has_header:
+            sorted_rows.append(df.iloc[0])
+        
+        # 计算每个部门的层级
+        def calculate_level(dept_code, visited=None):
+            if visited is None:
+                visited = set()
+            
+            if dept_code in visited:
+                return 0  # 避免循环
+            
+            if dept_code in dept_level:
+                return dept_level[dept_code]
+            
+            visited.add(dept_code)
+            
+            if dept_code not in code_to_data:
+                level = 0
+            else:
+                parent_code = code_to_data[dept_code]['parent_code']
+                if parent_code and parent_code in code_to_data:
+                    level = calculate_level(parent_code, visited.copy()) + 1
+                else:
+                    level = 0
+            
+            dept_level[dept_code] = level
+            return level
+        
+        # 计算所有部门的层级
+        for dept_code in sorted_dept_codes:
+            if dept_code in code_to_data:
+                calculate_level(dept_code)
+        
+        # 按排序后的顺序添加行
+        for dept_code in sorted_dept_codes:
+            if dept_code in code_to_data:
+                dept_info = code_to_data[dept_code]
+                sorted_rows.append(dept_info['original_row'])
+                processed_count += 1
+                
+                level = dept_level.get(dept_code, 0)
+                parent_info = f" (父编码: {dept_info['parent_code']})" if dept_info['parent_code'] else " (根节点)"
+                print(f"   第{processed_count}位: 层级{level} - {dept_code}{parent_info}")
+        
+        # 创建新的DataFrame
+        new_df = pd.DataFrame(sorted_rows)
+        
+        # 保存排序后的数据到原文件
+        new_df.to_excel(file_path, index=False)
+        
+        print(f"✅ 部门层级排序完成！")
+        print(f"📊 排序统计:")
+        print(f"   处理的部门: {processed_count} 个")
+        print(f"   最大层级深度: {max(dept_level.values()) if dept_level else 0}")
+        print(f"   根节点数量: {sum(1 for level in dept_level.values() if level == 0)}")
+        print(f"📁 已保存到: {file_path}")
+        
+        return True
+        
+    except FileNotFoundError:
+        print(f"❌ 错误: 文件 '{file_path}' 不存在")
+        return False
+    except Exception as e:
+        print(f"❌ 排序处理时发生错误: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def validate_department_hierarchy(file_path):
+    """
+    验证部门层级关系前置检查
+    验证D列的值是否在C列中存在，并在F列标注Y/N
+    
+    Args:
+        file_path (str): Excel文件路径
+        
+    Returns:
+        bool: 验证是否成功
+    """
+    try:
+        print("🔍 开始部门层级关系验证...")
+        
+        # 读取Excel文件，保持原始数据格式
+        df = pd.read_excel(file_path, dtype=str)
+        
+        # 确保有足够的列
+        if df.shape[1] < 4:
+            print(f"❌ 错误: Excel文件至少需要4列，当前只有{df.shape[1]}列")
+            return False
+        
+        # 获取C列和D列的值，保持原始格式
+        c_column = df.iloc[:, 2].dropna().astype(str).str.strip()
+        d_column = df.iloc[:, 3].fillna('').astype(str).str.strip()
+        
+        print(f"📊 检测到 {len(c_column)} 个C列编码值")
+        print(f"📊 检测到 {len(d_column)} 个D列父编码值")
+        
+        # 创建C列值的集合用于快速查找
+        c_values_set = set(c_column.tolist())
+        print(f"🔍 C列唯一值集合: {len(c_values_set)} 个")
+        
+        # 验证D列的值是否在C列中存在
+        validation_results = []
+        valid_parent_count = 0
+        invalid_parent_count = 0
+        empty_parent_count = 0
+        
+        for i, d_value in enumerate(d_column):
+            if d_value == '' or pd.isna(d_value):
+                validation_results.append('N')
+                empty_parent_count += 1
+            else:
+                if d_value in c_values_set:
+                    validation_results.append('Y')
+                    valid_parent_count += 1
+                else:
+                    validation_results.append('N')
+                    invalid_parent_count += 1
+                    print(f"⚠️ 第{i+2}行: D列父编码 '{d_value}' 在C列中未找到")
+        
+        # 在右侧新增一列（组织检查情况）
+        df['组织检查情况'] = validation_results
+        
+        # 直接保存回原文件
+        df.to_excel(file_path, index=False)
+        
+        print(f"✅ 验证完成！组织检查情况列已添加到: {file_path}")
+        
+        # 输出统计信息
+        print(f"📊 验证统计:")
+        print(f"   有效父编码: {valid_parent_count} 个 (Y)")
+        print(f"   无效父编码: {invalid_parent_count} 个 (N)")
+        print(f"   空父编码: {empty_parent_count} 个 (N)")
+        print(f"   总计: {len(validation_results)} 行")
+        
+        # 判断是否可以继续创建部门
+        if invalid_parent_count > 0:
+            print(f"⚠️ 发现 {invalid_parent_count} 个无效的父编码引用")
+            print("💡 建议修正Excel文件中的D列父编码后再继续创建部门")
+            return False
+        else:
+            print("✅ 所有父编码引用都有效，可以继续创建部门")
+            return True
+        
+    except FileNotFoundError:
+        print(f"❌ 错误: 文件 '{file_path}' 不存在")
+        return False
+    except Exception as e:
+        print(f"❌ 处理文件时发生错误: {str(e)}")
+        return False
+
+
 def clean_test_data(file_path):
     """清理测试数据：删除Excel中指定的所有部门记录"""
     print("🧹 开始清理测试数据...")
@@ -787,6 +1075,10 @@ def main():
                        help='测试查询功能（使用测试参数4772338661636601428）')
     parser.add_argument('--clean-test-data', action='store_true',
                        help='清理测试数据（删除Excel中的所有部门记录）')
+    parser.add_argument('--validate-only', action='store_true',
+                       help='仅执行部门层级关系验证，不创建部门')
+    parser.add_argument('--sort-only', action='store_true',
+                       help='仅执行组织数据父子关系梳理排序，不创建部门')
     
     args = parser.parse_args()
     
@@ -798,6 +1090,20 @@ def main():
     # 如果是清理测试数据
     if args.clean_test_data:
         clean_test_data(args.file)
+        return
+    
+    # 如果仅执行验证
+    if args.validate_only:
+        print("🔍 仅执行部门层级关系验证模式")
+        print("=" * 70)
+        validate_department_hierarchy(args.file)
+        return
+    
+    # 如果仅执行排序
+    if args.sort_only:
+        print("🔄 仅执行组织数据父子关系梳理模式")
+        print("=" * 70)
+        sort_departments_by_hierarchy(args.file)
         return
     
     print("🏢 JeecgBoot部门创建工具")
@@ -812,6 +1118,8 @@ def main():
     print("   D列 → 组织父编码 (uumsParentOrgCode) - 可选")
     print("   E列 → 机构类别 (orgCategory) - 必填")
     print("\n🔧 功能说明:")
+    print("   0️⃣ 部门层级关系前置验证（验证D列父编码是否在C列中存在）")
+    print("   0️⃣.1 组织数据父子关系梳理（使用拓扑排序确保父节点在子节点之前）")
     print("   1️⃣ 显示Excel原始数据")
     print("   2️⃣ 组装JSON报文数据")
     print("   3️⃣ 通过API创建部门")
@@ -820,6 +1128,8 @@ def main():
     print("\n💡 其他功能:")
     print("   🔍 查询测试: python3 create_department.py --test-query")
     print("   🧹 清理数据: python3 create_department.py --clean-test-data")
+    print("   ✅ 仅验证层级: python3 create_department.py --validate-only")
+    print("   🔄 仅排序数据: python3 create_department.py --sort-only")
     
     if not os.path.exists(args.file):
         print(f"❌ Excel文件不存在: {args.file}")
@@ -828,6 +1138,28 @@ def main():
     file_ext = os.path.splitext(args.file)[1].lower()
     if file_ext not in ['.xlsx', '.xls']:
         print(f"❌ 不支持的文件格式: {file_ext}，请使用Excel文件(.xlsx, .xls)")
+        return
+    
+    print(f"\n" + "="*70)
+    print("0️⃣ 部门层级关系前置验证:")
+    print("="*70)
+    
+    # 执行前置验证
+    validation_success = validate_department_hierarchy(args.file)
+    if not validation_success:
+        print("❌ 验证失败，无法继续创建部门")
+        print("💡 请修正Excel文件中的D列父编码后重试")
+        return
+    
+    print(f"\n" + "="*70)
+    print("0️⃣.1 组织数据父子关系梳理:")
+    print("="*70)
+    
+    # 执行父子关系排序
+    sort_success = sort_departments_by_hierarchy(args.file)
+    if not sort_success:
+        print("❌ 排序失败，无法继续创建部门")
+        print("💡 请检查Excel文件中是否存在循环依赖关系")
         return
     
     print(f"\n" + "="*70)
