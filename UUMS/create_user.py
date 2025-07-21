@@ -21,6 +21,7 @@ import shutil
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import argparse
+import pymysql
 
 # 配置日志 - 仅输出到控制台
 logging.basicConfig(
@@ -119,6 +120,98 @@ class PersonnelProcessor:
             logger.error(f"查询部门树发生异常: {e}")
             return []
     
+    def query_depart_by_org_code(self, org_code: str) -> Optional[Dict]:
+        """
+        根据机构编码查询sys_depart表获取部门ID和详细信息
+        
+        Args:
+            org_code: 机构编码
+            
+        Returns:
+            Optional[Dict]: 部门信息，包含id等字段
+        """
+        # 首先尝试API查询
+        try:
+            url = f"{self.base_url}/sys/sysDepart/list"
+            params = {'orgCode': org_code}
+            logger.debug(f"查询部门信息: {url}?orgCode={org_code}")
+            
+            response = requests.get(url, headers=self.headers, params=params, timeout=30)
+            response.raise_for_status()
+            
+            result = response.json()
+            if result.get('success'):
+                records = result.get('result', {}).get('records', [])
+                if records:
+                    depart_info = records[0]  # 取第一条记录
+                    logger.debug(f"API查询成功: orgCode={org_code} -> id={depart_info.get('id')}, name={depart_info.get('departName')}")
+                    return depart_info
+                else:
+                    logger.debug(f"API查询无结果: orgCode={org_code}")
+                    
+        except requests.RequestException as e:
+            logger.debug(f"API查询失败: {e}")
+        except Exception as e:
+            logger.debug(f"API查询异常: {e}")
+        
+        # API查询失败或无结果，尝试数据库直接查询
+        logger.debug(f"尝试数据库直接查询部门信息: orgCode={org_code}")
+        return self.query_depart_by_org_code_via_database(org_code)
+    
+    def query_depart_by_org_code_via_database(self, org_code: str) -> Optional[Dict]:
+        """
+        通过数据库直接查询sys_depart表获取部门信息
+        
+        Args:
+            org_code: 机构编码
+            
+        Returns:
+            Optional[Dict]: 部门信息，包含id等字段
+        """
+        connection = None
+        try:
+            # 数据库连接配置
+            db_config = {
+                'host': 'localhost',
+                'port': 30004,  # Docker映射端口
+                'user': 'root',
+                'password': 'Best@2008',
+                'database': 'jeecg-boot',
+                'charset': 'utf8mb4',
+                'autocommit': True
+            }
+            
+            # 建立数据库连接
+            connection = pymysql.connect(**db_config)
+            
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                # 查询sys_depart表
+                query_sql = "SELECT id, depart_name, org_code, parent_id FROM `sys_depart` WHERE org_code = %s"
+                cursor.execute(query_sql, (org_code,))
+                depart_record = cursor.fetchone()
+                
+                if depart_record:
+                    logger.debug(f"数据库查询成功: orgCode={org_code} -> id={depart_record.get('id')}, name={depart_record.get('depart_name')}")
+                    return {
+                        'id': depart_record.get('id'),
+                        'departName': depart_record.get('depart_name'),
+                        'orgCode': depart_record.get('org_code'),
+                        'parentId': depart_record.get('parent_id')
+                    }
+                else:
+                    logger.warning(f"数据库中未找到orgCode={org_code}对应的部门记录")
+                    return None
+                    
+        except pymysql.Error as e:
+            logger.error(f"数据库查询部门信息错误: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"数据库查询部门信息发生异常: {e}")
+            return None
+        finally:
+            if connection:
+                connection.close()
+
     def find_org_code_by_uums_code(self, uums_org_code: str, dept_tree: List[Dict]) -> Optional[str]:
         """
         根据UUMS机构编码查找对应的orgCode
@@ -411,11 +504,24 @@ class PersonnelProcessor:
                 column_mapping = self.detect_user_data_columns(df_result)
                 
                 # 7. 批量创建用户
-                logger.info("👥 步骤 7/7: 批量创建用户账号")
+                logger.info("👥 步骤 7/8: 批量创建用户账号")
                 user_success_count, user_failed_count, user_failed_records = self.create_users_from_data(df_result, column_mapping)
                 
                 # 输出用户创建统计
                 self.print_user_creation_summary(user_success_count, user_failed_count, user_failed_records)
+                
+                # 8. 直接更新sys_user表的org_code字段
+                logger.info("\n" + "=" * 60)
+                logger.info("🔧 步骤 8/8: 直接更新sys_user表的org_code字段")
+                logger.info("=" * 60)
+                update_success_count, update_failed_count = self.update_user_org_code_directly(df_result)
+                
+                # 输出最终统计
+                logger.info("\n" + "=" * 70)
+                logger.info("🎉 脚本执行完成！最终统计:")
+                logger.info(f"   📊 用户创建: 成功 {user_success_count} 个，失败 {user_failed_count} 个")
+                logger.info(f"   🔧 org_code更新: 成功 {update_success_count} 个，失败 {update_failed_count} 个")
+                logger.info("=" * 70)
                 
                 return df_result, original_file_path
                 
@@ -490,6 +596,20 @@ class PersonnelProcessor:
         
         detected_columns = {}
         
+        # C列：密码（索引2）
+        if len(available_columns) >= 3:
+            c_column = available_columns[2]
+            detected_columns['password'] = c_column
+            logger.info(f"✅ C列（密码）: '{c_column}'")
+            
+            # 验证C列数据
+            c_data = df[c_column].dropna()
+            if not c_data.empty:
+                sample_passwords = c_data.head(3).tolist()
+                logger.info(f"🔑 C列密码示例: {sample_passwords}")
+            else:
+                logger.warning(f"⚠️ C列 '{c_column}' 中没有密码数据")
+
         # E列：手机号码（索引4）
         if len(available_columns) >= 5:
             e_column = available_columns[4]
@@ -605,31 +725,63 @@ class PersonnelProcessor:
         if phone and (not phone.isdigit() or len(phone) != 11):
             logger.warning(f"第{row_num}行: 手机号格式不正确 ({phone})，可能影响用户创建")
         
+        # 优化4：处理C列密码，同时设置password和confirmPassword字段
+        excel_password = get_column_value('password')
+        if excel_password and excel_password.strip():
+            final_password = excel_password.strip()
+            logger.info(f"第{row_num}行: ✅ 使用C列密码: '{final_password}'")
+        else:
+            final_password = "123456"  # 默认密码
+            logger.info(f"第{row_num}行: ⚠️ C列密码为空，使用默认密码: '{final_password}'")
+        
         # 构建基础JSON - 使用已经准备好的数据
         user_json = {
             "username": username,
             "realname": realname,
-            "password": "123456",  # 默认密码
+            "password": final_password,  # 使用C列密码或默认密码
+            "confirmPassword": final_password,  # 确认密码与密码相同
             "phone": phone,  # 使用准备好的手机号
             "status": "1",  # 1=正常
             "userIdentity": "1"  # 1=普通成员
         }
         
-        # 添加已经准备好的机构编码
+        logger.info(f"第{row_num}行: ✅ JSON中添加 password='{final_password}' (来自C列)")
+        logger.info(f"第{row_num}行: ✅ JSON中添加 confirmPassword='{final_password}' (与password相同)")
+        
+        # 优化1：添加已经准备好的机构编码 - 同时设置orgCode和selecteddeparts字段
         if final_org_code:
             user_json["orgCode"] = final_org_code
-            logger.info(f"第{row_num}行: ✅ JSON中添加机构编码: '{final_org_code}'")
-        else:
-            logger.warning(f"第{row_num}行: ❌ 无有效机构编码，用户将不关联部门")
-        
-        # 可选字段
-        email = get_column_value('email')
-        if email:
-            user_json["email"] = email
             
-        work_no = get_column_value('workNo')
-        if work_no:
-            user_json["workNo"] = work_no
+            # 根据本条数据对应用户username的G列机构编码查询sys_depart表获取部门ID
+            depart_info = self.query_depart_by_org_code(final_org_code)
+            if depart_info:
+                depart_id = depart_info.get('id')
+                user_json["selecteddeparts"] = depart_id
+                logger.info(f"第{row_num}行: ✅ 根据用户'{username}'的G列机构编码'{final_org_code}'查询到部门ID: '{depart_id}'")
+                logger.info(f"第{row_num}行: ✅ JSON中添加 selecteddeparts='{depart_id}'")
+            else:
+                logger.warning(f"第{row_num}行: ⚠️ 用户'{username}'的机构编码'{final_org_code}'未找到对应部门ID，仅设置orgCode")
+        else:
+            logger.warning(f"第{row_num}行: ❌ 用户'{username}'无有效机构编码，将不关联部门")
+        
+        # 优化2：增加workNo属性，值为本条数据对应用户username
+        user_json["workNo"] = username
+        logger.info(f"第{row_num}行: ✅ JSON中添加 workNo='{username}' (使用用户名作为工号)")
+        
+        # 优化3：增加email属性，值为本条数据对应用户username拼接@ha.chinamobile.com
+        generated_email = f"{username}@ha.chinamobile.com"
+        user_json["email"] = generated_email
+        logger.info(f"第{row_num}行: ✅ JSON中添加 email='{generated_email}' (用户名@ha.chinamobile.com)")
+        
+        # 可选字段（如果Excel中有现有的邮箱或工号，会被上面的优化覆盖）
+        # 检查是否有Excel中的邮箱字段，如果有则给出提示
+        excel_email = get_column_value('email')
+        if excel_email and excel_email != generated_email:
+            logger.info(f"第{row_num}行: 📝 注意：Excel中的邮箱'{excel_email}'已被生成的邮箱'{generated_email}'覆盖")
+            
+        excel_work_no = get_column_value('workNo')
+        if excel_work_no and excel_work_no != username:
+            logger.info(f"第{row_num}行: 📝 注意：Excel中的工号'{excel_work_no}'已被用户名'{username}'覆盖")
             
         sex = get_column_value('sex')
         if sex:
@@ -667,7 +819,12 @@ class PersonnelProcessor:
         logger.info(f"   - username: {user_json.get('username', 'N/A')}")
         logger.info(f"   - realname: {user_json.get('realname', 'N/A')}")
         logger.info(f"   - phone: {user_json.get('phone', 'N/A')}")
+        logger.info(f"   - password: {user_json.get('password', '未设置')}")
+        logger.info(f"   - confirmPassword: {user_json.get('confirmPassword', '未设置')}")
         logger.info(f"   - orgCode: {user_json.get('orgCode', '未设置')}")
+        logger.info(f"   - selecteddeparts: {user_json.get('selecteddeparts', '未设置')}")
+        logger.info(f"   - workNo: {user_json.get('workNo', '未设置')}")
+        logger.info(f"   - email: {user_json.get('email', '未设置')}")
         
         return user_json
     
@@ -690,9 +847,10 @@ class PersonnelProcessor:
             realname = user_data.get('realname', '')
             phone = user_data.get('phone', '')
             org_code = user_data.get('orgCode', '')
+            selecteddeparts = user_data.get('selecteddeparts', '')
             
             logger.info(f"第{row_num}行: 创建用户 - 用户名: {username}, 姓名: {realname}")
-            logger.info(f"第{row_num}行: 使用手机号: {phone}, 机构编码: {org_code if org_code else '无'}")
+            logger.info(f"第{row_num}行: 使用手机号: {phone}, 机构编码: {org_code if org_code else '无'}, 部门ID: {selecteddeparts if selecteddeparts else '无'}")
             
             logger.debug(f"第{row_num}行: 调用用户创建API: {url}")
             logger.debug(f"第{row_num}行: 完整请求数据: {json.dumps(user_data, ensure_ascii=False, indent=2)}")
@@ -705,12 +863,12 @@ class PersonnelProcessor:
             
             if result.get('success'):
                 logger.info(f"✅ 第{row_num}行: 用户 '{username}' 创建成功")
-                logger.info(f"   📱 手机号: {phone}, 🏢 机构编码: {org_code if org_code else '无'}")
+                logger.info(f"   📱 手机号: {phone}, 🏢 机构编码: {org_code if org_code else '无'}, 🏬 部门ID: {selecteddeparts if selecteddeparts else '无'}")
                 return True, "", result
             else:
                 error_msg = result.get('message', '未知错误')
                 logger.error(f"❌ 第{row_num}行: 用户创建失败 - {error_msg}")
-                logger.error(f"   尝试创建的数据: 用户名={username}, 手机号={phone}, 机构编码={org_code if org_code else '无'}")
+                logger.error(f"   尝试创建的数据: 用户名={username}, 手机号={phone}, 机构编码={org_code if org_code else '无'}, 部门ID={selecteddeparts if selecteddeparts else '无'}")
                 return False, error_msg, result
                 
         except requests.RequestException as e:
@@ -771,9 +929,10 @@ class PersonnelProcessor:
                 # 构建用户JSON数据
                 user_data = self.build_user_json(row, column_mapping, org_code, row_num)
                 
-                # 调试信息：显示JSON中的机构编码
+                # 调试信息：显示JSON中的机构编码和部门ID
                 json_org_code = user_data.get('orgCode', '未设置')
-                logger.info(f"第{row_num}行: JSON中的orgCode: '{json_org_code}'")
+                json_selecteddeparts = user_data.get('selecteddeparts', '未设置')
+                logger.info(f"第{row_num}行: JSON中的orgCode: '{json_org_code}', selecteddeparts: '{json_selecteddeparts}'")
                 
                 # 调用创建API
                 success, error_msg, response_data = self.create_user_via_api(user_data, row_num)
@@ -820,6 +979,183 @@ class PersonnelProcessor:
         logger.info(f"   - 用户状态默认为正常(1)，身份为普通成员(1)")
         
         logger.info("==" * 50)
+    
+    def update_user_org_code_directly(self, df: pd.DataFrame) -> Tuple[int, int]:
+        """
+        脚本执行完成后，直接更新sys_user表中的org_code字段
+        
+        Args:
+            df: 包含用户数据和机构编码的DataFrame
+            
+        Returns:
+            Tuple[int, int]: (成功更新数量, 失败更新数量)
+        """
+        logger.info("\n" + "=" * 60)
+        logger.info("🔄 开始直接更新sys_user表的org_code字段...")
+        logger.info("=" * 60)
+        
+        success_count = 0
+        failed_count = 0
+        
+        # 获取列名
+        username_column = df.columns[0] if len(df.columns) > 0 else '用户名'  # A列
+        org_code_column = df.columns[6] if len(df.columns) > 6 else '机构编码'  # G列
+        
+        logger.info(f"📋 开始遍历Excel数据更新用户org_code字段:")
+        logger.info(f"   - A列用户名: '{username_column}'")
+        logger.info(f"   - G列机构编码: '{org_code_column}'")
+        
+        for index, row in df.iterrows():
+            row_num = index + 2  # Excel行号（包含表头）
+            username = row.get(username_column, '')
+            org_code = row.get(org_code_column, '')
+            
+            # 跳过无效数据
+            if pd.isna(username) or str(username).strip() == '':
+                logger.warning(f"第{row_num}行: 用户名为空，跳过")
+                continue
+                
+            if pd.isna(org_code) or str(org_code).strip() == '':
+                logger.warning(f"第{row_num}行: 机构编码为空，跳过")
+                continue
+                
+            username_str = str(username).strip()
+            org_code_str = str(org_code).strip()
+            
+            try:
+                # 直接通过API更新用户的org_code字段
+                success = self.update_user_org_code_by_username(username_str, org_code_str, row_num)
+                if success:
+                    success_count += 1
+                    logger.info(f"✅ 第{row_num}行: 用户 '{username_str}' 的org_code更新为 '{org_code_str}'")
+                else:
+                    failed_count += 1
+                    logger.error(f"❌ 第{row_num}行: 用户 '{username_str}' 的org_code更新失败")
+                    
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"❌ 第{row_num}行: 更新用户 '{username_str}' 时发生异常: {e}")
+        
+        # 输出更新统计
+        total_count = success_count + failed_count
+        success_rate = (success_count / total_count * 100) if total_count > 0 else 0
+        
+        logger.info("\n" + "=" * 60)
+        logger.info("📊 sys_user表org_code字段更新完成统计:")
+        logger.info(f"   📊 处理总数: {total_count} 个用户")
+        logger.info(f"   ✅ 更新成功: {success_count} 个用户")
+        logger.info(f"   ❌ 更新失败: {failed_count} 个用户")
+        logger.info(f"   📈 成功率: {success_rate:.1f}%")
+        logger.info("=" * 60)
+        
+        return success_count, failed_count
+    
+    def update_user_org_code_by_username(self, username: str, org_code: str, row_num: int) -> bool:
+        """
+        根据用户名更新用户的org_code字段 - 使用数据库直接更新
+        
+        Args:
+            username: 用户名
+            org_code: 机构编码
+            row_num: Excel行号
+            
+        Returns:
+            bool: 是否更新成功
+        """
+        try:
+            # 注意：JeecgBoot框架在SysUserController.java第204行强制设置user.setOrgCode(null)
+            # 因此API更新无效，需要直接在数据库层面更新
+            logger.warning(f"第{row_num}行: 注意 - JeecgBoot框架阻止通过API更新org_code字段")
+            logger.info(f"第{row_num}行: 尝试使用数据库直接更新方式...")
+            
+            # 尝试直接数据库更新
+            success = self.update_org_code_via_database(username, org_code, row_num)
+            if success:
+                logger.info(f"✅ 第{row_num}行: 用户 '{username}' 的org_code通过数据库直接更新为 '{org_code}'")
+                return True
+            else:
+                logger.error(f"❌ 第{row_num}行: 数据库直接更新也失败")
+                return False
+                
+        except Exception as e:
+            logger.error(f"第{row_num}行: 更新用户发生异常: {e}")
+            return False
+    
+    def update_org_code_via_database(self, username: str, org_code: str, row_num: int) -> bool:
+        """
+        通过数据库直接更新org_code字段
+        
+        Args:
+            username: 用户名
+            org_code: 机构编码
+            row_num: Excel行号
+            
+        Returns:
+            bool: 是否更新成功
+        """
+        connection = None
+        try:
+            # 数据库连接配置
+            db_config = {
+                'host': 'localhost',
+                'port': 30004,  # Docker映射端口
+                'user': 'root',
+                'password': 'Best@2008',
+                'database': 'jeecg-boot',
+                'charset': 'utf8mb4',
+                'autocommit': True  # 自动提交事务
+            }
+            
+            logger.debug(f"第{row_num}行: 连接数据库 {db_config['host']}:{db_config['port']}")
+            
+            # 建立数据库连接
+            connection = pymysql.connect(**db_config)
+            
+            with connection.cursor() as cursor:
+                # 首先检查用户是否存在
+                check_sql = "SELECT id, username, realname FROM `sys_user` WHERE username = %s"
+                cursor.execute(check_sql, (username,))
+                user_record = cursor.fetchone()
+                
+                if not user_record:
+                    logger.error(f"第{row_num}行: 数据库中未找到用户名为 '{username}' 的用户")
+                    return False
+                
+                user_id, db_username, realname = user_record
+                logger.debug(f"第{row_num}行: 找到用户 - ID: {user_id}, 用户名: {db_username}, 姓名: {realname}")
+                
+                # 更新org_code字段
+                update_sql = "UPDATE `sys_user` SET org_code = %s WHERE username = %s"
+                rows_affected = cursor.execute(update_sql, (org_code, username))
+                
+                if rows_affected > 0:
+                    logger.info(f"第{row_num}行: 数据库更新成功 - 用户 '{username}' 的org_code设置为 '{org_code}'")
+                    
+                    # 验证更新结果
+                    verify_sql = "SELECT org_code FROM `sys_user` WHERE username = %s"
+                    cursor.execute(verify_sql, (username,))
+                    updated_org_code = cursor.fetchone()[0]
+                    
+                    if updated_org_code == org_code:
+                        logger.info(f"第{row_num}行: ✅ 验证成功 - org_code已更新为 '{updated_org_code}'")
+                        return True
+                    else:
+                        logger.error(f"第{row_num}行: ❌ 验证失败 - 期望: '{org_code}', 实际: '{updated_org_code}'")
+                        return False
+                else:
+                    logger.error(f"第{row_num}行: 数据库更新失败 - 没有行被更新")
+                    return False
+                    
+        except pymysql.Error as e:
+            logger.error(f"第{row_num}行: 数据库操作错误: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"第{row_num}行: 数据库更新发生异常: {e}")
+            return False
+        finally:
+            if connection:
+                connection.close()
+                logger.debug(f"第{row_num}行: 数据库连接已关闭")
 
     def validate_system_connection(self) -> bool:
         """
