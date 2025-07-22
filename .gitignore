@@ -20,3 +20,5 @@ os_del_doc.cmd
 .java-version
 .ai-config/jeecg-ai-config.json
 context-engineering-intro/
+.ai-config/
+context-engineering-intro/
