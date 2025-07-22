@@ -29,7 +29,9 @@ from pathlib import Path
 
 def load_config():
     """加载配置文件"""
-    config_file = 'Code_Gen_Config.json'
+    # 智能查找配置文件：优先使用脚本所在目录的配置文件
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_file = os.path.join(script_dir, 'Code_Gen_Config.json')
     # 默认配置（仅在配置文件不存在时使用）
     default_config = {
         "project": {
@@ -113,10 +115,10 @@ def load_config():
         except Exception as e:
             print(f"⚠️ 配置文件加载失败，使用默认配置: {e}")
     else:
-        # 创建默认配置文件
-        with open(config_file, 'w', encoding='utf-8') as f:
-            json.dump(default_config, f, ensure_ascii=False, indent=2)
-        print(f"✅ 已创建默认配置文件: {config_file}")
+        # 配置文件不存在时，不自动创建，而是提示用户
+        print(f"⚠️  配置文件不存在: {config_file}")
+        print(f"💡 将使用默认配置运行，如需自定义配置请创建配置文件")
+        print(f"📝 可以复制现有配置文件模板或使用 --config 参数指定配置文件")
 
     return default_config
 
