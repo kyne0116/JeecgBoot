@@ -107,8 +107,27 @@ class PersonnelProcessor:
             
             result = response.json()
             if result.get('success'):
-                logger.info(f"成功获取部门树，共 {len(result.get('result', []))} 个顶级部门")
-                return result.get('result', [])
+                dept_data = result.get('result', [])
+                logger.info(f"成功获取部门树，共 {len(dept_data)} 个顶级部门")
+                
+                # 简化调试：检查是否有uumsOrgCode字段
+                if dept_data:
+                    def check_uums_fields(nodes):
+                        for node in nodes:
+                            if node.get('uumsOrgCode'):
+                                return True
+                            children = node.get('children', [])
+                            if children and check_uums_fields(children):
+                                return True
+                        return False
+                    
+                    has_uums = check_uums_fields(dept_data)
+                    if not has_uums:
+                        logger.warning("⚠️ 系统部门树中所有uumsOrgCode字段都为空，将使用手动映射表进行UUMS机构编码映射")
+                    else:
+                        logger.info("✅ 系统部门树中包含uumsOrgCode字段，可进行自动映射")
+                
+                return dept_data
             else:
                 logger.error(f"查询部门树失败: {result.get('message', '未知错误')}")
                 return []
@@ -230,6 +249,29 @@ class PersonnelProcessor:
         if uums_org_code in self.org_cache:
             return self.org_cache[uums_org_code]
         
+        # 手动映射表 - 由于系统部门树中uumsOrgCode字段为空，需要手动建立映射关系
+        # 可以根据实际业务情况修改此映射表
+        manual_mapping = {
+            # UUMS机构编码 -> JeecgBoot orgCode 的映射关系
+            # 示例映射（需要根据实际情况修改）
+            '4772338661636599808': 'A01',      # 示例：映射到北京国炬软件
+            '2700526267653980160': 'A01A04',   # 示例：映射到财务部
+            '1163561336007680000': 'A01A05',   # 示例：映射到研发部
+            '1163561335827320064': 'A01A03',   # 示例：映射到市场部
+            '4772329960102299648': 'A01A06',   # 示例：映射到销售公关岗位
+            '4758557398926749696': 'A01A05A01', # 示例：映射到研发经理
+            '4757464661389549568': 'A01A04',   # 示例：映射到财务部
+            '1163561335495970048': 'A01A03',   # 示例：映射到市场部
+        }
+        
+        # 首先尝试手动映射表
+        if uums_org_code in manual_mapping:
+            org_code = manual_mapping[uums_org_code]
+            self.org_cache[uums_org_code] = org_code
+            logger.info(f"✅ 手动映射找到: {uums_org_code} -> {org_code}")
+            return org_code
+        
+        # 如果手动映射表没有，再尝试系统部门树搜索（虽然系统中uumsOrgCode都是None）
         def search_in_tree(nodes: List[Dict]) -> Optional[str]:
             """递归搜索部门树"""
             for node in nodes:
@@ -250,9 +292,10 @@ class PersonnelProcessor:
         
         result = search_in_tree(dept_tree)
         if result:
-            logger.debug(f"找到映射: {uums_org_code} -> {result}")
+            logger.debug(f"部门树搜索找到: {uums_org_code} -> {result}")
         else:
-            logger.warning(f"未找到UUMS机构编码对应的orgCode: {uums_org_code}")
+            logger.warning(f"❌ 未找到UUMS机构编码 '{uums_org_code}' 的映射关系")
+            logger.warning(f"💡 请在脚本的手动映射表中添加: '{uums_org_code}': '对应的orgCode'")
             
         return result
     
@@ -413,42 +456,48 @@ class PersonnelProcessor:
             
             # 4. 处理用户数据的机构编码映射
             logger.info("🔄 步骤 4/5: 处理用户数据的机构编码映射")
-            org_codes = []
-            success_count = 0
-            failed_records = []
             
-            logger.info(f"开始逐行处理用户的 {len(df_original)} 条人员记录...")
-            
-            for index, row in df_original.iterrows():
-                row_num = index + 2  # Excel行号（包含表头）
-                uums_org_code = row.get(uums_column, '')
+            # 检查G列是否已有有效数据
+            g_column_name = '机构编码'
+            if len(df_original.columns) > 6 and g_column_name in df_original.columns:
+                existing_g_data = df_original[g_column_name]
+                # 统计非空且非空字符串的数据
+                non_empty_count = existing_g_data.dropna().astype(str).str.strip().ne('').sum()
                 
-                # 显示正在处理的行数据（确认是真实数据）
-                row_preview = {col: row[col] for col in list(df_original.columns)[:3]}  # 显示前3列
-                logger.debug(f"处理第 {row_num} 行数据: {row_preview}")
-                
-                # 处理空值
-                if pd.isna(uums_org_code) or str(uums_org_code).strip() == '':
-                    logger.warning(f"第 {row_num} 行: UUMS机构编码为空")
-                    org_codes.append('')
-                    failed_records.append(f"第{row_num}行: UUMS机构编码为空")
-                    continue
-                
-                # 查找对应的orgCode
-                uums_code_str = str(uums_org_code).strip()
-                org_code = self.find_org_code_by_uums_code(uums_code_str, dept_tree)
-                
-                if org_code:
-                    org_codes.append(org_code)
-                    success_count += 1
-                    logger.info(f"✅ 第 {row_num} 行: {uums_code_str} → {org_code}")
+                if non_empty_count > 0:
+                    logger.info(f"📋 检测到G列已有 {non_empty_count} 条有效机构编码数据，跳过UUMS映射步骤")
+                    org_codes = existing_g_data.fillna('').tolist()  # 使用已有数据
+                    success_count = non_empty_count
+                    failed_records = []
+                    
+                    # 简单统计
+                    for idx, code in enumerate(org_codes):
+                        if code and str(code).strip():
+                            logger.info(f"✅ 第 {idx+2} 行: 使用已有机构编码 {code}")
+                        else:
+                            failed_records.append(f"第{idx+2}行: 机构编码为空")
                 else:
-                    org_codes.append('')
-                    failed_records.append(f"第{row_num}行: 未找到'{uums_code_str}'对应的orgCode")
-                    logger.warning(f"❌ 第 {row_num} 行: 未找到UUMS机构编码 '{uums_code_str}' 对应的orgCode")
+                    logger.info("📋 G列存在但无有效数据，将执行UUMS机构编码映射")
+                    # 执行原有的映射逻辑
+                    org_codes, success_count, failed_records = self._perform_uums_mapping(df_original, uums_column, dept_tree)
+            else:
+                logger.info("📋 G列不存在，将执行UUMS机构编码映射")
+                # 执行原有的映射逻辑
+                org_codes, success_count, failed_records = self._perform_uums_mapping(df_original, uums_column, dept_tree)
             
             # 在原始用户数据基础上添加机构编码到G列
             df_result = df_original.copy()
+            
+            # 修复：确保org_codes与数据框行数匹配
+            if len(org_codes) != len(df_result):
+                logger.error(f"❌ 数据长度不匹配: org_codes长度={len(org_codes)}, DataFrame长度={len(df_result)}")
+                # 补齐或截断org_codes以匹配数据框长度
+                if len(org_codes) < len(df_result):
+                    org_codes.extend([''] * (len(df_result) - len(org_codes)))
+                    logger.warning(f"⚠️ 已补齐org_codes到{len(df_result)}条记录")
+                else:
+                    org_codes = org_codes[:len(df_result)]
+                    logger.warning(f"⚠️ 已截断org_codes到{len(df_result)}条记录")
             
             # 确保有G列，如果没有则添加
             if len(df_result.columns) < 7:
@@ -504,22 +553,75 @@ class PersonnelProcessor:
                 column_mapping = self.detect_user_data_columns(df_result)
                 
                 # 7. 批量创建用户
-                logger.info("👥 步骤 7/8: 批量创建用户账号")
-                user_success_count, user_failed_count, user_failed_records = self.create_users_from_data(df_result, column_mapping)
+                logger.info("👥 步骤 7/9: 批量创建用户账号")
+                user_success_count, user_failed_count, user_failed_records, api_results = self.create_users_from_data(df_result, column_mapping)
                 
                 # 输出用户创建统计
                 self.print_user_creation_summary(user_success_count, user_failed_count, user_failed_records)
                 
-                # 8. 直接更新sys_user表的org_code字段
+                # 8. 添加H列记录导入结果
                 logger.info("\n" + "=" * 60)
-                logger.info("🔧 步骤 8/8: 直接更新sys_user表的org_code字段")
+                logger.info("📝 步骤 8/9: 添加H列记录导入结果")
+                logger.info("=" * 60)
+                
+                # 修复：确保api_results与数据框行数匹配
+                if len(api_results) != len(df_result):
+                    logger.error(f"❌ 数据长度不匹配: api_results长度={len(api_results)}, DataFrame长度={len(df_result)}")
+                    # 补齐或截断api_results以匹配数据框长度
+                    if len(api_results) < len(df_result):
+                        api_results.extend([''] * (len(df_result) - len(api_results)))
+                        logger.warning(f"⚠️ 已补齐api_results到{len(df_result)}条记录")
+                    else:
+                        api_results = api_results[:len(df_result)]
+                        logger.warning(f"⚠️ 已截断api_results到{len(df_result)}条记录")
+                
+                # 确保有H列，如果没有则添加
+                if len(df_result.columns) < 8:
+                    # 添加H列
+                    df_result.insert(7, '是否导入成功', api_results)
+                    logger.info("✅ 已在H列添加是否导入成功标识")
+                else:
+                    # 如果已有H列，则更新
+                    h_column = df_result.columns[7]  # H列是第8列，索引为7
+                    df_result[h_column] = api_results
+                    logger.info(f"✅ 已更新H列 '{h_column}' 为是否导入成功标识")
+                
+                # 重新保存Excel文件，包含新的H列
+                logger.info("💾 重新保存Excel文件，包含API调用结果...")
+                
+                from openpyxl import Workbook
+                from openpyxl.utils.dataframe import dataframe_to_rows
+                
+                wb = Workbook()
+                ws = wb.active
+                
+                # 写入更新后的数据，包含H列
+                for r in dataframe_to_rows(df_result, index=False, header=True):
+                    ws.append(r)
+                
+                # 将所有单元格设置为文本格式
+                for row in ws.iter_rows():
+                    for cell in row:
+                        if cell.value is not None:
+                            cell.value = str(cell.value)
+                            cell.number_format = '@'  # 文本格式
+                
+                wb.save(original_file_path)
+                logger.info("✅ Excel文件已更新，新增H列是否导入成功标识")
+                logger.info(f"   - Y: 表示导入成功")
+                logger.info(f"   - N: 表示导入失败")
+                logger.info(f"   - 空: 表示未导入（如机构编码为空的记录）")
+                
+                # 9. 直接更新sys_user表的org_code字段
+                logger.info("\n" + "=" * 60)
+                logger.info("🔧 步骤 9/9: 直接更新sys_user表的org_code字段")
                 logger.info("=" * 60)
                 update_success_count, update_failed_count = self.update_user_org_code_directly(df_result)
                 
                 # 输出最终统计
                 logger.info("\n" + "=" * 70)
                 logger.info("🎉 脚本执行完成！最终统计:")
-                logger.info(f"   📊 用户创建: 成功 {user_success_count} 个，失败 {user_failed_count} 个")
+                logger.info(f"   📊 用户导入: 成功 {user_success_count} 个，失败 {user_failed_count} 个")
                 logger.info(f"   🔧 org_code更新: 成功 {update_success_count} 个，失败 {update_failed_count} 个")
                 logger.info("=" * 70)
                 
@@ -543,8 +645,8 @@ class PersonnelProcessor:
         logger.info("📊 Excel文件更新完成统计:")
         logger.info(f"   📂 更新的Excel文件: {output_path}")
         logger.info(f"   🔍 检测到的UUMS列: '{uums_column}'")
-        logger.info(f"   📋 原始数据: {df.shape[0]} 行 x {df.shape[1] - 1} 列")
-        logger.info(f"   📋 更新后数据: {df.shape[0]} 行 x {df.shape[1]} 列 (G列填充机构编码)")
+        logger.info(f"   📋 原始数据: {df.shape[0]} 行 x {df.shape[1] - 2} 列")
+        logger.info(f"   📋 更新后数据: {df.shape[0]} 行 x {df.shape[1]} 列 (G列:机构编码, H列:是否导入成功)")
         logger.info(f"   ✅ 成功映射: {success_count} 条")
         logger.info(f"   ❌ 映射失败: {failed_count} 条")
         logger.info(f"   📈 成功率: {success_rate:.1f}%")
@@ -573,6 +675,7 @@ class PersonnelProcessor:
         
         logger.info(f"\n💡 重要提示:")
         logger.info(f"   - 原始Excel文件已直接更新，G列填充了查询到的机构编码")
+        logger.info(f"   - H列记录了是否导入成功：Y=成功，N=失败，空=未导入")
         logger.info(f"   - 机构编码对应JeecgBoot系统中的部门，用于用户创建时关联部门")
         
         logger.info("=" * 80)
@@ -880,7 +983,7 @@ class PersonnelProcessor:
             logger.error(f"❌ 第{row_num}行: {error_msg}")
             return False, error_msg, {}
     
-    def create_users_from_data(self, df: pd.DataFrame, column_mapping: Dict[str, str]) -> Tuple[int, int, List[str]]:
+    def create_users_from_data(self, df: pd.DataFrame, column_mapping: Dict[str, str]) -> Tuple[int, int, List[str], List[str]]:
         """
         批量创建用户
         
@@ -889,26 +992,132 @@ class PersonnelProcessor:
             column_mapping: 列名映射
             
         Returns:
-            Tuple[int, int, List[str]]: (成功数量, 失败数量, 失败记录)
+            Tuple[int, int, List[str], List[str]]: (成功数量, 失败数量, 失败记录, 结果列表)
         """
         logger.info("👥 开始批量创建用户...")
         logger.info("📋 将使用以下Excel列数据:")
         logger.info("   📱 手机号: E列（用户提供的手机号码）")
         logger.info("   🏢 机构编码: G列（已映射的JeecgBoot系统部门编码）")
+        logger.info("   ✅ 导入状态: H列（仅处理值为N或空的记录）")
         
         success_count = 0
         failed_count = 0
         failed_records = []
+        result_list = []  # 记录每行的结果：Y表示成功，N表示失败
         
-        # 只处理G列机构编码不为空的记录
+        # 获取G列和H列
         g_column = df.columns[6] if len(df.columns) > 6 else '机构编码'
-        valid_data = df[df[g_column].notna() & (df[g_column] != '')].copy()
+        h_column = df.columns[7] if len(df.columns) > 7 else '是否导入成功'
+        
+        # 首先过滤G列机构编码不为空的记录
+        valid_g_data = df[df[g_column].notna() & (df[g_column] != '')].copy()
+        
+        if valid_g_data.empty:
+            logger.warning(f"⚠️ 没有找到G列 '{g_column}' 不为空的记录，无法创建用户")
+            return 0, 0, [], []
+        
+        logger.info(f"📊 找到 {len(valid_g_data)} 条G列机构编码不为空的记录")
+        
+        # 进一步过滤H列：只处理值为N或空的记录
+        if h_column in valid_g_data.columns:
+            # H列存在，过滤出值为N或空的记录
+            import_condition = (
+                valid_g_data[h_column].isna() | 
+                (valid_g_data[h_column] == '') |
+                (valid_g_data[h_column] == 'N')
+            )
+            valid_data = valid_g_data[import_condition].copy()
+            
+            # 统计已成功导入的记录数
+            already_imported = valid_g_data[valid_g_data[h_column] == 'Y']
+            if not already_imported.empty:
+                logger.info(f"📋 跳过 {len(already_imported)} 条已成功导入的记录（H列值为Y）")
+            
+            logger.info(f"📋 找到 {len(valid_data)} 条需要导入的记录（H列值为N或空）")
+        else:
+            # H列不存在，处理所有G列不为空的记录
+            valid_data = valid_g_data.copy()
+            logger.info(f"📋 H列不存在，将处理所有 {len(valid_data)} 条G列机构编码不为空的记录")
+        
+        # 新增：用户名重复处理 - 优先导入机构编码较短的用户
+        if not valid_data.empty:
+            logger.info("🔍 处理用户名重复问题（优先导入机构编码较短的用户）...")
+            username_column = column_mapping.get('username', '用户名')
+            
+            # 检查是否有用户名重复
+            duplicate_usernames = valid_data[valid_data.duplicated(subset=[username_column], keep=False)]
+            if not duplicate_usernames.empty:
+                logger.warning(f"⚠️ 发现 {len(duplicate_usernames)} 条用户名重复记录，将按机构编码长度优先级处理：")
+                
+                # 按用户名分组，对每组按机构编码长度排序
+                duplicated_groups = duplicate_usernames.groupby(username_column)
+                rows_to_skip = []  # 记录需要跳过的行索引
+                
+                for username, group in duplicated_groups:
+                    # 按机构编码长度排序（短的在前）
+                    group_sorted = group.copy()
+                    group_sorted['org_code_length'] = group_sorted[g_column].astype(str).str.len()
+                    group_sorted['original_index'] = group_sorted.index  # 保存原始索引
+                    group_sorted = group_sorted.sort_values(['org_code_length', 'original_index'])
+                    
+                    excel_rows = [idx + 2 for idx in list(group_sorted.index)]  # Excel行号，转为list避免索引问题
+                    org_codes = group_sorted[g_column].astype(str).tolist()
+                    org_lengths = group_sorted['org_code_length'].tolist()
+                    
+                    logger.warning(f"   用户名 '{username}' 重复出现在Excel行: {excel_rows}")
+                    logger.info(f"   机构编码及长度: {list(zip(org_codes, org_lengths))}")
+                    
+                    # 只保留第一条记录（机构编码最短的）
+                    keep_row_idx = group_sorted.index[0]
+                    skip_row_indices = list(group_sorted.index[1:])  # 修复：立即转为list
+                    
+                    keep_excel_row = keep_row_idx + 2
+                    keep_org_code = group_sorted.iloc[0][g_column]
+                    logger.info(f"   保留：Excel第{keep_excel_row}行（机构编码: {keep_org_code}，长度: {len(str(keep_org_code))}）")
+                    
+                    if len(skip_row_indices) > 0:
+                        skip_excel_rows = [idx + 2 for idx in skip_row_indices]
+                        skip_org_codes = [group_sorted.loc[idx, g_column] for idx in skip_row_indices]
+                        logger.warning(f"   跳过：Excel行 {skip_excel_rows}（机构编码较长）")
+                        
+                        # 记录需要跳过的行
+                        rows_to_skip.extend(skip_row_indices)  # 修复：skip_row_indices已是list
+                
+                # 从valid_data中移除需要跳过的记录
+                if rows_to_skip:
+                    valid_data = valid_data.drop(rows_to_skip)
+                    logger.info(f"📋 用户名去重后，剩余 {len(valid_data)} 条记录需要导入")
+                    
+                    # 将跳过的记录在原始数据中标记为N（机构编码较长，被跳过）
+                    for skip_idx in rows_to_skip:
+                        # 修复：检查skip_idx的类型，确保是整数
+                        if hasattr(skip_idx, '__iter__') and not isinstance(skip_idx, (str, int)):
+                            # 如果是Index对象或其他可迭代对象，过滤出整数
+                            logger.error(f"❌ 索引类型错误: {type(skip_idx)} - {skip_idx}")
+                            continue
+                        
+                        try:
+                            skip_idx_int = int(skip_idx)
+                            df.iloc[skip_idx_int, 7] = 'N'  # 标记为导入失败
+                            excel_row = skip_idx_int + 2
+                            skip_org_code = df.iloc[skip_idx_int, 6]
+                            logger.info(f"   Excel第{excel_row}行已标记为N（用户名重复，机构编码{skip_org_code}较长）")
+                        except (ValueError, TypeError, IndexError) as e:
+                            logger.error(f"❌ 处理跳过索引 {skip_idx} 时出错: {e}")
+                            continue
+            else:
+                logger.info("✅ 没有发现用户名重复问题")
         
         if valid_data.empty:
-            logger.warning(f"⚠️ 没有找到G列 '{g_column}' 不为空的记录，无法创建用户")
-            return 0, 0, []
-        
-        logger.info(f"📊 找到 {len(valid_data)} 条有效记录（G列机构编码不为空）")
+            logger.warning(f"⚠️ 没有找到需要导入的记录，所有记录要么G列机构编码为空，要么H列已标记为成功导入（Y），要么用户名重复被跳过")
+            # 为整个数据框初始化结果列表（保持原有状态）
+            all_results = []
+            for index, row in df.iterrows():
+                if h_column in df.columns and pd.notna(row.get(h_column)) and row.get(h_column) != '':
+                    all_results.append(row.get(h_column))  # 保持原有状态
+                else:
+                    all_results.append('')  # 空值保持空
+            return 0, 0, [], all_results
         
         # 显示将要使用的数据示例
         if len(valid_data) > 0:
@@ -916,7 +1125,16 @@ class PersonnelProcessor:
             e_column = sample_row.index[4] if len(sample_row.index) > 4 else 'E列'
             phone_sample = sample_row.get(e_column, '无')
             org_code_sample = sample_row.get(g_column, '无')
-            logger.info(f"📋 数据示例 - E列手机号: {phone_sample}, G列机构编码: {org_code_sample}")
+            h_value_sample = sample_row.get(h_column, '空') if h_column in valid_data.columns else '无H列'
+            logger.info(f"📋 数据示例 - E列手机号: {phone_sample}, G列机构编码: {org_code_sample}, H列状态: {h_value_sample}")
+        
+        # 为整个数据框的所有行初始化结果列表
+        all_results = []
+        for index, row in df.iterrows():
+            if h_column in df.columns and pd.notna(row.get(h_column)) and row.get(h_column) != '':
+                all_results.append(row.get(h_column))  # 保持原有状态（Y或N）
+            else:
+                all_results.append('')  # 空值或H列不存在的情况
         
         for index, row in valid_data.iterrows():
             row_num = index + 2  # Excel行号（包含表头）
@@ -939,17 +1157,70 @@ class PersonnelProcessor:
                 
                 if success:
                     success_count += 1
-                    # 详细信息已在create_user_via_api中显示，这里只做简单计数
+                    all_results[index] = 'Y'  # 成功导入记录为Y
+                    logger.info(f"第{row_num}行: ✅ 用户导入成功，结果记录为 Y")
                 else:
                     failed_count += 1
+                    all_results[index] = 'N'  # 失败导入记录为N
                     failed_records.append(f"第{row_num}行: {user_data.get('username', 'N/A')} (手机号: {user_data.get('phone', 'N/A')}) - {error_msg}")
+                    logger.info(f"第{row_num}行: ❌ 用户导入失败，结果记录为 N - {error_msg}")
                     
             except Exception as e:
                 failed_count += 1
+                all_results[index] = 'N'  # 异常也记录为N
                 failed_records.append(f"第{row_num}行: 数据处理异常 - {str(e)}")
                 logger.error(f"❌ 第{row_num}行: 处理用户数据时发生异常: {e}")
+                logger.info(f"第{row_num}行: ❌ 处理异常，导入状态记录为 N")
         
-        return success_count, failed_count, failed_records
+        return success_count, failed_count, failed_records, all_results
+    
+    def _perform_uums_mapping(self, df_original: pd.DataFrame, uums_column: str, dept_tree: Dict) -> Tuple[List[str], int, List[str]]:
+        """
+        执行UUMS机构编码映射
+        
+        Args:
+            df_original: 原始数据框
+            uums_column: UUMS机构编码列名
+            dept_tree: 部门树数据
+            
+        Returns:
+            Tuple[List[str], int, List[str]]: (机构编码列表, 成功数量, 失败记录)
+        """
+        org_codes = []
+        success_count = 0
+        failed_records = []
+        
+        logger.info(f"开始逐行处理用户的 {len(df_original)} 条人员记录...")
+        
+        for index, row in df_original.iterrows():
+            row_num = index + 2  # Excel行号（包含表头）
+            uums_org_code = row.get(uums_column, '')
+            
+            # 显示正在处理的行数据（确认是真实数据）
+            row_preview = {col: row[col] for col in list(df_original.columns)[:3]}  # 显示前3列
+            logger.debug(f"处理第 {row_num} 行数据: {row_preview}")
+            
+            # 处理空值
+            if pd.isna(uums_org_code) or str(uums_org_code).strip() == '':
+                logger.warning(f"第 {row_num} 行: UUMS机构编码为空")
+                org_codes.append('')
+                failed_records.append(f"第{row_num}行: UUMS机构编码为空")
+                continue
+            
+            # 查找对应的orgCode
+            uums_code_str = str(uums_org_code).strip()
+            org_code = self.find_org_code_by_uums_code(uums_code_str, dept_tree)
+            
+            if org_code:
+                org_codes.append(org_code)
+                success_count += 1
+                logger.info(f"✅ 第 {row_num} 行: {uums_code_str} → {org_code}")
+            else:
+                org_codes.append('')
+                failed_records.append(f"第{row_num}行: 未找到'{uums_code_str}'对应的orgCode")
+                logger.warning(f"❌ 第 {row_num} 行: 未找到UUMS机构编码 '{uums_code_str}' 对应的orgCode")
+        
+        return org_codes, success_count, failed_records
     
     def print_user_creation_summary(self, success_count: int, failed_count: int, failed_records: List[str]):
         """打印用户创建统计摘要"""
@@ -1000,15 +1271,19 @@ class PersonnelProcessor:
         # 获取列名
         username_column = df.columns[0] if len(df.columns) > 0 else '用户名'  # A列
         org_code_column = df.columns[6] if len(df.columns) > 6 else '机构编码'  # G列
+        h_column = df.columns[7] if len(df.columns) > 7 else '是否导入成功'  # H列
         
         logger.info(f"📋 开始遍历Excel数据更新用户org_code字段:")
         logger.info(f"   - A列用户名: '{username_column}'")
         logger.info(f"   - G列机构编码: '{org_code_column}'")
+        logger.info(f"   - H列导入状态: '{h_column}'")
+        logger.info("📋 只更新H列状态为Y（导入成功）的用户org_code字段")
         
         for index, row in df.iterrows():
             row_num = index + 2  # Excel行号（包含表头）
             username = row.get(username_column, '')
             org_code = row.get(org_code_column, '')
+            import_status = row.get(h_column, '') if h_column in df.columns else ''
             
             # 跳过无效数据
             if pd.isna(username) or str(username).strip() == '':
@@ -1017,6 +1292,11 @@ class PersonnelProcessor:
                 
             if pd.isna(org_code) or str(org_code).strip() == '':
                 logger.warning(f"第{row_num}行: 机构编码为空，跳过")
+                continue
+            
+            # 重要修复：只更新H列为Y（导入成功）的用户
+            if str(import_status).strip() != 'Y':
+                logger.info(f"第{row_num}行: 用户 '{username}' 导入状态为'{import_status}'，跳过org_code更新")
                 continue
                 
             username_str = str(username).strip()
