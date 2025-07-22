@@ -18,3 +18,5 @@ os_del_doc.cmd
 .DS_Store
 .vscode/
 .java-version
+.ai-config/jeecg-ai-config.json
+context-engineering-intro/
