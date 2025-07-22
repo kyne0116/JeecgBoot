@@ -265,7 +265,7 @@ verify_installation() {
     fi
     
     # 检查Claude配置
-    if [[ -f "~/.claude/CLAUDE.md" ]] && grep -q "JeecgBoot" ~/.claude/CLAUDE.md; then
+    if [[ -f ~/.claude/CLAUDE.md ]] && grep -q "JeecgBoot" ~/.claude/CLAUDE.md; then
         echo "✅ Claude Code 配置已加载"
     else
         echo "❌ Claude Code 配置未正确加载"
