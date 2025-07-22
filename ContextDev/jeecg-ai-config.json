@@ -1,0 +1,116 @@
+{
+  "project": {
+    "name": "JeecgBoot AI Enhanced Development with CodeGen",
+    "version": "2.0.0",
+    "description": "JeecgBoot项目AI赋能配置（集成CodeGen系统）",
+    "upstream_dependencies": {
+      "context-engineering-intro": ">=1.0.0",
+      "SuperClaude": ">=3.0.0"
+    }
+  },
+
+  "codegen_integration": {
+    "ai_agent_spec": "CodeGen/Code_Gen_Agent.md",
+    "execution_script": "CodeGen/Code_Gen_Guide.py",
+    "config_template": "CodeGen/Code_Gen_Guide.json",
+    "field_templates": "CodeGen/Code_Gen_field_templates.json",
+    "automation_level": "full"
+  },
+  
+  "jeecg_specific": {
+    "framework": "JeecgBoot",
+    "tech_stack": {
+      "backend": "Spring Boot + MyBatis-Plus",
+      "frontend": "Vue3 + Ant Design Vue",
+      "database": "MySQL",
+      "cache": "Redis"
+    },
+    "module_prefix": "jeecg-module",
+    "api_base": "http://localhost:8080/jeecg-boot",
+    "code_generator": {
+      "script": "CodeGen/Code_Gen_Guide.py",
+      "config_template": "CodeGen/Code_Gen_Config.json",
+      "form_template": "CodeGen/Code_Gen_Guide.json",
+      "required_fields": [
+        "id", "create_by", "create_time",
+        "update_by", "update_time", "sys_org_code", "del_flag"
+      ]
+    }
+  },
+  
+  "ai_enhancements": {
+    "context_engineering": {
+      "use_upstream_prp": true,
+      "prp_integration": {
+        "jeecg_prp_template": "ContextDev/templates/jeecg-prp-template.md",
+        "codegen_integration": true,
+        "validation_gates": [
+          "python3 CodeGen/Code_Gen_Guide.py --validate-config",
+          "python3 CodeGen/Code_Gen_Guide.py --test-connection",
+          "mvn clean compile -pl {module_name}",
+          "npm run build"
+        ]
+      },
+      "custom_sections": [
+        "jeecg_architecture",
+        "codegen_workflow",
+        "ai_agent_integration"
+      ]
+    },
+    "superclaude": {
+      "use_all_commands": true,
+      "use_all_personas": true,
+      "codegen_commands": ["/sc:codegen", "/sc:jeecg-analyze", "/sc:jeecg-config"],
+      "custom_command_params": {
+        "implement": {
+          "default_framework": "jeecg-boot",
+          "include_permissions": true,
+          "include_system_fields": true
+        },
+        "design": {
+          "architecture_style": "jeecg-modular",
+          "include_database_design": true
+        }
+      }
+    },
+    "mcp_servers": {
+      "use_upstream_config": true,
+      "codegen_server": "~/.claude/mcp-codegen/server.js",
+      "additional_sources": [
+        {
+          "name": "jeecg-boot-docs",
+          "url": "http://doc.jeecg.com",
+          "type": "documentation"
+        }
+      ]
+    }
+  },
+  
+  "workflow_presets": {
+    "jeecg_codegen_development": [
+      "/sc:jeecg-analyze {requirement}",
+      "/sc:design 'JeecgBoot模块架构设计'",
+      "/sc:jeecg-config '生成JSON配置文件'",
+      "/sc:codegen '执行完整代码生成工作流'",
+      "/sc:test --type=unit,integration",
+      "/sc:document --format=swagger"
+    ],
+    "jeecg_online_form": [
+      "/sc:jeecg-analyze '在线表单需求分析'",
+      "/sc:jeecg-config '生成表单JSON配置'",
+      "/sc:codegen '创建在线表单并生成代码'",
+      "/sc:frontend '表单界面优化'",
+      "/sc:test --type=e2e"
+    ],
+    "jeecg_ai_analysis": [
+      "/sc:jeecg-analyze {business_requirement}",
+      "/sc:architect '架构设计建议'",
+      "/sc:security '安全性评估'",
+      "/sc:improve '优化建议'"
+    ],
+    "jeecg_prp_workflow": [
+      "/generate-prp {requirements_file}",
+      "/execute-prp PRPs/{module_name}.md"
+    ]
+  }
+}
