@@ -2814,7 +2814,8 @@ def jeecg_complete_workflow():
 
     # 2. 数据字典状态检查（仅检查，不进行智能匹配）
     print("\n2️⃣ 数据字典状态检查...")
-    dict_file_exists = Path('Code_Gen_DICT.json').exists()
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    dict_file_exists = Path(os.path.join(script_dir, 'Code_Gen_DICT.json')).exists()
     if dict_file_exists:
         try:
             dict_data = load_dict_data()
@@ -3505,7 +3506,8 @@ def cleanup_temp_files():
 
 def check_dict_file_status():
     """检查数据字典文件状态"""
-    dict_file = 'Code_Gen_DICT.json'
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    dict_file = os.path.join(script_dir, 'Code_Gen_DICT.json')
     
     if not os.path.exists(dict_file):
         return False, "数据字典文件不存在"
@@ -3532,7 +3534,8 @@ def check_dict_file_status():
 
 def load_dict_data():
     """加载数据字典数据"""
-    dict_file = 'Code_Gen_DICT.json'
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    dict_file = os.path.join(script_dir, 'Code_Gen_DICT.json')
     try:
         with open(dict_file, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -3550,7 +3553,8 @@ def fetch_system_dict():
     print("=" * 50)
     
     # 1. 删除已存在的字典文件
-    dict_file = 'Code_Gen_DICT.json'
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    dict_file = os.path.join(script_dir, 'Code_Gen_DICT.json')
     if os.path.exists(dict_file):
         try:
             os.remove(dict_file)
