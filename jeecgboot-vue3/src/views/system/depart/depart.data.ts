@@ -28,6 +28,28 @@ export function useBasicFormSchema() {
       component: 'Input',
       componentProps: {
         placeholder: '请输入机构编码',
+        disabled: true,
+        style: { color: '#999', backgroundColor: '#f5f5f5' },
+      },
+    },
+    {
+      field: 'uumsOrgCode',
+      label: 'UUMS机构编码',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入UUMS机构编码',
+        disabled: true,
+        style: { color: '#999', backgroundColor: '#f5f5f5' },
+      },
+    },
+    {
+      field: 'uumsParentOrgCode',
+      label: 'UUMS父机构编码',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入UUMS父机构编码',
+        disabled: true,
+        style: { color: '#999', backgroundColor: '#f5f5f5' },
       },
     },
     {
