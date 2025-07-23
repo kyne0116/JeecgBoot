@@ -9,7 +9,8 @@ echo "🚀 JeecgBoot AI 环境安装 v2.0 (ContextDev + CodeGen 集成版)"
 echo "============================================================="
 
 # 项目根目录
-PROJECT_ROOT="$(pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 CONTEXT_DEV_DIR="$PROJECT_ROOT/ContextDev"
 
 # 检查系统要求
@@ -251,7 +252,7 @@ verify_installation() {
     echo "🔍 验证安装..."
     
     # 检查Context Engineering
-    if [[ -d "context-engineering-intro" ]]; then
+    if [[ -d "$PROJECT_ROOT/context-engineering-intro" ]]; then
         echo "✅ Context Engineering 已安装"
     else
         echo "❌ Context Engineering 安装失败"
