@@ -31,15 +31,54 @@ chmod +x ContextDev/jeecg-ai-setup.sh
 安装完成后，在 Claude Code 中测试：
 
 ```bash
-# PRP 工作流（推荐）
+# JeecgBoot 专用 PRP 工作流（推荐）
+/jeecg-generate-prp 客户管理系统需求
+
+# 通用 PRP 工作流
 /generate-prp customer-management-requirements.md
 /execute-prp PRPs/customer-management.md
 
 # SuperClaude 命令
-/sc:analyze "分析业务需求"
-/sc:implement "实现客户管理模块"
-/sc:architect "设计系统架构"
+/sc:jeecg-analyze "分析业务需求"
+/sc:jeecg-config "生成配置文件"
+/sc:codegen "执行代码生成"
 ```
+
+## ⚡ 核心命令
+
+### `/jeecg-generate-prp` - JeecgBoot 专用需求文档生成
+
+**专为 JeecgBoot 设计的智能需求文档生成命令，基于 Context Engineering 最佳实践。**
+
+**命令语法：**
+```bash
+/jeecg-generate-prp [需求描述]
+```
+
+**使用示例：**
+```bash
+# 生成客户管理系统需求文档
+/jeecg-generate-prp 客户管理系统需求
+
+# 生成库存管理模块需求文档  
+/jeecg-generate-prp 库存管理模块，包含商品入库、出库、盘点功能
+
+# 生成财务报表系统需求文档
+/jeecg-generate-prp 财务报表系统，支持月度和年度报表生成
+```
+
+**核心特性：**
+- 🎯 **JeecgBoot 专用优化**: 针对 JeecgBoot 平台特点进行深度定制
+- 📝 **自动模板应用**: 使用 `PRPs/templates/REQUIREMENTS_JEECGBOOT.md` 作为基础模板
+- 💾 **智能文件命名**: 自动保存到 `projectDocs/REQUIREMENTS_{project-name}.md`
+- 🔧 **CodeGen 深度集成**: 生成的需求文档直接兼容 CodeGen 系统
+- ✅ **环境验证门槛**: 包含完整的 JeecgBoot 环境验证脚本
+
+**与 CodeGen 系统的关系：**
+1. **需求输入阶段**: 使用 `/jeecg-generate-prp` 生成标准化需求文档
+2. **配置转换阶段**: 需求文档为 CodeGen 配置生成提供完整上下文
+3. **代码生成阶段**: CodeGen 系统基于需求文档执行代码生成
+4. **质量保证阶段**: 验证生成的代码是否符合需求文档的规格
 
 ## 📁 文件说明
 

@@ -440,27 +440,183 @@ cp context-engineering-intro/CLAUDE.md ~/.claude/CLAUDE.md
 
 ## 📖 4. 日常使用教程
 
-### 4.1 JeecgBoot 模块开发 AI 工作流
+### 4.1 `/jeecg-generate-prp` - JeecgBoot 专用需求文档生成命令
+
+#### 4.1.1 命令概述
+
+`/jeecg-generate-prp` 是专为 JeecgBoot 开发的智能需求文档生成命令，基于 Context Engineering 最佳实践，能够自动生成符合 JeecgBoot 规范的完整需求文档。
+
+**核心优势：**
+- 🎯 **专门优化**: 针对 JeecgBoot 平台特点进行深度定制
+- 📝 **模板驱动**: 自动应用 `PRPs/templates/REQUIREMENTS_JEECGBOOT.md` 基础模板
+- 🔧 **CodeGen 集成**: 生成的文档直接兼容 CodeGen 系统
+- ✅ **环境验证**: 包含完整的 JeecgBoot 环境验证脚本
+- 📊 **质量保证**: 内置评分机制确保实施成功率 8+/10
+
+#### 4.1.2 命令语法和参数
+
+**基础语法：**
+```bash
+/jeecg-generate-prp [需求描述]
+```
+
+**参数说明：**
+- `[需求描述]`: 自然语言描述的业务需求，支持中文和英文
+- 无需复杂参数配置，AI 会自动解析需求内容
+
+#### 4.1.3 使用示例和最佳实践
+
+**基础 CRUD 模块需求：**
+```bash
+# 简单的客户管理需求
+/jeecg-generate-prp 客户管理系统需求
+
+# 输出文件: projectDocs/REQUIREMENTS_customer-management.md
+```
+
+**复杂业务模块需求：**
+```bash
+# 详细的库存管理需求
+/jeecg-generate-prp 库存管理模块，包含商品入库、出库、盘点功能，支持批次管理和库存预警
+
+# 输出文件: projectDocs/REQUIREMENTS_inventory-management.md
+```
+
+**多功能系统需求：**
+```bash
+# 财务报表系统需求
+/jeecg-generate-prp 财务报表系统，支持月度和年度报表生成，包含收入分析、支出统计、利润计算等功能
+
+# 输出文件: projectDocs/REQUIREMENTS_financial-reporting.md
+```
+
+#### 4.1.4 与 CodeGen 系统的集成工作流
+
+**完整开发流程：**
+
+```bash
+# 第1步: 生成需求文档
+/jeecg-generate-prp 员工管理模块，包含员工基本信息、部门关联、职位管理等功能
+
+# 第2步: 基于需求文档进行 CodeGen 配置
+# AI 会根据生成的需求文档自动提取以下信息：
+# - 表名格式: us_hr_employee (遵循 us_{module}_{entity} 规范)
+# - 字段定义: 姓名、工号、部门ID、职位ID、入职日期等
+# - 权限配置: hr:employee:add, hr:employee:edit, hr:employee:delete, hr:employee:list
+
+# 第3步: 执行 CodeGen 代码生成
+/sc:codegen "基于员工管理需求文档执行完整代码生成"
+
+# 第4步: 验证生成结果
+# 检查生成的代码是否符合需求文档中的规格定义
+```
+
+#### 4.1.5 生成文档的关键内容
+
+**每个生成的需求文档都包含：**
+
+1. **JeecgBoot 平台约束**
+   - 技术栈规范 (Spring Boot 2.7.18 + Vue 3.5.13)
+   - 表命名规范 (us_{module}_{entity})
+   - 包结构规范 (org.jeecg.modules.{module})
+
+2. **业务需求规格**
+   - 完整的实体定义和字段规范
+   - 业务流程和操作权限
+   - 数据验证规则和约束条件
+
+3. **技术实现蓝图**
+   - CodeGen 配置要求
+   - 前后端实现指导
+   - 数据库设计方案
+
+4. **验证门槛脚本**
+   ```bash
+   # JeecgBoot 环境验证
+   mvn -version
+   java -version
+   node --version
+   
+   # CodeGen 系统验证
+   python3 CodeGen/Code_Gen_Guide.py --test-connection
+   
+   # 项目结构验证
+   ls -la jeecg-boot/jeecg-module-system/
+   ls -la jeecgboot-vue3/src/
+   ```
+
+#### 4.1.6 常见使用场景
+
+**单表 CRUD 模块（推荐使用 CodeGen）：**
+```bash
+/jeecg-generate-prp 商品信息管理，包含商品名称、价格、库存、分类等基础字段的增删改查
+```
+
+**多表关联模块：**
+```bash
+/jeecg-generate-prp 订单管理系统，包含订单主表、订单明细表，关联客户信息和商品信息
+```
+
+**工作流集成模块：**
+```bash
+/jeecg-generate-prp 请假审批系统，包含请假申请、审批流程、审批记录等功能
+```
+
+#### 4.1.7 错误处理和故障排除
+
+**常见问题及解决方案：**
+
+1. **输出目录不存在**
+   ```bash
+   # 检查 projectDocs 目录
+   ls -la projectDocs/
+   
+   # 手动创建目录（通常由安装脚本自动创建）
+   mkdir -p projectDocs
+   ```
+
+2. **模板文件缺失**
+   ```bash
+   # 检查模板文件
+   ls -la PRPs/templates/REQUIREMENTS_JEECGBOOT.md
+   
+   # 重新运行安装脚本
+   bash ContextDev/jeecg-ai-setup.sh --setup-claude-commands
+   ```
+
+3. **生成的文档格式不正确**
+   ```bash
+   # 验证环境安装
+   bash ContextDev/jeecg-ai-setup.sh --verify
+   
+   # 重新生成文档
+   /jeecg-generate-prp [重新输入需求描述]
+   ```
+
+### 4.2 JeecgBoot 模块开发 AI 工作流
 
 **完整开发流程示例**：
 
 ```bash
-# 步骤1: 需求分析
-/sc:analyze "开发HRMS人力资源管理系统的员工信息管理模块，包含员工基本信息CRUD、部门关联、职位管理等功能"
+# 步骤1: 需求文档生成（推荐使用新命令）
+/jeecg-generate-prp HRMS人力资源管理系统的员工信息管理模块，包含员工基本信息CRUD、部门关联、职位管理等功能
 
-# 步骤2: 架构设计
-/sc:design "基于JeecgBoot框架设计员工管理模块，包含数据模型、API接口、权限控制等"
+# 步骤2: 需求分析（基于生成的文档）
+/sc:jeecg-analyze "基于员工管理需求文档进行深度业务分析"
 
-# 步骤3: 模块实现
-/sc:implement "实现员工管理模块，包含后端Entity、Service、Controller和前端Vue组件"
+# 步骤3: 配置文件生成
+/sc:jeecg-config "基于需求文档生成 CodeGen JSON 配置文件"
 
-# 步骤4: 代码优化
+# 步骤4: 代码生成执行
+/sc:codegen "执行完整的 CodeGen 代码生成工作流"
+
+# 步骤5: 代码优化
 /sc:improve "优化员工管理模块的代码质量、性能和安全性"
 
-# 步骤5: 测试生成
+# 步骤6: 测试生成
 /sc:test "为员工管理模块生成完整的单元测试和集成测试"
 
-# 步骤6: 文档生成
+# 步骤7: 文档生成
 /sc:document "生成员工管理模块的API文档和用户手册"
 ```
 
