@@ -207,10 +207,39 @@ generate_codegen_commands() {
         echo "💾 备份现有 codegen_commands.json"
     fi
     
-    # 生成CodeGen专用Claude命令配置
+    # 生成增强版CodeGen专用Claude命令配置
     cat > "$PRP_WORK_DIR/codegen_commands.json" << 'EOF'
 {
   "commands": {
+    "/jeecg-generate-prp": {
+      "description": "JeecgBoot专用智能需求文档生成命令（增强版）",
+      "template": "基于JeecgBoot平台特点，智能生成需求文档：\n{input}",
+      "features": [
+        "智能需求分类决策",
+        "CodeGen系统深度集成", 
+        "官方文档智能研究",
+        "质量保证机制"
+      ],
+      "output_directory": "projectDocs",
+      "naming_format": "REQUIREMENTS_{project-name}.md",
+      "requires_codegen": "conditional",
+      "confidence_threshold": 8
+    },
+    "/jeecg-execute-prp": {
+      "description": "JeecgBoot专用智能需求文档执行命令（增强版）",
+      "template": "基于JeecgBoot平台特点，智能执行需求文档并完成代码实现：\n{input}",
+      "features": [
+        "智能文档解析与验证",
+        "CodeGen系统自动化执行", 
+        "智能环境验证与错误处理",
+        "端到端质量保证与验证"
+      ],
+      "input_directory": "projectDocs",
+      "output_directory": "projectDocs",
+      "log_format": "EXECUTION_LOG_{project-name}_{timestamp}.md",
+      "requires_codegen": true,
+      "confidence_threshold": 9
+    },
     "/sc:jeecg-analyze": {
       "description": "基于CodeGen AI代理的业务需求分析",
       "template": "使用LangGPT结构化方式分析以下业务需求，生成标准化字段设计：\n{input}",
@@ -238,6 +267,36 @@ generate_codegen_commands() {
       "template": "更新项目的AI环境配置和依赖",
       "script": "bash ContextDev/jeecg-ai-update.sh"
     }
+  },
+  "workflow_integration": {
+    "jeecg_enhanced_prp": {
+      "steps": [
+        "/jeecg-generate-prp {业务需求}",
+        "/jeecg-execute-prp projectDocs/REQUIREMENTS_{project-name}.md" 
+      ],
+      "description": "JeecgBoot增强版PRP工作流"
+    },
+    "jeecg_complete_development": {
+      "steps": [
+        "/jeecg-generate-prp {业务需求描述}",
+        "/jeecg-execute-prp projectDocs/REQUIREMENTS_{project-name}.md",
+        "/sc:test --type=unit,integration",
+        "/sc:document --format=swagger,jeecg"
+      ],
+      "description": "JeecgBoot完整开发工作流"
+    }
+  },
+  "quality_gates": {
+    "jeecg_environment_check": [
+      "mvn -version",
+      "java -version", 
+      "node --version",
+      "test -f PRPs/templates/REQUIREMENTS_JEECGBOOT.md"
+    ],
+    "codegen_system_check": [
+      "python3 CodeGen/Code_Gen_Guide.py --test-connection",
+      "test -f CodeGen/Code_Gen_Agent.md"
+    ]
   }
 }
 EOF
@@ -329,17 +388,32 @@ setup_codegen_integration() {
     echo "✅ CodeGen 集成配置完成"
 }
 
-# 安装Claude命令系统
-setup_claude_commands() {
-    echo "⚡ 安装 Claude 命令系统..."
+# 部署增强的 /jeecg-generate-prp 命令
+deploy_jeecg_generate_prp_command() {
+    echo "🚀 部署增强版 /jeecg-generate-prp 命令..."
     
-    # 创建Claude命令目录
+    # 确保命令目录存在
     CLAUDE_COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
     mkdir -p "$CLAUDE_COMMANDS_DIR"
-    echo "📁 创建Claude命令目录: $CLAUDE_COMMANDS_DIR"
     
-    # 安装 /jeecg-generate-prp 命令
-    echo "📝 安装 /jeecg-generate-prp 命令..."
+    # 检查源模板文件是否存在
+    if [[ -f "$CONTEXT_DEV_DIR/jeecg-generate-prp-command.md" ]]; then
+        # 备份现有命令文件（如果存在）
+        if [[ -f "$CLAUDE_COMMANDS_DIR/jeecg-generate-prp.md" ]]; then
+            BACKUP_FILE="$CLAUDE_COMMANDS_DIR/jeecg-generate-prp.md.backup.$(date +%Y%m%d-%H%M%S)"
+            cp "$CLAUDE_COMMANDS_DIR/jeecg-generate-prp.md" "$BACKUP_FILE"
+            echo "💾 备份现有命令文件到: $BACKUP_FILE"
+        fi
+        
+        # 部署新的命令文件
+        cp "$CONTEXT_DEV_DIR/jeecg-generate-prp-command.md" "$CLAUDE_COMMANDS_DIR/jeecg-generate-prp.md"
+        echo "📝 部署命令文件: jeecg-generate-prp-command.md → .claude/commands/jeecg-generate-prp.md"
+        echo "📊 命令文件大小: $(wc -l < "$CLAUDE_COMMANDS_DIR/jeecg-generate-prp.md") 行"
+        return 0
+    fi
+    
+    # 如果模板文件不存在，使用内置版本
+    echo "📝 使用内置版本创建 /jeecg-generate-prp 命令..."
     
     cat > "$CLAUDE_COMMANDS_DIR/jeecg-generate-prp.md" << 'EOF'
 # Create JeecgBoot Requirements PRP
@@ -505,22 +579,104 @@ EOF
     
     echo "✅ /jeecg-generate-prp 命令安装完成"
     echo "📁 命令位置: $CLAUDE_COMMANDS_DIR/jeecg-generate-prp.md"
+}
+
+# 部署增强的 /jeecg-execute-prp 命令
+deploy_jeecg_execute_prp_command() {
+    echo "🚀 部署增强版 /jeecg-execute-prp 命令..."
+    
+    # 确保命令目录存在
+    CLAUDE_COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
+    mkdir -p "$CLAUDE_COMMANDS_DIR"
+    
+    # 检查源模板文件是否存在
+    if [[ -f "$CONTEXT_DEV_DIR/jeecg-execute-prp-command.md" ]]; then
+        # 备份现有命令文件（如果存在）
+        if [[ -f "$CLAUDE_COMMANDS_DIR/jeecg-execute-prp.md" ]]; then
+            BACKUP_FILE="$CLAUDE_COMMANDS_DIR/jeecg-execute-prp.md.backup.$(date +%Y%m%d-%H%M%S)"
+            cp "$CLAUDE_COMMANDS_DIR/jeecg-execute-prp.md" "$BACKUP_FILE"
+            echo "💾 备份现有命令文件到: $BACKUP_FILE"
+        fi
+        
+        # 部署新的命令文件
+        cp "$CONTEXT_DEV_DIR/jeecg-execute-prp-command.md" "$CLAUDE_COMMANDS_DIR/jeecg-execute-prp.md"
+        echo "📝 部署命令文件: jeecg-execute-prp-command.md → .claude/commands/jeecg-execute-prp.md"
+        echo "📊 命令文件大小: $(wc -l < "$CLAUDE_COMMANDS_DIR/jeecg-execute-prp.md") 行"
+        echo "✅ /jeecg-execute-prp 命令部署成功"
+    else
+        echo "⚠️ 执行命令模板文件不存在，跳过部署"
+    fi
+    
+}
+
+# 安装Claude命令系统（整合版）
+setup_claude_commands() {
+    echo "⚡ 安装 Claude 命令系统（整合版）..."
+    
+    # 部署增强命令
+    deploy_jeecg_generate_prp_command
+    deploy_jeecg_execute_prp_command
     
     # 创建命令系统使用指南
     echo "📝 创建命令系统使用指南..."
     
-    cat > "$CLAUDE_COMMANDS_DIR/README.md" << 'EOF'
-# JeecgBoot Claude 命令系统
+    cat > "$PROJECT_ROOT/.claude/commands/README.md" << 'EOF'
+# JeecgBoot Claude 命令系统 (增强版)
 
 ## 📋 可用命令
 
-### `/jeecg-generate-prp` - JeecgBoot 专用需求文档生成命令
+### `/jeecg-generate-prp` - JeecgBoot专用智能需求文档生成命令 (增强版)
 
-专为JeecgBoot设计的智能需求文档生成命令，基于Context Engineering最佳实践，能够自动生成符合JeecgBoot规范的完整需求文档。
+专为JeecgBoot企业级快速开发平台设计的智能需求文档生成命令，基于Context Engineering最佳实践，深度集成CodeGen系统工作流程，实现从自然语言需求到标准化项目需求文档的智能化转换。
+
+#### 🌟 增强特性
+
+**1. 智能需求分类决策引擎**
+- 自动识别简单CRUD vs 复杂业务需求
+- 智能选择CodeGen路径 vs 官方文档研究路径  
+- 混合需求的分层实现策略制定
+
+**2. CodeGen系统深度集成**
+- 零容忍违规检查机制
+- MODULE_NAME、ENTITY_NAME、TABLE_NAME自动提取
+- Code_Gen_Agent.md兼容配置自动生成
+- 符合JeecgBoot规范的配置参数
+
+**3. 官方技术文档智能研究**
+- 自动查询context7.com最佳实践
+- 深度研究deepwiki.com技术原理
+- JeecgBoot架构合规性自动验证
+
+### `/jeecg-execute-prp` - JeecgBoot专用需求文档执行命令 (增强版)
+
+基于需求文档的端到端代码实现命令，深度集成CodeGen系统，实现四阶段智能执行流程。
+
+#### 🌟 核心执行特性
+
+**1. 智能文档解析与验证引擎**
+- 完美继承 `/jeecg-generate-prp` 生成的所有专用配置
+- 自动识别需求复杂度分类和技术实现要求
+- 智能上下文继承和配置参数提取
+
+**2. CodeGen系统自动化执行集成**
+- 自动调用Code_Gen_Agent.md进行需求智能解析
+- 智能执行Code_Gen_Guide.py完整代码生成工作流
+- 实时监控代码生成过程和错误处理
+
+**3. 智能环境验证与错误处理系统**
+- 执行完整的JeecgBoot环境验证脚本
+- 智能错误诊断与自动修复能力
+- 支持断点续传和执行状态恢复机制
+
+**4. 端到端质量保证与验证机制**
+- 验证生成的后端和前端代码完整性
+- 执行编译测试和基础功能验证
+- 生成详细的执行报告和后续优化建议
 
 #### 命令语法
 ```bash
 /jeecg-generate-prp [需求描述]
+/jeecg-execute-prp [需求文档路径]
 ```
 
 #### 使用示例
@@ -1057,9 +1213,16 @@ verify_installation() {
         echo "❌ JeecgBoot 模板体系部署失败"
     fi
     
-    # 检查Claude命令系统
+    # 检查Claude命令系统（增强版）
     if [[ -d "$PROJECT_ROOT/.claude/commands" ]] && [[ -f "$PROJECT_ROOT/.claude/commands/jeecg-generate-prp.md" ]]; then
         echo "✅ Claude 命令系统已安装 (/jeecg-generate-prp 可用)"
+        
+        # 检查execute命令
+        if [[ -f "$PROJECT_ROOT/.claude/commands/jeecg-execute-prp.md" ]]; then
+            echo "✅ Claude 执行命令已安装 (/jeecg-execute-prp 可用)"
+        else
+            echo "⚠️ Claude 执行命令未安装 (需要jeecg-execute-prp-command.md模板)"
+        fi
     else
         echo "❌ Claude 命令系统安装失败"
     fi
@@ -1080,9 +1243,10 @@ show_usage_guide() {
     echo ""
     echo "📚 快速开始："
     echo ""
-    echo "1. JeecgBoot PRP 工作流（推荐）："
+    echo "1. JeecgBoot 增强版 PRP 工作流（推荐）："
     echo "   /jeecg-generate-prp 客户管理系统需求"
-    echo "   输出: projectDocs/REQUIREMENTS_customer-management.md"
+    echo "   /jeecg-execute-prp projectDocs/REQUIREMENTS_customer-management.md"
+    echo "   输出: projectDocs/REQUIREMENTS_customer-management.md 和执行日志"
     echo ""
     echo "2. 通用 PRP 工作流："
     echo "   /generate-prp customer-management-requirements.md"

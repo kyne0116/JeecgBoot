@@ -1,100 +1,194 @@
-# ContextDev - JeecgBoot AI 赋能开发
+# ContextDev - JeecgBoot AI 增强开发
 
-## 📋 概述
+## 📋 核心功能
 
-为 JeecgBoot 项目提供 AI 赋能开发能力，整合先进的 AI 工作流和专业开发工具：
+JeecgBoot项目AI赋能开发工具集，实现从需求到代码的全自动化流程：
 
-- **AI 代码生成**: 基于 JeecgBoot CodeGen 的智能代码生成
-- **PRP 工作流**: 产品需求提示工作流，90%+ 成功率  
-- **专业命令**: 16 个专业命令覆盖开发全流程
-- **项目级配置**: 独立的项目级 AI 配置，不污染全局设置
+- **双PRP工作流**: `/jeecg-generate-prp` + `/jeecg-execute-prp` 完整开发流程
+- **CodeGen深度集成**: 与JeecgBoot CodeGen系统无缝对接
+- **智能环境管理**: 自动化部署和配置管理
+- **企业级质量保证**: ≥95%执行成功率标准
 
-## 🎯 核心功能
+## 🏗️ 技术架构
 
-- **智能需求分析**: AI 自动分析业务需求，生成标准化设计
-- **自动化代码生成**: 与 JeecgBoot CodeGen 系统深度集成
-- **完整开发工作流**: 从需求到部署的全流程 AI 辅助
-- **项目隔离配置**: 每个项目独立的 AI 配置环境
+### 双命令协作机制
+```mermaid
+graph LR
+    A[业务需求] --> B[/jeecg-generate-prp]
+    B --> C[需求文档.md]
+    C --> D[/jeecg-execute-prp]
+    D --> E[完整代码实现]
+    
+    B --> F[智能需求分类]
+    B --> G[CodeGen配置生成]
+    B --> H[官方文档研究]
+    
+    D --> I[文档解析验证]
+    D --> J[环境验证修复]
+    D --> K[CodeGen自动执行]
+    D --> L[质量验证报告]
+```
+
+### 四大核心增强特性
+1. **智能需求分类决策引擎** (Generate)
+   - 自动识别：简单CRUD vs 复杂业务需求
+   - 智能选择：CodeGen路径 vs 官方文档研究路径
+   - 分层策略：混合需求的优化实现方案
+
+2. **CodeGen系统深度集成** (Generate)
+   - 零容忍检查：强制使用CodeGen，禁止手动编码
+   - 智能配置：自动提取MODULE_NAME、ENTITY_NAME、TABLE_NAME
+   - 规范遵循：us_{module}_{entity}表命名、org.jeecg.modules包结构
+
+3. **智能执行引擎** (Execute)
+   - 四阶段流程：文档分析→环境验证→代码生成→质量验证
+   - 完美继承：所有Generate命令的配置和上下文
+   - 实时监控：代码生成过程和错误自动处理
+
+4. **端到端质量保证**
+   - Generate: ≥8/10置信度标准，完整验证门槛脚本
+   - Execute: ≥9/10置信度标准，编译+功能+集成测试
+   - 自动修复：断点续传、状态恢复、智能错误诊断
 
 ## 🚀 快速开始
 
-### 1. 一键安装
+### 1. 安装部署
 
 ```bash
-# 在 JeecgBoot 项目根目录执行
-chmod +x ContextDev/jeecg-ai-setup.sh
-./ContextDev/jeecg-ai-setup.sh
+# 完整安装（推荐）
+bash ContextDev/jeecg-ai-setup.sh
+
+# 仅部署命令
+bash ContextDev/jeecg-ai-setup.sh --deploy-commands-only
+
+# 验证安装
+bash ContextDev/jeecg-ai-setup.sh --verify
 ```
 
-### 2. 测试功能
+### 2. 双PRP工作流使用
 
-安装完成后，在 Claude Code 中测试：
-
+**完整开发流程**：
 ```bash
-# JeecgBoot 专用 PRP 工作流（推荐）
-/jeecg-generate-prp 客户管理系统需求
+# 步骤1: 生成需求文档（8+/10质量标准）
+/jeecg-generate-prp 客户关系管理系统，包含客户信息管理、销售跟踪、合同管理功能
 
-# 通用 PRP 工作流
-/generate-prp customer-management-requirements.md
-/execute-prp PRPs/customer-management.md
+# 输出: projectDocs/REQUIREMENTS_customer-relationship.md
 
-# SuperClaude 命令
-/sc:jeecg-analyze "分析业务需求"
-/sc:jeecg-config "生成配置文件"
-/sc:codegen "执行代码生成"
+# 步骤2: 执行需求实现（9+/10质量标准）
+/jeecg-execute-prp projectDocs/REQUIREMENTS_customer-relationship.md
+
+# 输出: 完整的前后端代码 + 执行日志
+```
+
+**业务场景示例**：
+```bash
+# 简单CRUD需求（自动选择CodeGen路径）
+/jeecg-generate-prp 员工基本信息管理，包含增删改查功能
+/jeecg-execute-prp projectDocs/REQUIREMENTS_employee-basic.md
+
+# 复杂业务需求（自动启用官方文档研究）
+/jeecg-generate-prp 财务报表系统，支持多维分析、权限分级、第三方ERP集成
+/jeecg-execute-prp projectDocs/REQUIREMENTS_financial-reporting.md
+
+# 混合需求（分层实现策略）
+/jeecg-generate-prp 库存管理模块，包含商品入库出库、批次管理、预警系统
+/jeecg-execute-prp projectDocs/REQUIREMENTS_inventory-management.md
 ```
 
 ## ⚡ 核心命令
 
-### `/jeecg-generate-prp` - JeecgBoot 专用需求文档生成
+### `/jeecg-generate-prp` - 智能需求文档生成命令
+专为JeecgBoot设计的需求文档生成命令，集成智能需求分类、CodeGen配置生成、官方文档研究。
 
-**专为 JeecgBoot 设计的智能需求文档生成命令，基于 Context Engineering 最佳实践。**
+**核心特性**:
+- **智能需求分类决策引擎**：自动识别简单CRUD vs 复杂业务需求
+- **CodeGen系统深度集成**：零容忍违规检查，自动生成配置参数
+- **官方文档智能研究**：集成context7.com最佳实践和deepwiki.com技术原理
+- **质量保证机制**：8+/10置信度标准，完整验证门槛脚本
 
-**命令语法：**
-```bash
-/jeecg-generate-prp [需求描述]
+**技术实现**:
+- **自动参数提取**: MODULE_NAME、ENTITY_NAME、TABLE_NAME
+- **规范强制遵循**: us_{module}_{entity}表命名、org.jeecg.modules包结构
+- **智能路径选择**: CodeGen路径 vs 官方文档研究路径 vs 混合策略
+- **配置完整性验证**: JeecgBoot环境、CodeGen系统、项目结构验证
+
+### `/jeecg-execute-prp` - 智能需求文档执行命令
+基于需求文档的端到端代码实现命令，深度集成CodeGen系统。
+
+**核心能力**:
+- **四阶段智能执行流程**: 文档分析→环境验证→代码生成→质量验证
+- **完美配置继承**: 自动继承Generate命令的所有配置和上下文
+- **CodeGen系统自动化调用**: 智能执行Code_Gen_Guide.py完整工作流
+- **端到端质量保证**: 9+/10置信度，编译+功能+集成测试验证
+
+**智能特性**:
+- **实时监控**: 代码生成过程监控和错误自动处理
+- **自动修复**: 断点续传、状态恢复、智能错误诊断
+- **完整性验证**: 后端（Entity、Controller、Service、Mapper）+ 前端（Vue组件、API、路由）
+- **质量报告**: 详细执行日志和后续优化建议
+
+## 📁 文件结构
+
+```
+ContextDev/
+├── jeecg-ai-setup.sh             # 整合版主安装脚本（包含所有enhanced功能）
+├── jeecg-ai-config.json          # 主配置文件（双命令详细配置）  
+├── jeecg-generate-prp-command.md # 生成命令模板（242行，三大增强特性）
+├── jeecg-execute-prp-command.md  # 执行命令模板（331行，四阶段流程）
+├── jeecg-ai-update.sh           # 更新维护脚本
+└── templates/                    # 完整PRP模板体系
+    ├── REQUIREMENTS_JEECGBOOT.md # 需求文档模板
+    ├── CLAUDE_JEECGBOOT.md       # AI编程规范
+    ├── DESIGN_JEECGBOOT.md       # 系统设计模板
+    ├── PLANNING_JEECGBOOT.md     # 项目规划模板
+    ├── TASK_JEECGBOOT.md         # 任务管理模板
+    └── TESTING_JEECGBOOT.md      # 测试计划模板
 ```
 
-**使用示例：**
-```bash
-# 生成客户管理系统需求文档
-/jeecg-generate-prp 客户管理系统需求
+## 🎯 技术特点
 
-# 生成库存管理模块需求文档  
-/jeecg-generate-prp 库存管理模块，包含商品入库、出库、盘点功能
+**智能化**: 需求自动分析、路径智能选择、配置自动生成  
+**规范化**: 严格遵循JeecgBoot架构约束和命名规范  
+**自动化**: 从文档生成到代码实现的完整自动化链路  
+**企业级**: 高质量标准、完整错误处理、详细执行报告
 
-# 生成财务报表系统需求文档
-/jeecg-generate-prp 财务报表系统，支持月度和年度报表生成
-```
+## 📊 质量标准
 
-**核心特性：**
-- 🎯 **JeecgBoot 专用优化**: 针对 JeecgBoot 平台特点进行深度定制
-- 📝 **自动模板应用**: 使用 `PRPs/templates/REQUIREMENTS_JEECGBOOT.md` 作为基础模板
-- 💾 **智能文件命名**: 自动保存到 `projectDocs/REQUIREMENTS_{project-name}.md`
-- 🔧 **CodeGen 深度集成**: 生成的需求文档直接兼容 CodeGen 系统
-- ✅ **环境验证门槛**: 包含完整的 JeecgBoot 环境验证脚本
+**Generate命令**: ≥8/10置信度，完整验证门槛脚本  
+**Execute命令**: ≥9/10置信度，编译+功能+集成测试  
+**整体成功率**: ≥95%端到端执行成功率  
+**代码规范**: 100%JeecgBoot架构规范遵循
 
-**与 CodeGen 系统的关系：**
-1. **需求输入阶段**: 使用 `/jeecg-generate-prp` 生成标准化需求文档
-2. **配置转换阶段**: 需求文档为 CodeGen 配置生成提供完整上下文
-3. **代码生成阶段**: CodeGen 系统基于需求文档执行代码生成
-4. **质量保证阶段**: 验证生成的代码是否符合需求文档的规格
+## 💡 最佳实践
 
-## 📁 文件说明
+### 需求描述优化技巧
+- **简单CRUD**: 描述核心实体和基础操作，AI会自动选择CodeGen路径
+- **复杂业务**: 详细描述业务流程、集成需求，AI会启用官方文档研究
+- **混合需求**: 分层描述基础功能和高级特性，AI会制定分层实现策略
 
-| 文件                                | 说明               |
-| ----------------------------------- | ------------------ |
-| `jeecg-ai-setup.sh`                 | 一键安装脚本       |
-| `jeecg-ai-config.json`              | 主配置文件         |
-| `jeecg-claude-extension.md`         | Claude AI 扩展配置 |
-| `JeecgBoot_AI_Integration_Guide.md` | 详细集成指南       |
+### 执行效率提升建议
+- **预执行检查**: 确保JeecgBoot服务运行和CodeGen系统可用
+- **分阶段执行**: 大型项目可拆分为多个模块分别执行
+- **日志分析**: 定期查看执行日志，及时发现和解决问题
 
-## 📞 相关链接
+### 质量保证最佳实践
+- **遵循置信度标准**: Generate≥8/10, Execute≥9/10
+- **完整验证流程**: 文档→环境→代码→功能，逐步验证
+- **规范严格遵循**: 表命名、包结构、权限配置必须符合JeecgBoot规范
 
-- 📖 **详细文档**: [JeecgBoot_AI_Integration_Guide.md](JeecgBoot_AI_Integration_Guide.md)
-- 🤖 **CodeGen 系统**: [../CodeGen/Code_Gen_Agent.md](../CodeGen/Code_Gen_Agent.md)
-- 📋 **AI 配置**: [../PRPs/CLAUDE.md](../PRPs/CLAUDE.md)
+## 🔧 故障排除
+
+**常见问题**:
+- **命令未找到**: 运行 `bash ContextDev/jeecg-ai-setup.sh --verify` 检查部署状态
+- **CodeGen连接失败**: 确保 `python3 CodeGen/Code_Gen_Guide.py --test-connection` 通过
+- **环境验证失败**: 检查Maven、Java、Node.js版本是否符合要求
+- **生成文档不完整**: 重新运行generate命令，提供更详细的需求描述
+
+**获取支持**:
+- 查看执行日志：`projectDocs/EXECUTION_LOG_*.md`
+- 检查配置文件：`jeecg-ai-config.json`
+- 验证模板文件：`templates/REQUIREMENTS_JEECGBOOT.md`
 
 ---
 
-**让 JeecgBoot 开发更智能、更高效！** 🚀
+**JeecgBoot AI 增强开发 - 让企业级开发更智能！** 🚀
