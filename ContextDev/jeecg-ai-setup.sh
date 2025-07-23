@@ -329,6 +329,286 @@ setup_codegen_integration() {
     echo "✅ CodeGen 集成配置完成"
 }
 
+# 安装Claude命令系统
+setup_claude_commands() {
+    echo "⚡ 安装 Claude 命令系统..."
+    
+    # 创建Claude命令目录
+    CLAUDE_COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
+    mkdir -p "$CLAUDE_COMMANDS_DIR"
+    echo "📁 创建Claude命令目录: $CLAUDE_COMMANDS_DIR"
+    
+    # 安装 /jeecg-generate-prp 命令
+    echo "📝 安装 /jeecg-generate-prp 命令..."
+    
+    cat > "$CLAUDE_COMMANDS_DIR/jeecg-generate-prp.md" << 'EOF'
+# Create JeecgBoot Requirements PRP
+
+## Feature request: $ARGUMENTS
+
+Generate a comprehensive JeecgBoot requirements document (PRP) based on business needs with thorough research and context. This command is specifically designed for JeecgBoot enterprise rapid development platform, following Context Engineering best practices and CodeGen integration workflows.
+
+The AI agent will receive complete context to enable self-validation and iterative refinement. The generated PRP will be compatible with JeecgBoot's CodeGen system and development workflow.
+
+## Research Process
+
+1. **JeecgBoot Codebase Analysis**
+   - Search for similar business modules/patterns in the JeecgBoot codebase
+   - Identify existing entities, controllers, and services to reference
+   - Note JeecgBoot-specific conventions and architectural patterns
+   - Check existing module structures for validation approach
+   - Review CodeGen system capabilities and constraints
+
+2. **Business Requirements Analysis**
+   - Parse the feature request for business entities and relationships
+   - Identify CRUD vs complex business logic requirements  
+   - Determine data model design patterns
+   - Map business rules to JeecgBoot implementation patterns
+   - Analyze integration requirements with existing modules
+
+3. **JeecgBoot Technical Research**
+   - Review JeecgBoot documentation and best practices
+   - Study table naming conventions (us_{module}_{entity})
+   - Check package structure patterns (org.jeecg.modules.{module})
+   - Understand CodeGen configuration requirements
+   - Research similar implementations in the platform
+
+4. **User Clarification** (if needed)
+   - Specific business entity relationships and constraints?
+   - Integration requirements with existing JeecgBoot modules?
+   - Special permissions or workflow requirements?
+   - Performance or scalability considerations?
+
+## PRP Generation
+
+Using PRPs/templates/REQUIREMENTS_JEECGBOOT.md as the foundation template:
+
+### Critical Context to Include for JeecgBoot Development
+
+**JeecgBoot Platform Context:**
+- Current project structure and module organization
+- Existing entity patterns and naming conventions
+- CodeGen system capabilities and configuration requirements
+- Integration points with system management modules
+
+**Business Context:**
+- Clear business entity definitions with relationships
+- User roles and permission requirements
+- Business workflow and process definitions
+- Data validation and business rules
+
+**Technical Implementation Context:**
+- Table naming following us_{module}_{entity} pattern
+- Required system fields (id, create_by, create_time, etc.)
+- Controller patterns with @RequiresPermissions annotations
+- Service layer design with MyBatis-Plus integration
+- Vue 3 frontend component requirements
+
+### Implementation Blueprint
+
+**CodeGen Configuration:**
+- MODULE_NAME and ENTITY_NAME extraction
+- Field definitions with proper data types
+- Relationship mappings for complex scenarios
+- Permission configuration requirements
+
+**Complex Business Logic Planning:**
+- Extensions beyond basic CRUD operations
+- Custom business rules and validations
+- Workflow integration requirements
+- Reporting and analytics needs
+
+### Validation Gates (Must be Executable for JeecgBoot)
+
+```bash
+# JeecgBoot Environment Validation
+echo "验证 JeecgBoot 开发环境..."
+mvn -version
+java -version
+node --version
+
+# CodeGen System Validation
+echo "验证 CodeGen 系统可用性..."
+python3 CodeGen/Code_Gen_Guide.py --test-connection
+
+# Project Structure Validation
+echo "验证项目结构完整性..."
+ls -la jeecg-boot/jeecg-module-system/
+ls -la jeecgboot-vue3/src/
+
+# Configuration Validation
+echo "验证 JeecgBoot 配置..."
+test -f jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/resources/application.yml
+test -f jeecgboot-vue3/vite.config.ts
+
+# Template Validation
+echo "验证模板文件可用性..."
+test -f PRPs/templates/REQUIREMENTS_JEECGBOOT.md
+```
+
+*** CRITICAL BEFORE WRITING THE PRP ***
+
+*** ULTRATHINK ABOUT THE JEECGBOOT-SPECIFIC REQUIREMENTS AND IMPLEMENTATION APPROACH ***
+
+Consider:
+- How does this fit into JeecgBoot's modular architecture?
+- What CodeGen configurations will be needed?
+- How will this integrate with existing system modules?
+- What are the table naming and package structure requirements?
+- Are there security and permission considerations?
+- What frontend components and APIs will be needed?
+
+## Output
+
+Save the generated requirements document as: `projectDocs/REQUIREMENTS_{project-name}.md`
+
+**File naming convention:**
+- Use descriptive project names in kebab-case
+- Example: `REQUIREMENTS_customer-management.md`
+- Example: `REQUIREMENTS_inventory-system.md`
+- Example: `REQUIREMENTS_financial-reporting.md`
+
+## Quality Checklist for JeecgBoot PRPs
+
+- [ ] All JeecgBoot architectural constraints included
+- [ ] CodeGen system integration requirements specified
+- [ ] Table naming follows us_{module}_{entity} pattern
+- [ ] System fields and permissions properly defined
+- [ ] Validation gates executable in JeecgBoot environment
+- [ ] References existing JeecgBoot patterns and modules
+- [ ] Business logic complexity properly classified
+- [ ] Frontend and backend requirements aligned
+- [ ] Security and permission model complete
+- [ ] Performance and scalability considered
+
+## Success Criteria
+
+**CodeGen Compatibility:**
+- Requirements can be directly translated to CodeGen configuration
+- All entities follow JeecgBoot naming conventions
+- Field definitions include proper types and constraints
+
+**Development Readiness:**
+- Clear separation between CodeGen tasks and custom development
+- Specific implementation guidance for complex business logic
+- Complete context for JeecgBoot developers
+
+**Quality Assurance:**
+- Executable validation commands for each requirement
+- Anti-patterns clearly identified and avoided
+- Confidence score of 8+/10 for implementation success
+
+Score the PRP on a scale of 1-10 (confidence level for successful JeecgBoot implementation using CodeGen system and platform best practices)
+
+Remember: The goal is creating a requirements document that enables one-pass implementation success through comprehensive JeecgBoot-specific context and CodeGen integration.
+EOF
+    
+    echo "✅ /jeecg-generate-prp 命令安装完成"
+    echo "📁 命令位置: $CLAUDE_COMMANDS_DIR/jeecg-generate-prp.md"
+    
+    # 创建命令系统使用指南
+    echo "📝 创建命令系统使用指南..."
+    
+    cat > "$CLAUDE_COMMANDS_DIR/README.md" << 'EOF'
+# JeecgBoot Claude 命令系统
+
+## 📋 可用命令
+
+### `/jeecg-generate-prp` - JeecgBoot 专用需求文档生成命令
+
+专为JeecgBoot设计的智能需求文档生成命令，基于Context Engineering最佳实践，能够自动生成符合JeecgBoot规范的完整需求文档。
+
+#### 命令语法
+```bash
+/jeecg-generate-prp [需求描述]
+```
+
+#### 使用示例
+```bash
+# 基础 CRUD 模块需求
+/jeecg-generate-prp 客户管理系统需求
+
+# 复杂业务模块需求
+/jeecg-generate-prp 库存管理模块，包含商品入库、出库、盘点功能，支持批次管理和库存预警
+
+# 多功能系统需求
+/jeecg-generate-prp 财务报表系统，支持月度和年度报表生成，包含收入分析、支出统计、利润计算等功能
+```
+
+#### 核心特性
+- 🎯 **JeecgBoot 专用优化**: 针对平台特点进行深度定制
+- 📝 **自动模板应用**: 使用 `PRPs/templates/REQUIREMENTS_JEECGBOOT.md` 基础模板
+- 💾 **智能文件命名**: 自动保存到 `projectDocs/REQUIREMENTS_{project-name}.md`
+- 🔧 **CodeGen 深度集成**: 生成的文档直接兼容 CodeGen 系统
+- ✅ **环境验证门槛**: 包含完整的 JeecgBoot 环境验证脚本
+- 📊 **质量保证机制**: 内置评分系统确保实施成功率 8+/10
+
+#### 生成文档包含
+- **JeecgBoot 平台约束**: 技术栈规范、表命名规范、包结构规范
+- **业务需求规格**: 完整的实体定义、业务流程、操作权限
+- **技术实现蓝图**: CodeGen 配置要求、前后端实现指导、数据库设计方案
+- **验证门槛脚本**: JeecgBoot 环境验证、CodeGen 系统验证、项目结构验证
+
+#### 与 CodeGen 系统的集成工作流
+1. **需求输入阶段**: 使用 `/jeecg-generate-prp` 生成标准化需求文档
+2. **配置转换阶段**: 需求文档为 CodeGen 配置生成提供完整上下文
+3. **代码生成阶段**: CodeGen 系统基于需求文档执行代码生成
+4. **质量保证阶段**: 验证生成的代码是否符合需求文档的规格
+
+## 🚀 安装与更新
+
+**完整安装:**
+```bash
+bash ContextDev/jeecg-ai-setup.sh
+```
+
+**仅安装命令系统:**
+```bash  
+bash ContextDev/jeecg-ai-setup.sh --setup-claude-commands
+```
+
+**验证安装:**
+```bash
+bash ContextDev/jeecg-ai-setup.sh --verify
+```
+
+## 📁 相关目录
+
+- **命令定义**: `.claude/commands/`
+- **模板文件**: `PRPs/templates/REQUIREMENTS_JEECGBOOT.md`
+- **输出目录**: `projectDocs/`
+- **配置文件**: `PRPs/CLAUDE.md`
+
+## 🔄 工作流程
+
+1. **需求输入**: 使用 `/jeecg-generate-prp` 命令描述业务需求
+2. **自动分析**: AI基于JeecgBoot模式进行深度分析
+3. **文档生成**: 生成完整的需求规格文档
+4. **CodeGen集成**: 直接用于CodeGen系统代码生成
+
+## ✅ 质量保证
+
+每个生成的需求文档都包含:
+- JeecgBoot环境验证脚本
+- CodeGen兼容性检查
+- 实施成功率评分 (8+/10)
+- 可执行的验证命令
+
+---
+
+通过 `jeecg-ai-setup.sh` 脚本维护，与JeecgBoot完整AI环境集成。
+EOF
+    
+    echo "✅ 命令系统使用指南创建完成"
+    echo "📁 使用指南位置: $CLAUDE_COMMANDS_DIR/README.md"
+    
+    # 创建projectDocs目录
+    mkdir -p "$PROJECT_ROOT/projectDocs"
+    echo "📁 创建输出目录: $PROJECT_ROOT/projectDocs"
+    
+    echo "✅ Claude 命令系统安装完成"
+}
+
 # 复制JeecgBoot示例代码到Context Engineering
 copy_example_codes() {
     echo "📋 复制 JeecgBoot 示例代码到 Context Engineering..."
@@ -776,6 +1056,20 @@ verify_installation() {
     else
         echo "❌ JeecgBoot 模板体系部署失败"
     fi
+    
+    # 检查Claude命令系统
+    if [[ -d "$PROJECT_ROOT/.claude/commands" ]] && [[ -f "$PROJECT_ROOT/.claude/commands/jeecg-generate-prp.md" ]]; then
+        echo "✅ Claude 命令系统已安装 (/jeecg-generate-prp 可用)"
+    else
+        echo "❌ Claude 命令系统安装失败"
+    fi
+    
+    # 检查输出目录
+    if [[ -d "$PROJECT_ROOT/projectDocs" ]]; then
+        echo "✅ 项目文档输出目录已创建"
+    else
+        echo "❌ 项目文档输出目录创建失败"
+    fi
 }
 
 # 显示使用指南
@@ -786,16 +1080,20 @@ show_usage_guide() {
     echo ""
     echo "📚 快速开始："
     echo ""
-    echo "1. PRP 工作流（推荐）："
+    echo "1. JeecgBoot PRP 工作流（推荐）："
+    echo "   /jeecg-generate-prp 客户管理系统需求"
+    echo "   输出: projectDocs/REQUIREMENTS_customer-management.md"
+    echo ""
+    echo "2. 通用 PRP 工作流："
     echo "   /generate-prp customer-management-requirements.md"
     echo "   /execute-prp PRPs/customer-management.md"
     echo ""
-    echo "2. SuperClaude 命令："
+    echo "3. SuperClaude 命令："
     echo "   /sc:jeecg-analyze \"分析业务需求\""
     echo "   /sc:jeecg-config \"生成配置文件\""
     echo "   /sc:codegen \"执行代码生成\""
     echo ""
-    echo "3. CodeGen AI 代理："
+    echo "4. CodeGen AI 代理："
     echo "   - 严格遵循 CodeGen/Code_Gen_Agent.md 规范"
     echo "   - 自动生成 JeecgBoot 标准配置"
     echo "   - 完整工作流：需求→配置→生成→验证"
@@ -805,6 +1103,8 @@ show_usage_guide() {
     echo "   - PRPs/CLAUDE.md                           # 项目级别Claude配置"
     echo "   - PRPs/codegen_commands.json               # CodeGen命令配置"
     echo "   - PRPs/templates/                          # JeecgBoot模板集合"
+    echo "   - .claude/commands/                        # Claude命令系统"
+    echo "   - projectDocs/                             # 生成的需求文档输出"
     echo "   - .ai-config/                              # AI配置文件"
     echo "   - ContextDev/templates/                    # 原始PRP模板"
     echo "   - context-engineering-intro/examples/     # JeecgBoot示例代码"
@@ -833,6 +1133,7 @@ main() {
     setup_claude_config
     setup_prp_templates
     setup_codegen_integration
+    setup_claude_commands
     copy_example_codes
     deploy_template_system
     verify_installation
@@ -855,6 +1156,7 @@ if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     echo "  --templates-only          仅部署JeecgBoot模板体系到Context Engineering"
     echo "  --generate-codegen        仅生成CodeGen命令配置文件"
     echo "  --update-claude-config    仅从JeecgBoot模板更新CLAUDE配置文件"
+    echo "  --setup-claude-commands   仅安装Claude命令系统"
     echo ""
     echo "此脚本将安装："
     echo "1. Context Engineering (PRP工作流)"
@@ -897,6 +1199,13 @@ if [[ "$1" == "--update-claude-config" ]]; then
     echo "🔄 仅更新CLAUDE配置文件模式"
     update_claude_config_from_template
     echo "✅ CLAUDE配置文件更新完成"
+    exit 0
+fi
+
+if [[ "$1" == "--setup-claude-commands" ]]; then
+    echo "⚡ 仅安装Claude命令系统模式"
+    setup_claude_commands
+    echo "✅ Claude命令系统安装完成"
     exit 0
 fi
 

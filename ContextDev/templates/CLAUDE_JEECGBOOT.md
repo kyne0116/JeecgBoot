@@ -312,7 +312,11 @@ graph TD
 
 ```mermaid
 graph TD
-    A[阶段0: 需求分类决策] --> B{需求复杂度评估}
+    START[用户输入业务需求] --> CMD[/jeecg-generate-prp 命令]
+    CMD --> DOC[生成需求文档<br/>projectDocs/REQUIREMENTS_*.md]
+    DOC --> A[阶段0: 需求分类决策]
+    
+    A --> B{需求复杂度评估}
     B -->|简单CRUD| C[阶段1A: CodeGen流程]
     B -->|复杂业务| D[阶段1B: 技术文档研究]
 
@@ -333,12 +337,54 @@ graph TD
     H --> I[阶段6: 任务清单生成]
     I --> J[阶段7: 任务执行]
 
-    E1[REQUIREMENTS_JEECGBOOT.md] --> E
+    E1[REQUIREMENTS_JEECGBOOT.md模板] --> CMD
     F1[PLANNING_JEECGBOOT.md] --> F
     G1[DESIGN_JEECGBOOT.md] --> G
     I1[TASK_JEECGBOOT.md] --> I
     J1[CodeGen + 复杂业务逻辑] --> J
+    
+    style CMD fill:#e1f5fe
+    style DOC fill:#f3e5f5
 ```
+
+---
+
+### ⚡ JeecgBoot 专用命令系统
+
+#### `/jeecg-generate-prp` - 智能需求文档生成命令
+
+**命令概述：**
+专为 JeecgBoot 开发的需求文档生成命令，基于 Context Engineering 最佳实践，自动生成符合 JeecgBoot 规范的完整需求文档。
+
+**使用场景：**
+```bash
+# 基础 CRUD 模块需求
+/jeecg-generate-prp 客户管理系统需求
+
+# 复杂业务模块需求
+/jeecg-generate-prp 库存管理模块，包含商品入库、出库、盘点功能，支持批次管理和库存预警
+
+# 多功能系统需求
+/jeecg-generate-prp 财务报表系统，支持月度和年度报表生成，包含收入分析、支出统计、利润计算等功能
+```
+
+**核心优势：**
+- 🎯 **JeecgBoot 专用优化**: 针对平台特点进行深度定制
+- 📝 **自动模板应用**: 使用 `PRPs/templates/REQUIREMENTS_JEECGBOOT.md` 基础模板
+- 🔧 **CodeGen 深度集成**: 生成的文档直接兼容 CodeGen 系统
+- ✅ **环境验证门槛**: 包含完整的 JeecgBoot 环境验证脚本
+- 📊 **质量保证机制**: 内置评分系统确保实施成功率 8+/10
+
+**与开发工作流的关系：**
+1. **需求输入阶段**: 使用 `/jeecg-generate-prp` 生成标准化需求文档
+2. **需求分类决策**: 基于生成的需求文档进行复杂度评估
+3. **技术实现路径**: 需求文档为 CodeGen 配置或技术方案提供完整上下文
+4. **代码生成阶段**: CodeGen 系统基于需求文档执行精确的代码生成
+
+**输出规范：**
+- 文件位置: `projectDocs/REQUIREMENTS_{project-name}.md`
+- 命名格式: 使用 kebab-case 格式，如 `REQUIREMENTS_customer-management.md`
+- 内容标准: 完整的 JeecgBoot 架构约束、CodeGen 配置要求、验证门槛脚本
 
 ---
 
