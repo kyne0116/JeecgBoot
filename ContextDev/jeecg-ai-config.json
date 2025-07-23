@@ -42,7 +42,7 @@
     "context_engineering": {
       "use_upstream_prp": true,
       "prp_integration": {
-        "jeecg_prp_template": "ContextDev/templates/jeecg-prp-template.md",
+        "jeecg_docs_system": "PRPs/CLAUDE.md",
         "codegen_integration": true,
         "validation_gates": [
           "python3 CodeGen/Code_Gen_Guide.py --validate-config",

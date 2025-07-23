@@ -187,7 +187,7 @@ cp ../CodeGen/Code_Gen_Guide.json examples/jeecg-boot/codegen/
 
 # 6. 创建JeecgBoot专用PRP模板目录
 mkdir -p PRPs/templates
-cp ../ContextDev/templates/jeecg-prp-template.md PRPs/templates/
+cp ../ContextDev/templates/*.md PRPs/templates/
 
 # 7. 复制配置到Claude Code目录
 cp CLAUDE.md ~/.claude/CLAUDE.md
