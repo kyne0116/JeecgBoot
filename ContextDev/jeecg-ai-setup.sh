@@ -12,6 +12,8 @@ echo "============================================================="
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 CONTEXT_DEV_DIR="$PROJECT_ROOT/ContextDev"
+PRP_WORK_DIR="$PROJECT_ROOT/PRPs"
+PROJECT_CLAUDE_CONFIG="$PRP_WORK_DIR/CLAUDE.md"
 
 # 检查系统要求
 check_prerequisites() {
@@ -45,12 +47,16 @@ install_context_engineering() {
     
     if [[ ! -d "$PROJECT_ROOT/context-engineering-intro" ]]; then
         echo "📥 克隆 Context Engineering 项目..."
+        cd "$PROJECT_ROOT"
         git clone https://github.com/coleam00/context-engineering-intro.git
+        cd "$CONTEXT_DEV_DIR"
     else
         echo "📦 更新现有的 Context Engineering..."
-        cd context-engineering-intro
-        git pull origin main
-        cd ..
+        cd "$PROJECT_ROOT/context-engineering-intro"
+        if ! git pull origin main; then
+            echo "⚠️  网络更新失败，但现有版本可以继续使用"
+        fi
+        cd "$CONTEXT_DEV_DIR"
     fi
     
     echo "✅ Context Engineering 安装完成"
@@ -101,52 +107,68 @@ setup_ai_config() {
         echo "✅ AI 配置文件已复制"
     fi
     
-    # 创建Claude配置目录
-    mkdir -p ~/.claude
+    # 创建项目级别的PRP工作目录和Claude配置
+    mkdir -p "$PRP_WORK_DIR"
+    echo "📁 创建PRP工作目录: $PRP_WORK_DIR"
     
     echo "✅ AI 配置目录设置完成"
 }
 
-# 配置CLAUDE.md
+# 配置项目级别CLAUDE.md
 setup_claude_config() {
-    echo "📝 配置 Claude Code 扩展..."
+    echo "📝 配置项目级别 Claude Code 扩展..."
     
-    # 检查是否存在Context Engineering的CLAUDE.md
-    if [[ -f "context-engineering-intro/CLAUDE.md" ]]; then
-        # 备份现有配置
-        if [[ -f "~/.claude/CLAUDE.md" ]]; then
-            cp ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.backup
+    # 备份现有项目配置（如果存在）
+    if [[ -f "$PROJECT_CLAUDE_CONFIG" ]]; then
+        cp "$PROJECT_CLAUDE_CONFIG" "$PROJECT_CLAUDE_CONFIG.backup"
+        echo "💾 备份现有项目配置"
+    fi
+    
+    # 检查是否存在JeecgBoot专用的CLAUDE配置
+    if [[ -f "$CONTEXT_DEV_DIR/templates/CLAUDE_JEECGBOOT.md" ]]; then
+        # 直接使用JeecgBoot专用配置作为基础
+        cp "$CONTEXT_DEV_DIR/templates/CLAUDE_JEECGBOOT.md" "$PROJECT_CLAUDE_CONFIG"
+        echo "📝 使用JeecgBoot专用配置: $PROJECT_CLAUDE_CONFIG"
+        
+        # 添加CodeGen AI代理规范集成（如果尚未包含）
+        if ! grep -q "CodeGen AI代理规范集成" "$PROJECT_CLAUDE_CONFIG" 2>/dev/null; then
+            echo "📝 添加CodeGen AI代理规范集成..."
+            echo "" >> "$PROJECT_CLAUDE_CONFIG"
+            echo "# ===== CodeGen AI代理规范集成 =====" >> "$PROJECT_CLAUDE_CONFIG"
+            echo "## 🤖 CodeGen AI代理核心规范" >> "$PROJECT_CLAUDE_CONFIG"
+            echo "- 严格遵循CodeGen/Code_Gen_Agent.md中定义的AI行为边界" >> "$PROJECT_CLAUDE_CONFIG"
+            echo "- 使用LangGPT结构化提示进行业务需求分析" >> "$PROJECT_CLAUDE_CONFIG"
+            echo "- 自动生成符合JeecgBoot规范的JSON配置文件" >> "$PROJECT_CLAUDE_CONFIG"
+            echo "- 调用Code_Gen_Guide.py执行完整代码生成工作流" >> "$PROJECT_CLAUDE_CONFIG"
+            echo "" >> "$PROJECT_CLAUDE_CONFIG"
+            echo "### AI 命令映射" >> "$PROJECT_CLAUDE_CONFIG"
+            echo "- \`/sc:jeecg-analyze\` - 基于 CodeGen AI 代理的需求分析" >> "$PROJECT_CLAUDE_CONFIG"
+            echo "- \`/sc:jeecg-config\` - 智能生成 JSON 配置文件" >> "$PROJECT_CLAUDE_CONFIG"
+            echo "- \`/sc:codegen\` - 执行完整 CodeGen 工作流" >> "$PROJECT_CLAUDE_CONFIG"
         fi
         
-        # 复制基础配置
-        cp context-engineering-intro/CLAUDE.md ~/.claude/CLAUDE.md
-        
-        # 添加JeecgBoot扩展配置
-        echo "" >> ~/.claude/CLAUDE.md
-        echo "# ===== JeecgBoot项目扩展配置 =====" >> ~/.claude/CLAUDE.md
-        echo "" >> ~/.claude/CLAUDE.md
-        
-        if [[ -f "$CONTEXT_DEV_DIR/jeecg-claude-extension.md" ]]; then
-            cat "$CONTEXT_DEV_DIR/jeecg-claude-extension.md" >> ~/.claude/CLAUDE.md
-        fi
-        
-        # 添加CodeGen AI代理规范
-        echo "" >> ~/.claude/CLAUDE.md
-        echo "# ===== CodeGen AI代理规范集成 =====" >> ~/.claude/CLAUDE.md
-        echo "## 🤖 CodeGen AI代理核心规范" >> ~/.claude/CLAUDE.md
-        echo "- 严格遵循CodeGen/Code_Gen_Agent.md中定义的AI行为边界" >> ~/.claude/CLAUDE.md
-        echo "- 使用LangGPT结构化提示进行业务需求分析" >> ~/.claude/CLAUDE.md
-        echo "- 自动生成符合JeecgBoot规范的JSON配置文件" >> ~/.claude/CLAUDE.md
-        echo "- 调用Code_Gen_Guide.py执行完整代码生成工作流" >> ~/.claude/CLAUDE.md
-        echo "" >> ~/.claude/CLAUDE.md
-        echo "### AI 命令映射" >> ~/.claude/CLAUDE.md
-        echo "- \`/sc:jeecg-analyze\` - 基于 CodeGen AI 代理的需求分析" >> ~/.claude/CLAUDE.md
-        echo "- \`/sc:jeecg-config\` - 智能生成 JSON 配置文件" >> ~/.claude/CLAUDE.md
-        echo "- \`/sc:codegen\` - 执行完整 CodeGen 工作流" >> ~/.claude/CLAUDE.md
-        
-        echo "✅ Claude Code 配置完成"
+        echo "✅ 项目级别 Claude Code 配置完成（使用JeecgBoot专用配置）"
+        echo "📁 项目级别CLAUDE.md位置: $PROJECT_CLAUDE_CONFIG"
     else
-        echo "⚠️  Context Engineering CLAUDE.md 不存在，跳过配置"
+        echo "⚠️  JeecgBoot专用CLAUDE配置不存在: $CONTEXT_DEV_DIR/templates/CLAUDE_JEECGBOOT.md"
+        echo "💡 创建基础配置文件..."
+        
+        # 创建基础配置
+        cat > "$PROJECT_CLAUDE_CONFIG" << 'EOF'
+# JeecgBoot 项目 AI 编程配置
+
+这是JeecgBoot项目的AI编程配置文件。
+
+## 项目信息
+- 项目名称: JeecgBoot
+- 配置类型: 项目级别AI配置
+- 配置路径: PRPs/CLAUDE.md
+
+## 基础配置
+请使用JeecgBoot相关的AI编程规范进行开发。
+
+EOF
+        echo "📝 创建了基础配置文件: $PROJECT_CLAUDE_CONFIG"
     fi
 }
 
@@ -154,73 +176,39 @@ setup_claude_config() {
 setup_prp_templates() {
     echo "📋 设置 PRP 模板..."
     
-    mkdir -p "$PROJECT_ROOT/PRPs"
+    # 创建完整的PRP工作目录结构
+    mkdir -p "$PRP_WORK_DIR"
+    mkdir -p "$PRP_WORK_DIR/templates"
+    mkdir -p "$PRP_WORK_DIR/active"
+    mkdir -p "$PRP_WORK_DIR/completed"
     mkdir -p "$CONTEXT_DEV_DIR/templates"
     
-    # 创建JeecgBoot专用PRP模板
-    if [[ ! -f "$CONTEXT_DEV_DIR/templates/jeecg-prp-template.md" ]]; then
-        cat > "$CONTEXT_DEV_DIR/templates/jeecg-prp-template.md" << 'EOF'
-# JeecgBoot Module Development PRP
-
-## Project
-Building a {MODULE_NAME} module for JeecgBoot platform
-
-## Role
-You are a JeecgBoot expert developer with deep knowledge of:
-- Spring Boot + MyBatis-Plus backend architecture
-- Vue3 + Ant Design Vue frontend
-- JeecgBoot code generation and online forms
-- Database design with system fields integration
-
-## Process
-1. **需求分析**: 分析业务需求，识别核心实体和字段
-2. **配置生成**: 使用CodeGen AI代理生成标准JSON配置
-3. **代码生成**: 执行Code_Gen_Guide.py完整工作流
-4. **编译验证**: Maven编译和前端代码集成
-5. **功能测试**: API测试和界面验证
-
-## Context
-- Project: JeecgBoot v3.8.1
-- Backend: Spring Boot 2.7.18 + MyBatis-Plus 3.5.3.2
-- Frontend: Vue 3.5.13 + Ant Design Vue 4.2.6
-- Database: MySQL with standard system fields
-- Code Generator: CodeGen/Code_Gen_Guide.py
-
-## Requirements
-{DETAILED_REQUIREMENTS}
-
-## Expected Output
-1. JSON配置文件 (符合CodeGen规范)
-2. 完整的CRUD代码 (后端+前端)
-3. 数据库表结构 (包含系统字段)
-4. API文档和测试用例
-5. 权限配置和菜单注册
-
-## Validation Gates
-- [ ] JSON配置验证通过
-- [ ] 后端代码编译成功
-- [ ] 前端代码集成无误
-- [ ] 数据库表创建成功
-- [ ] API接口测试通过
-- [ ] 权限验证正常
-EOF
-        echo "✅ JeecgBoot PRP 模板创建完成"
+    # 复制JeecgBoot模板到PRP目录
+    if [[ -d "$CONTEXT_DEV_DIR/templates" ]]; then
+        cp -r "$CONTEXT_DEV_DIR/templates/"* "$PRP_WORK_DIR/templates/" 2>/dev/null || true
+        echo "📋 复制JeecgBoot模板到PRP工作目录"
     fi
+    
+    # JeecgBoot模板已通过新的模板体系提供，无需创建单一PRP模板
+    echo "✅ JeecgBoot 完整模板体系已就绪"
+    echo "📁 PRP工作目录: $PRP_WORK_DIR"
 }
 
-# 配置CodeGen集成
-setup_codegen_integration() {
-    echo "🔧 配置 CodeGen 集成..."
+# 生成CodeGen命令配置文件
+generate_codegen_commands() {
+    echo "📝 生成 CodeGen 命令配置文件..."
     
-    # 检查CodeGen目录
-    if [[ ! -d "$PROJECT_ROOT/CodeGen" ]]; then
-        echo "⚠️  CodeGen 目录不存在，创建基础结构..."
-        mkdir -p "$PROJECT_ROOT/CodeGen"
+    # 确保PRP工作目录存在
+    mkdir -p "$PRP_WORK_DIR"
+    
+    # 备份现有配置（如果存在）
+    if [[ -f "$PRP_WORK_DIR/codegen_commands.json" ]]; then
+        cp "$PRP_WORK_DIR/codegen_commands.json" "$PRP_WORK_DIR/codegen_commands.json.backup"
+        echo "💾 备份现有 codegen_commands.json"
     fi
     
-    # 创建CodeGen专用Claude命令配置
-    mkdir -p ~/.claude
-    cat > ~/.claude/codegen_commands.json << 'EOF'
+    # 生成CodeGen专用Claude命令配置
+    cat > "$PRP_WORK_DIR/codegen_commands.json" << 'EOF'
 {
   "commands": {
     "/sc:jeecg-analyze": {
@@ -239,10 +227,104 @@ setup_codegen_integration() {
       "template": "执行CodeGen工作流：配置验证 → 代码生成 → 编译测试 → 前端迁移",
       "script": "python3 CodeGen/Code_Gen_Guide.py",
       "post_actions": ["mvn clean compile", "npm run build"]
+    },
+    "/sc:jeecg-reset": {
+      "description": "重置JeecgBoot AI环境配置",
+      "template": "重置项目级别的AI环境配置，包括CLAUDE.md和codegen_commands.json",
+      "script": "bash ContextDev/jeecg-ai-setup.sh --reset-config"
+    },
+    "/sc:jeecg-update": {
+      "description": "更新JeecgBoot AI环境",
+      "template": "更新项目的AI环境配置和依赖",
+      "script": "bash ContextDev/jeecg-ai-update.sh"
     }
   }
 }
 EOF
+    
+    echo "✅ CodeGen 命令配置文件生成完成"
+    echo "📁 配置文件位置: $PRP_WORK_DIR/codegen_commands.json"
+    
+    # 验证JSON格式
+    if command -v python3 &> /dev/null; then
+        if python3 -m json.tool "$PRP_WORK_DIR/codegen_commands.json" > /dev/null 2>&1; then
+            echo "✅ JSON 格式验证通过"
+        else
+            echo "⚠️  JSON 格式验证失败，请检查文件格式"
+        fi
+    fi
+}
+
+# 更新CLAUDE配置文件（从JeecgBoot专用模板）
+update_claude_config_from_template() {
+    echo "🔄 从 JeecgBoot 专用模板更新 CLAUDE 配置..."
+    
+    # 确保PRP工作目录存在
+    mkdir -p "$PRP_WORK_DIR"
+    
+    # 检查JeecgBoot专用模板是否存在
+    if [[ ! -f "$CONTEXT_DEV_DIR/templates/CLAUDE_JEECGBOOT.md" ]]; then
+        echo "❌ JeecgBoot专用模板不存在: $CONTEXT_DEV_DIR/templates/CLAUDE_JEECGBOOT.md"
+        echo "💡 请确保模板文件存在，或运行完整安装: ./jeecg-ai-setup.sh"
+        return 1
+    fi
+    
+    # 备份现有配置（如果存在）
+    if [[ -f "$PROJECT_CLAUDE_CONFIG" ]]; then
+        BACKUP_FILE="$PROJECT_CLAUDE_CONFIG.backup.$(date +%Y%m%d-%H%M%S)"
+        cp "$PROJECT_CLAUDE_CONFIG" "$BACKUP_FILE"
+        echo "💾 备份现有配置到: $BACKUP_FILE"
+    fi
+    
+    # 从JeecgBoot专用模板复制配置
+    cp "$CONTEXT_DEV_DIR/templates/CLAUDE_JEECGBOOT.md" "$PROJECT_CLAUDE_CONFIG"
+    echo "📝 从模板复制配置: CLAUDE_JEECGBOOT.md → CLAUDE.md"
+    
+    # 添加CodeGen AI代理规范集成（如果尚未包含）
+    if ! grep -q "CodeGen AI代理规范集成" "$PROJECT_CLAUDE_CONFIG" 2>/dev/null; then
+        echo "📝 添加 CodeGen AI 代理规范集成..."
+        echo "" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "# ===== CodeGen AI代理规范集成 =====" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "## 🤖 CodeGen AI代理核心规范" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "- 严格遵循CodeGen/Code_Gen_Agent.md中定义的AI行为边界" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "- 使用LangGPT结构化提示进行业务需求分析" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "- 自动生成符合JeecgBoot规范的JSON配置文件" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "- 调用Code_Gen_Guide.py执行完整代码生成工作流" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "### AI 命令映射" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "- \`/sc:jeecg-analyze\` - 基于 CodeGen AI 代理的需求分析" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "- \`/sc:jeecg-config\` - 智能生成 JSON 配置文件" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "- \`/sc:codegen\` - 执行完整 CodeGen 工作流" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "- \`/sc:jeecg-reset\` - 重置 JeecgBoot AI 环境配置" >> "$PROJECT_CLAUDE_CONFIG"
+        echo "- \`/sc:jeecg-update\` - 更新 JeecgBoot AI 环境" >> "$PROJECT_CLAUDE_CONFIG"
+    else
+        echo "✅ CodeGen AI 代理规范集成已存在，跳过添加"
+    fi
+    
+    echo "✅ CLAUDE 配置更新完成"
+    echo "📁 配置文件位置: $PROJECT_CLAUDE_CONFIG"
+    echo "📊 配置文件行数: $(wc -l < "$PROJECT_CLAUDE_CONFIG") 行"
+    
+    # 验证配置文件完整性
+    if [[ $(wc -l < "$PROJECT_CLAUDE_CONFIG") -lt 100 ]]; then
+        echo "⚠️  配置文件可能不完整（少于100行），请检查模板文件"
+    else
+        echo "✅ 配置文件完整性验证通过"
+    fi
+}
+
+# 配置CodeGen集成
+setup_codegen_integration() {
+    echo "🔧 配置 CodeGen 集成..."
+    
+    # 检查CodeGen目录
+    if [[ ! -d "$PROJECT_ROOT/CodeGen" ]]; then
+        echo "⚠️  CodeGen 目录不存在，创建基础结构..."
+        mkdir -p "$PROJECT_ROOT/CodeGen"
+    fi
+    
+    # 调用专用函数生成CodeGen命令配置
+    generate_codegen_commands
     
     echo "✅ CodeGen 集成配置完成"
 }
@@ -502,6 +584,146 @@ EOF
     echo "📍 示例代码位置: $EXAMPLES_DIR/jeecgboot/"
 }
 
+# 部署JeecgBoot模板集合到Context Engineering
+deploy_template_system() {
+    echo "📋 部署 JeecgBoot 模板体系到 Context Engineering..."
+    
+    TEMPLATES_DEPLOY_DIR="$PROJECT_ROOT/context-engineering-intro/templates"
+    
+    # 创建模板部署目录
+    mkdir -p "$TEMPLATES_DEPLOY_DIR/jeecgboot"
+    
+    # 部署完整的JeecgBoot模板体系
+    echo "📂 部署JeecgBoot完整模板体系..."
+    
+    # 复制所有模板文件到Context Engineering
+    declare -a template_files=(
+        "CLAUDE_JEECGBOOT.md"
+        "REQUIREMENTS_JEECGBOOT.md" 
+        "PLANNING_JEECGBOOT.md"
+        "DESIGN_JEECGBOOT.md"
+        "TASK_JEECGBOOT.md"
+        "TESTING_JEECGBOOT.md"
+    )
+    
+    for template_file in "${template_files[@]}"; do
+        if [[ -f "$CONTEXT_DEV_DIR/templates/$template_file" ]]; then
+            cp "$CONTEXT_DEV_DIR/templates/$template_file" "$TEMPLATES_DEPLOY_DIR/jeecgboot/"
+            echo "  ✓ 部署模板: $template_file"
+        else
+            echo "  ⚠️  模板文件不存在: $template_file"
+        fi
+    done
+    
+    # 创建模板使用指南
+    cat > "$TEMPLATES_DEPLOY_DIR/jeecgboot/USAGE_GUIDE.md" << 'EOF'
+# JeecgBoot 模板体系使用指南
+
+## 📚 模板文件说明
+
+### 核心模板文件
+- **CLAUDE_JEECGBOOT.md** - AI编程规范和行为约束
+- **REQUIREMENTS_JEECGBOOT.md** - 需求分析和规格说明模板
+- **PLANNING_JEECGBOOT.md** - 项目规划和架构设计模板
+- **DESIGN_JEECGBOOT.md** - 系统设计和技术方案模板
+- **TASK_JEECGBOOT.md** - 任务管理和进度跟踪模板
+- **TESTING_JEECGBOOT.md** - 测试计划和用例管理模板
+- **CLAUDE_JEECGBOOT.md** - 主要的AI编程规范文档 (现已移至PRPs/CLAUDE.md)
+
+## 🚀 快速开始
+
+### 方式一：使用完整文档体系
+1. 复制所有模板文件到项目根目录
+2. 根据项目需求填写各模板文件
+3. 按照文档间的引用关系维护一致性
+
+### 方式二：选择性使用
+1. 根据项目需求选择必要的模板文件
+2. 确保保持模板间的交叉引用完整性
+3. 参考各模板文件内的使用说明
+
+## 🔄 与CodeGen系统集成
+
+模板体系已完全集成CodeGen系统的实现蓝图：
+- **环境准备**: 数据字典获取和需求分析
+- **配置生成**: JSON配置文件生成和验证
+- **代码生成**: Maven模块创建和代码生成
+- **前端迁移**: Vue3代码集成和路由配置
+- **权限测试**: 权限配置和功能验证
+
+## 📋 验证门槛
+
+使用模板开发的项目必须通过以下验证：
+1. CodeGen配置验证通过
+2. JeecgBoot服务连接正常
+3. 表名格式符合规范
+4. 代码生成成功执行
+5. 后端编译无错误
+6. 前端构建成功
+7. 单元测试通过
+
+## 📞 获取支持
+
+- **技术问题**: 参考各模板文件中的故障排除章节
+- **使用指导**: 查看PRPs/CLAUDE.md中的完整规范文档
+- **最佳实践**: 参考templates/目录下的示例代码
+EOF
+    
+    # 创建模板索引文件
+    cat > "$TEMPLATES_DEPLOY_DIR/jeecgboot/INDEX.json" << 'EOF'
+{
+  "template_system": "JeecgBoot完整模板体系",
+  "version": "2.0.0",
+  "updated": "2025-07-23",
+  "templates": {
+    "ai_programming": {
+      "file": "CLAUDE_JEECGBOOT.md",
+      "type": "AI规范",
+      "description": "AI编程规范和行为约束指南"
+    },
+    "requirements": {
+      "file": "REQUIREMENTS_JEECGBOOT.md", 
+      "type": "需求分析",
+      "description": "需求分析和规格说明模板"
+    },
+    "planning": {
+      "file": "PLANNING_JEECGBOOT.md",
+      "type": "项目规划", 
+      "description": "项目规划和架构设计模板"
+    },
+    "design": {
+      "file": "DESIGN_JEECGBOOT.md",
+      "type": "系统设计",
+      "description": "系统设计和技术方案模板，包含故障排除"
+    },
+    "task_management": {
+      "file": "TASK_JEECGBOOT.md",
+      "type": "任务管理",
+      "description": "任务管理和进度跟踪模板，含CodeGen实现蓝图"
+    },
+    "testing": {
+      "file": "TESTING_JEECGBOOT.md", 
+      "type": "测试计划",
+      "description": "测试计划和验证门槛模板"
+    },
+    "ai_programming": {
+      "file": "PRPs/CLAUDE.md",
+      "type": "主文档",
+      "description": "完整的AI编程规范和使用指南"
+    }
+  },
+  "integration": {
+    "codegen_system": true,
+    "prp_workflow": true,
+    "context_engineering": true
+  }
+}
+EOF
+    
+    echo "✅ JeecgBoot 模板体系部署完成"
+    echo "📍 模板部署位置: $TEMPLATES_DEPLOY_DIR/jeecgboot/"
+}
+
 # 验证安装
 verify_installation() {
     echo "🔍 验证安装..."
@@ -520,11 +742,18 @@ verify_installation() {
         echo "⚠️  SuperClaude Framework 需要手动配置 (可选)"
     fi
     
-    # 检查Claude配置
-    if [[ -f ~/.claude/CLAUDE.md ]] && grep -q "JeecgBoot" ~/.claude/CLAUDE.md; then
-        echo "✅ Claude Code 配置已加载"
+    # 检查项目级别Claude配置
+    if [[ -f "$PROJECT_CLAUDE_CONFIG" ]] && grep -q "JeecgBoot" "$PROJECT_CLAUDE_CONFIG"; then
+        echo "✅ 项目级别 Claude Code 配置已加载"
     else
-        echo "❌ Claude Code 配置未正确加载"
+        echo "❌ 项目级别 Claude Code 配置未正确加载"
+    fi
+    
+    # 检查CodeGen命令配置
+    if [[ -f "$PRP_WORK_DIR/codegen_commands.json" ]]; then
+        echo "✅ CodeGen 命令配置已创建"
+    else
+        echo "❌ CodeGen 命令配置创建失败"
     fi
     
     # 检查目录结构
@@ -539,6 +768,13 @@ verify_installation() {
         echo "✅ JeecgBoot 示例代码已复制"
     else
         echo "❌ JeecgBoot 示例代码复制失败"
+    fi
+    
+    # 检查模板体系部署
+    if [[ -d "$PROJECT_ROOT/context-engineering-intro/templates/jeecgboot" ]] && [[ -f "$PROJECT_ROOT/context-engineering-intro/templates/jeecgboot/INDEX.json" ]]; then
+        echo "✅ JeecgBoot 模板体系已部署"
+    else
+        echo "❌ JeecgBoot 模板体系部署失败"
     fi
 }
 
@@ -565,10 +801,12 @@ show_usage_guide() {
     echo "   - 完整工作流：需求→配置→生成→验证"
     echo ""
     echo "📁 重要目录："
-    echo "   - PRPs/                                    # PRP工作文件"
+    echo "   - PRPs/                                    # PRP工作目录（包含CLAUDE.md）"
+    echo "   - PRPs/CLAUDE.md                           # 项目级别Claude配置"
+    echo "   - PRPs/codegen_commands.json               # CodeGen命令配置"
+    echo "   - PRPs/templates/                          # JeecgBoot模板集合"
     echo "   - .ai-config/                              # AI配置文件"
-    echo "   - ContextDev/templates/                    # PRP模板"
-    echo "   - ~/.claude/CLAUDE.md                      # Claude配置"
+    echo "   - ContextDev/templates/                    # 原始PRP模板"
     echo "   - context-engineering-intro/examples/     # JeecgBoot示例代码"
     echo ""
     echo "📖 详细文档："
@@ -577,6 +815,11 @@ show_usage_guide() {
     echo ""
     echo "🔄 更新环境："
     echo "   ./ContextDev/jeecg-ai-update.sh"
+    echo ""
+    echo "⚠️  重要提示："
+    echo "   - 请在JeecgBoot项目根目录中使用Claude Code"
+    echo "   - Claude Code会自动检测并使用PRPs/CLAUDE.md配置"
+    echo "   - 全部配置都在项目级别，不影响全局设置"
 }
 
 # 主安装流程
@@ -591,6 +834,7 @@ main() {
     setup_prp_templates
     setup_codegen_integration
     copy_example_codes
+    deploy_template_system
     verify_installation
     show_usage_guide
     
@@ -605,16 +849,19 @@ if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     echo "用法: $0 [选项]"
     echo ""
     echo "选项:"
-    echo "  --help, -h        显示此帮助信息"
-    echo "  --verify          仅验证环境，不执行安装"
-    echo "  --examples-only   仅复制JeecgBoot示例代码到Context Engineering"
+    echo "  --help, -h                显示此帮助信息"
+    echo "  --verify                  仅验证环境，不执行安装"
+    echo "  --examples-only           仅复制JeecgBoot示例代码到Context Engineering"
+    echo "  --templates-only          仅部署JeecgBoot模板体系到Context Engineering"
+    echo "  --generate-codegen        仅生成CodeGen命令配置文件"
+    echo "  --update-claude-config    仅从JeecgBoot模板更新CLAUDE配置文件"
     echo ""
     echo "此脚本将安装："
     echo "1. Context Engineering (PRP工作流)"
     echo "2. SuperClaude Framework (专业命令)"
     echo "3. CodeGen AI代理集成"
     echo "4. Claude Code配置"
-    echo "5. PRP模板和工作目录"
+    echo "5. JeecgBoot完整模板体系"
     echo "6. JeecgBoot前后端示例代码"
     exit 0
 fi
@@ -629,6 +876,27 @@ if [[ "$1" == "--examples-only" ]]; then
     echo "📋 仅复制示例代码模式"
     copy_example_codes
     echo "✅ 示例代码复制完成"
+    exit 0
+fi
+
+if [[ "$1" == "--templates-only" ]]; then
+    echo "📋 仅部署模板体系模式"
+    deploy_template_system
+    echo "✅ 模板体系部署完成"
+    exit 0
+fi
+
+if [[ "$1" == "--generate-codegen" ]]; then
+    echo "🔧 仅生成CodeGen命令配置文件模式"
+    generate_codegen_commands
+    echo "✅ CodeGen命令配置文件生成完成"
+    exit 0
+fi
+
+if [[ "$1" == "--update-claude-config" ]]; then
+    echo "🔄 仅更新CLAUDE配置文件模式"
+    update_claude_config_from_template
+    echo "✅ CLAUDE配置文件更新完成"
     exit 0
 fi
 

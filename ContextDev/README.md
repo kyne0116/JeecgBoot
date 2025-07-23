@@ -2,34 +2,19 @@
 
 ## 📋 概述
 
-ContextDev 为 JeecgBoot 提供 AI 赋能开发能力，集成了两个成熟的开源项目：
+为 JeecgBoot 项目提供 AI 赋能开发能力，整合先进的 AI 工作流和专业开发工具：
 
-- **[Context Engineering Intro](https://github.com/coleam00/context-engineering-intro)** (6.7k⭐): PRP 工作流，90%+成功率
-- **[SuperClaude Framework](https://github.com/SuperClaude-Org/SuperClaude_Framework)** (9.9k⭐): 16 专业命令+9AI 人格
-- **JeecgBoot CodeGen**: 官方 API 驱动的代码生成引擎
+- **AI 代码生成**: 基于 JeecgBoot CodeGen 的智能代码生成
+- **PRP 工作流**: 产品需求提示工作流，90%+ 成功率  
+- **专业命令**: 16 个专业命令覆盖开发全流程
+- **项目级配置**: 独立的项目级 AI 配置，不污染全局设置
 
-### 🎯 核心价值
+## 🎯 核心功能
 
-- 🤖 **AI 驱动**: 从需求分析到代码生成的全流程 AI 辅助
-- 📋 **PRP 工作流**: 产品需求提示，包含完整上下文和验证
-- 🛠️ **专业工具**: 16 个专业命令覆盖开发全流程
-- 🔗 **深度集成**: 与 JeecgBoot CodeGen 系统无缝集成
-
-## 🎯 核心特性
-
-### 🤖 AI 代理驱动的代码生成
-
-- **CodeGen AI 代理**: 基于`Code_Gen_Agent.md`规范的智能代码生成
-- **业务需求理解**: AI 自动分析业务需求，生成标准化字段设计
-- **配置文件智能生成**: 自动生成符合 JeecgBoot 规范的 JSON 配置
-- **完整工作流自动化**: 从需求分析到代码部署的全流程自动化
-
-### 🔧 深度集成 JeecgBoot CodeGen 系统
-
-- **AI 增强的 Code_Gen_Guide.py**: 智能参数生成和执行优化
-- **标准化表名解析**: AI 辅助的模块和包名生成
-- **自动化编译验证**: Maven 编译和前端代码迁移
-- **权限系统集成**: 自动权限授权和角色管理
+- **智能需求分析**: AI 自动分析业务需求，生成标准化设计
+- **自动化代码生成**: 与 JeecgBoot CodeGen 系统深度集成
+- **完整开发工作流**: 从需求到部署的全流程 AI 辅助
+- **项目隔离配置**: 每个项目独立的 AI 配置环境
 
 ## 🚀 快速开始
 
@@ -64,15 +49,12 @@ chmod +x ContextDev/jeecg-ai-setup.sh
 | `jeecg-ai-config.json`              | 主配置文件         |
 | `jeecg-claude-extension.md`         | Claude AI 扩展配置 |
 | `JeecgBoot_AI_Integration_Guide.md` | 详细集成指南       |
-| `templates/jeecg-prp-template.md`   | PRP 模板           |
 
 ## 📞 相关链接
 
-- 📖 详细文档: [JeecgBoot_AI_Integration_Guide.md](JeecgBoot_AI_Integration_Guide.md)
-- 🤖 CodeGen 系统: [../CodeGen/Code_Gen_Agent.md](../CodeGen/Code_Gen_Agent.md)
-- 🌐 上游项目:
-  - [Context Engineering Intro](https://github.com/coleam00/context-engineering-intro)
-  - [SuperClaude Framework](https://github.com/SuperClaude-Org/SuperClaude_Framework)
+- 📖 **详细文档**: [JeecgBoot_AI_Integration_Guide.md](JeecgBoot_AI_Integration_Guide.md)
+- 🤖 **CodeGen 系统**: [../CodeGen/Code_Gen_Agent.md](../CodeGen/Code_Gen_Agent.md)
+- 📋 **AI 配置**: [../PRPs/CLAUDE.md](../PRPs/CLAUDE.md)
 
 ---
 

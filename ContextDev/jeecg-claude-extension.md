@@ -16,7 +16,7 @@
   - `/generate-prp` - 生成 JeecgBoot 专用的产品需求提示
   - `/execute-prp` - 执行 PRP 并调用 CodeGen 系统
   - 自动集成 CodeGen AI 代理规范和验证门槛
-  - 使用 JeecgBoot PRP 模板: `ContextDev/templates/jeecg-prp-template.md`
+  - 使用 JeecgBoot 文档体系: `PRPs/CLAUDE.md`
   - 90%+ 成功率，包含完整上下文和自动化验证
 
 ## 🏗️ JeecgBoot 架构约定
@@ -64,7 +64,7 @@ private Integer delFlag;
 
 ### 推荐的开发流程
 
-1. **使用 PRP 模板**: 基于 `ContextDev/templates/jeecg-prp-template.md` 创建需求文件
+1. **使用文档体系**: 基于 `ContextDev/templates/` 完整模板体系创建项目文档
 2. **完善需求描述**: 在 FEATURE 部分提供详细的业务需求
 3. **指定参考资源**: 在 EXAMPLES 和 DOCUMENTATION 部分提供相关资源
 4. **执行 PRP 工作流**: 使用 `/generate-prp` 和 `/execute-prp` 命令
