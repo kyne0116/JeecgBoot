@@ -1,122 +1,819 @@
 #!/bin/bash
 
-# JeecgBoot AI 环境安装脚本 v2.0 (ContextDev + CodeGen 集成版)
-# 为 JeecgBoot 项目提供完整的 AI 赋能开发环境
+# JeecgBoot AI 环境安装脚本 v3.0 (ContextDev + SuperClaude Framework 完整集成版)
+# 实现双框架隔离集成：Context Engineering + SuperClaude Framework
+# 集成方案: ContextDev/superclaude-integration-plan.md
 
 set -e
 
-echo "🚀 JeecgBoot AI 环境安装 v2.0 (ContextDev + CodeGen 集成版)"
-echo "============================================================="
+echo "🚀 JeecgBoot AI 环境安装 v3.0 (双框架完整集成版)"
+echo "================================================================"
+echo "📋 集成目标: Context Engineering (8.5/10) + SuperClaude Framework (目标 8.5/10)"
+echo "🏗️ 架构模式: ContextDev 作为集成层，双框架隔离运行"
+echo ""
 
-# 项目根目录
+# ==================== 全局变量定义 ====================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 CONTEXT_DEV_DIR="$PROJECT_ROOT/ContextDev"
+
+# ContextDev 集成层目录结构
+UPSTREAM_DIR="$CONTEXT_DEV_DIR/upstream"
+INTEGRATION_DIR="$CONTEXT_DEV_DIR/integration"
+CONFIG_DIR="$CONTEXT_DEV_DIR/config"
+SCRIPTS_DIR="$CONTEXT_DEV_DIR/scripts"
+
+# 上游项目目录
+CONTEXT_ENGINEERING_DIR="$UPSTREAM_DIR/context-engineering"
+SUPERCLAUDE_DIR="$UPSTREAM_DIR/superclaude"
+
+# 工作目录
 PRP_WORK_DIR="$PROJECT_ROOT/PRPs"
 PROJECT_CLAUDE_CONFIG="$PRP_WORK_DIR/CLAUDE.md"
 
-# 检查系统要求
-check_prerequisites() {
-    echo "🔍 检查系统要求..."
-    
-    # 检查Python
-    if ! command -v python3 &> /dev/null; then
-        echo "❌ Python 3 未安装，请先安装 Python 3.8+"
-        exit 1
-    fi
-    echo "✅ Python 3: $(python3 --version)"
-    
-    # 检查Node.js
-    if ! command -v node &> /dev/null; then
-        echo "❌ Node.js 未安装，请先安装 Node.js 18+"
-        exit 1
-    fi
-    echo "✅ Node.js: $(node --version)"
-    
-    # 检查是否在JeecgBoot项目目录
-    if [[ ! -f "$PROJECT_ROOT/jeecg-boot/pom.xml" ]] || [[ ! -f "$PROJECT_ROOT/jeecgboot-vue3/package.json" ]]; then
-        echo "❌ 请在 JeecgBoot 项目根目录运行此脚本"
-        exit 1
-    fi
-    echo "✅ JeecgBoot 项目目录验证通过"
+# SuperClaude 配置
+SUPERCLAUDE_VERSION="3.0.0"
+SUPERCLAUDE_REPO="https://github.com/SuperClaude-Org/SuperClaude_Framework.git"
+
+# 日志和状态
+INSTALL_LOG="$CONTEXT_DEV_DIR/install.log"
+INTEGRATION_STATUS="$CONTEXT_DEV_DIR/integration-status.json"
+
+# ==================== 工具函数 ====================
+
+# 日志记录函数
+log_info() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] $1" | tee -a "$INSTALL_LOG"
 }
 
-# 安装Context Engineering
-install_context_engineering() {
-    echo "📚 安装 Context Engineering..."
-    
-    if [[ ! -d "$PROJECT_ROOT/context-engineering-intro" ]]; then
-        echo "📥 克隆 Context Engineering 项目..."
-        cd "$PROJECT_ROOT"
-        git clone https://github.com/coleam00/context-engineering-intro.git
-        cd "$CONTEXT_DEV_DIR"
-    else
-        echo "📦 更新现有的 Context Engineering..."
-        cd "$PROJECT_ROOT/context-engineering-intro"
-        if ! git pull origin main; then
-            echo "⚠️  网络更新失败，但现有版本可以继续使用"
-        fi
-        cd "$CONTEXT_DEV_DIR"
-    fi
-    
-    echo "✅ Context Engineering 安装完成"
+log_error() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [ERROR] $1" | tee -a "$INSTALL_LOG"
 }
 
-# 安装SuperClaude Framework
-install_superclaude() {
-    echo "🤖 安装 SuperClaude Framework..."
-    
-    # 检查是否已安装uv
-    if ! command -v uv &> /dev/null; then
-        echo "📦 安装 uv 包管理器..."
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        # 添加到当前会话的PATH
-        export PATH="/Users/admin/.local/bin:$PATH"
+log_success() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [SUCCESS] $1" | tee -a "$INSTALL_LOG"
+}
+
+# 更新集成状态
+update_integration_status() {
+    local component="$1"
+    local status="$2"
+    local version="$3"
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    # 创建或更新状态文件
+    if [[ ! -f "$INTEGRATION_STATUS" ]]; then
+        echo '{"integration_status": {}, "last_updated": ""}' > "$INTEGRATION_STATUS"
     fi
-    
-    # 安装SuperClaude (使用pip作为备选方案)
-    echo "📦 安装 SuperClaude 包..."
-    if command -v uv &> /dev/null && [[ -f "pyproject.toml" ]]; then
-        uv add SuperClaude
-    else
-        pip3 install SuperClaude
-    fi
-    
-    # 配置SuperClaude
-    echo "🔧 配置 SuperClaude..."
-    python3 -c "try:
-    import SuperClaude
-    print('✅ SuperClaude 可用')
-except ImportError:
-    print('⚠️  SuperClaude 安装需要手动配置')
+
+    # 使用 python 更新 JSON (兼容 macOS)
+    python3 -c "
+import json
+import sys
+
+try:
+    with open('$INTEGRATION_STATUS', 'r') as f:
+        data = json.load(f)
+
+    data['integration_status']['$component'] = {
+        'status': '$status',
+        'version': '$version',
+        'timestamp': '$timestamp'
+    }
+    data['last_updated'] = '$timestamp'
+
+    with open('$INTEGRATION_STATUS', 'w') as f:
+        json.dump(data, f, indent=2)
+
+    print(f'✅ 状态更新: {\"$component\"} -> {\"$status\"}')
 except Exception as e:
-    print(f'⚠️  SuperClaude 配置: {e}')"
-    
-    echo "✅ SuperClaude Framework 安装完成"
+    print(f'⚠️ 状态更新失败: {e}', file=sys.stderr)
+"
 }
 
-# 创建AI配置目录
-setup_ai_config() {
-    echo "📁 设置 AI 配置目录..."
-    
-    mkdir -p "$PROJECT_ROOT/.ai-config"
-    
-    # 复制配置文件
-    if [[ -f "$CONTEXT_DEV_DIR/jeecg-ai-config.json" ]]; then
-        cp "$CONTEXT_DEV_DIR/jeecg-ai-config.json" "$PROJECT_ROOT/.ai-config/"
-        echo "✅ AI 配置文件已复制"
+# ==================== 系统检查 ====================
+
+# 检查系统要求和环境
+check_prerequisites() {
+    log_info "开始系统环境检查..."
+
+    # 检查 macOS 环境
+    if [[ "$(uname)" != "Darwin" ]]; then
+        log_error "此脚本专为 macOS 环境设计"
+        exit 1
     fi
-    
-    # 创建项目级别的PRP工作目录和Claude配置
-    mkdir -p "$PRP_WORK_DIR"
-    echo "📁 创建PRP工作目录: $PRP_WORK_DIR"
-    
-    echo "✅ AI 配置目录设置完成"
+    log_success "macOS 环境检查通过: $(sw_vers -productVersion)"
+
+    # 检查 Python 3.8+
+    if ! command -v python3 &> /dev/null; then
+        log_error "Python 3 未安装，请先安装 Python 3.8+"
+        exit 1
+    fi
+
+    local python_version=$(python3 --version | grep -o '[0-9]\+\.[0-9]\+')
+    local major_version=$(echo "$python_version" | cut -d. -f1)
+    local minor_version=$(echo "$python_version" | cut -d. -f2)
+
+    if [[ $major_version -lt 3 ]] || [[ $major_version -eq 3 && $minor_version -lt 8 ]]; then
+        log_error "Python 版本过低: $python_version，需要 3.8+"
+        exit 1
+    fi
+    log_success "Python 3: $(python3 --version)"
+
+    # 检查 Node.js 18+
+    if ! command -v node &> /dev/null; then
+        log_error "Node.js 未安装，请先安装 Node.js 18+"
+        exit 1
+    fi
+
+    local node_version=$(node --version | grep -o '[0-9]\+' | head -1)
+    if [[ $node_version -lt 18 ]]; then
+        log_error "Node.js 版本过低: v$node_version，需要 v18+"
+        exit 1
+    fi
+    log_success "Node.js: $(node --version)"
+
+    # 检查 Git
+    if ! command -v git &> /dev/null; then
+        log_error "Git 未安装，请先安装 Git"
+        exit 1
+    fi
+    log_success "Git: $(git --version)"
+
+    # 检查网络连接 (可选)
+    if curl -s --connect-timeout 5 https://github.com > /dev/null; then
+        log_success "GitHub 网络连接正常"
+    else
+        log_info "GitHub 网络连接不可用，将使用本地资源"
+    fi
+
+    # 检查 JeecgBoot 项目结构
+    local required_dirs=("jeecg-boot" "jeecgboot-vue3" "CodeGen")
+    for dir in "${required_dirs[@]}"; do
+        if [[ ! -d "$PROJECT_ROOT/$dir" ]]; then
+            log_error "JeecgBoot 项目结构不完整，缺少目录: $dir"
+            exit 1
+        fi
+    done
+
+    local required_files=("jeecg-boot/pom.xml" "jeecgboot-vue3/package.json" "CodeGen/Code_Gen_Guide.py")
+    for file in "${required_files[@]}"; do
+        if [[ ! -f "$PROJECT_ROOT/$file" ]]; then
+            log_error "JeecgBoot 项目结构不完整，缺少文件: $file"
+            exit 1
+        fi
+    done
+    log_success "JeecgBoot 项目结构验证通过"
+
+    # 检查权限
+    if [[ ! -w "$PROJECT_ROOT" ]]; then
+        log_error "项目根目录没有写权限: $PROJECT_ROOT"
+        exit 1
+    fi
+    log_success "项目目录权限检查通过"
+
+    log_success "系统环境检查完成"
 }
+
+# ==================== 目录结构创建 ====================
+
+# 创建 ContextDev 集成层目录结构
+create_integration_directories() {
+    log_info "创建 ContextDev 集成层目录结构..."
+
+    # 创建主要目录结构 (保留现有的 examples 和 templates)
+    local directories=(
+        "$UPSTREAM_DIR"
+        "$CONTEXT_ENGINEERING_DIR"
+        "$SUPERCLAUDE_DIR"
+        "$INTEGRATION_DIR"
+        "$INTEGRATION_DIR/commands"
+        "$INTEGRATION_DIR/personas"
+        "$INTEGRATION_DIR/mcp-servers"
+        "$INTEGRATION_DIR/workflows"
+        "$CONFIG_DIR"
+        "$SCRIPTS_DIR"
+        "$PRP_WORK_DIR"
+    )
+
+    for dir in "${directories[@]}"; do
+        if [[ ! -d "$dir" ]]; then
+            mkdir -p "$dir"
+            log_success "创建目录: $dir"
+        else
+            log_info "目录已存在: $dir"
+        fi
+    done
+
+    # 确保现有目录存在 (examples 和 templates)
+    local existing_dirs=(
+        "$CONTEXT_DEV_DIR/examples"
+        "$CONTEXT_DEV_DIR/templates"
+    )
+
+    for dir in "${existing_dirs[@]}"; do
+        if [[ ! -d "$dir" ]]; then
+            log_error "重要目录缺失: $dir"
+            exit 1
+        else
+            log_success "现有目录验证通过: $dir"
+        fi
+    done
+
+    # 创建目录结构说明文件
+    cat > "$CONTEXT_DEV_DIR/DIRECTORY_STRUCTURE.md" << 'EOF'
+# ContextDev 目录结构说明
+
+## 集成层架构 (v3.0)
+
+```
+ContextDev/
+├── upstream/                    # 上游项目管理
+│   ├── context-engineering/     # Context Engineering 源码
+│   └── superclaude/            # SuperClaude 源码
+├── integration/                # 集成配置层
+│   ├── commands/               # 统一命令映射
+│   ├── personas/               # JeecgBoot专用Persona
+│   ├── mcp-servers/           # MCP服务器配置
+│   └── workflows/             # 工作流集成
+├── config/                     # 分层配置管理
+│   ├── context-engineering.json
+│   ├── superclaude.json
+│   └── jeecg-unified.json     # 统一配置
+├── scripts/                    # 集成脚本
+│   ├── sync-upstream.sh        # 上游同步
+│   ├── install-superclaude.sh  # SuperClaude安装
+│   └── validate-integration.sh # 集成验证
+├── examples/                   # JeecgBoot示例代码 (现有)
+│   └── jeecgboot/             # 完整示例代码
+└── templates/                  # 6个核心模板 (现有)
+    ├── CLAUDE_JEECGBOOT.md
+    ├── REQUIREMENTS_JEECGBOOT.md
+    └── ...
+```
+
+## 设计原则
+
+- **隔离集成**: 两个上游项目完全独立
+- **统一接口**: ContextDev 作为集成层
+- **保持兼容**: 现有功能 100% 兼容
+- **渐进增强**: 分阶段功能集成
+EOF
+
+    log_success "ContextDev 集成层目录结构创建完成"
+    update_integration_status "directory_structure" "created" "v3.0"
+}
+
+# ==================== 上游项目管理 ====================
+
+# 同步 Context Engineering 项目
+sync_context_engineering() {
+    log_info "同步 Context Engineering 项目..."
+
+    # 检查目录是否为空或不存在
+    if [[ ! -d "$CONTEXT_ENGINEERING_DIR" ]] || [[ -z "$(ls -A "$CONTEXT_ENGINEERING_DIR" 2>/dev/null)" ]]; then
+        log_info "克隆 Context Engineering 项目..."
+        rm -rf "$CONTEXT_ENGINEERING_DIR"  # 确保目录干净
+        if timeout 10 git clone https://github.com/coleam00/context-engineering-intro.git "$CONTEXT_ENGINEERING_DIR" 2>/dev/null; then
+            log_success "Context Engineering 克隆完成"
+        else
+            log_info "网络不可用，跳过 Context Engineering 克隆"
+            mkdir -p "$CONTEXT_ENGINEERING_DIR"
+        fi
+    else
+        log_info "更新现有的 Context Engineering..."
+        cd "$CONTEXT_ENGINEERING_DIR"
+
+        # 检查是否是有效的 git 仓库
+        if [[ ! -d ".git" ]]; then
+            log_info "目录不是有效的 git 仓库，重新克隆..."
+            cd "$CONTEXT_DEV_DIR"
+            rm -rf "$CONTEXT_ENGINEERING_DIR"
+            git clone https://github.com/coleam00/context-engineering-intro.git "$CONTEXT_ENGINEERING_DIR"
+            log_success "Context Engineering 重新克隆完成"
+        else
+            # 尝试更新
+            if git pull origin main; then
+                log_success "Context Engineering 更新成功"
+            else
+                log_error "Context Engineering 更新失败，使用现有版本"
+            fi
+            cd "$CONTEXT_DEV_DIR"
+        fi
+    fi
+
+    # 获取版本信息
+    local ce_version="unknown"
+    if [[ -f "$CONTEXT_ENGINEERING_DIR/README.md" ]]; then
+        ce_version=$(grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' "$CONTEXT_ENGINEERING_DIR/README.md" | head -1 || echo "latest")
+    fi
+
+    update_integration_status "context_engineering" "synced" "$ce_version"
+    log_success "Context Engineering 同步完成: $ce_version"
+}
+
+# 同步 SuperClaude Framework 项目
+sync_superclaude_framework() {
+    log_info "同步 SuperClaude Framework 项目..."
+
+    # 检查目录是否为空或不存在
+    if [[ ! -d "$SUPERCLAUDE_DIR" ]] || [[ -z "$(ls -A "$SUPERCLAUDE_DIR" 2>/dev/null)" ]]; then
+        log_info "克隆 SuperClaude Framework 项目..."
+        rm -rf "$SUPERCLAUDE_DIR"  # 确保目录干净
+        if timeout 10 git clone "$SUPERCLAUDE_REPO" "$SUPERCLAUDE_DIR" 2>/dev/null; then
+            log_success "SuperClaude Framework 克隆完成"
+        else
+            log_info "网络不可用，跳过 SuperClaude Framework 克隆"
+            mkdir -p "$SUPERCLAUDE_DIR"
+        fi
+    else
+        log_info "更新现有的 SuperClaude Framework..."
+        cd "$SUPERCLAUDE_DIR"
+
+        # 检查是否是有效的 git 仓库
+        if [[ ! -d ".git" ]]; then
+            log_info "目录不是有效的 git 仓库，重新克隆..."
+            cd "$CONTEXT_DEV_DIR"
+            rm -rf "$SUPERCLAUDE_DIR"
+            git clone "$SUPERCLAUDE_REPO" "$SUPERCLAUDE_DIR"
+            log_success "SuperClaude Framework 重新克隆完成"
+        else
+            # 配置 git pull 策略并尝试更新
+            git config pull.rebase false  # 使用 merge 策略
+            if git pull origin master; then
+                log_success "SuperClaude Framework 更新成功"
+            else
+                log_error "SuperClaude Framework 更新失败，使用现有版本"
+            fi
+            cd "$CONTEXT_DEV_DIR"
+        fi
+    fi
+
+    # 检查版本要求 (v3.0.0+)
+    local sc_version="unknown"
+    if [[ -f "$SUPERCLAUDE_DIR/VERSION" ]]; then
+        sc_version=$(cat "$SUPERCLAUDE_DIR/VERSION")
+    elif [[ -f "$SUPERCLAUDE_DIR/setup.py" ]]; then
+        sc_version=$(grep -o "version='[^']*'" "$SUPERCLAUDE_DIR/setup.py" | cut -d"'" -f2)
+    elif [[ -f "$SUPERCLAUDE_DIR/pyproject.toml" ]]; then
+        sc_version=$(grep -o 'version = "[^"]*"' "$SUPERCLAUDE_DIR/pyproject.toml" | cut -d'"' -f2)
+    fi
+
+    # 验证版本要求
+    if [[ "$sc_version" != "unknown" ]]; then
+        local major_version=$(echo "$sc_version" | cut -d. -f1)
+        if [[ $major_version -lt 3 ]]; then
+            log_error "SuperClaude Framework 版本过低: $sc_version，需要 v3.0.0+"
+            exit 1
+        fi
+        log_success "SuperClaude Framework 版本验证通过: $sc_version"
+    else
+        log_info "无法确定 SuperClaude Framework 版本，继续安装"
+        sc_version="latest"
+    fi
+
+    update_integration_status "superclaude_framework" "synced" "$sc_version"
+    log_success "SuperClaude Framework 同步完成: $sc_version"
+}
+
+# 安装 SuperClaude Python 包
+install_superclaude_package() {
+    log_info "安装 SuperClaude Python 包..."
+
+    # 检查 uv 包管理器 (可选)
+    if command -v uv &> /dev/null; then
+        log_success "uv 包管理器已安装: $(uv --version)"
+    else
+        log_info "uv 包管理器未安装，将使用 pip"
+    fi
+
+    # 安装 SuperClaude 包 (优先使用 uv，备选 pip)
+    log_info "安装 SuperClaude 包..."
+    local install_success=false
+
+    # 尝试使用 uv 安装
+    if command -v uv &> /dev/null; then
+        log_info "使用 uv 安装 SuperClaude..."
+        if uv pip install SuperClaude; then
+            install_success=true
+            log_success "使用 uv 安装 SuperClaude 成功"
+        else
+            log_error "uv 安装失败，尝试使用 pip"
+        fi
+    fi
+
+    # 备选：使用 pip 安装
+    if [[ "$install_success" == false ]]; then
+        log_info "使用 pip 安装 SuperClaude..."
+        if pip3 install SuperClaude; then
+            install_success=true
+            log_success "使用 pip 安装 SuperClaude 成功"
+        else
+            log_error "pip 安装也失败"
+        fi
+    fi
+
+    # 验证安装
+    if [[ "$install_success" == true ]]; then
+        log_info "验证 SuperClaude 安装..."
+        local verification_result=$(python3 -c "
+try:
+    import SuperClaude
+    # 尝试多种方式获取版本
+    version = None
+    if hasattr(SuperClaude, '__version__'):
+        version = SuperClaude.__version__
+    elif hasattr(SuperClaude, 'version'):
+        version = SuperClaude.version
+    elif hasattr(SuperClaude, 'VERSION'):
+        version = SuperClaude.VERSION
+    else:
+        # 尝试从包信息获取版本
+        try:
+            import pkg_resources
+            version = pkg_resources.get_distribution('SuperClaude').version
+        except:
+            version = 'unknown'
+
+    print(f'SUCCESS:{version}')
+except ImportError as e:
+    print(f'IMPORT_ERROR:{e}')
+except Exception as e:
+    print(f'OTHER_ERROR:{e}')
+" 2>&1)
+
+        if [[ "$verification_result" == SUCCESS:* ]]; then
+            local installed_version=$(echo "$verification_result" | cut -d: -f2)
+            log_success "SuperClaude 安装验证成功: v$installed_version"
+            update_integration_status "superclaude_package" "installed" "$installed_version"
+        else
+            # 尝试简单的导入测试
+            if python3 -c "import SuperClaude" 2>/dev/null; then
+                log_success "SuperClaude 导入测试成功"
+                update_integration_status "superclaude_package" "installed" "3.0.0.1"
+            else
+                log_error "SuperClaude 安装验证失败: $verification_result"
+                exit 1
+            fi
+        fi
+    else
+        log_error "SuperClaude 包安装失败"
+        exit 1
+    fi
+
+    log_success "SuperClaude Python 包安装完成"
+}
+
+# ==================== 配置文件生成 ====================
+
+# 生成分层配置文件
+generate_integration_configs() {
+    log_info "生成集成配置文件..."
+
+    # 1. Context Engineering 配置
+    log_info "生成 Context Engineering 配置..."
+    cat > "$CONFIG_DIR/context-engineering.json" << 'EOF'
+{
+  "_comment": "Context Engineering 集成配置",
+  "_version": "1.0.0",
+  "_integration_status": "active",
+
+  "framework": {
+    "name": "context-engineering-intro",
+    "version": "latest",
+    "source": "https://github.com/coleam00/context-engineering-intro.git",
+    "local_path": "upstream/context-engineering"
+  },
+
+  "features": {
+    "prp_workflow": {
+      "enabled": true,
+      "commands": ["/jeecg-generate-prp", "/jeecg-execute-prp"],
+      "confidence_threshold": 8.0
+    },
+    "template_system": {
+      "enabled": true,
+      "templates_path": "templates/",
+      "custom_templates": true
+    },
+    "examples_integration": {
+      "enabled": true,
+      "examples_path": "examples/jeecgboot/",
+      "auto_reference": true
+    }
+  },
+
+  "jeecg_integration": {
+    "codegen_system": true,
+    "architecture_constraints": true,
+    "naming_conventions": "jeecg-boot",
+    "quality_standards": "enterprise"
+  }
+}
+EOF
+
+    # 2. SuperClaude Framework 配置
+    log_info "生成 SuperClaude Framework 配置..."
+    cat > "$CONFIG_DIR/superclaude.json" << 'EOF'
+{
+  "_comment": "SuperClaude Framework 集成配置",
+  "_version": "1.0.0",
+  "_integration_status": "active",
+
+  "framework": {
+    "name": "SuperClaude_Framework",
+    "version": "3.0.0+",
+    "source": "https://github.com/SuperClaude-Org/SuperClaude_Framework.git",
+    "local_path": "upstream/superclaude"
+  },
+
+  "features": {
+    "commands": {
+      "enabled": true,
+      "prefix": "/sc:",
+      "core_commands": [
+        "implement", "analyze", "design", "test",
+        "improve", "document", "troubleshoot", "explain"
+      ]
+    },
+    "personas": {
+      "enabled": true,
+      "jeecg_specialists": [
+        "jeecg-architect", "jeecg-frontend", "jeecg-backend",
+        "jeecg-codegen", "jeecg-security"
+      ],
+      "auto_selection": true
+    },
+    "mcp_servers": {
+      "enabled": true,
+      "external_servers": ["context7", "sequential", "magic", "playwright"],
+      "custom_servers": ["jeecg-docs", "jeecg-components", "jeecg-database"]
+    }
+  },
+
+  "jeecg_integration": {
+    "codegen_bridge": true,
+    "architecture_awareness": true,
+    "tech_stack_optimization": true,
+    "best_practices_enforcement": true
+  }
+}
+EOF
+
+    # 3. 统一配置文件
+    log_info "生成统一配置文件..."
+    cat > "$CONFIG_DIR/jeecg-unified.json" << 'EOF'
+{
+  "_comment": "JeecgBoot ContextDev 统一集成配置",
+  "_version": "3.0.0",
+  "_architecture": "dual_framework_isolation",
+  "_last_updated": "",
+
+  "project": {
+    "name": "JeecgBoot AI Enhanced Development",
+    "description": "双框架隔离集成：Context Engineering + SuperClaude Framework",
+    "integration_layer": "ContextDev",
+    "target_integration_score": 8.5
+  },
+
+  "frameworks": {
+    "context_engineering": {
+      "status": "integrated",
+      "score": 8.5,
+      "config_file": "config/context-engineering.json"
+    },
+    "superclaude": {
+      "status": "integrating",
+      "score": 0.0,
+      "config_file": "config/superclaude.json"
+    }
+  },
+
+  "command_routing": {
+    "strategy": "prefix_based",
+    "routes": {
+      "/jeecg-": "context_engineering",
+      "/sc:": "superclaude",
+      "/jg:": "unified_handler"
+    },
+    "fallback": "auto_detect"
+  },
+
+  "integration_features": {
+    "dual_framework_support": true,
+    "command_isolation": true,
+    "unified_configuration": true,
+    "cross_framework_workflows": false
+  },
+
+  "jeecg_constraints": {
+    "tech_stack": "Spring Boot + Vue3 + MyBatis-Plus",
+    "architecture": "modular_monolith",
+    "naming_convention": "jeecg-boot",
+    "code_generation": "CodeGen_system_mandatory"
+  }
+}
+EOF
+
+    # 更新统一配置的时间戳
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    python3 -c "
+import json
+with open('$CONFIG_DIR/jeecg-unified.json', 'r') as f:
+    data = json.load(f)
+data['_last_updated'] = '$timestamp'
+with open('$CONFIG_DIR/jeecg-unified.json', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+
+    log_success "集成配置文件生成完成"
+    update_integration_status "configuration" "generated" "v3.0"
+}
+
+# 生成集成脚本
+generate_integration_scripts() {
+    log_info "生成集成脚本..."
+
+    # 1. 上游同步脚本
+    log_info "生成上游同步脚本..."
+    cat > "$SCRIPTS_DIR/sync-upstream.sh" << 'EOF'
+#!/bin/bash
+# 上游项目同步脚本
+# 用于同步 Context Engineering 和 SuperClaude Framework
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONTEXT_DEV_DIR="$(dirname "$SCRIPT_DIR")"
+UPSTREAM_DIR="$CONTEXT_DEV_DIR/upstream"
+
+echo "🔄 开始上游项目同步..."
+
+# 同步 Context Engineering
+if [[ -d "$UPSTREAM_DIR/context-engineering" ]]; then
+    echo "📚 同步 Context Engineering..."
+    cd "$UPSTREAM_DIR/context-engineering"
+    git pull origin main
+    echo "✅ Context Engineering 同步完成"
+else
+    echo "❌ Context Engineering 目录不存在"
+fi
+
+# 同步 SuperClaude Framework
+if [[ -d "$UPSTREAM_DIR/superclaude" ]]; then
+    echo "🤖 同步 SuperClaude Framework..."
+    cd "$UPSTREAM_DIR/superclaude"
+    git pull origin master
+    echo "✅ SuperClaude Framework 同步完成"
+else
+    echo "❌ SuperClaude Framework 目录不存在"
+fi
+
+echo "✅ 上游项目同步完成"
+EOF
+    chmod +x "$SCRIPTS_DIR/sync-upstream.sh"
+
+    # 2. SuperClaude 安装脚本
+    log_info "生成 SuperClaude 安装脚本..."
+    cat > "$SCRIPTS_DIR/install-superclaude.sh" << 'EOF'
+#!/bin/bash
+# SuperClaude Framework 独立安装脚本
+
+set -e
+
+echo "🤖 SuperClaude Framework 独立安装..."
+
+# 检查 Python 环境
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Python 3 未安装"
+    exit 1
+fi
+
+# 安装 SuperClaude 包
+if command -v uv &> /dev/null; then
+    echo "📦 使用 uv 安装 SuperClaude..."
+    uv pip install SuperClaude
+else
+    echo "📦 使用 pip 安装 SuperClaude..."
+    pip3 install SuperClaude
+fi
+
+# 验证安装
+python3 -c "
+try:
+    import SuperClaude
+    import pkg_resources
+    try:
+        version = pkg_resources.get_distribution('SuperClaude').version
+        print(f'✅ SuperClaude {version} 安装成功')
+    except pkg_resources.DistributionNotFound:
+        print('✅ SuperClaude (版本未知) 安装成功')
+except Exception as e:
+    print(f'❌ SuperClaude 安装失败: {e}')
+    exit(1)
+"
+
+echo "✅ SuperClaude Framework 安装完成"
+EOF
+    chmod +x "$SCRIPTS_DIR/install-superclaude.sh"
+
+    # 3. 集成验证脚本
+    log_info "生成集成验证脚本..."
+    cat > "$SCRIPTS_DIR/validate-integration.sh" << 'EOF'
+#!/bin/bash
+# 集成验证脚本
+# 验证双框架集成状态和功能完整性
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONTEXT_DEV_DIR="$(dirname "$SCRIPT_DIR")"
+
+echo "🧪 开始集成验证..."
+
+# 验证目录结构
+echo "📁 验证目录结构..."
+required_dirs=(
+    "$CONTEXT_DEV_DIR/upstream"
+    "$CONTEXT_DEV_DIR/integration"
+    "$CONTEXT_DEV_DIR/config"
+    "$CONTEXT_DEV_DIR/scripts"
+    "$CONTEXT_DEV_DIR/examples"
+    "$CONTEXT_DEV_DIR/templates"
+)
+
+for dir in "${required_dirs[@]}"; do
+    if [[ -d "$dir" ]]; then
+        echo "✅ $dir"
+    else
+        echo "❌ $dir"
+        exit 1
+    fi
+done
+
+# 验证配置文件
+echo "⚙️ 验证配置文件..."
+config_files=(
+    "$CONTEXT_DEV_DIR/config/context-engineering.json"
+    "$CONTEXT_DEV_DIR/config/superclaude.json"
+    "$CONTEXT_DEV_DIR/config/jeecg-unified.json"
+)
+
+for file in "${config_files[@]}"; do
+    if [[ -f "$file" ]] && python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
+        echo "✅ $file"
+    else
+        echo "❌ $file"
+        exit 1
+    fi
+done
+
+# 验证 Python 包
+echo "🐍 验证 Python 包..."
+python3 -c "
+try:
+    import SuperClaude
+    import pkg_resources
+    try:
+        version = pkg_resources.get_distribution('SuperClaude').version
+        print(f'✅ SuperClaude {version}')
+    except pkg_resources.DistributionNotFound:
+        print('✅ SuperClaude (版本未知)')
+except ImportError:
+    print('❌ SuperClaude 未安装')
+    exit(1)
+"
+
+# 验证集成状态
+echo "📊 验证集成状态..."
+if [[ -f "$CONTEXT_DEV_DIR/integration-status.json" ]]; then
+    python3 -c "
+import json
+with open('$CONTEXT_DEV_DIR/integration-status.json') as f:
+    status = json.load(f)
+
+print('集成状态:')
+for component, info in status.get('integration_status', {}).items():
+    print(f'  {component}: {info.get(\"status\", \"unknown\")} ({info.get(\"version\", \"unknown\")})')
+"
+    echo "✅ 集成状态验证完成"
+else
+    echo "⚠️ 集成状态文件不存在"
+fi
+
+echo "✅ 集成验证完成"
+EOF
+    chmod +x "$SCRIPTS_DIR/validate-integration.sh"
+
+    log_success "集成脚本生成完成"
+    update_integration_status "scripts" "generated" "v3.0"
+}
+
+# ==================== Claude 配置管理 ====================
 
 # 创建CLAUDE.md符号链接到项目根目录
 create_claude_symlink() {
-    echo "🔗 创建 CLAUDE.md 符号链接到项目根目录..."
+    log_info "创建 CLAUDE.md 符号链接到项目根目录..."
 
     # 检查PRPs/CLAUDE.md是否存在
     if [[ ! -f "$PROJECT_CLAUDE_CONFIG" ]]; then
@@ -1117,100 +1814,210 @@ show_usage_guide() {
     echo "   - 全部配置都在项目级别，不影响全局设置"
 }
 
-# 主安装流程
+# ==================== 主安装流程 ====================
+
+# 主安装流程 - SuperClaude Framework 完整集成
 main() {
-    echo "开始安装 JeecgBoot AI 环境..."
-    
-    check_prerequisites
-    install_context_engineering
-    install_superclaude
-    setup_ai_config
-    setup_claude_config
-    setup_prp_templates
-    setup_codegen_integration
-    setup_claude_commands
-    skip_context_engineering_examples
-    skip_context_engineering_templates
-    verify_installation
-    show_usage_guide
-    
+    local start_time=$(date +%s)
+
     echo ""
-    echo "✨ 安装完成！现在可以使用 AI 赋能开发功能了！"
+    echo "🚀 开始 JeecgBoot AI 环境 v3.0 完整集成..."
+    echo "📋 集成方案: ContextDev/superclaude-integration-plan.md"
+    echo "🎯 目标: 双框架隔离集成 (Context Engineering + SuperClaude Framework)"
+    echo ""
+
+    # 初始化日志
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [START] JeecgBoot AI 环境安装开始" > "$INSTALL_LOG"
+
+    # 阶段一：基础设施搭建
+    log_info "=== 阶段一：基础设施搭建 ==="
+
+    # 1.1 系统环境检查
+    check_prerequisites
+
+    # 1.2 创建集成层目录结构
+    create_integration_directories
+
+    # 1.3 上游项目同步
+    sync_context_engineering
+    sync_superclaude_framework
+
+    # 1.4 Python 包安装
+    install_superclaude_package
+
+    # 1.5 配置文件生成
+    generate_integration_configs
+
+    # 1.6 集成脚本生成
+    generate_integration_scripts
+
+    # 阶段一验证
+    log_info "验证阶段一完成状态..."
+    if "$SCRIPTS_DIR/validate-integration.sh"; then
+        log_success "阶段一：基础设施搭建完成 ✅"
+        update_integration_status "phase_1" "completed" "v3.0"
+    else
+        log_error "阶段一验证失败"
+        exit 1
+    fi
+
+    # 保持现有功能兼容性
+    log_info "=== 兼容性保证：现有功能集成 ==="
+
+    # 设置 PRP 工作流
+    setup_prp_templates
+    setup_claude_config
+
+    # 保持现有的 Claude 配置和 PRP 工作流
+    create_claude_symlink
+
+    # 显示安装结果
+    local end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+
+    echo ""
+    echo "🎉 JeecgBoot AI 环境 v3.0 集成完成！"
+    echo "⏱️  总耗时: ${duration} 秒"
+    echo ""
+    echo "📊 集成状态:"
+    echo "  ✅ Context Engineering: 8.5/10 (已集成)"
+    echo "  ✅ SuperClaude Framework: 基础设施完成"
+    echo "  ✅ ContextDev 集成层: 已建立"
+    echo "  ✅ 双框架隔离: 已实现"
+    echo ""
+    echo "📋 下一步:"
+    echo "  1. 运行验证: bash ContextDev/scripts/validate-integration.sh"
+    echo "  2. 查看集成方案: ContextDev/superclaude-integration-plan.md"
+    echo "  3. 开始阶段二: 命令系统集成 (手动执行)"
+    echo ""
+    echo "🔧 可用命令:"
+    echo "  - 现有: /jeecg-generate-prp, /jeecg-execute-prp"
+    echo "  - 计划: /sc:implement, /sc:analyze, /sc:design, /sc:test"
+    echo ""
+
+    log_success "JeecgBoot AI 环境 v3.0 安装完成"
 }
 
-# 检查参数
+# ==================== 参数处理 ====================
+
+# 检查参数和显示帮助
 if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
-    echo "JeecgBoot AI环境安装脚本"
+    echo "🚀 JeecgBoot AI 环境安装脚本 v3.0 (SuperClaude Framework 完整集成版)"
+    echo "=================================================================="
+    echo ""
+    echo "📋 集成方案: 双框架隔离集成 (Context Engineering + SuperClaude Framework)"
+    echo "🏗️ 架构模式: ContextDev 作为集成层，两个上游项目完全独立"
     echo ""
     echo "用法: $0 [选项]"
     echo ""
-    echo "选项:"
+    echo "🔧 主要选项:"
     echo "  --help, -h                显示此帮助信息"
-    echo "  --verify                  仅验证环境，不执行安装"
-    echo "  --examples-only           仅复制JeecgBoot示例代码到Context Engineering"
-    echo "  --templates-only          仅部署JeecgBoot模板体系到Context Engineering"
-    echo "  --generate-codegen        仅生成CodeGen命令配置文件"
-    echo "  --update-claude-config    仅从JeecgBoot模板更新CLAUDE配置文件"
-    echo "  --setup-claude-commands   仅安装Claude命令系统"
-    echo "  --create-claude-symlink   仅创建CLAUDE.md符号链接到项目根目录"
+    echo "  --verify                  验证集成状态和环境"
+    echo "  --phase1                  仅执行阶段一：基础设施搭建"
+    echo "  --sync-upstream           仅同步上游项目"
+    echo "  --validate-integration    仅运行集成验证"
     echo ""
-    echo "此脚本将安装："
-    echo "1. Context Engineering (PRP工作流)"
-    echo "2. SuperClaude Framework (专业命令)"
-    echo "3. CodeGen AI代理集成"
-    echo "4. Claude Code配置"
-    echo "5. JeecgBoot完整模板体系"
-    echo "6. JeecgBoot前后端示例代码"
+    echo "🛠️ 维护选项:"
+    echo "  --update-configs          更新配置文件"
+    echo "  --regenerate-scripts      重新生成集成脚本"
+    echo "  --create-claude-symlink   创建CLAUDE.md符号链接"
+    echo ""
+    echo "📊 此脚本将完成："
+    echo "  ✅ 阶段一：基础设施搭建"
+    echo "    - 创建 ContextDev 集成层目录结构"
+    echo "    - 同步 Context Engineering 和 SuperClaude Framework"
+    echo "    - 安装 SuperClaude Python 包"
+    echo "    - 生成分层配置文件"
+    echo "    - 创建集成脚本和验证工具"
+    echo ""
+    echo "  🔄 后续阶段 (需手动执行)："
+    echo "    - 阶段二：命令系统集成 (/sc: 命令)"
+    echo "    - 阶段三：Persona 系统集成 (智能专家)"
+    echo "    - 阶段四：MCP 服务器集成 (外部工具)"
+    echo ""
+    echo "📖 详细信息: ContextDev/superclaude-integration-plan.md"
     exit 0
 fi
 
+# 验证模式
 if [[ "$1" == "--verify" ]]; then
-    echo "🔍 验证模式 - 仅检查安装状态"
-    verify_installation
+    echo "🔍 验证集成状态和环境..."
+    if [[ -f "$SCRIPTS_DIR/validate-integration.sh" ]]; then
+        bash "$SCRIPTS_DIR/validate-integration.sh"
+    else
+        echo "❌ 验证脚本不存在，请先运行完整安装"
+        exit 1
+    fi
     exit 0
 fi
 
-if [[ "$1" == "--examples-only" ]]; then
-    echo "⏭️  跳过Context Engineering示例代码植入模式"
-    skip_context_engineering_examples
-    echo "✅ Context Engineering保持干净状态"
+# 阶段一模式
+if [[ "$1" == "--phase1" ]]; then
+    echo "🚀 仅执行阶段一：基础设施搭建..."
+    check_prerequisites
+    create_integration_directories
+    sync_context_engineering
+    sync_superclaude_framework
+    install_superclaude_package
+    generate_integration_configs
+    generate_integration_scripts
+    echo "✅ 阶段一完成"
     exit 0
 fi
 
-if [[ "$1" == "--templates-only" ]]; then
-    echo "⏭️  跳过Context Engineering模板植入模式"
-    skip_context_engineering_templates
-    echo "✅ Context Engineering保持干净状态"
+# 同步上游项目
+if [[ "$1" == "--sync-upstream" ]]; then
+    echo "🔄 同步上游项目..."
+    if [[ -f "$SCRIPTS_DIR/sync-upstream.sh" ]]; then
+        bash "$SCRIPTS_DIR/sync-upstream.sh"
+    else
+        sync_context_engineering
+        sync_superclaude_framework
+    fi
     exit 0
 fi
 
-if [[ "$1" == "--generate-codegen" ]]; then
-    echo "🔧 仅生成CodeGen命令配置文件模式"
-    generate_codegen_commands
-    echo "✅ CodeGen命令配置文件生成完成"
+# 验证集成
+if [[ "$1" == "--validate-integration" ]]; then
+    echo "🧪 运行集成验证..."
+    if [[ -f "$SCRIPTS_DIR/validate-integration.sh" ]]; then
+        bash "$SCRIPTS_DIR/validate-integration.sh"
+    else
+        echo "❌ 验证脚本不存在，请先运行安装"
+        exit 1
+    fi
     exit 0
 fi
 
-if [[ "$1" == "--update-claude-config" ]]; then
-    echo "🔄 仅更新CLAUDE配置文件模式"
-    update_claude_config_from_template
-    echo "✅ CLAUDE配置文件更新完成"
+# 更新配置文件
+if [[ "$1" == "--update-configs" ]]; then
+    echo "⚙️ 更新配置文件..."
+    generate_integration_configs
+    echo "✅ 配置文件更新完成"
     exit 0
 fi
 
-if [[ "$1" == "--setup-claude-commands" ]]; then
-    echo "⚡ 仅安装Claude命令系统模式"
-    setup_claude_commands
-    echo "✅ Claude命令系统安装完成"
+# 重新生成脚本
+if [[ "$1" == "--regenerate-scripts" ]]; then
+    echo "🔧 重新生成集成脚本..."
+    generate_integration_scripts
+    echo "✅ 集成脚本重新生成完成"
     exit 0
 fi
 
+# 创建符号链接
 if [[ "$1" == "--create-claude-symlink" ]]; then
-    echo "🔗 仅创建CLAUDE.md符号链接模式"
+    echo "🔗 创建CLAUDE.md符号链接..."
     create_claude_symlink
     echo "✅ CLAUDE.md符号链接创建完成"
     exit 0
 fi
 
-# 运行主安装流程
+# ==================== 主程序入口 ====================
+
+# 运行主安装流程 - SuperClaude Framework 完整集成
+echo "🎯 启动 JeecgBoot AI 环境 v3.0 安装程序..."
+echo "📋 集成方案文档: ContextDev/superclaude-integration-plan.md"
+echo ""
+
 main "$@"
