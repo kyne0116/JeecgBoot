@@ -14,7 +14,7 @@ fi
 # 安装 SuperClaude 包
 if command -v uv &> /dev/null; then
     echo "📦 使用 uv 安装 SuperClaude..."
-    uv pip install SuperClaude
+    uv pip install --system SuperClaude
 else
     echo "📦 使用 pip 安装 SuperClaude..."
     pip3 install SuperClaude

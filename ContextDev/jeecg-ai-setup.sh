@@ -394,7 +394,7 @@ install_superclaude_package() {
     # 尝试使用 uv 安装
     if command -v uv &> /dev/null; then
         log_info "使用 uv 安装 SuperClaude..."
-        if uv pip install SuperClaude; then
+        if uv pip install --system SuperClaude; then
             install_success=true
             log_success "使用 uv 安装 SuperClaude 成功"
         else
@@ -692,7 +692,7 @@ fi
 # 安装 SuperClaude 包
 if command -v uv &> /dev/null; then
     echo "📦 使用 uv 安装 SuperClaude..."
-    uv pip install SuperClaude
+    uv pip install --system SuperClaude
 else
     echo "📦 使用 pip 安装 SuperClaude..."
     pip3 install SuperClaude
