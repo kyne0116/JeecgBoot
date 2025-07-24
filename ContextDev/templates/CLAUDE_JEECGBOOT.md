@@ -132,6 +132,10 @@ graph TD
 
 - **项目文档优先**: 在开始新对话时，必须阅读`PLANNING_JEECGBOOT.md`了解项目架构、目标、风格和约束
 - **任务管理**: 开始新任务前检查`TASK_JEECGBOOT.md`，如任务未列出则添加简要描述和日期
+- **示例代码参考**: 在进行代码开发前，必须参考`PRPs/examples/jeecgboot/`中的示例代码
+  - **后端开发**: 参考`PRPs/examples/jeecgboot/backend/`中的 Entity、Controller、Service、Mapper 示例
+  - **前端开发**: 参考`PRPs/examples/jeecgboot/frontend/`中的 Vue3 组件、API 服务、路由配置示例
+  - **架构理解**: 通过示例代码理解 JeecgBoot 的标准开发模式和最佳实践
 - **深度分析优先**: 在执行任何代码修改前，必须使用`codebase-retrieval`工具深入分析相关代码结构
 - **全面理解**: 理解 JeecgBoot 的架构模式、命名规范、代码组织方式
 - **模式遵循**: 严格遵循现有代码的设计模式和最佳实践
@@ -315,7 +319,7 @@ graph TD
     START[用户输入业务需求] --> CMD[/jeecg-generate-prp 命令]
     CMD --> DOC[生成需求文档<br/>projectDocs/REQUIREMENTS_*.md]
     DOC --> A[阶段0: 需求分类决策]
-    
+
     A --> B{需求复杂度评估}
     B -->|简单CRUD| C[阶段1A: CodeGen流程]
     B -->|复杂业务| D[阶段1B: 技术文档研究]
@@ -342,10 +346,56 @@ graph TD
     G1[DESIGN_JEECGBOOT.md] --> G
     I1[TASK_JEECGBOOT.md] --> I
     J1[CodeGen + 复杂业务逻辑] --> J
-    
+
     style CMD fill:#e1f5fe
     style DOC fill:#f3e5f5
 ```
+
+---
+
+### 📚 示例代码参考体系
+
+在执行任何开发任务前，必须参考项目中的示例代码集合：
+
+#### 🎯 示例代码位置与结构
+
+```
+PRPs/examples/jeecgboot/
+├── backend/                    # 后端Java代码示例
+│   ├── entity/                # 实体类示例
+│   │   ├── SysUser.java       # 用户实体（完整注解、系统字段）
+│   │   ├── SysDepart.java     # 部门实体（树形结构）
+│   │   └── SysRole.java       # 角色实体（权限管理）
+│   ├── controller/            # 控制器示例
+│   │   ├── SysUserController.java    # 用户管理（CRUD、权限、导入导出）
+│   │   └── SysDepartController.java  # 部门管理（树形操作）
+│   ├── service/               # 服务层示例
+│   │   └── impl/              # 服务实现
+│   └── mapper/                # 数据访问层示例
+└── frontend/                  # 前端Vue3代码示例
+    ├── views/system/          # 页面组件示例
+    │   ├── user/              # 用户管理页面
+    │   ├── depart/            # 部门管理页面
+    │   └── role/              # 角色管理页面
+    ├── api/sys/               # API服务示例
+    └── store/modules/         # 状态管理示例
+```
+
+#### 🔍 示例代码使用指导
+
+**开发前必读**：
+
+1. **实体设计参考**: 查看`backend/entity/`中的实体类，理解 JeecgBoot 的注解使用、字段设计、关系映射
+2. **控制器模式**: 参考`backend/controller/`中的 REST API 设计、权限控制、异常处理
+3. **服务层架构**: 学习`backend/service/`中的业务逻辑封装、事务管理
+4. **前端组件**: 参考`frontend/views/`中的 Vue3 组件设计、表单处理、列表展示
+5. **API 集成**: 查看`frontend/api/`中的接口定义和调用方式
+
+**CodeGen 系统集成**：
+
+- CodeGen 生成的代码应该与示例代码保持一致的架构模式
+- 使用示例代码验证生成代码的正确性和完整性
+- 参考示例代码进行复杂业务逻辑的扩展开发
 
 ---
 
@@ -357,6 +407,7 @@ graph TD
 专为 JeecgBoot 开发的需求文档生成命令，基于 Context Engineering 最佳实践，自动生成符合 JeecgBoot 规范的完整需求文档。
 
 **使用场景：**
+
 ```bash
 # 基础 CRUD 模块需求
 /jeecg-generate-prp 客户管理系统需求
@@ -369,6 +420,7 @@ graph TD
 ```
 
 **核心优势：**
+
 - 🎯 **JeecgBoot 专用优化**: 针对平台特点进行深度定制
 - 📝 **自动模板应用**: 使用 `PRPs/templates/REQUIREMENTS_JEECGBOOT.md` 基础模板
 - 🔧 **CodeGen 深度集成**: 生成的文档直接兼容 CodeGen 系统
@@ -376,12 +428,14 @@ graph TD
 - 📊 **质量保证机制**: 内置评分系统确保实施成功率 8+/10
 
 **与开发工作流的关系：**
+
 1. **需求输入阶段**: 使用 `/jeecg-generate-prp` 生成标准化需求文档
 2. **需求分类决策**: 基于生成的需求文档进行复杂度评估
 3. **技术实现路径**: 需求文档为 CodeGen 配置或技术方案提供完整上下文
 4. **代码生成阶段**: CodeGen 系统基于需求文档执行精确的代码生成
 
 **输出规范：**
+
 - 文件位置: `projectDocs/REQUIREMENTS_{project-name}.md`
 - 命名格式: 使用 kebab-case 格式，如 `REQUIREMENTS_customer-management.md`
 - 内容标准: 完整的 JeecgBoot 架构约束、CodeGen 配置要求、验证门槛脚本

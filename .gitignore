@@ -22,3 +22,6 @@ os_del_doc.cmd
 context-engineering-intro/
 PRPs/
 .claude/
+
+# AI Configuration (symbolic link to PRPs/CLAUDE.md)
+CLAUDE.md
