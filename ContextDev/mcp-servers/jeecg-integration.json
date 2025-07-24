@@ -1,0 +1,283 @@
+{
+  "_comment": "JeecgBoot专用MCP服务器集成配置",
+  "_version": "1.0.0",
+  "_last_updated": "2025-07-24",
+  
+  "mcp_servers": {
+    "jeecg_docs": {
+      "name": "JeecgBoot文档服务器",
+      "description": "提供JeecgBoot官方文档、最佳实践和API参考",
+      "type": "documentation",
+      "status": "planned",
+      "config": {
+        "sources": [
+          {
+            "name": "官方文档",
+            "url": "http://doc.jeecg.com",
+            "type": "documentation",
+            "priority": "high"
+          },
+          {
+            "name": "GitHub Wiki",
+            "url": "https://github.com/jeecgboot/jeecg-boot/wiki",
+            "type": "wiki",
+            "priority": "medium"
+          },
+          {
+            "name": "最佳实践",
+            "url": "https://context7.com/jeecgboot/jeecgboot",
+            "type": "best_practices",
+            "priority": "high"
+          }
+        ],
+        "cache_duration": "24h",
+        "update_frequency": "daily"
+      }
+    },
+    
+    "jeecg_components": {
+      "name": "JeecgBoot组件库服务器",
+      "description": "提供JeecgBoot前端组件和代码模板",
+      "type": "component_library",
+      "status": "planned",
+      "config": {
+        "component_sources": [
+          {
+            "name": "Ant Design Vue组件",
+            "path": "jeecgboot-vue3/src/components",
+            "type": "vue_components"
+          },
+          {
+            "name": "业务组件库",
+            "path": "jeecgboot-vue3/src/views",
+            "type": "business_components"
+          },
+          {
+            "name": "工具组件",
+            "path": "jeecgboot-vue3/src/utils",
+            "type": "utility_components"
+          }
+        ],
+        "template_generation": true,
+        "auto_import": true
+      }
+    },
+    
+    "jeecg_database": {
+      "name": "JeecgBoot数据库助手",
+      "description": "提供数据库设计、SQL优化和数据迁移支持",
+      "type": "database_helper",
+      "status": "planned",
+      "config": {
+        "database_types": ["mysql", "postgresql", "oracle"],
+        "features": [
+          "表结构设计",
+          "索引优化建议",
+          "SQL性能分析",
+          "数据迁移脚本"
+        ],
+        "integration": {
+          "mybatis_plus": true,
+          "liquibase": true,
+          "code_generator": true
+        }
+      }
+    }
+  },
+  
+  "external_mcp_servers": {
+    "context7": {
+      "name": "Context7文档服务器",
+      "description": "官方技术文档和最佳实践",
+      "status": "available",
+      "integration_level": "high",
+      "config": {
+        "url": "https://context7.com/jeecgboot/jeecgboot",
+        "focus_areas": [
+          "最佳实践",
+          "配置说明", 
+          "业务流程设计",
+          "技术架构"
+        ],
+        "auto_research": true,
+        "cache_enabled": true
+      }
+    },
+    
+    "sequential": {
+      "name": "Sequential思维链服务器",
+      "description": "复杂业务逻辑分析和多步骤思维",
+      "status": "available",
+      "integration_level": "medium",
+      "config": {
+        "use_cases": [
+          "复杂业务需求分析",
+          "多表关联查询设计",
+          "工作流程设计",
+          "系统集成方案"
+        ],
+        "max_steps": 10,
+        "confidence_threshold": 0.8
+      }
+    },
+    
+    "magic": {
+      "name": "Magic UI组件生成器",
+      "description": "现代UI组件快速生成",
+      "status": "available", 
+      "integration_level": "medium",
+      "config": {
+        "frameworks": ["vue3", "ant-design-vue"],
+        "component_types": [
+          "表单组件",
+          "表格组件", 
+          "图表组件",
+          "布局组件"
+        ],
+        "jeecg_integration": true,
+        "auto_styling": true
+      }
+    },
+    
+    "playwright": {
+      "name": "Playwright自动化测试",
+      "description": "浏览器自动化和E2E测试",
+      "status": "available",
+      "integration_level": "low",
+      "config": {
+        "test_types": [
+          "功能测试",
+          "界面测试",
+          "性能测试",
+          "兼容性测试"
+        ],
+        "browsers": ["chromium", "firefox", "webkit"],
+        "jeecg_selectors": true
+      }
+    }
+  },
+  
+  "integration_workflow": {
+    "phase1_basic": {
+      "description": "基础MCP服务器集成",
+      "duration": "1-2周",
+      "servers": ["context7"],
+      "features": [
+        "文档查询集成",
+        "基础配置设置",
+        "简单测试验证"
+      ]
+    },
+    
+    "phase2_enhanced": {
+      "description": "增强功能集成",
+      "duration": "2-3周", 
+      "servers": ["sequential", "magic"],
+      "features": [
+        "复杂思维链集成",
+        "UI组件生成集成",
+        "工作流优化"
+      ]
+    },
+    
+    "phase3_custom": {
+      "description": "JeecgBoot专用服务器开发",
+      "duration": "3-4周",
+      "servers": ["jeecg_docs", "jeecg_components", "jeecg_database"],
+      "features": [
+        "专用文档服务器",
+        "组件库服务器",
+        "数据库助手服务器"
+      ]
+    }
+  },
+  
+  "configuration": {
+    "claude_code_integration": {
+      "settings_file": "~/.claude/settings.json",
+      "mcp_section": "mcpServers",
+      "auto_discovery": true,
+      "fallback_mode": true
+    },
+    
+    "jeecg_specific": {
+      "project_detection": {
+        "markers": [
+          "jeecg-boot/pom.xml",
+          "jeecgboot-vue3/package.json",
+          "CodeGen/Code_Gen_Guide.py"
+        ],
+        "auto_enable": true
+      },
+      "context_injection": {
+        "project_structure": true,
+        "coding_standards": true,
+        "best_practices": true
+      }
+    },
+    
+    "performance": {
+      "cache_strategy": "aggressive",
+      "timeout_settings": {
+        "connection": "10s",
+        "response": "30s",
+        "total": "60s"
+      },
+      "retry_policy": {
+        "max_retries": 3,
+        "backoff_factor": 2
+      }
+    }
+  },
+  
+  "monitoring": {
+    "health_checks": {
+      "enabled": true,
+      "interval": "5m",
+      "endpoints": [
+        "/health",
+        "/status", 
+        "/metrics"
+      ]
+    },
+    
+    "logging": {
+      "level": "info",
+      "format": "json",
+      "rotation": "daily",
+      "retention": "30d"
+    },
+    
+    "metrics": {
+      "response_time": true,
+      "success_rate": true,
+      "error_rate": true,
+      "usage_stats": true
+    }
+  },
+  
+  "security": {
+    "authentication": {
+      "type": "api_key",
+      "rotation": "monthly",
+      "encryption": "aes256"
+    },
+    
+    "authorization": {
+      "rbac_enabled": true,
+      "permissions": [
+        "read_docs",
+        "generate_components", 
+        "query_database",
+        "execute_tests"
+      ]
+    },
+    
+    "data_protection": {
+      "encryption_at_rest": true,
+      "encryption_in_transit": true,
+      "pii_detection": true,
+      "audit_logging": true
+    }
+  }
+}
