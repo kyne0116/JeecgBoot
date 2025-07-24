@@ -114,6 +114,77 @@ setup_ai_config() {
     echo "✅ AI 配置目录设置完成"
 }
 
+# 创建CLAUDE.md符号链接到项目根目录
+create_claude_symlink() {
+    echo "🔗 创建 CLAUDE.md 符号链接到项目根目录..."
+
+    # 检查PRPs/CLAUDE.md是否存在
+    if [[ ! -f "$PROJECT_CLAUDE_CONFIG" ]]; then
+        echo "❌ PRPs/CLAUDE.md 不存在，无法创建符号链接"
+        return 1
+    fi
+
+    # 检查项目根目录是否已存在CLAUDE.md
+    if [[ -f "$PROJECT_ROOT/CLAUDE.md" ]] || [[ -L "$PROJECT_ROOT/CLAUDE.md" ]]; then
+        # 备份现有文件（如果不是符号链接）
+        if [[ -f "$PROJECT_ROOT/CLAUDE.md" ]] && [[ ! -L "$PROJECT_ROOT/CLAUDE.md" ]]; then
+            BACKUP_FILE="$PROJECT_ROOT/CLAUDE.md.backup.$(date +%Y%m%d-%H%M%S)"
+            mv "$PROJECT_ROOT/CLAUDE.md" "$BACKUP_FILE"
+            echo "💾 备份现有CLAUDE.md到: $BACKUP_FILE"
+        else
+            # 删除现有符号链接
+            rm -f "$PROJECT_ROOT/CLAUDE.md"
+            echo "🗑️  删除现有符号链接"
+        fi
+    fi
+
+    # 创建符号链接
+    cd "$PROJECT_ROOT"
+    if ln -sf "PRPs/CLAUDE.md" "CLAUDE.md"; then
+        echo "✅ 符号链接创建成功: CLAUDE.md -> PRPs/CLAUDE.md"
+
+        # 验证符号链接
+        if [[ -L "CLAUDE.md" ]] && [[ -f "CLAUDE.md" ]]; then
+            echo "✅ 符号链接验证通过"
+            echo "📊 配置文件行数: $(wc -l < "CLAUDE.md") 行"
+        else
+            echo "❌ 符号链接验证失败"
+            return 1
+        fi
+
+        # 更新.gitignore（如果需要）
+        update_gitignore_for_claude_symlink
+
+    else
+        echo "❌ 符号链接创建失败"
+        return 1
+    fi
+}
+
+# 更新.gitignore文件以忽略CLAUDE.md符号链接
+update_gitignore_for_claude_symlink() {
+    echo "📝 更新 .gitignore 文件..."
+
+    # 检查.gitignore是否存在
+    if [[ ! -f "$PROJECT_ROOT/.gitignore" ]]; then
+        echo "⚠️  .gitignore 文件不存在，跳过更新"
+        return 0
+    fi
+
+    # 检查是否已经包含CLAUDE.md
+    if grep -q "^CLAUDE\.md$" "$PROJECT_ROOT/.gitignore" 2>/dev/null; then
+        echo "✅ .gitignore 已包含 CLAUDE.md，跳过添加"
+        return 0
+    fi
+
+    # 添加CLAUDE.md到.gitignore
+    echo "" >> "$PROJECT_ROOT/.gitignore"
+    echo "# AI Configuration (symbolic link to PRPs/CLAUDE.md)" >> "$PROJECT_ROOT/.gitignore"
+    echo "CLAUDE.md" >> "$PROJECT_ROOT/.gitignore"
+
+    echo "✅ 已将 CLAUDE.md 添加到 .gitignore"
+}
+
 # 配置项目级别CLAUDE.md
 setup_claude_config() {
     echo "📝 配置项目级别 Claude Code 扩展..."
@@ -149,6 +220,9 @@ setup_claude_config() {
         
         echo "✅ 项目级别 Claude Code 配置完成（使用JeecgBoot专用配置）"
         echo "📁 项目级别CLAUDE.md位置: $PROJECT_CLAUDE_CONFIG"
+
+        # 创建项目根目录的符号链接，便于Claude Code自动检测
+        create_claude_symlink
     else
         echo "⚠️  JeecgBoot专用CLAUDE配置不存在: $CONTEXT_DEV_DIR/templates/CLAUDE_JEECGBOOT.md"
         echo "💡 创建基础配置文件..."
@@ -169,26 +243,140 @@ setup_claude_config() {
 
 EOF
         echo "📝 创建了基础配置文件: $PROJECT_CLAUDE_CONFIG"
+
+        # 创建项目根目录的符号链接，便于Claude Code自动检测
+        create_claude_symlink
     fi
+}
+
+# 复制示例代码到PRP工作目录
+copy_examples_to_prp() {
+    echo "📋 复制示例代码到 PRP 工作目录..."
+
+    # 创建PRP示例目录
+    mkdir -p "$PRP_WORK_DIR/examples"
+
+    # 检查源示例目录是否存在
+    if [[ -d "$CONTEXT_DEV_DIR/examples" ]]; then
+        echo "📂 发现示例代码目录: $CONTEXT_DEV_DIR/examples"
+
+        # 复制完整的示例代码目录结构
+        if cp -r "$CONTEXT_DEV_DIR/examples/"* "$PRP_WORK_DIR/examples/" 2>/dev/null; then
+            echo "✅ 示例代码复制成功"
+
+            # 设置正确的文件权限
+            find "$PRP_WORK_DIR/examples" -type f -exec chmod 644 {} \;
+            find "$PRP_WORK_DIR/examples" -type d -exec chmod 755 {} \;
+            echo "✅ 示例代码文件权限设置完成"
+
+            # 统计复制的文件数量
+            EXAMPLE_FILE_COUNT=$(find "$PRP_WORK_DIR/examples" -type f | wc -l)
+            echo "📊 复制了 $EXAMPLE_FILE_COUNT 个示例文件"
+
+            # 创建示例代码索引文件
+            create_examples_index
+
+        else
+            echo "⚠️  示例代码复制失败，但不影响主要功能"
+        fi
+    else
+        echo "⚠️  示例代码目录不存在: $CONTEXT_DEV_DIR/examples"
+        echo "💡 创建基础示例目录结构..."
+
+        # 创建基础示例目录结构
+        mkdir -p "$PRP_WORK_DIR/examples/jeecgboot/backend"
+        mkdir -p "$PRP_WORK_DIR/examples/jeecgboot/frontend"
+
+        # 创建基础说明文件
+        cat > "$PRP_WORK_DIR/examples/README.md" << 'EOF'
+# JeecgBoot 示例代码集合
+
+本目录包含JeecgBoot项目的示例代码，用于AI开发参考。
+
+## 目录结构
+- `jeecgboot/backend/` - 后端Java代码示例
+- `jeecgboot/frontend/` - 前端Vue3代码示例
+
+## 使用说明
+这些示例代码可以帮助AI理解JeecgBoot的开发模式和最佳实践。
+EOF
+        echo "📝 创建了基础示例目录和说明文件"
+    fi
+
+    echo "📁 示例代码位置: $PRP_WORK_DIR/examples/"
+}
+
+# 创建示例代码索引文件
+create_examples_index() {
+    echo "📝 创建示例代码索引文件..."
+
+    local INDEX_FILE="$PRP_WORK_DIR/examples/INDEX.json"
+
+    cat > "$INDEX_FILE" << 'EOF'
+{
+  "examples_system": "JeecgBoot示例代码集合",
+  "version": "2.0.0",
+  "updated": "2025-07-24",
+  "purpose": "为AI开发提供JeecgBoot代码参考和最佳实践指导",
+  "structure": {
+    "jeecgboot": {
+      "backend": {
+        "description": "后端Java代码示例",
+        "includes": [
+          "实体类(Entity)",
+          "控制器(Controller)",
+          "服务层(Service)",
+          "数据访问层(Mapper)",
+          "业务示例(Demo)"
+        ]
+      },
+      "frontend": {
+        "description": "前端Vue3代码示例",
+        "includes": [
+          "页面组件(Views)",
+          "API服务(API)",
+          "状态管理(Store)",
+          "路由配置(Router)"
+        ]
+      }
+    }
+  },
+  "usage_guide": {
+    "ai_reference": "AI可以参考这些示例理解JeecgBoot的开发模式",
+    "code_generation": "CodeGen系统可以基于这些示例生成类似的代码结构",
+    "best_practices": "展示JeecgBoot的标准开发模式和最佳实践"
+  },
+  "integration": {
+    "claude_templates": "与PRPs/templates/中的AI模板深度集成",
+    "codegen_system": "支持CodeGen系统的代码生成参考",
+    "prp_workflow": "为PRP工作流提供技术实现参考"
+  }
+}
+EOF
+
+    echo "✅ 示例代码索引文件创建完成: $INDEX_FILE"
 }
 
 # 创建PRP模板目录
 setup_prp_templates() {
     echo "📋 设置 PRP 模板..."
-    
+
     # 创建完整的PRP工作目录结构
     mkdir -p "$PRP_WORK_DIR"
     mkdir -p "$PRP_WORK_DIR/templates"
     mkdir -p "$PRP_WORK_DIR/active"
     mkdir -p "$PRP_WORK_DIR/completed"
     mkdir -p "$CONTEXT_DEV_DIR/templates"
-    
+
     # 复制JeecgBoot模板到PRP目录
     if [[ -d "$CONTEXT_DEV_DIR/templates" ]]; then
         cp -r "$CONTEXT_DEV_DIR/templates/"* "$PRP_WORK_DIR/templates/" 2>/dev/null || true
         echo "📋 复制JeecgBoot模板到PRP工作目录"
     fi
-    
+
+    # 复制示例代码到PRP工作目录
+    copy_examples_to_prp
+
     # JeecgBoot模板已通过新的模板体系提供，无需创建单一PRP模板
     echo "✅ JeecgBoot 完整模板体系已就绪"
     echo "📁 PRP工作目录: $PRP_WORK_DIR"
@@ -363,13 +551,16 @@ update_claude_config_from_template() {
     echo "✅ CLAUDE 配置更新完成"
     echo "📁 配置文件位置: $PROJECT_CLAUDE_CONFIG"
     echo "📊 配置文件行数: $(wc -l < "$PROJECT_CLAUDE_CONFIG") 行"
-    
+
     # 验证配置文件完整性
     if [[ $(wc -l < "$PROJECT_CLAUDE_CONFIG") -lt 100 ]]; then
         echo "⚠️  配置文件可能不完整（少于100行），请检查模板文件"
     else
         echo "✅ 配置文件完整性验证通过"
     fi
+
+    # 创建或更新符号链接
+    create_claude_symlink
 }
 
 # 配置CodeGen集成
@@ -1184,6 +1375,14 @@ verify_installation() {
     else
         echo "❌ 项目级别 Claude Code 配置未正确加载"
     fi
+
+    # 检查CLAUDE.md符号链接
+    if [[ -L "$PROJECT_ROOT/CLAUDE.md" ]] && [[ -f "$PROJECT_ROOT/CLAUDE.md" ]]; then
+        echo "✅ CLAUDE.md 符号链接已创建并有效"
+        echo "📍 符号链接: $(ls -la "$PROJECT_ROOT/CLAUDE.md" | awk '{print $9 " -> " $11}')"
+    else
+        echo "❌ CLAUDE.md 符号链接未正确创建"
+    fi
     
     # 检查CodeGen命令配置
     if [[ -f "$PRP_WORK_DIR/codegen_commands.json" ]]; then
@@ -1233,6 +1432,21 @@ verify_installation() {
     else
         echo "❌ 项目文档输出目录创建失败"
     fi
+
+    # 检查示例代码目录
+    if [[ -d "$PRP_WORK_DIR/examples" ]] && [[ -f "$PRP_WORK_DIR/examples/INDEX.json" ]]; then
+        EXAMPLE_FILE_COUNT=$(find "$PRP_WORK_DIR/examples" -type f | wc -l)
+        echo "✅ 示例代码已复制到PRP工作目录 ($EXAMPLE_FILE_COUNT 个文件)"
+
+        # 检查JeecgBoot示例目录
+        if [[ -d "$PRP_WORK_DIR/examples/jeecgboot" ]]; then
+            echo "✅ JeecgBoot 示例代码结构完整"
+        else
+            echo "⚠️  JeecgBoot 示例代码结构不完整"
+        fi
+    else
+        echo "❌ 示例代码复制失败或索引文件缺失"
+    fi
 }
 
 # 显示使用指南
@@ -1263,15 +1477,17 @@ show_usage_guide() {
     echo "   - 完整工作流：需求→配置→生成→验证"
     echo ""
     echo "📁 重要目录："
+    echo "   - CLAUDE.md -> PRPs/CLAUDE.md              # Claude Code自动检测的符号链接"
     echo "   - PRPs/                                    # PRP工作目录（包含CLAUDE.md）"
-    echo "   - PRPs/CLAUDE.md                           # 项目级别Claude配置"
+    echo "   - PRPs/CLAUDE.md                           # 项目级别Claude配置（实际文件）"
+    echo "   - PRPs/examples/                           # JeecgBoot示例代码集合（AI参考）"
     echo "   - PRPs/codegen_commands.json               # CodeGen命令配置"
     echo "   - PRPs/templates/                          # JeecgBoot模板集合"
     echo "   - .claude/commands/                        # Claude命令系统"
     echo "   - projectDocs/                             # 生成的需求文档输出"
     echo "   - .ai-config/                              # AI配置文件"
     echo "   - ContextDev/templates/                    # 原始PRP模板"
-    echo "   - context-engineering-intro/examples/     # JeecgBoot示例代码"
+    echo "   - ContextDev/examples/                     # 原始示例代码"
     echo ""
     echo "📖 详细文档："
     echo "   - ContextDev/README.md"
@@ -1282,7 +1498,9 @@ show_usage_guide() {
     echo ""
     echo "⚠️  重要提示："
     echo "   - 请在JeecgBoot项目根目录中使用Claude Code"
-    echo "   - Claude Code会自动检测并使用PRPs/CLAUDE.md配置"
+    echo "   - Claude Code会自动检测根目录的CLAUDE.md符号链接"
+    echo "   - 实际配置文件位于PRPs/CLAUDE.md，符号链接便于Claude Code检测"
+    echo "   - 符号链接已添加到.gitignore，不会影响版本控制"
     echo "   - 全部配置都在项目级别，不影响全局设置"
 }
 
@@ -1321,6 +1539,7 @@ if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     echo "  --generate-codegen        仅生成CodeGen命令配置文件"
     echo "  --update-claude-config    仅从JeecgBoot模板更新CLAUDE配置文件"
     echo "  --setup-claude-commands   仅安装Claude命令系统"
+    echo "  --create-claude-symlink   仅创建CLAUDE.md符号链接到项目根目录"
     echo ""
     echo "此脚本将安装："
     echo "1. Context Engineering (PRP工作流)"
@@ -1370,6 +1589,13 @@ if [[ "$1" == "--setup-claude-commands" ]]; then
     echo "⚡ 仅安装Claude命令系统模式"
     setup_claude_commands
     echo "✅ Claude命令系统安装完成"
+    exit 0
+fi
+
+if [[ "$1" == "--create-claude-symlink" ]]; then
+    echo "🔗 仅创建CLAUDE.md符号链接模式"
+    create_claude_symlink
+    echo "✅ CLAUDE.md符号链接创建完成"
     exit 0
 fi
 
