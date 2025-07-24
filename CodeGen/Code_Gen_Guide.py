@@ -212,8 +212,8 @@ def validate_core_variables():
     # 验证MODULE_NAME
     if not MODULE_NAME:
         errors.append("MODULE_NAME不能为空")
-    elif MODULE_NAME not in ['finance', 'hrms', 'crm', 'scm', 'oa']:
-        errors.append(f"MODULE_NAME必须是预定义的业务系统之一: {MODULE_NAME}")
+    elif not re.match(r'^[a-z][a-z0-9_]*$', MODULE_NAME):
+        errors.append(f"MODULE_NAME格式不正确，应为小写字母开头的标识符: {MODULE_NAME}")
 
     # 验证SUBMODULE_NAME
     if not SUBMODULE_NAME:
@@ -587,7 +587,9 @@ def convert_to_java_entity_name(entity_name):
 
 def backup_and_replace_jeecg_config(project_path, package_name):
     """备份并替换 jeecg_config.properties 文件中的变量"""
-    config_path = Path("jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/resources/jeecg/jeecg_config.properties")
+    # 🔧 修复：使用绝对路径，确保配置文件路径正确
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    config_path = Path(project_prefix) / "jeecg-boot" / "jeecg-module-system" / "jeecg-system-start" / "src" / "main" / "resources" / "jeecg" / "jeecg_config.properties"
     backup_path = config_path.with_suffix('.properties.backup')
 
     print(f"📝 临时替换配置文件变量: {config_path}")
@@ -687,7 +689,9 @@ def backup_and_replace_jeecg_config(project_path, package_name):
 
 def restore_jeecg_config():
     """还原 jeecg_config.properties 文件"""
-    config_path = Path("jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/resources/jeecg/jeecg_config.properties")
+    # 🔧 修复：使用绝对路径，确保配置文件路径正确
+    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+    config_path = Path(project_prefix) / "jeecg-boot" / "jeecg-module-system" / "jeecg-system-start" / "src" / "main" / "resources" / "jeecg" / "jeecg_config.properties"
     backup_path = config_path.with_suffix('.properties.backup')
 
     print(f"🔄 还原配置文件: {config_path}")
@@ -1825,7 +1829,7 @@ def execute_sql_with_mysql_client(sql_file_path, db_connection):
         print("❌ SQL执行超时")
         return False
     except FileNotFoundError:
-        print("❌ 未找到mysql命令行客户端，尝试使用Python库...")
+        print("ℹ️ mysql命令行客户端未安装，自动切换到Python库执行...")
         return execute_sql_with_python(sql_file_path, db_connection)
     except Exception as e:
         print(f"❌ mysql客户端执行失败: {e}")
