@@ -43,11 +43,8 @@ backup_jeecg_config() {
         echo "✅ PRP工作目录已备份"
     fi
 
-    # 备份JeecgBoot示例
-    if [ -d "context-engineering-intro/examples/jeecg-boot" ]; then
-        cp -r context-engineering-intro/examples/jeecg-boot "$BACKUP_DIR/"
-        echo "✅ JeecgBoot示例已备份"
-    fi
+    # 跳过备份Context Engineering示例（已移除植入机制）
+    echo "⏭️  跳过备份Context Engineering示例目录"
 
     # 备份项目配置
     if [ -f ".ai-config/jeecg-ai-config.json" ]; then
@@ -219,12 +216,8 @@ restore_jeecg_config() {
         echo "✅ PRP工作目录结构已恢复"
     fi
 
-    # 恢复JeecgBoot示例
-    if [ -d "$LATEST_BACKUP/jeecg-boot" ]; then
-        mkdir -p context-engineering-intro/examples
-        cp -r "$LATEST_BACKUP/jeecg-boot" context-engineering-intro/examples/
-        echo "✅ JeecgBoot示例已恢复"
-    fi
+    # 跳过恢复Context Engineering示例（已移除植入机制）
+    echo "⏭️  跳过恢复Context Engineering示例目录"
 
     # 恢复项目配置
     if [ -f "$LATEST_BACKUP/jeecg-ai-config.json" ]; then
