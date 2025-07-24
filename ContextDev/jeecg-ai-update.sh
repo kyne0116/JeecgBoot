@@ -1,394 +1,677 @@
 #!/bin/bash
 
-# JeecgBoot AI 环境上游同步脚本 v2.0 (CodeGen + PRP 集成版)
-# 保持与上游项目同步，同时保留 JeecgBoot 定制、CodeGen 集成和 PRP 工作流
+# JeecgBoot AI 环境更新维护脚本 v3.0 (SuperClaude Framework 完整集成版)
+# 实现双框架同步更新：Context Engineering + SuperClaude Framework
+# 支持上游同步、配置更新、版本管理和集成验证
 
-# 启用错误检查但允许函数自行处理错误
-set -o pipefail
+set -e
 
-echo "🔄 JeecgBoot AI 环境上游同步 v2.0 (CodeGen + PRP 集成版)"
-echo "======================================================="
+echo "🔄 JeecgBoot AI 环境更新维护 v3.0 (双框架完整集成版)"
+echo "=================================================================="
+echo "📋 维护目标: Context Engineering (8.5/10) + SuperClaude Framework (目标 8.5/10)"
+echo "🏗️ 架构模式: ContextDev 集成层，双框架隔离更新"
+echo ""
 
-# 项目目录变量
+# ==================== 全局变量定义 ====================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+CONTEXT_DEV_DIR="$PROJECT_ROOT/ContextDev"
+
+# ContextDev 集成层目录结构
+UPSTREAM_DIR="$CONTEXT_DEV_DIR/upstream"
+INTEGRATION_DIR="$CONTEXT_DEV_DIR/integration"
+CONFIG_DIR="$CONTEXT_DEV_DIR/config"
+SCRIPTS_DIR="$CONTEXT_DEV_DIR/scripts"
+
+# 上游项目目录
+CONTEXT_ENGINEERING_DIR="$UPSTREAM_DIR/context-engineering"
+SUPERCLAUDE_DIR="$UPSTREAM_DIR/superclaude"
+
+# 工作目录
 PRP_WORK_DIR="$PROJECT_ROOT/PRPs"
 PROJECT_CLAUDE_CONFIG="$PRP_WORK_DIR/CLAUDE.md"
 
-# 备份JeecgBoot定制配置
-backup_jeecg_config() {
-    echo "💾 备份JeecgBoot定制配置..."
-    
-    BACKUP_DIR="jeecg-backup-$(date +%Y%m%d-%H%M%S)"
+# 更新配置
+CONTEXT_ENGINEERING_REPO="https://github.com/coleam00/context-engineering-intro.git"
+SUPERCLAUDE_REPO="https://github.com/SuperClaude-Org/SuperClaude_Framework.git"
+
+# 日志和备份
+UPDATE_LOG="$CONTEXT_DEV_DIR/update.log"
+BACKUP_DIR="$CONTEXT_DEV_DIR/backup-$(date +%Y%m%d-%H%M%S)"
+INTEGRATION_STATUS="$CONTEXT_DEV_DIR/integration-status.json"
+
+# ==================== 工具函数 ====================
+
+# 日志记录函数
+log_info() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] $1" | tee -a "$UPDATE_LOG"
+}
+
+log_error() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [ERROR] $1" | tee -a "$UPDATE_LOG"
+}
+
+log_success() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [SUCCESS] $1" | tee -a "$UPDATE_LOG"
+}
+
+# 更新集成状态
+update_integration_status() {
+    local component="$1"
+    local status="$2"
+    local version="$3"
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    # 创建或更新状态文件
+    if [[ ! -f "$INTEGRATION_STATUS" ]]; then
+        echo '{"integration_status": {}, "last_updated": ""}' > "$INTEGRATION_STATUS"
+    fi
+
+    # 使用 python 更新 JSON (兼容 macOS)
+    python3 -c "
+import json
+import sys
+
+try:
+    with open('$INTEGRATION_STATUS', 'r') as f:
+        data = json.load(f)
+
+    data['integration_status']['$component'] = {
+        'status': '$status',
+        'version': '$version',
+        'timestamp': '$timestamp'
+    }
+    data['last_updated'] = '$timestamp'
+
+    with open('$INTEGRATION_STATUS', 'w') as f:
+        json.dump(data, f, indent=2)
+
+    print(f'✅ 状态更新: {\"$component\"} -> {\"$status\"}')
+except Exception as e:
+    print(f'⚠️ 状态更新失败: {e}', file=sys.stderr)
+"
+}
+
+# ==================== 备份功能 ====================
+
+# 备份 ContextDev 集成配置
+backup_integration_config() {
+    log_info "备份 ContextDev 集成配置..."
+
     mkdir -p "$BACKUP_DIR"
-    
-    # 备份项目级别CLAUDE.md配置
-    if [ -f "$PROJECT_CLAUDE_CONFIG" ]; then
-        # 提取JeecgBoot扩展配置
-        sed -n '/# ===== JeecgBoot项目扩展配置 =====/,$p' "$PROJECT_CLAUDE_CONFIG" > "$BACKUP_DIR/jeecg-claude-extension.md"
-        # 备份完整的项目级别CLAUDE.md
-        cp "$PROJECT_CLAUDE_CONFIG" "$BACKUP_DIR/PROJECT_CLAUDE.md"
-        echo "✅ 项目级别CLAUDE.md已备份"
+
+    # 备份集成状态
+    if [[ -f "$INTEGRATION_STATUS" ]]; then
+        cp "$INTEGRATION_STATUS" "$BACKUP_DIR/"
+        log_success "集成状态已备份"
     fi
 
-    # 备份项目级别CodeGen AI代理配置
-    if [ -f "$PRP_WORK_DIR/codegen_commands.json" ]; then
-        cp "$PRP_WORK_DIR/codegen_commands.json" "$BACKUP_DIR/"
-        echo "✅ 项目级别CodeGen专用命令配置已备份"
+    # 备份配置文件
+    if [[ -d "$CONFIG_DIR" ]]; then
+        cp -r "$CONFIG_DIR" "$BACKUP_DIR/"
+        log_success "配置文件已备份"
     fi
 
-    # 备份PRP工作目录结构
-    if [ -d "$PRP_WORK_DIR" ]; then
+    # 备份集成脚本
+    if [[ -d "$SCRIPTS_DIR" ]]; then
+        cp -r "$SCRIPTS_DIR" "$BACKUP_DIR/"
+        log_success "集成脚本已备份"
+    fi
+
+    # 备份 integration 目录
+    if [[ -d "$INTEGRATION_DIR" ]]; then
+        cp -r "$INTEGRATION_DIR" "$BACKUP_DIR/"
+        log_success "集成配置已备份"
+    fi
+
+    # 备份 PRP 工作目录
+    if [[ -d "$PRP_WORK_DIR" ]]; then
         cp -r "$PRP_WORK_DIR" "$BACKUP_DIR/PRPs_backup"
-        echo "✅ PRP工作目录已备份"
+        log_success "PRP 工作目录已备份"
     fi
 
-    # 跳过备份Context Engineering示例（已移除植入机制）
-    echo "⏭️  跳过备份Context Engineering示例目录"
-
-    # 备份项目配置
-    if [ -f ".ai-config/jeecg-ai-config.json" ]; then
-        cp .ai-config/jeecg-ai-config.json "$BACKUP_DIR/"
-        echo "✅ 项目配置已备份"
+    # 备份项目级别 CLAUDE.md
+    if [[ -f "$PROJECT_CLAUDE_CONFIG" ]]; then
+        cp "$PROJECT_CLAUDE_CONFIG" "$BACKUP_DIR/PROJECT_CLAUDE.md"
+        log_success "项目级别 CLAUDE.md 已备份"
     fi
 
-    # 备份CodeGen AI配置
-    if [ -f ".ai-config/codegen-ai-config.json" ]; then
-        cp .ai-config/codegen-ai-config.json "$BACKUP_DIR/"
-        echo "✅ CodeGen AI配置已备份"
+    # 备份现有的 jeecg-ai-config.json
+    if [[ -f "$CONTEXT_DEV_DIR/jeecg-ai-config.json" ]]; then
+        cp "$CONTEXT_DEV_DIR/jeecg-ai-config.json" "$BACKUP_DIR/"
+        log_success "JeecgBoot AI 配置已备份"
     fi
 
-    # 备份PRP模板
-    if [ -d "ContextDev/templates" ]; then
-        cp -r ContextDev/templates "$BACKUP_DIR/"
-        echo "✅ PRP模板已备份"
-    fi
-    
-    echo "📁 备份保存在: $BACKUP_DIR"
+    log_success "ContextDev 集成配置备份完成: $BACKUP_DIR"
 }
 
-# 更新Context Engineering
-update_context_engineering() {
-    echo "📚 更新Context Engineering..."
-    
-    # 检查目录是否存在
-    if [ ! -d "context-engineering-intro" ]; then
-        echo "⚠️  Context Engineering目录不存在，跳过更新"
-        echo "💡 提示: 如需使用Context Engineering，请运行jeecg-ai-setup.sh重新安装"
-        return 0
-    fi
-    
-    cd context-engineering-intro
-    
-    # 检查是否是git仓库
-    if [ ! -d ".git" ]; then
-        echo "⚠️  不是有效的git仓库，跳过更新"
-        cd ..
-        return 0
-    fi
-    
-    # 检查是否有本地修改
-    if ! git diff --quiet; then
-        echo "⚠️  检测到本地修改，正在暂存..."
-        git stash push -m "JeecgBoot customizations $(date)"
-    fi
-    
-    # 拉取最新版本
-    git fetch origin
-    git pull origin main
-    
-    echo "✅ Context Engineering更新完成"
-    cd ..
-}
+# ==================== 上游项目同步 ====================
 
-# 更新SuperClaude Framework
-update_superclaude() {
-    echo "🤖 更新SuperClaude Framework..."
-    
-    # 检查uv是否安装
-    if ! command -v uv &> /dev/null; then
-        echo "⚠️  uv未安装，跳过SuperClaude更新"
-        echo "💡 提示: 如需使用SuperClaude，请运行jeecg-ai-setup.sh重新安装"
-        return 0
-    fi
-    
-    # 检查当前版本
-    CURRENT_VERSION=$(python3 -c "import SuperClaude; print(SuperClaude.__version__)" 2>/dev/null || echo "未安装")
-    echo "📋 当前版本: $CURRENT_VERSION"
-    
-    if [ "$CURRENT_VERSION" = "未安装" ]; then
-        echo "⚠️  SuperClaude未安装，跳过更新"
-        echo "💡 提示: 请运行jeecg-ai-setup.sh重新安装"
-        return 0
-    fi
-    
-    # 更新到最新版本
-    uv add SuperClaude --upgrade
-    
-    # 检查新版本
-    NEW_VERSION=$(python3 -c "import SuperClaude; print(SuperClaude.__version__)" 2>/dev/null || echo "未知")
-    echo "📋 新版本: $NEW_VERSION"
-    
-    if [ "$CURRENT_VERSION" != "$NEW_VERSION" ]; then
-        echo "🔄 检测到版本更新，重新配置..."
-        python3 -m SuperClaude install --profile developer --non-interactive --force
-    fi
-    
-    echo "✅ SuperClaude Framework更新完成"
-}
+# 同步 Context Engineering 项目
+sync_context_engineering() {
+    log_info "同步 Context Engineering 项目..."
 
-# 更新MCP服务器
-update_mcp_servers() {
-    echo "🔗 更新MCP服务器..."
-    
-    # 更新已安装的MCP服务器
-    MCP_SERVERS=("@context7/mcp-server" "@sequential/mcp-server" "@magic/mcp-server" "@playwright/mcp-server")
-    
-    for server in "${MCP_SERVERS[@]}"; do
-        if npm list -g "$server" &>/dev/null; then
-            echo "🔄 更新 $server..."
-            npm update -g "$server" || echo "⚠️  $server 更新失败"
-        else
-            echo "ℹ️  $server 未安装，跳过"
+    if [[ ! -d "$CONTEXT_ENGINEERING_DIR" ]]; then
+        log_info "Context Engineering 目录不存在，重新克隆..."
+        git clone "$CONTEXT_ENGINEERING_REPO" "$CONTEXT_ENGINEERING_DIR"
+        log_success "Context Engineering 重新克隆完成"
+    else
+        log_info "更新现有的 Context Engineering..."
+        cd "$CONTEXT_ENGINEERING_DIR"
+
+        # 检查是否有本地修改
+        if ! git diff --quiet; then
+            log_info "检测到本地修改，暂存更改..."
+            git stash push -m "Auto-stash before update $(date)"
         fi
-    done
-    
-    echo "✅ MCP服务器更新完成"
+
+        # 拉取最新更改
+        if git pull origin main; then
+            log_success "Context Engineering 更新成功"
+        else
+            log_error "Context Engineering 更新失败"
+            return 1
+        fi
+
+        cd "$CONTEXT_DEV_DIR"
+    fi
+
+    # 获取版本信息
+    local ce_version="unknown"
+    if [[ -f "$CONTEXT_ENGINEERING_DIR/README.md" ]]; then
+        ce_version=$(grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' "$CONTEXT_ENGINEERING_DIR/README.md" | head -1 || echo "latest")
+    fi
+
+    update_integration_status "context_engineering" "updated" "$ce_version"
+    log_success "Context Engineering 同步完成: $ce_version"
 }
 
-# 恢复JeecgBoot定制配置
-restore_jeecg_config() {
-    echo "🔧 恢复JeecgBoot定制配置..."
-    
-    # 查找最新的备份
-    LATEST_BACKUP=$(ls -1d jeecg-backup-* 2>/dev/null | tail -1)
-    
-    if [ -z "$LATEST_BACKUP" ]; then
-        echo "❌ 未找到备份，需要重新配置JeecgBoot扩展"
+# 同步 SuperClaude Framework 项目
+sync_superclaude_framework() {
+    log_info "同步 SuperClaude Framework 项目..."
+
+    if [[ ! -d "$SUPERCLAUDE_DIR" ]]; then
+        log_info "SuperClaude Framework 目录不存在，重新克隆..."
+        git clone "$SUPERCLAUDE_REPO" "$SUPERCLAUDE_DIR"
+        log_success "SuperClaude Framework 重新克隆完成"
+    else
+        log_info "更新现有的 SuperClaude Framework..."
+        cd "$SUPERCLAUDE_DIR"
+
+        # 检查是否有本地修改
+        if ! git diff --quiet; then
+            log_info "检测到本地修改，暂存更改..."
+            git stash push -m "Auto-stash before update $(date)"
+        fi
+
+        # 拉取最新更改
+        if git pull origin master; then
+            log_success "SuperClaude Framework 更新成功"
+        else
+            log_error "SuperClaude Framework 更新失败"
+            return 1
+        fi
+
+        cd "$CONTEXT_DEV_DIR"
+    fi
+
+    # 检查版本要求 (v3.0.0+)
+    local sc_version="unknown"
+    if [[ -f "$SUPERCLAUDE_DIR/VERSION" ]]; then
+        sc_version=$(cat "$SUPERCLAUDE_DIR/VERSION")
+    elif [[ -f "$SUPERCLAUDE_DIR/setup.py" ]]; then
+        sc_version=$(grep -o "version='[^']*'" "$SUPERCLAUDE_DIR/setup.py" | cut -d"'" -f2)
+    fi
+
+    # 验证版本要求
+    if [[ "$sc_version" != "unknown" ]]; then
+        local major_version=$(echo "$sc_version" | cut -d. -f1)
+        if [[ $major_version -lt 3 ]]; then
+            log_error "SuperClaude Framework 版本过低: $sc_version，需要 v3.0.0+"
+            return 1
+        fi
+        log_success "SuperClaude Framework 版本验证通过: $sc_version"
+    else
+        log_info "无法确定 SuperClaude Framework 版本，继续更新"
+        sc_version="latest"
+    fi
+
+    update_integration_status "superclaude_framework" "updated" "$sc_version"
+    log_success "SuperClaude Framework 同步完成: $sc_version"
+}
+
+# 更新 SuperClaude Python 包
+update_superclaude_package() {
+    log_info "更新 SuperClaude Python 包..."
+
+    # 检查当前安装的版本
+    local current_version=$(python3 -c "
+try:
+    import SuperClaude
+    print(SuperClaude.__version__)
+except ImportError:
+    print('not_installed')
+except Exception:
+    print('unknown')
+" 2>/dev/null)
+
+    log_info "当前 SuperClaude 版本: $current_version"
+
+    # 更新包
+    local update_success=false
+
+    # 尝试使用 uv 更新
+    if command -v uv &> /dev/null; then
+        log_info "使用 uv 更新 SuperClaude..."
+        if uv pip install --upgrade SuperClaude; then
+            update_success=true
+            log_success "使用 uv 更新 SuperClaude 成功"
+        else
+            log_error "uv 更新失败，尝试使用 pip"
+        fi
+    fi
+
+    # 备选：使用 pip 更新
+    if [[ "$update_success" == false ]]; then
+        log_info "使用 pip 更新 SuperClaude..."
+        if pip3 install --upgrade SuperClaude; then
+            update_success=true
+            log_success "使用 pip 更新 SuperClaude 成功"
+        else
+            log_error "pip 更新也失败"
+            return 1
+        fi
+    fi
+
+    # 验证更新后的版本
+    local new_version=$(python3 -c "
+try:
+    import SuperClaude
+    print(SuperClaude.__version__)
+except Exception as e:
+    print(f'error:{e}')
+" 2>/dev/null)
+
+    if [[ "$new_version" != error:* ]] && [[ "$new_version" != "not_installed" ]]; then
+        log_success "SuperClaude 更新验证成功: v$new_version"
+        update_integration_status "superclaude_package" "updated" "$new_version"
+
+        if [[ "$new_version" != "$current_version" ]]; then
+            log_success "SuperClaude 版本升级: $current_version → $new_version"
+        else
+            log_info "SuperClaude 已是最新版本: $new_version"
+        fi
+    else
+        log_error "SuperClaude 更新验证失败: $new_version"
         return 1
     fi
-    
-    echo "📁 使用备份: $LATEST_BACKUP"
-    
-    # 恢复项目级别CLAUDE.md配置
-    mkdir -p "$PRP_WORK_DIR"
-    
-    # 首先复制新的Context Engineering基础配置
-    if [ -f "context-engineering-intro/CLAUDE.md" ]; then
-        cp "context-engineering-intro/CLAUDE.md" "$PROJECT_CLAUDE_CONFIG"
-        echo "✅ 复制Context Engineering基础配置到项目级别"
-    fi
-    
-    # 恢复JeecgBoot扩展配置
-    if [ -f "$LATEST_BACKUP/jeecg-claude-extension.md" ]; then
-        echo "" >> "$PROJECT_CLAUDE_CONFIG"
-        echo "# ===== JeecgBoot项目扩展配置 =====" >> "$PROJECT_CLAUDE_CONFIG"
-        cat "$LATEST_BACKUP/jeecg-claude-extension.md" >> "$PROJECT_CLAUDE_CONFIG"
-        echo "✅ 项目级别CLAUDE.md JeecgBoot扩展已恢复"
-    fi
 
-    # 检查并添加CodeGen AI代理规范集成（如果尚未存在）
-    if ! grep -q "CodeGen AI代理规范集成" "$PROJECT_CLAUDE_CONFIG" 2>/dev/null; then
-        echo "" >> "$PROJECT_CLAUDE_CONFIG"
-        echo "# ===== CodeGen AI代理规范集成 =====" >> "$PROJECT_CLAUDE_CONFIG"
-        echo "## 🤖 CodeGen AI代理核心规范" >> "$PROJECT_CLAUDE_CONFIG"
-        echo "- 严格遵循CodeGen/Code_Gen_Agent.md中定义的AI行为边界" >> "$PROJECT_CLAUDE_CONFIG"
-        echo "- 使用LangGPT结构化提示进行业务需求分析" >> "$PROJECT_CLAUDE_CONFIG"
-        echo "- 自动生成符合JeecgBoot规范的JSON配置文件" >> "$PROJECT_CLAUDE_CONFIG"
-        echo "- 调用Code_Gen_Guide.py执行完整代码生成工作流" >> "$PROJECT_CLAUDE_CONFIG"
-        echo "✅ 项目级别CodeGen AI代理规范集成完成"
-    else
-        echo "✅ CodeGen AI代理规范集成已存在，跳过重复添加"
-    fi
-
-    # 恢复项目级别CodeGen专用命令配置
-    if [ -f "$LATEST_BACKUP/codegen_commands.json" ]; then
-        cp "$LATEST_BACKUP/codegen_commands.json" "$PRP_WORK_DIR/"
-        echo "✅ 项目级别CodeGen专用命令配置已恢复"
-    fi
-
-    # 恢复PRP工作目录结构
-    if [ -d "$LATEST_BACKUP/PRPs_backup" ]; then
-        # 合并恢复PRP目录的其他内容（不覆盖CLAUDE.md）
-        cp -r "$LATEST_BACKUP/PRPs_backup/templates" "$PRP_WORK_DIR/" 2>/dev/null || true
-        cp -r "$LATEST_BACKUP/PRPs_backup/active" "$PRP_WORK_DIR/" 2>/dev/null || true
-        cp -r "$LATEST_BACKUP/PRPs_backup/completed" "$PRP_WORK_DIR/" 2>/dev/null || true
-        echo "✅ PRP工作目录结构已恢复"
-    fi
-
-    # 跳过恢复Context Engineering示例（已移除植入机制）
-    echo "⏭️  跳过恢复Context Engineering示例目录"
-
-    # 恢复项目配置
-    if [ -f "$LATEST_BACKUP/jeecg-ai-config.json" ]; then
-        mkdir -p .ai-config
-        cp "$LATEST_BACKUP/jeecg-ai-config.json" .ai-config/
-        echo "✅ 项目配置已恢复"
-    fi
-
-    # 恢复CodeGen AI配置
-    if [ -f "$LATEST_BACKUP/codegen-ai-config.json" ]; then
-        mkdir -p .ai-config
-        cp "$LATEST_BACKUP/codegen-ai-config.json" .ai-config/
-        echo "✅ CodeGen AI配置已恢复"
-    fi
-
-    # 恢复PRP模板
-    if [ -d "$LATEST_BACKUP/templates" ]; then
-        mkdir -p ContextDev
-        cp -r "$LATEST_BACKUP/templates" ContextDev/
-        echo "✅ PRP模板已恢复"
-    fi
-
-    # 项目级别配置不需要同步到全局，直接使用项目级别的CLAUDE.md
-    echo "✅ 项目级别Claude Code配置已准备就绪：$PROJECT_CLAUDE_CONFIG"
+    log_success "SuperClaude Python 包更新完成"
 }
 
-# 检查兼容性
-check_compatibility() {
-    echo "🔍 检查版本兼容性..."
-    
-    # 检查Python版本
-    PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
-    echo "🐍 Python版本: $PYTHON_VERSION"
-    
-    # 检查Node.js版本
-    NODE_VERSION=$(node --version)
-    echo "📦 Node.js版本: $NODE_VERSION"
-    
-    # 检查SuperClaude版本
-    SUPERCLAUDE_VERSION=$(python3 -c "import SuperClaude; print(SuperClaude.__version__)" 2>/dev/null || echo "未安装")
-    echo "🤖 SuperClaude版本: $SUPERCLAUDE_VERSION"
-    
-    # 检查Context Engineering版本
-    if [ -d "context-engineering-intro/.git" ]; then
-        cd context-engineering-intro
-        CONTEXT_VERSION=$(git describe --tags --always 2>/dev/null || echo "未知")
-        echo "📚 Context Engineering版本: $CONTEXT_VERSION"
-        cd ..
+# ==================== 配置更新 ====================
+
+# 更新集成配置文件
+update_integration_configs() {
+    log_info "更新集成配置文件..."
+
+    # 备份现有配置
+    if [[ -d "$CONFIG_DIR" ]]; then
+        cp -r "$CONFIG_DIR" "$BACKUP_DIR/config_backup"
+        log_success "现有配置已备份"
     fi
-    
-    echo "✅ 兼容性检查完成"
+
+    # 重新生成配置文件 (调用安装脚本中的函数)
+    if [[ -f "$CONTEXT_DEV_DIR/jeecg-ai-setup.sh" ]]; then
+        log_info "调用安装脚本重新生成配置..."
+        source "$CONTEXT_DEV_DIR/jeecg-ai-setup.sh"
+        generate_integration_configs
+        log_success "集成配置文件更新完成"
+    else
+        log_error "安装脚本不存在，无法更新配置"
+        return 1
+    fi
+
+    update_integration_status "configuration" "updated" "v3.0"
 }
 
-# 验证更新
-verify_update() {
-    echo "🔍 验证更新..."
-    
-    # 测试SuperClaude命令
-    if python3 -c "from SuperClaude import commands; print('SuperClaude commands available')" 2>/dev/null; then
-        echo "✅ SuperClaude命令可用"
-    else
-        echo "❌ SuperClaude命令不可用"
+# 更新集成脚本
+update_integration_scripts() {
+    log_info "更新集成脚本..."
+
+    # 备份现有脚本
+    if [[ -d "$SCRIPTS_DIR" ]]; then
+        cp -r "$SCRIPTS_DIR" "$BACKUP_DIR/scripts_backup"
+        log_success "现有脚本已备份"
     fi
-    
-    # 检查项目级别CLAUDE.md
-    if [ -f "$PROJECT_CLAUDE_CONFIG" ] && grep -q "JeecgBoot" "$PROJECT_CLAUDE_CONFIG"; then
-        echo "✅ 项目级别JeecgBoot配置已加载"
+
+    # 重新生成脚本 (调用安装脚本中的函数)
+    if [[ -f "$CONTEXT_DEV_DIR/jeecg-ai-setup.sh" ]]; then
+        log_info "调用安装脚本重新生成脚本..."
+        source "$CONTEXT_DEV_DIR/jeecg-ai-setup.sh"
+        generate_integration_scripts
+        log_success "集成脚本更新完成"
     else
-        echo "❌ 项目级别JeecgBoot配置未正确加载"
+        log_error "安装脚本不存在，无法更新脚本"
+        return 1
     fi
-    
-    # 检查项目级别CodeGen命令配置
-    if [ -f "$PRP_WORK_DIR/codegen_commands.json" ]; then
-        echo "✅ 项目级别CodeGen命令配置存在"
+
+    update_integration_status "scripts" "updated" "v3.0"
+}
+
+# ==================== 验证和恢复 ====================
+
+# 验证集成状态
+validate_integration() {
+    log_info "验证集成状态..."
+
+    if [[ -f "$SCRIPTS_DIR/validate-integration.sh" ]]; then
+        if bash "$SCRIPTS_DIR/validate-integration.sh"; then
+            log_success "集成验证通过"
+            return 0
+        else
+            log_error "集成验证失败"
+            return 1
+        fi
     else
-        echo "❌ 项目级别CodeGen命令配置缺失"
+        log_error "验证脚本不存在"
+        return 1
     fi
-    
-    # 检查PRP工作目录结构
-    if [ -d "$PRP_WORK_DIR" ]; then
-        echo "✅ PRP工作目录存在"
-    else
-        echo "❌ PRP工作目录缺失"
+}
+
+# 恢复配置 (如果更新失败)
+restore_from_backup() {
+    log_info "从备份恢复配置..."
+
+    if [[ ! -d "$BACKUP_DIR" ]]; then
+        log_error "备份目录不存在: $BACKUP_DIR"
+        return 1
     fi
+
+    # 恢复配置文件
+    if [[ -d "$BACKUP_DIR/config" ]]; then
+        rm -rf "$CONFIG_DIR"
+        cp -r "$BACKUP_DIR/config" "$CONFIG_DIR"
+        log_success "配置文件已恢复"
+    fi
+
+    # 恢复集成脚本
+    if [[ -d "$BACKUP_DIR/scripts" ]]; then
+        rm -rf "$SCRIPTS_DIR"
+        cp -r "$BACKUP_DIR/scripts" "$SCRIPTS_DIR"
+        log_success "集成脚本已恢复"
+    fi
+
+    # 恢复集成状态
+    if [[ -f "$BACKUP_DIR/integration-status.json" ]]; then
+        cp "$BACKUP_DIR/integration-status.json" "$INTEGRATION_STATUS"
+        log_success "集成状态已恢复"
+    fi
+
+    log_success "配置恢复完成"
 }
 
 # 清理旧备份
 cleanup_old_backups() {
-    echo "🧹 清理旧备份..."
-    
+    log_info "清理旧备份..."
+
     # 保留最近5个备份
-    BACKUPS=($(ls -1d jeecg-backup-* 2>/dev/null | sort -r))
-    
-    if [ ${#BACKUPS[@]} -gt 5 ]; then
-        echo "📁 发现 ${#BACKUPS[@]} 个备份，保留最新5个"
-        
-        for ((i=5; i<${#BACKUPS[@]}; i++)); do
-            echo "🗑️  删除旧备份: ${BACKUPS[$i]}"
-            rm -rf "${BACKUPS[$i]}"
-        done
+    local backup_count=$(find "$CONTEXT_DEV_DIR" -maxdepth 1 -name "backup-*" -type d | wc -l)
+    if [[ $backup_count -gt 5 ]]; then
+        find "$CONTEXT_DEV_DIR" -maxdepth 1 -name "backup-*" -type d | sort | head -n $((backup_count - 5)) | xargs rm -rf
+        log_success "清理了 $((backup_count - 5)) 个旧备份"
+    else
+        log_info "备份数量合理，无需清理"
     fi
-    
-    echo "✅ 备份清理完成"
 }
 
-# 显示更新摘要
-show_update_summary() {
-    echo ""
-    echo "📊 更新摘要"
-    echo "============"
-    echo ""
-    echo "✅ Context Engineering: 已更新到最新版本"
-    echo "✅ SuperClaude Framework: 已更新到最新版本"
-    echo "✅ MCP服务器: 已更新"
-    echo "✅ JeecgBoot项目级别配置: 已恢复到PRPs/目录"
-    echo "✅ 项目级别CLAUDE.md: $PROJECT_CLAUDE_CONFIG"
-    echo "✅ 项目级别CodeGen配置: $PRP_WORK_DIR/codegen_commands.json"
-    echo ""
-    echo "🔄 下次更新运行: ./ContextDev/jeecg-ai-update.sh"
-    echo ""
-    echo "📚 如有问题，请查看备份目录中的配置文件"
-    echo ""
-    echo "⚠️  重要提示："
-    echo "   - 所有配置现在都在项目级别，不影响全局~/.claude/设置"
-    echo "   - 请在JeecgBoot项目根目录中使用Claude Code"
-    echo "   - Claude Code会自动检测并使用PRPs/CLAUDE.md配置"
-}
+# ==================== 主更新流程 ====================
 
-# 主函数
+# 主更新流程 - SuperClaude Framework 完整更新
 main() {
-    echo "开始同步上游项目..."
-    
-    backup_jeecg_config
-    update_context_engineering
-    update_superclaude
-    update_mcp_servers
-    restore_jeecg_config
-    check_compatibility
-    verify_update
-    cleanup_old_backups
-    show_update_summary
-    
+    local start_time=$(date +%s)
+
     echo ""
-    echo "✨ 上游同步完成！"
+    echo "🔄 开始 JeecgBoot AI 环境 v3.0 更新维护..."
+    echo "📋 更新方案: 双框架隔离更新 (Context Engineering + SuperClaude Framework)"
+    echo "🎯 目标: 保持集成完整性，同步上游最新版本"
+    echo ""
+
+    # 初始化日志
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [START] JeecgBoot AI 环境更新开始" > "$UPDATE_LOG"
+
+    # 检查环境
+    log_info "检查更新环境..."
+    if [[ ! -d "$CONTEXT_DEV_DIR" ]]; then
+        log_error "ContextDev 目录不存在，请先运行 jeecg-ai-setup.sh 安装"
+        exit 1
+    fi
+
+    if [[ ! -f "$INTEGRATION_STATUS" ]]; then
+        log_error "集成状态文件不存在，请先运行 jeecg-ai-setup.sh 安装"
+        exit 1
+    fi
+
+    # 备份现有配置
+    log_info "=== 第一步：备份现有配置 ==="
+    backup_integration_config
+
+    # 同步上游项目
+    log_info "=== 第二步：同步上游项目 ==="
+
+    if sync_context_engineering; then
+        log_success "Context Engineering 同步成功"
+    else
+        log_error "Context Engineering 同步失败"
+        restore_from_backup
+        exit 1
+    fi
+
+    if sync_superclaude_framework; then
+        log_success "SuperClaude Framework 同步成功"
+    else
+        log_error "SuperClaude Framework 同步失败"
+        restore_from_backup
+        exit 1
+    fi
+
+    # 更新 Python 包
+    log_info "=== 第三步：更新 Python 包 ==="
+    if update_superclaude_package; then
+        log_success "SuperClaude Python 包更新成功"
+    else
+        log_error "SuperClaude Python 包更新失败"
+        restore_from_backup
+        exit 1
+    fi
+
+    # 更新配置文件
+    log_info "=== 第四步：更新配置文件 ==="
+    if update_integration_configs; then
+        log_success "集成配置更新成功"
+    else
+        log_error "集成配置更新失败"
+        restore_from_backup
+        exit 1
+    fi
+
+    # 更新集成脚本
+    log_info "=== 第五步：更新集成脚本 ==="
+    if update_integration_scripts; then
+        log_success "集成脚本更新成功"
+    else
+        log_error "集成脚本更新失败"
+        restore_from_backup
+        exit 1
+    fi
+
+    # 验证更新结果
+    log_info "=== 第六步：验证更新结果 ==="
+    if validate_integration; then
+        log_success "更新验证通过"
+    else
+        log_error "更新验证失败"
+        restore_from_backup
+        exit 1
+    fi
+
+    # 清理旧备份
+    cleanup_old_backups
+
+    # 显示更新结果
+    local end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+
+    echo ""
+    echo "🎉 JeecgBoot AI 环境 v3.0 更新完成！"
+    echo "⏱️  总耗时: ${duration} 秒"
+    echo ""
+    echo "📊 更新状态:"
+    if [[ -f "$INTEGRATION_STATUS" ]]; then
+        python3 -c "
+import json
+with open('$INTEGRATION_STATUS') as f:
+    status = json.load(f)
+
+print('集成状态:')
+for component, info in status.get('integration_status', {}).items():
+    print(f'  ✅ {component}: {info.get(\"status\", \"unknown\")} ({info.get(\"version\", \"unknown\")})')
+"
+    fi
+    echo ""
+    echo "📋 更新内容:"
+    echo "  ✅ Context Engineering: 已同步到最新版本"
+    echo "  ✅ SuperClaude Framework: 已同步到最新版本"
+    echo "  ✅ SuperClaude Python 包: 已更新到最新版本"
+    echo "  ✅ 集成配置文件: 已更新"
+    echo "  ✅ 集成脚本: 已更新"
+    echo ""
+    echo "🔧 验证命令:"
+    echo "  bash ContextDev/scripts/validate-integration.sh"
+    echo ""
+    echo "📖 更新日志: $UPDATE_LOG"
+    echo "💾 备份位置: $BACKUP_DIR"
+    echo ""
+
+    log_success "JeecgBoot AI 环境 v3.0 更新完成"
 }
 
-# 检查参数
-if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-    echo "JeecgBoot AI环境上游同步脚本"
+# ==================== 参数处理 ====================
+
+# 检查参数和显示帮助
+if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    echo "🔄 JeecgBoot AI 环境更新维护脚本 v3.0 (SuperClaude Framework 完整集成版)"
+    echo "=============================================================================="
+    echo ""
+    echo "📋 更新方案: 双框架隔离更新 (Context Engineering + SuperClaude Framework)"
+    echo "🏗️ 架构模式: ContextDev 集成层，保持上游项目独立"
     echo ""
     echo "用法: $0 [选项]"
     echo ""
-    echo "选项:"
-    echo "  --help, -h     显示此帮助信息"
-    echo "  --dry-run      仅检查更新，不执行"
+    echo "🔧 主要选项:"
+    echo "  --help, -h                显示此帮助信息"
+    echo "  --dry-run                 仅检查更新，不执行实际更新"
+    echo "  --backup-only             仅备份现有配置"
+    echo "  --sync-upstream           仅同步上游项目"
+    echo "  --update-packages         仅更新 Python 包"
+    echo "  --validate                仅验证集成状态"
     echo ""
-    echo "此脚本会："
-    echo "1. 备份JeecgBoot定制配置"
-    echo "2. 更新Context Engineering到最新版本"
-    echo "3. 更新SuperClaude Framework到最新版本"
-    echo "4. 更新MCP服务器"
-    echo "5. 恢复JeecgBoot定制配置"
-    echo "6. 验证更新结果"
+    echo "🛠️ 维护选项:"
+    echo "  --restore-backup          从最新备份恢复配置"
+    echo "  --cleanup-backups         清理旧备份文件"
+    echo "  --force-update            强制更新（忽略版本检查）"
+    echo ""
+    echo "📊 此脚本将执行："
+    echo "  ✅ 备份现有 ContextDev 集成配置"
+    echo "  ✅ 同步 Context Engineering 到最新版本"
+    echo "  ✅ 同步 SuperClaude Framework 到最新版本"
+    echo "  ✅ 更新 SuperClaude Python 包"
+    echo "  ✅ 更新集成配置文件和脚本"
+    echo "  ✅ 验证更新结果和集成完整性"
+    echo ""
+    echo "📖 详细信息: ContextDev/superclaude-integration-plan.md"
     exit 0
 fi
 
-if [ "$1" = "--dry-run" ]; then
-    echo "🔍 检查模式 - 仅检查更新，不执行实际更新"
-    check_compatibility
+# 仅检查模式
+if [[ "$1" == "--dry-run" ]]; then
+    echo "🔍 检查模式 - 仅检查更新状态，不执行实际更新"
+    if [[ -f "$SCRIPTS_DIR/validate-integration.sh" ]]; then
+        bash "$SCRIPTS_DIR/validate-integration.sh"
+    else
+        echo "❌ 验证脚本不存在，请先运行完整安装"
+        exit 1
+    fi
     exit 0
 fi
 
-# 运行主函数
+# 仅备份模式
+if [[ "$1" == "--backup-only" ]]; then
+    echo "💾 仅备份现有配置..."
+    backup_integration_config
+    echo "✅ 备份完成: $BACKUP_DIR"
+    exit 0
+fi
+
+# 仅同步上游项目
+if [[ "$1" == "--sync-upstream" ]]; then
+    echo "🔄 仅同步上游项目..."
+    sync_context_engineering
+    sync_superclaude_framework
+    echo "✅ 上游项目同步完成"
+    exit 0
+fi
+
+# 仅更新包
+if [[ "$1" == "--update-packages" ]]; then
+    echo "📦 仅更新 Python 包..."
+    update_superclaude_package
+    echo "✅ Python 包更新完成"
+    exit 0
+fi
+
+# 仅验证
+if [[ "$1" == "--validate" ]]; then
+    echo "🧪 仅验证集成状态..."
+    if [[ -f "$SCRIPTS_DIR/validate-integration.sh" ]]; then
+        bash "$SCRIPTS_DIR/validate-integration.sh"
+    else
+        echo "❌ 验证脚本不存在"
+        exit 1
+    fi
+    exit 0
+fi
+
+# 恢复备份
+if [[ "$1" == "--restore-backup" ]]; then
+    echo "🔄 从最新备份恢复配置..."
+    # 查找最新备份
+    local latest_backup=$(find "$CONTEXT_DEV_DIR" -maxdepth 1 -name "backup-*" -type d | sort | tail -1)
+    if [[ -n "$latest_backup" ]]; then
+        BACKUP_DIR="$latest_backup"
+        restore_from_backup
+        echo "✅ 配置恢复完成"
+    else
+        echo "❌ 未找到备份文件"
+        exit 1
+    fi
+    exit 0
+fi
+
+# 清理备份
+if [[ "$1" == "--cleanup-backups" ]]; then
+    echo "🧹 清理旧备份文件..."
+    cleanup_old_backups
+    echo "✅ 备份清理完成"
+    exit 0
+fi
+
+# ==================== 主程序入口 ====================
+
+# 运行主更新流程 - SuperClaude Framework 完整更新
+echo "🎯 启动 JeecgBoot AI 环境 v3.0 更新程序..."
+echo "📋 更新方案文档: ContextDev/superclaude-integration-plan.md"
+echo ""
+
 main "$@"
+

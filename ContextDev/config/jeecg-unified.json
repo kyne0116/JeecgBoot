@@ -1,0 +1,45 @@
+{
+  "_comment": "JeecgBoot ContextDev \u7edf\u4e00\u96c6\u6210\u914d\u7f6e",
+  "_version": "3.0.0",
+  "_architecture": "dual_framework_isolation",
+  "_last_updated": "2025-07-24T12:46:41Z",
+  "project": {
+    "name": "JeecgBoot AI Enhanced Development",
+    "description": "\u53cc\u6846\u67b6\u9694\u79bb\u96c6\u6210\uff1aContext Engineering + SuperClaude Framework",
+    "integration_layer": "ContextDev",
+    "target_integration_score": 8.5
+  },
+  "frameworks": {
+    "context_engineering": {
+      "status": "integrated",
+      "score": 8.5,
+      "config_file": "config/context-engineering.json"
+    },
+    "superclaude": {
+      "status": "integrating",
+      "score": 0.0,
+      "config_file": "config/superclaude.json"
+    }
+  },
+  "command_routing": {
+    "strategy": "prefix_based",
+    "routes": {
+      "/jeecg-": "context_engineering",
+      "/sc:": "superclaude",
+      "/jg:": "unified_handler"
+    },
+    "fallback": "auto_detect"
+  },
+  "integration_features": {
+    "dual_framework_support": true,
+    "command_isolation": true,
+    "unified_configuration": true,
+    "cross_framework_workflows": false
+  },
+  "jeecg_constraints": {
+    "tech_stack": "Spring Boot + Vue3 + MyBatis-Plus",
+    "architecture": "modular_monolith",
+    "naming_convention": "jeecg-boot",
+    "code_generation": "CodeGen_system_mandatory"
+  }
+}
