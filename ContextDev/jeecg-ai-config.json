@@ -1,7 +1,7 @@
 {
-  "_comment": "JeecgBoot AI 增强开发配置文件 - 双PRP命令系统专用配置",
-  "_version": "2.0.0",
-  "_last_updated": "2025-07-23",
+  "_comment": "JeecgBoot AI 增强开发配置文件 - Context Engineering + CodeGen 系统专用配置",
+  "_version": "4.0.0",
+  "_last_updated": "2025-07-25",
   "_configuration_guide": {
     "jeecg_generate_prp": "智能需求文档生成命令配置 - 8+/10质量标准",
     "jeecg_execute_prp": "智能需求文档执行命令配置 - 9+/10质量标准",
@@ -15,15 +15,14 @@
   },
   "project": {
     "name": "JeecgBoot AI Enhanced Development with CodeGen",
-    "version": "3.0.0",
-    "description": "JeecgBoot项目AI赋能配置（集成Context Engineering + 部分SuperClaude功能）",
+    "version": "4.0.0",
+    "description": "JeecgBoot项目AI赋能配置（Context Engineering + CodeGen 系统深度集成）",
     "upstream_dependencies": {
-      "context-engineering-intro": ">=1.0.0",
-      "SuperClaude": ">=3.0.0"
+      "context-engineering": ">=1.0.0"
     },
     "integration_status": {
       "context_engineering": "完全集成",
-      "superclaude_framework": "部分集成 - 仅配置声明，未实际实现"
+      "codegen_system": "深度集成"
     }
   },
 
@@ -48,224 +47,122 @@
     "code_generator": {
       "script": "CodeGen/Code_Gen_Guide.py",
       "config_template": "CodeGen/Code_Gen_Config.json",
-      "form_template": "CodeGen/Code_Gen_Guide.json",
-      "required_fields": [
-        "id", "create_by", "create_time",
-        "update_by", "update_time", "sys_org_code", "del_flag"
-      ]
-    }
-  },
-  
-  "ai_enhancements": {
-    "context_engineering": {
-      "use_upstream_prp": true,
-      "prp_integration": {
-        "jeecg_docs_system": "PRPs/CLAUDE.md",
-        "codegen_integration": true,
-        "validation_gates": [
-          "python3 CodeGen/Code_Gen_Guide.py --validate-config",
-          "python3 CodeGen/Code_Gen_Guide.py --test-connection",
-          "mvn clean compile -pl {module_name}",
-          "npm run build"
-        ]
-      },
-      "custom_sections": [
-        "jeecg_architecture",
-        "codegen_workflow",
-        "ai_agent_integration"
-      ]
-    },
-    "superclaude": {
-      "use_all_commands": true,
-      "use_all_personas": true,
-      "codegen_commands": ["/sc:codegen", "/sc:jeecg-analyze", "/sc:jeecg-config"],
-      "custom_command_params": {
-        "implement": {
-          "default_framework": "jeecg-boot",
-          "include_permissions": true,
-          "include_system_fields": true
-        },
-        "design": {
-          "architecture_style": "jeecg-modular",
-          "include_database_design": true
-        }
-      }
-    },
-    "mcp_servers": {
-      "use_upstream_config": true,
-      "codegen_server": "~/.claude/mcp-codegen/server.js",
-      "additional_sources": [
-        {
-          "name": "jeecg-boot-docs",
-          "url": "http://doc.jeecg.com",
-          "type": "documentation"
-        }
-      ]
-    }
-  },
-  
-  "workflow_presets": {
-    "jeecg_enhanced_prp_workflow": [
-      "/jeecg-generate-prp {业务需求描述}",
-      "/jeecg-execute-prp projectDocs/REQUIREMENTS_{project-name}.md"
-    ],
-    "jeecg_complete_development_workflow": [
-      "/jeecg-generate-prp {业务需求描述}",
-      "/jeecg-execute-prp projectDocs/REQUIREMENTS_{project-name}.md",
-      "/sc:test --type=unit,integration",
-      "/sc:document --format=swagger,jeecg"
-    ],
-    "jeecg_codegen_development": [
-      "/sc:jeecg-analyze {requirement}",
-      "/sc:design 'JeecgBoot模块架构设计'",
-      "/sc:jeecg-config '生成JSON配置文件'",
-      "/sc:codegen '执行完整代码生成工作流'",
-      "/sc:test --type=unit,integration",
-      "/sc:document --format=swagger"
-    ],
-    "jeecg_online_form": [
-      "/sc:jeecg-analyze '在线表单需求分析'",
-      "/sc:jeecg-config '生成表单JSON配置'",
-      "/sc:codegen '创建在线表单并生成代码'",
-      "/sc:frontend '表单界面优化'",
-      "/sc:test --type=e2e"
-    ],
-    "jeecg_ai_analysis": [
-      "/sc:jeecg-analyze {business_requirement}",
-      "/sc:architect '架构设计建议'",
-      "/sc:security '安全性评估'",
-      "/sc:improve '优化建议'"
-    ],
-    "jeecg_prp_workflow": [
-      "/generate-prp {requirements_file}",
-      "/execute-prp PRPs/{module_name}.md"
-    ]
-  },
-  
-  "jeecg_generate_prp": {
-    "_description": "智能需求文档生成命令配置 - 三大增强特性，8+/10质量标准",
-    "command_template": "ContextDev/jeecg-generate-prp-command.md",
-    "output_directory": "projectDocs",
-    "template_base": "PRPs/templates/REQUIREMENTS_JEECGBOOT.md",
-    "intelligent_features": {
-      "_note": "三大核心增强特性：需求分类决策、CodeGen集成、官方文档研究",
-      "complexity_analysis": {
-        "simple_crud_indicators": [
-          "单表数据管理", "标准字段类型", "基础业务逻辑", "标准权限控制"
-        ],
-        "complex_business_indicators": [
-          "多表关联", "复杂查询", "自定义业务流程", "工作流", "第三方系统集成", 
-          "高级权限控制", "复杂计算", "实时通信"
-        ],
-        "auto_path_selection": true
-      },
-      "codegen_integration": {
-        "auto_config_generation": true,
-        "mandatory_usage_check": true,
-        "violation_prevention": true,
-        "config_template": "CodeGen/Code_Gen_Guide.json"
-      },
-      "official_docs_research": {
-        "context7_integration": {
-          "url": "https://context7.com/jeecgboot/jeecgboot",
-          "focus_areas": ["最佳实践", "配置说明", "业务流程设计"]
-        },
-        "deepwiki_integration": {
-          "url": "https://deepwiki.com/jeecgboot/JeecgBoot", 
-          "focus_areas": ["技术原理", "扩展开发", "高级特性"]
-        },
-        "auto_research": true
-      },
-      "quality_assurance": {
-        "confidence_score_threshold": 8,
-        "validation_gates": [
-          "JeecgBoot环境验证",
-          "CodeGen系统验证", 
-          "项目结构验证",
-          "配置完整性验证"
-        ],
-        "anti_patterns_check": true
-      }
+      "agent_spec": "CodeGen/Code_Gen_Agent.md"
     },
     "naming_conventions": {
-      "file_format": "REQUIREMENTS_{project-name}.md",
-      "case_style": "kebab-case",
-      "table_naming": "us_{module}_{entity}",
-      "package_naming": "org.jeecg.modules.{module}"
+      "table_prefix": "us_",
+      "module_format": "jeecg-module-{业务域}",
+      "package_format": "org.jeecg.modules.{业务域}",
+      "api_format": "/api/{业务域}/{功能}"
     }
   },
 
-  "jeecg_execute_prp": {
-    "_description": "智能需求文档执行命令配置 - 四阶段执行流程，9+/10质量标准",
-    "_execution_stages": "文档分析→环境验证→代码生成→质量验证",
-    "command_template": "ContextDev/jeecg-execute-prp-command.md",
-    "input_directory": "projectDocs",
-    "output_directory": "projectDocs", 
-    "log_format": "EXECUTION_LOG_{project-name}_{timestamp}.md",
-    "intelligent_features": {
-      "_note": "四大核心执行特性：文档解析、CodeGen自动化、环境验证、质量保证",
-      "document_parsing": {
-        "format_validation": true,
-        "config_extraction": true,
-        "compatibility_check": true,
-        "inheritance_verification": true
-      },
-      "codegen_automation": {
-        "auto_config_generation": true,
-        "agent_integration": "CodeGen/Code_Gen_Agent.md",
-        "execution_script": "CodeGen/Code_Gen_Guide.py",
-        "real_time_monitoring": true,
-        "error_recovery": true
-      },
-      "environment_verification": {
-        "pre_execution_check": true,
-        "jeecgboot_service_status": true,
-        "codegen_system_availability": true,
-        "project_structure_integrity": true,
-        "database_connectivity": true,
-        "auto_repair_capability": true
-      },
-      "quality_assurance": {
-        "compilation_testing": true,
-        "functional_verification": true,
-        "integration_testing": true,
-        "code_standard_compliance": true,
-        "confidence_score_threshold": 9,
-        "detailed_reporting": true
-      }
-    },
-    "execution_stages": {
-      "stage1_analysis": {
-        "document_parsing": true,
-        "execution_planning": true,
-        "task_decomposition": true,
-        "dependency_analysis": true
-      },
-      "stage2_preparation": {
-        "environment_verification": true,
-        "dependency_resolution": true,
-        "context_initialization": true,
-        "error_handling_setup": true
-      },
-      "stage3_implementation": {
-        "codegen_execution": true,
-        "complex_logic_implementation": true,
-        "seamless_integration": true,
-        "real_time_monitoring": true
-      },
-      "stage4_verification": {
-        "code_quality_check": true,
-        "functional_testing": true,
-        "integration_validation": true,
-        "report_generation": true
-      }
-    },
-    "collaboration_with_generate_prp": {
-      "seamless_document_reading": true,
-      "config_inheritance": true,
-      "quality_standard_preservation": true,
-      "workflow_integration": true,
-      "perfect_compatibility": true
+  "context_engineering": {
+    "enabled": true,
+    "version": "latest",
+    "templates_path": "ContextDev/templates/",
+    "examples_path": "ContextDev/examples/jeecgboot/",
+    "workflow": {
+      "requirements_template": "REQUIREMENTS_JEECGBOOT.md",
+      "design_template": "DESIGN_JEECGBOOT.md",
+      "planning_template": "PLANNING_JEECGBOOT.md",
+      "testing_template": "TESTING_JEECGBOOT.md",
+      "task_template": "TASK_JEECGBOOT.md"
     }
+  },
+
+  "commands": {
+    "jeecg_generate_prp": {
+      "description": "生成JeecgBoot需求文档",
+      "template_base": "ContextDev/templates/REQUIREMENTS_JEECGBOOT.md",
+      "output_dir": "projectDocs",
+      "success_threshold": 8,
+      "validation_gates": [
+        "technical_feasibility",
+        "jeecg_compatibility",
+        "codegen_readiness"
+      ]
+    },
+    "jeecg_execute_prp": {
+      "description": "执行需求文档并调用CodeGen",
+      "codegen_integration": true,
+      "success_threshold": 9,
+      "validation_gates": [
+        "requirements_completeness",
+        "codegen_configuration",
+        "integration_verification"
+      ]
+    }
+  },
+
+  "workflow_presets": {
+    "simple_crud": {
+      "description": "简单CRUD功能开发",
+      "steps": [
+        "jeecg_generate_prp",
+        "codegen_execute",
+        "integration_test"
+      ],
+      "complexity_indicators": [
+        "single_table",
+        "basic_crud",
+        "standard_fields"
+      ]
+    },
+    "complex_business": {
+      "description": "复杂业务功能开发",
+      "steps": [
+        "jeecg_generate_prp",
+        "design_architecture",
+        "codegen_execute",
+        "business_logic_implementation",
+        "integration_test"
+      ],
+      "complexity_indicators": [
+        "multiple_tables",
+        "business_rules",
+        "workflow_integration"
+      ]
+    }
+  },
+
+  "quality_gates": {
+    "requirements": {
+      "completeness_check": true,
+      "technical_feasibility": true,
+      "jeecg_compatibility": true
+    },
+    "implementation": {
+      "codegen_validation": true,
+      "code_quality_check": true,
+      "integration_test": true
+    },
+    "deployment": {
+      "functionality_test": true,
+      "performance_check": true,
+      "security_validation": true
+    }
+  },
+
+  "documentation": {
+    "templates_location": "ContextDev/templates/",
+    "examples_location": "ContextDev/examples/jeecgboot/",
+    "generated_docs_location": "projectDocs/",
+    "auto_update": true
+  },
+
+  "development_environment": {
+    "required_tools": [
+      "Python 3.8+",
+      "Git",
+      "JDK 17",
+      "Node.js 20+",
+      "Maven 3.9+"
+    ],
+    "optional_tools": [
+      "VS Code",
+      "IDEA"
+    ],
+    "environment_validation_script": "ContextDev/scripts/validate-integration.sh"
   }
 }

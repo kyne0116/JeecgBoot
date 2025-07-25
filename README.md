@@ -30,7 +30,7 @@ JeecgBoot 低代码平台，可以应用在任何 J2EE 项目的开发中，支�
 
 ## 🤖 AI 赋能开发环境
 
-JeecgBoot 集成了完整的 AI 赋能开发环境，通过 `jeecg-ai-setup.sh` 安装脚本提供一键式 AI 开发环境配置。
+JeecgBoot 集成了完整的 AI 赋能开发环境，通过 `jeecg-ai-setup.sh` 安装脚本提供一键式 Context Engineering 和 CodeGen 系统集成。
 
 ### 🚀 快速安装
 
@@ -41,55 +41,50 @@ bash ContextDev/jeecg-ai-setup.sh
 
 ### 📋 核心功能
 
-- **Context Engineering**: 基于 Context Engineering 最佳实践的 PRP 工作流
-- **CodeGen 系统**: 完整的前后端代码自动生成能力
-- **Claude Code 集成**: 项目级别的 AI 编程配置和符号链接机制
-- **示例代码集成**: 自动复制 JeecgBoot 示例代码到 `PRPs/examples/`
-- **模板体系**: 完整的 AI 编程模板集合，包含需求分析、技术实现等
+- **Context Engineering**: 基于 Context Engineering 最佳实践的 AI 编程工作流
+- **CodeGen 系统**: 完整的前后端代码自动生成能力，支持单表和复杂业务场景
+- **AI 需求分析**: 基于 Code_Gen_Agent.md 的智能业务需求理解和解析
+- **示例代码参考**: 完整的 JeecgBoot 后端和前端示例代码集合
+- **模板体系**: AI 编程模板集合，包含需求分析、架构设计、测试等
 
 ### 🏗️ 安装后目录结构
 
 ```
 项目根目录/
-├── CLAUDE.md -> PRPs/CLAUDE.md    # Claude Code 自动检测的符号链接
-├── PRPs/                          # AI 工作目录
-│   ├── CLAUDE.md                  # 项目级别 AI 配置（实际文件）
-│   ├── examples/jeecgboot/        # JeecgBoot 示例代码集合
+├── CLAUDE.md                      # 项目级别 AI 编程配置
+├── ContextDev/                    # Context Engineering 集成目录
 │   ├── templates/                 # AI 编程模板集合
-│   └── codegen_commands.json      # CodeGen 命令配置
-├── CodeGen/                       # CodeGen 系统
-├── .claude/commands/              # Claude 命令系统
+│   └── examples/jeecgboot/        # JeecgBoot 示例代码集合
+├── PRPs/                          # AI 工作目录
+│   ├── templates/                 # 模板文件
+│   └── examples/                  # 示例代码
+├── CodeGen/                       # CodeGen 代码生成系统
 └── projectDocs/                   # 生成的需求文档输出
 ```
 
-### ⚡ 增强版 PRP 命令
+### ⚡ AI 增强功能
 
-安装完成后，可以使用以下增强版命令：
+安装完成后，可以使用以下功能：
 
 ```bash
 # 智能需求文档生成
-/jeecg-generate-prp 客户管理系统需求
+/jeecg-generate-prp 电商管理系统需求
 
 # 需求文档执行
-/jeecg-execute-prp projectDocs/REQUIREMENTS_customer-management.md
+/jeecg-execute-prp projectDocs/REQUIREMENTS_ecommerce-management.md
 
-# CodeGen 系统集成命令
-/sc:jeecg-analyze    # 业务需求分析
-/sc:jeecg-config     # 生成配置文件
-/sc:codegen          # 执行代码生成
+# CodeGen 系统直接调用
+python3 CodeGen/Code_Gen_Guide.py --help
 ```
 
 ### 🔧 脚本选项
 
 ```bash
-# 完整安装
+# 完整安装 Context Engineering 环境
 bash ContextDev/jeecg-ai-setup.sh
 
 # 验证安装状态
 bash ContextDev/jeecg-ai-setup.sh --verify
-
-# 仅创建符号链接
-bash ContextDev/jeecg-ai-setup.sh --create-claude-symlink
 
 # 仅复制示例代码
 bash ContextDev/jeecg-ai-setup.sh --examples-only
@@ -142,18 +137,17 @@ AI 在进行代码开发时会自动参考这些示例，确保生成的代码�
 
 一个全栈式 AI 开发平台，旨在帮助开发者快速构建和部署个性化的 AI 应用。
 
-JeecgBoot平台提供了一套完善的AI应用管理系统模块，是一套类似`Dify`的`AIGC应用开发平台`+`知识库问答`，是一款基于LLM大语言模型AI应用平台和 RAG 的知识库问答系统。
-其直观的界面结合了 AI 流程编排、RAG 管道、知识库管理、模型管理、对接向量库、实时运行可观察等，让您可以快速从原型到生产，拥有AI服务能力。 
+JeecgBoot 平台提供了一套完善的 AI 应用管理系统模块，是一套类似`Dify`的`AIGC应用开发平台`+`知识库问答`，是一款基于 LLM 大语言模型 AI 应用平台和 RAG 的知识库问答系统。
+其直观的界面结合了 AI 流程编排、RAG 管道、知识库管理、模型管理、对接向量库、实时运行可观察等，让您可以快速从原型到生产，拥有 AI 服务能力。
 
 - [详细专题介绍，请点击查看](README-AI.md)
 
-- AI视频介绍
+- AI 视频介绍
 
 [![](https://jeecgos.oss-cn-beijing.aliyuncs.com/files/jeecg_aivideo.png)](https://www.bilibili.com/video/BV1zmd7YFE4w)
 
+## 为什么选择 JeecgBoot?
 
-为什么选择JeecgBoot?
------------------------------------
 - 1.采用最新主流前后分离框架（Spring Boot + MyBatis + Ant Design4 + Vue3），容易上手；代码生成器依赖性低，灵活的扩展能力，可快速实现二次开发。
 - 2.前端大版本换代，最新版采用 Vue3.0 + TypeScript + Vite6 + Ant Design Vue4 等新技术方案。
 - 3.支持微服务 Spring Cloud Alibaba（Nacos、Gateway、Sentinel、Skywalking），提供简易机制，支持单体和微服务自由切换（这样可以满足各类项目需求）。
