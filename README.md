@@ -142,17 +142,18 @@ AI 在进行代码开发时会自动参考这些示例，确保生成的代码�
 
 一个全栈式 AI 开发平台，旨在帮助开发者快速构建和部署个性化的 AI 应用。
 
-JeecgBoot 平台提供了一套完善的 AI 应用管理系统模块，是一套类似`Dify`的`AIGC应用开发平台`+`知识库问答`，是一款基于 LLM 大语言模型 AI 应用平台和 RAG 的知识库问答系统。
-其直观的界面结合了 AI 流程编排、RAG 管道、知识库管理、模型管理、对接向量库、实时运行可观察等，让您可以快速从原型到生产，拥有 AI 服务能力。
+JeecgBoot平台提供了一套完善的AI应用管理系统模块，是一套类似`Dify`的`AIGC应用开发平台`+`知识库问答`，是一款基于LLM大语言模型AI应用平台和 RAG 的知识库问答系统。
+其直观的界面结合了 AI 流程编排、RAG 管道、知识库管理、模型管理、对接向量库、实时运行可观察等，让您可以快速从原型到生产，拥有AI服务能力。 
 
 - [详细专题介绍，请点击查看](README-AI.md)
 
-- AI 视频介绍
+- AI视频介绍
 
 [![](https://jeecgos.oss-cn-beijing.aliyuncs.com/files/jeecg_aivideo.png)](https://www.bilibili.com/video/BV1zmd7YFE4w)
 
-## 为什么选择 JeecgBoot?
 
+为什么选择JeecgBoot?
+-----------------------------------
 - 1.采用最新主流前后分离框架（Spring Boot + MyBatis + Ant Design4 + Vue3），容易上手；代码生成器依赖性低，灵活的扩展能力，可快速实现二次开发。
 - 2.前端大版本换代，最新版采用 Vue3.0 + TypeScript + Vite6 + Ant Design Vue4 等新技术方案。
 - 3.支持微服务 Spring Cloud Alibaba（Nacos、Gateway、Sentinel、Skywalking），提供简易机制，支持单体和微服务自由切换（这样可以满足各类项目需求）。
