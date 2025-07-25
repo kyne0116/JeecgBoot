@@ -460,6 +460,10 @@
 4. **禁止创建脚本**: 严禁创建 temp_code_gen.py 等任何新的 Python 脚本文件
 5. **禁止分析数据库**: 严禁分析现有数据库结构和表设计规范
 6. **禁止跳过数据字典**: 严禁跳过步骤 0（数据字典获取）直接进行需求分析
+7. **禁止启动前端服务**: 严禁执行任何启动前端开发服务器的命令（如 npm run dev、yarn dev 等）
+8. **禁止启动后端服务**: 严禁执行任何启动后端应用服务的命令（如 mvn spring-boot:run、java -jar 等）
+9. **强制Maven目录约束**: 执行 mvn archetype:generate 命令必须在 `/jeecg-boot/jeecg-boot-module` 目录下进行，绝对禁止在其他目录执行
+10. **禁止修改Git托管文件**: 严禁擅自修改已提交到Git版本控制的任何CodeGen系统相关文件，包括但不限于 Code_Gen_Guide.py、Code_Gen_Guide.json、Code_Gen_field_templates.json 等核心文件
 
 ### ✅ 强制执行的规则
 
