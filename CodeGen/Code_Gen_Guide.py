@@ -164,12 +164,14 @@ def set_core_variables_from_table_name(table_name):
         # 设置三核心变量
         MODULE_NAME = components['module_name']
         SUBMODULE_NAME = components['sub_module']
-        ENTITY_NAME = components['business_scenario']
+        # 修复：ENTITY_NAME应该使用PascalCase格式，不是小写的business_scenario
+        ENTITY_NAME = components['entity_name']  # 使用PascalCase格式的entity_name
 
         # 计算派生变量
         TABLE_NAME = table_name
         PACKAGE_NAME = f"org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
-        JAVA_ENTITY_NAME = convert_to_java_entity_name(ENTITY_NAME)
+        # 修复：JAVA_ENTITY_NAME就是ENTITY_NAME本身，因为它已经是PascalCase了
+        JAVA_ENTITY_NAME = ENTITY_NAME
 
         # 计算项目路径
         project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
@@ -204,49 +206,86 @@ def print_core_variables():
     print(f"   - PROJECT_PATH: 由配置和MODULE_NAME组合而成的项目路径")
 
 def validate_core_variables():
-    """验证三核心变量的有效性和一致性"""
-    errors = []
-
+    """
+    高质量三核心变量验证函数
+    修复了之前版本中ENTITY_NAME格式验证错误等问题
+    """
     print(f"\n🔍 三核心变量一致性验证:")
+    errors = []
+    warnings = []
 
-    # 验证MODULE_NAME
+    # 步骤1：基础字段存在性验证
     if not MODULE_NAME:
         errors.append("MODULE_NAME不能为空")
-    elif not re.match(r'^[a-z][a-z0-9_]*$', MODULE_NAME):
-        errors.append(f"MODULE_NAME格式不正确，应为小写字母开头的标识符: {MODULE_NAME}")
-
-    # 验证SUBMODULE_NAME
     if not SUBMODULE_NAME:
         errors.append("SUBMODULE_NAME不能为空")
-    elif not re.match(r'^[a-z][a-z0-9_]*$', SUBMODULE_NAME):
-        errors.append(f"SUBMODULE_NAME格式不正确: {SUBMODULE_NAME}")
-
-    # 验证ENTITY_NAME
     if not ENTITY_NAME:
         errors.append("ENTITY_NAME不能为空")
-    elif not re.match(r'^[a-z][a-z0-9_]*$', ENTITY_NAME):
-        errors.append(f"ENTITY_NAME格式不正确: {ENTITY_NAME}")
+    if not TABLE_NAME:
+        errors.append("TABLE_NAME不能为空")
 
-    # 验证派生变量一致性
-    if MODULE_NAME and SUBMODULE_NAME and ENTITY_NAME:
-        expected_table_name = f"us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}"
-        expected_package_name = f"org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
-        expected_project_path_suffix = f"jeecg-module-{MODULE_NAME}"
+    # 如果基础字段缺失，直接返回
+    if errors:
+        print("❌ 基础字段验证失败:")
+        for error in errors:
+            print(f"   - {error}")
+        return False
 
-        print(f"   📊 派生变量一致性检查:")
-        print(f"      期望表名: {expected_table_name}")
-        print(f"      实际表名: {TABLE_NAME or 'None'}")
-        print(f"      期望包名: {expected_package_name}")
-        print(f"      实际包名: {PACKAGE_NAME or 'None'}")
+    # 步骤2：格式规范验证
+    if not re.match(r'^[a-z][a-z0-9_]*$', MODULE_NAME):
+        errors.append(f"MODULE_NAME格式错误: '{MODULE_NAME}' (应为小写字母和下划线)")
+    
+    if not re.match(r'^[a-z][a-z0-9_]*$', SUBMODULE_NAME):
+        errors.append(f"SUBMODULE_NAME格式错误: '{SUBMODULE_NAME}' (应为小写字母和下划线)")
+    
+    # 修复：ENTITY_NAME应该是PascalCase格式，不是小写
+    if not re.match(r'^[A-Z][a-zA-Z0-9]*$', ENTITY_NAME):
+        errors.append(f"ENTITY_NAME格式错误: '{ENTITY_NAME}' (应为PascalCase格式)")
 
-        if TABLE_NAME and TABLE_NAME != expected_table_name:
-            errors.append(f"表名不一致: 期望 {expected_table_name}, 实际 {TABLE_NAME}")
+    # 步骤3：表名解析一致性验证
+    try:
+        # 从实际表名解析出组件
+        table_components = parse_table_name_components(TABLE_NAME)
+        parsed_module = table_components['module_name']
+        parsed_submodule = table_components['sub_module']  
+        parsed_business_scenario = table_components['business_scenario']
+        parsed_entity = table_components['entity_name']
+        
+        print(f"   📊 表名解析结果验证:")
+        print(f"      表名: {TABLE_NAME}")
+        print(f"      解析模块: {parsed_module}")
+        print(f"      解析子模块: {parsed_submodule}")
+        print(f"      解析业务场景: {parsed_business_scenario}")
+        print(f"      解析实体名: {parsed_entity}")
+        
+        # 验证解析结果与全局变量的一致性
+        if MODULE_NAME != parsed_module:
+            errors.append(f"模块名不一致: 全局变量={MODULE_NAME}, 表名解析={parsed_module}")
+        
+        if SUBMODULE_NAME != parsed_submodule:
+            errors.append(f"子模块名不一致: 全局变量={SUBMODULE_NAME}, 表名解析={parsed_submodule}")
+        
+        if ENTITY_NAME != parsed_entity:
+            errors.append(f"实体名不一致: 全局变量={ENTITY_NAME}, 表名解析={parsed_entity}")
+            
+    except Exception as e:
+        errors.append(f"表名解析失败: {e}")
 
-        if PACKAGE_NAME and PACKAGE_NAME != expected_package_name:
-            errors.append(f"包名不一致: 期望 {expected_package_name}, 实际 {PACKAGE_NAME}")
+    # 步骤4：包名验证
+    expected_package_name = f"org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
+    if PACKAGE_NAME != expected_package_name:
+        errors.append(f"包名不一致: 期望={expected_package_name}, 实际={PACKAGE_NAME}")
 
-        if PROJECT_PATH and expected_project_path_suffix not in PROJECT_PATH:
-            errors.append(f"项目路径不一致: 期望包含 {expected_project_path_suffix}, 实际 {PROJECT_PATH}")
+    # 步骤5：项目路径验证  
+    expected_project_suffix = f"jeecg-module-{MODULE_NAME}"
+    if PROJECT_PATH and expected_project_suffix not in PROJECT_PATH:
+        warnings.append(f"项目路径可能不正确: 期望包含'{expected_project_suffix}', 实际='{PROJECT_PATH}'")
+
+    # 结果输出
+    if warnings:
+        print("⚠️ 警告信息:")
+        for warning in warnings:
+            print(f"   - {warning}")
 
     if errors:
         print("❌ 三核心变量验证失败:")
@@ -376,6 +415,34 @@ def parse_table_name_components(table_name):
         'entity_name': entity_name
     }
 
+def extract_business_entity_from_table_name(table_name):
+    """
+    从表名提取业务实体名（PascalCase格式）
+    
+    Args:
+        table_name (str): 完整表名，格式如 us_module_submodule_business_scenario
+        
+    Returns:
+        str: 业务实体名，PascalCase格式
+        
+    Examples:
+        us_system_user_management -> UserManagement
+        us_mall_product_category -> ProductCategory
+    """
+    try:
+        # 使用现有的表名解析函数
+        components = parse_table_name_components(table_name)
+        return components['entity_name']  # 已经是PascalCase格式
+    except Exception as e:
+        print(f"⚠️ 表名解析失败: {e}")
+        # 降级处理：直接从表名最后一部分提取
+        parts = table_name.split('_')
+        if len(parts) >= 2:
+            business_part = '_'.join(parts[-2:])  # 取最后两部分
+            return convert_to_java_entity_name(business_part)
+        else:
+            return convert_to_java_entity_name(table_name)
+
 def generate_standardized_package_name(table_name=None, force_system=None):
     """
     根据表名生成标准化包名
@@ -416,172 +483,317 @@ def generate_standardized_package_name(table_name=None, force_system=None):
         else:
             return f"org.jeecg.modules.{ENTITY_NAME}"
 
-def extract_business_entity_from_table_name(table_name):
+def resolve_config_file_path(config_file_path):
     """
-    从表名中提取业务实体名
-    仅支持标准格式: us_{模块名称}_{子模块名称}_{推理业务需求场景}
-    
-    Args:
-        table_name (str): 完整表名，必须符合 us_{模块}_{子模块}_{业务场景} 格式
-        
-    Returns:
-        str: 业务场景实体名（Java规范）
-        
-    Examples:
-        us_finance_invoice_sales -> sales
-        us_hrms_employee_training -> training  
-        us_crm_customer_service -> service
-        us_scm_inventory_management -> management
+    智能解析配置文件路径
+    支持绝对路径和相对路径的多种情况
     """
-    if not table_name:
-        raise ValueError("表名不能为空")
-        
-    if not table_name.startswith('us_'):
-        error_msg = f"""
-❌ 表名格式错误: {table_name}
-
-📋 表名命名规范要求:
-   格式: us_{{模块名}}_{{子模块名}}_{{业务场景}}
-   
-✅ 正确示例:
-   us_finance_invoice_management     (财务-发票-管理)
-   us_hrms_employee_training         (人力-员工-培训)
-   us_crm_customer_service           (客户-客户-服务)
-   us_business_product_management    (业务-产品-管理)
-
-🔧 智能修复建议:
-   推荐表名: '{suggest_table_name_fix(table_name)}'
-   或手动修改为: 'us_{{模块名}}_{{子模块名}}_{{业务场景}}'
-
-📚 详细文档: 请查看 Code_Gen_Guide.md 中的命名规范部分
-        """
-        raise ValueError(error_msg)
-        
-    parts = table_name.split('_')
-    
-    if len(parts) != 4:
-        error_msg = f"""
-❌ 表名格式错误: {table_name}
-
-📋 表名必须包含4个部分，用下划线分隔:
-   格式: us_{{模块名}}_{{子模块名}}_{{业务场景}}
-   当前: {len(parts)}个部分 {parts}
-
-✅ 正确示例:
-   us_finance_invoice_management     (4个部分)
-   us_hrms_employee_training         (4个部分)
-   
-❌ 错误示例:
-   us_finance_invoice               (3个部分，缺少业务场景)
-   us_product                       (2个部分，格式不完整)
-
-🔧 修复建议:
-   确保表名包含: 前缀(us) + 模块名 + 子模块名 + 业务场景
-        """
-        raise ValueError(error_msg)
-    
-    # 标准格式: us_module_submodule_business_scenario
-    module_name = parts[1]      # 模块名称
-    sub_module = parts[2]       # 子模块名称  
-    business_scenario = parts[3] # 业务场景
-    
-    java_name = convert_to_java_entity_name(business_scenario)
-    print(f"🎯 业务实体提取: {table_name}")
-    print(f"   ├── 模块: {module_name}")
-    print(f"   ├── 子模块: {sub_module}") 
-    print(f"   └── 业务场景: {business_scenario} → Java实体: {java_name}")
-    
-    return java_name
-
-def suggest_table_name_fix(table_name):
-    """
-    为错误的表名提供修复建议
-    
-    Args:
-        table_name (str): 错误的表名
-        
-    Returns:
-        str: 修复建议
-    """
-    if not table_name:
-        return "us_business_example_management"
-    
-    # 移除常见前缀
-    clean_name = table_name
-    for prefix in ['biz_', 'sys_', 't_', 'tb_', 'tbl_']:
-        if clean_name.startswith(prefix):
-            clean_name = clean_name[len(prefix):]
-            break
-    
-    # 如果不以us_开头，添加us_business_前缀
-    if not clean_name.startswith('us_'):
-        # 尝试智能分析表名结构
-        parts = clean_name.split('_')
-        if len(parts) == 1:
-            # 单词，加默认结构
-            return f"us_business_{clean_name}_management"
-        elif len(parts) == 2:
-            # 两个词，假设是模块_功能
-            return f"us_business_{parts[0]}_{parts[1]}"
+    # 1. 绝对路径直接使用
+    if os.path.isabs(config_file_path):
+        if os.path.exists(config_file_path):
+            return os.path.abspath(config_file_path)
         else:
-            # 多个词，保持原结构并加前缀
-            return f"us_business_{clean_name}"
+            raise ValueError(f"❌ 绝对路径配置文件不存在: {config_file_path}")
     
-    return clean_name
+    # 2. 相对路径智能推导
+    search_paths = [
+        config_file_path,  # 当前工作目录
+        os.path.join(os.getcwd(), config_file_path),  # 显式当前目录
+        os.path.join(os.path.dirname(__file__), config_file_path),  # 脚本目录
+        os.path.join(os.path.dirname(__file__), '..', config_file_path)  # 上级目录
+    ]
+    
+    for path in search_paths:
+        if os.path.exists(path):
+            return os.path.abspath(path)
+    
+    raise ValueError(f"""❌ 配置文件未找到: {config_file_path}
 
-def validate_table_name_command(table_name):
-    """表名验证命令"""
-    print(f"🔍 验证表名: {table_name}")
-    print("=" * 50)
-    
-    try:
-        result = extract_business_entity_from_table_name(table_name)
-        print(f"✅ 表名格式正确!")
-        print(f"📦 提取的业务实体: {result}")
-    except ValueError as e:
-        print(f"❌ 表名验证失败:")
-        print(str(e))
-        print(f"\n💡 自动修复建议: {suggest_table_name_fix(table_name)}")
+🔍 已搜索的路径:
+{chr(10).join(f"   • {p}" for p in search_paths)}
 
-def fix_table_name_command(table_name):
-    """表名自动修复命令"""
-    print(f"🔧 修复表名: {table_name}")
-    print("=" * 50)
-    
-    if table_name.startswith('us_') and len(table_name.split('_')) == 4:
-        print(f"✅ 表名已经符合规范: {table_name}")
-        return
-    
-    fixed_name = suggest_table_name_fix(table_name)
-    print(f"🎯 原表名: {table_name}")
-    print(f"✨ 修复后: {fixed_name}")
-    print(f"\n📋 建议操作:")
-    print(f"   1. 将配置文件中的表名改为: {fixed_name}")
-    print(f"   2. 或按照您的业务需求手动调整")
+💡 解决方案:
+   1. 检查配置文件是否存在
+   2. 使用绝对路径或确保文件在当前工作目录
+   3. 确认配置文件名称正确""")
 
-def convert_to_java_entity_name(entity_name):
+def extract_business_entity_from_config(config_file_path):
     """
-    将实体名转换为Java命名规范
-    移除下划线并转换为小写连写形式
+    高质量配置文件解析函数
+    全面的错误处理和精准的错误信息
     
     Args:
-        entity_name (str): 原始实体名，可能包含下划线
-    
+        config_file_path (str): 配置文件路径（支持绝对和相对路径）
+        
     Returns:
-        str: 符合Java规范的实体名（小写无下划线）
-    
-    Examples:
-        sales_invoice -> salesinvoice
-        employee_info -> employeeinfo
-        purchase_order -> purchaseorder
+        dict: 包含所有派生格式的字典
+        
+    Raises:
+        ValueError: 配置文件问题的详细诊断信息
     """
-    if not entity_name:
-        return entity_name
+    print(f"📋 解析配置文件: {config_file_path}")
     
-    # 移除所有下划线并转换为小写
-    java_name = entity_name.replace('_', '').lower()
+    # 步骤1：智能路径解析
+    try:
+        resolved_path = resolve_config_file_path(config_file_path)
+        print(f"✅ 配置文件路径解析成功: {resolved_path}")
+    except ValueError as e:
+        print(f"❌ 路径解析失败")
+        raise e
     
-    return java_name
+    # 步骤2：JSON格式验证
+    try:
+        with open(resolved_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        print(f"✅ JSON格式解析成功")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"""❌ 配置文件JSON格式错误
+        
+📁 文件路径: {resolved_path}
+🔍 JSON错误: {e}
+🔧 解决方案: 检查JSON语法，确保括号、引号、逗号正确""")
+    except Exception as e:
+        raise ValueError(f"❌ 读取配置文件失败: {e}")
+    
+    # 步骤3：结构完整性验证
+    if not isinstance(config, dict):
+        raise ValueError(f"❌ 配置文件根节点必须是对象，当前类型: {type(config)}")
+    
+    if 'head' not in config:
+        available_keys = list(config.keys())
+        raise ValueError(f"""❌ 配置文件缺少head节点
+        
+📊 当前根节点字段: {available_keys}
+🔧 解决方案: 确保配置文件包含head节点""")
+    
+    head = config['head']
+    if not isinstance(head, dict):
+        raise ValueError(f"❌ head节点必须是对象，当前类型: {type(head)}")
+    
+    # 步骤4：business_entity字段验证
+    business_entity = head.get('business_entity')
+    if not business_entity:
+        available_keys = list(head.keys())
+        raise ValueError(f"""❌ head节点缺少business_entity字段
+        
+📊 head节点现有字段: {available_keys}
+🔧 解决方案: 在head节点中添加business_entity字段
+💡 示例: "business_entity": "ProductCatalog" """)
+    
+    if not isinstance(business_entity, str):
+        raise ValueError(f"❌ business_entity必须是字符串，当前类型: {type(business_entity)}")
+    
+    if not business_entity.strip():
+        raise ValueError("❌ business_entity不能为空字符串")
+    
+    # 步骤5：格式规范验证
+    if not re.match(r'^[A-Z][a-zA-Z0-9]*$', business_entity):
+        raise ValueError(f"""❌ business_entity格式错误: '{business_entity}'
+        
+📋 格式要求: PascalCase（首字母大写的驼峰命名）
+💡 正确示例: ProductCatalog, CustomerProfile, OrderHeader
+❌ 错误示例: productCatalog, product_catalog, PRODUCT""")
+    
+    print(f"✅ business_entity验证通过: {business_entity}")
+    
+    # 步骤6：生成派生格式
+    try:
+        formats = derive_all_formats_from_business_entity(business_entity)
+        print(f"✅ 格式派生成功")
+        print(f"   ├── Java类名: {formats['java_class_name']}")
+        print(f"   ├── 表名后缀: {formats['table_suffix']}")
+        print(f"   ├── URL路径: {formats['url_path']}")
+        print(f"   └── 前端路径: {formats['frontend_path']}")
+        
+        return formats
+        
+    except Exception as e:
+        raise ValueError(f"❌ 格式派生失败: {e}")
+
+def generate_config_from_template(module_name, submodule_name, business_entity, table_txt, business_fields=None):
+    """
+    基于标准模板生成高质量配置文件
+    AI配置生成的推荐入口函数
+    
+    Args:
+        module_name (str): 模块名（小写）
+        submodule_name (str): 子模块名（小写）
+        business_entity (str): 业务实体名（PascalCase）
+        table_txt (str): 中文描述
+        business_fields (list): 可选的业务字段列表
+        
+    Returns:
+        dict: 完整的配置对象
+    """
+    # 加载标准模板
+    template_path = os.path.join(os.path.dirname(__file__), 'Code_Gen_Guide.json')
+    try:
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template = json.load(f)
+    except FileNotFoundError:
+        raise ValueError(f"❌ 标准模板文件不存在: {template_path}")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"❌ 标准模板JSON格式错误: {e}")
+    
+    # 生成派生格式
+    formats = derive_all_formats_from_business_entity(business_entity)
+    business_scenario = formats['table_suffix']
+    
+    # 填充模板变量
+    table_name = f"us_{module_name}_{submodule_name}_{business_scenario}"
+    
+    # 更新head节点
+    template['head']['tableName'] = table_name
+    template['head']['tableTxt'] = table_txt
+    template['head']['business_entity'] = business_entity
+    
+    # 更新metadata节点
+    template['metadata']['generation_info'] = {
+        "module_name": module_name,
+        "submodule_name": submodule_name,
+        "business_entity": business_entity,
+        "inference_strategy": "基于JeecgBoot标准模板生成",
+        "semantic_analysis": f"{table_txt}，属于标准CRUD需求"
+    }
+    
+    template['metadata']['derived_formats'] = {
+        "table_suffix": business_scenario,
+        "url_path": f"/{module_name}/{submodule_name}/{formats['url_path']}",
+        "frontend_path": f"{module_name}/{submodule_name}"
+    }
+    
+    # 插入业务字段（如果提供）
+    if business_fields:
+        # 在系统字段之前插入业务字段
+        system_fields = template['fields'][1:]  # 除了id字段的系统字段
+        business_field_configs = []
+        
+        for i, field in enumerate(business_fields, 1):
+            field_config = create_business_field_config(field, i)
+            business_field_configs.append(field_config)
+        
+        # 重新组织字段顺序：id + 业务字段 + 系统字段
+        template['fields'] = [template['fields'][0]] + business_field_configs + system_fields
+        
+        # 重新设置orderNum
+        for i, field in enumerate(template['fields']):
+            field['orderNum'] = i
+    
+    return template
+
+def create_business_field_config(field_spec, order_num):
+    """
+    创建业务字段配置
+    
+    Args:
+        field_spec (dict): 字段规格 {"name": "field_name", "txt": "字段中文名", "type": "string", "length": 100}
+        order_num (int): 排序号
+        
+    Returns:
+        dict: 字段配置对象
+    """
+    base_config = {
+        "dbFieldName": field_spec.get("name", ""),
+        "dbFieldTxt": field_spec.get("txt", ""),
+        "queryShowType": "text",
+        "queryDictTable": "",
+        "queryDictField": "",
+        "queryDictText": "",
+        "queryDefVal": "",
+        "queryConfigFlag": "1" if field_spec.get("queryable", True) else "0",
+        "mainTable": "",
+        "mainField": "",
+        "fieldHref": "",
+        "fieldValidType": field_spec.get("validation", ""),
+        "fieldMustInput": "1" if field_spec.get("required", False) else "0",
+        "dictTable": "",
+        "dictField": "",
+        "dictText": "",
+        "isShowForm": "1",
+        "isShowList": "1",
+        "sortFlag": "0",
+        "isReadOnly": "0",
+        "fieldShowType": field_spec.get("show_type", "text"),
+        "fieldLength": 120,
+        "isQuery": "1" if field_spec.get("queryable", True) else "0",
+        "queryMode": field_spec.get("query_mode", "like"),
+        "fieldDefaultValue": field_spec.get("default", ""),
+        "converter": "",
+        "fieldExtendJson": "",
+        "fieldConfig": "",
+        "dbLength": field_spec.get("length", 100),
+        "dbPointLength": field_spec.get("decimal_length", 0),
+        "dbDefaultVal": field_spec.get("default", ""),
+        "dbType": field_spec.get("type", "string"),
+        "dbIsKey": "0",
+        "dbIsNull": "0" if field_spec.get("required", False) else "1",
+        "dbIsPersist": "1",
+        "orderNum": order_num
+    }
+    
+    return base_config
+
+def derive_all_formats_from_business_entity(business_entity):
+    """
+    从BUSINESS_ENTITY机械派生所有需要的格式
+    纯字符串转换逻辑，不包含任何推理成分
+    
+    Args:
+        business_entity (str): PascalCase格式的业务实体标识符
+        
+    Returns:
+        dict: 包含所有派生格式的字典
+    """
+    return {
+        'java_class_name': business_entity,  # 直接使用
+        'table_suffix': pascal_to_snake_case(business_entity),
+        'url_path': pascal_to_kebab_case(business_entity),
+        'frontend_path': pascal_to_path(business_entity),
+        'file_name': pascal_to_camel_case(business_entity)
+    }
+
+def pascal_to_snake_case(pascal_str):
+    """
+    PascalCase转snake_case
+    CustomerProfile → customer_profile
+    """
+    return re.sub(r'(?<!^)(?=[A-Z])', '_', pascal_str).lower()
+
+def pascal_to_kebab_case(pascal_str):
+    """
+    PascalCase转kebab-case  
+    CustomerProfile → customer-profile
+    """
+    return re.sub(r'(?<!^)(?=[A-Z])', '-', pascal_str).lower()
+
+def pascal_to_path(pascal_str):
+    """
+    PascalCase转目录路径
+    CustomerProfile → customer/profile
+    """
+    snake = pascal_to_snake_case(pascal_str)
+    parts = snake.split('_')
+    return '/'.join(parts)
+
+def pascal_to_camel_case(pascal_str):
+    """
+    PascalCase转camelCase
+    CustomerProfile → customerProfile
+    """
+    return pascal_str[0].lower() + pascal_str[1:] if pascal_str else ""
+
+def convert_to_java_entity_name(snake_case_str):
+    """
+    snake_case转PascalCase (Java实体名)
+    user_management → UserManagement
+    product_category → ProductCategory
+    """
+    if not snake_case_str:
+        return ""
+    
+    # 将下划线分隔的单词转换为PascalCase
+    parts = snake_case_str.split('_')
+    return ''.join(word.capitalize() for word in parts if word)
 
 # ==================== 配置文件处理功能 ====================
 
@@ -3833,14 +4045,7 @@ def main():
     """主函数"""
     args = parse_arguments()
 
-    # 处理表名验证和修复命令
-    if args.validate_table_name:
-        validate_table_name_command(args.validate_table_name)
-        return
-    
-    if args.fix_table_name:
-        fix_table_name_command(args.fix_table_name)
-        return
+    # 注：表名验证和修复命令已移除，现在使用business_entity机制
 
     # 加载配置
     global CONFIG, FORM_DATA_FILE
@@ -3871,38 +4076,38 @@ def main():
     # 预处理工作流变量（确保在显示配置前就有实际值）
     global PROJECT_PATH, ENTITY_NAME, MODULE_NAME, SUBMODULE_NAME, PACKAGE_NAME, JAVA_ENTITY_NAME, TABLE_NAME
 
-    # 1. 处理表名和三核心变量
+    # 1. 处理业务实体和格式派生 (重构版)
     if args.form_config:
         try:
+            # 使用新的业务实体提取和格式派生逻辑
+            formats = extract_business_entity_from_config(args.form_config)
+            
+            # 设置全局变量
+            ENTITY_NAME = formats['java_class_name']  # 使用业务实体作为Java类名
+            
+            # 从配置文件中读取表名和模块信息
             with open(args.form_config, 'r', encoding='utf-8') as f:
                 form_data = json.load(f)
                 table_name = form_data.get('head', {}).get('tableName', '')
-                CURRENT_TABLE_NAME = table_name  # 设置全局表名
-
-                # 从表名设置三核心变量
-                if set_core_variables_from_table_name(table_name):
-                    print("✅ 从配置文件设置三核心变量成功")
-                else:
-                    print("⚠️ 从配置文件设置三核心变量失败，使用传统模式")
-                    # 传统模式下的处理
-                    ENTITY_NAME = extract_business_entity_from_table_name(table_name)
+                CURRENT_TABLE_NAME = table_name
+                
+                # 从metadata中获取模块信息 (如果有的话)
+                metadata = form_data.get('metadata', {}).get('generation_info', {})
+                if metadata.get('module_name'):
+                    MODULE_NAME = metadata['module_name']
+                if metadata.get('submodule_name'):
+                    SUBMODULE_NAME = metadata['submodule_name']
+                    
+            print("✅ 从配置文件提取业务实体成功")
+            
         except Exception as e:
-            print(f"⚠️ 无法读取表单配置文件: {e}")
-            # 不要直接使用配置中的模板变量，检查是否为模板变量
-            config_entity_name = CONFIG['codegen']['entity_name']
-            if config_entity_name and not config_entity_name.startswith('{{'):
-                ENTITY_NAME = config_entity_name
-            else:
-                ENTITY_NAME = "defaultentity"  # 使用默认值
-                print(f"⚠️ 配置中的entity_name是模板变量，使用默认值: {ENTITY_NAME}")
+            print(f"❌ 业务实体提取失败: {e}")
+            print("💡 请检查配置文件是否包含正确的business_entity字段")
+            return
     else:
-        # 不要直接使用配置中的模板变量，检查是否为模板变量
-        config_entity_name = CONFIG['codegen']['entity_name']
-        if config_entity_name and not config_entity_name.startswith('{{'):
-            ENTITY_NAME = config_entity_name
-        else:
-            ENTITY_NAME = "defaultentity"  # 使用默认值
-            print(f"⚠️ 配置中的entity_name是模板变量，使用默认值: {ENTITY_NAME}")
+        print("❌ 必须提供配置文件参数 --form-config")
+        print("💡 请使用Code_Gen_Agent.md生成包含business_entity的配置文件")
+        return
 
     # 2. 处理模块名称和项目路径
     if FORCE_SYSTEM:
