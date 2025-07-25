@@ -125,16 +125,9 @@ check_safe_directory() {
 check_uncommitted_changes() {
     log_info "Checking for uncommitted changes..."
     if ! git diff-index --quiet HEAD -- 2>/dev/null; then
-        log_warning "Detected uncommitted changes!"
-        echo "Please commit or stash your changes first:"
+        log_warning "Detected uncommitted changes, but continuing as requested..."
+        echo "Uncommitted changes:"
         git status --porcelain
-        read -p "Continue anyway? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_info "Operation cancelled"
-            read -p "Press any key to exit..."
-            exit 0
-        fi
     fi
 }
 
