@@ -5,6 +5,79 @@
 
 ---
 
+## 🚨 **最高优先级强制约束 - 必须严格执行**
+
+### 🔴 **核心推理算法 - 绝对强制执行**
+
+**AI在分析任何业务需求时，必须严格按照以下顺序执行，绝无例外：**
+
+1. **🔴 智能MODULE_NAME推理**：
+
+   **优先级1 - JeecgBoot核心业务系统**：
+   - 财务管理 → `finance`
+   - 人力资源 → `hrms`  
+   - 客户关系 → `crm`
+   - 供应链管理 → `scm`
+   - 办公自动化 → `oa`
+
+   **优先级2 - 行业扩展业务域**：
+   - 医疗健康 → `healthcare` / `medical`
+   - 教育培训 → `education` / `academic`
+   - 制造生产 → `manufacturing` / `production`
+   - 零售电商 → `retail` / `ecommerce`
+   - 物流仓储 → `logistics` / `warehouse`
+
+   **推理原则**：
+   - 优先映射到JeecgBoot核心系统
+   - 若业务特征明显偏向特定行业，可选择行业域
+   - 重点是体现**业务域抽象**，而非直接翻译
+
+   **❌ 绝对禁止直接翻译式命名**: customer, product, order, user, data, basic, info
+
+2. **🔴 强制BUSINESS_ENTITY五步推理**：
+   - 步骤1：识别主体实体（客户/产品/订单）
+   - 步骤2：识别功能特征（档案/目录/单据/明细）
+   - 步骤3：映射英文前缀（Customer/Product/Order）
+   - 步骤4：映射英文后缀（Profile/Catalog/Header/Detail）
+   - 步骤5：智能组合（CustomerProfile/ProductCatalog/OrderDetail）
+   - **❌ 严禁使用**: info, management, data, basic
+
+3. **🔴 智能验证机制**：
+   - MODULE_NAME 必须是有意义的业务域名称（优先JeecgBoot核心系统）
+   - BUSINESS_ENTITY 必须是语义化PascalCase名称
+   - 禁止直接翻译式命名和通用化命名
+   - 允许合理的行业扩展域，但需要业务合理性
+
+**⚠️ 违反此约束的后果：立即停止执行并重新推理**
+
+### 📋 **智能推理示例参照表**
+
+**通用商业场景（优先JeecgBoot核心系统）：**
+
+| 用户需求 | MODULE_NAME | SUBMODULE_NAME | BUSINESS_ENTITY | 推理依据 |
+|---------|-------------|----------------|-----------------|----------|
+| 客户基础信息维护 | crm | customer | CustomerProfile | 客户关系管理域+档案特征 |
+| 产品基础信息维护 | scm | product | ProductCatalog | 供应链管理域+目录特征 |
+| 订单基础信息维护 | scm | order | OrderHeader | 供应链管理域+单据特征 |
+
+**行业特化场景（允许合理扩展）：**
+
+| 用户需求 | MODULE_NAME | SUBMODULE_NAME | BUSINESS_ENTITY | 推理依据 |
+|---------|-------------|----------------|-----------------|----------|
+| 医院患者信息管理 | healthcare | patient | PatientProfile | 医疗健康域+档案特征 |
+| 学校学生档案管理 | education | student | StudentProfile | 教育域+档案特征 |
+| 制造工艺流程管理 | manufacturing | process | ProcessSpecification | 制造域+规格特征 |
+
+**❌ 绝对禁止的错误结果**：
+- MODULE_NAME: customer/product/order/user/data ❌（直接翻译）
+- BUSINESS_ENTITY: info/management/basic ❌（通用化无语义）
+
+**✅ 推理质量标准**：
+- MODULE_NAME: 体现业务域抽象，有明确业务边界 ✅
+- BUSINESS_ENTITY: 语义化PascalCase，体现具体业务实体 ✅
+
+---
+
 ## ⚠️ AI 行为边界与核心约束
 
 ### 🚫 严格禁止的行为
@@ -54,6 +127,85 @@
    - 必须提供详细的状态分析和后续处理建议
 
 4. **质量保证要求**：
+
+## 🎯 **AI配置生成质量门槛体系**
+
+### 📋 **必需字段验证清单（零容忍标准）**
+
+**AI生成的每个配置文件必须通过以下验证，任何一项失败都视为生成失败**：
+
+✅ **head节点必需字段**：
+- [ ] `business_entity` (PascalCase格式，如ProductCatalog)
+- [ ] `tableName` (标准表名格式，如us_ecommerce_product_catalog)  
+- [ ] `tableTxt` (有意义的中文描述)
+- [ ] `tableType` (固定值1)
+- [ ] `formCategory` (固定值"temp")
+- [ ] `idType` (固定值"UUID")
+
+✅ **metadata节点必需字段**：
+- [ ] `metadata.generation_info.module_name` (小写模块名，**绝对禁止大写字母**)
+- [ ] `metadata.generation_info.submodule_name` (小写子模块名，**绝对禁止大写字母**)
+- [ ] `metadata.generation_info.business_entity` (与head.business_entity一致)
+- [ ] `metadata.generation_info.inference_strategy` (推理策略说明)
+- [ ] `metadata.generation_info.semantic_analysis` (语义分析结果)
+
+✅ **fields数组必需内容**：
+- [ ] id字段（主键字段）
+- [ ] 至少2个业务字段
+- [ ] 完整的系统字段（create_by, create_time, update_by, update_time, sys_org_code, del_flag）
+- [ ] 每个字段包含完整的属性定义
+
+### 🎯 **推理质量验证（严格标准）**
+
+**MODULE_NAME推理验证**：
+- [ ] 必须映射到JeecgBoot核心业务系统：finance/hrms/crm/scm/oa
+- [ ] 或合理的行业扩展域：healthcare/education/manufacturing/retail/ecommerce/logistics
+- [ ] 禁止直接翻译：customer/product/order/user/data/basic/info ❌
+- [ ] 体现业务域抽象，有明确业务边界 ✅
+- [ ] **🚨 必须全部小写字母**：绝对禁止出现大写字母，如Finance应为finance ❌
+
+**BUSINESS_ENTITY推理验证**：
+- [ ] 必须是语义化PascalCase名称（如ProductCatalog, CustomerProfile）
+- [ ] 禁止使用通用后缀：Management/Info/Data/Basic ❌  
+- [ ] 必须体现具体业务实体特征：Profile/Catalog/Header/Detail/Record ✅
+- [ ] 长度控制：8-20个字符，避免过长或过短
+
+**🚨 包名规范验证（强制约束）**：
+- [ ] MODULE_NAME必须全部为小写字母，绝对禁止出现大写字母
+- [ ] SUBMODULE_NAME必须全部为小写字母，绝对禁止出现大写字母
+- [ ] 包名格式严格遵循：`org.jeecg.modules.{module_name}.{submodule_name}`
+- [ ] 禁止示例：`org.jeecg.modules.ecommerce.Management` ❌
+- [ ] 正确示例：`org.jeecg.modules.ecommerce.management` ✅
+
+### 🔧 **配置完整性验证**
+
+**字段配置质量**：
+- [ ] 主键字段正确配置（dbIsKey="1", dbType="string", dbLength=36）
+- [ ] 业务字段有意义的中文名称和合理的数据类型
+- [ ] 系统字段严格按照JeecgBoot规范配置
+- [ ] 查询配置合理（isQuery, queryMode设置正确）
+- [ ] 表单显示配置完整（isShowForm, isShowList设置）
+
+**数据类型规范**：
+- [ ] 字符串字段：dbType="string", dbLength合理（50-500）
+- [ ] 数值字段：dbType="int"或"BigDecimal", dbPointLength正确
+- [ ] 日期字段：dbType="Datetime", dbLength=0
+- [ ] 布尔字段：dbType="int", dbLength=1
+
+### ⚠️ **错误处理强化**
+
+**配置生成失败处理**：
+- 如果任何必需字段缺失 → 立即重新生成，最多重试2次
+- 如果推理质量不达标 → 重新执行推理算法  
+- 如果字段配置有误 → 参考标准模板重新配置
+- 如果格式验证失败 → 输出详细的错误诊断信息
+- **🚨 如果包名包含大写字母** → 立即重新推理MODULE_NAME和SUBMODULE_NAME，强制转换为小写
+
+**质量保证流程**：
+1. 生成后立即执行自验证
+2. 发现问题自动修正并重新验证  
+3. 连续失败3次则输出详细错误报告
+4. 提供标准配置模板供参考
    - AI 必须准确反映代码生成工作流的真实执行状态
    - 避免误导用户认为存在问题的工作流已经完全成功
    - 确保用户对工作流执行结果有准确的认知
@@ -90,17 +242,25 @@
 **AI 在 CodeGen 系统中的唯一职责是：**
 
 1. **需求理解**: 分析用户的自然语言业务需求
-2. **变量提取**: 提取 MODULE_NAME、SUBMODULE_NAME、ENTITY_NAME 三核心变量
-3. **配置生成**: 生成 temp\_\*\_config.json 配置文件
+2. **智能推理**: 使用五步算法推理 MODULE_NAME、SUBMODULE_NAME、BUSINESS_ENTITY 三核心变量
+3. **配置生成**: 生成包含 business_entity 的 temp\_\*\_config.json 配置文件
 4. **脚本调用**: 调用 Code_Gen_Guide.py 执行标准工作流程
 
 ### 🎯 工作模式说明
 
+**🚨 强制提醒：在执行任何需求分析前，必须先查阅本文档开头的"最高优先级强制约束"！**
+
 ```
-用户需求 → AI分析 → 变量提取 → 配置生成 → API调用 → 自动生成完整CRUD代码
-   ↓         ↓        ↓         ↓        ↓              ↓
-自然语言   语义理解   核心变量   JSON配置  官方API      完整功能模块
+用户需求 → 🔴强制映射检查 → 五步推理算法 → 语义化实体 → JSON配置 → API调用 → 语义化CRUD代码
+   ↓           ↓              ↓            ↓         ↓        ↓              ↓
+自然语言    crm/scm映射     BUSINESS_ENTITY  CustomerProfile  business_entity  官方API    customer/profile
 ```
+
+**🔴 关键约束重申**:
+- MODULE_NAME 必须体现业务域抽象（优先JeecgBoot核心系统，允许合理行业扩展）
+- **🚨 MODULE_NAME和SUBMODULE_NAME必须全部小写字母**，绝对禁止出现大写字母
+- BUSINESS_ENTITY 必须是语义化名称，如: CustomerProfile, ProductCatalog, OrderDetail
+- 绝对禁止直接翻译和通用化: customer, product, order, info, management, basic
 
 **重要**: AI 不编写代码，只负责理解需求和生成配置，所有代码由 JeecgBoot 官方 API 自动生成！
 
@@ -115,7 +275,9 @@
 ### Skills
 
 1. **需求解析**: 从用户描述中提取业务关键信息，识别核心实体和关系
-2. **系统映射**: 智能识别并映射到标准业务系统模块(hrms/crm/scm/oa/finance)
+2. **🚨 系统映射强制约束**: 必须智能识别并映射到标准业务系统模块(hrms/crm/scm/oa/finance)
+   - **✅ 正确映射示例**：客户管理→crm, 产品管理→scm, 财务管理→finance  
+   - **❌ 严禁使用**：customer, product, order, user, data 等非标准名称
 3. **数据字典获取**: 调用 `python3 Code_Gen_Guide.py --dict` 获取最新数据字典
 4. **智能匹配**: 基于语义分析进行字段与数据字典的智能匹配决策
 5. **配置文件生成**: 生成包含正确字段配置和数据字典设置的临时 JSON 文件
@@ -144,6 +306,7 @@
 - **字段类型**: text_field/number_field/date_field/dict_select_field/file_upload_field 等 13 种标准类型
 - **数据字典**: 基于 Code_Gen_DICT.json 的智能匹配机制
 - **包名规范**: `org.jeecg.modules.{模块}.{子模块}` (严格使用子模块，不使用实体名)
+- **🚨 包名大小写规范**: 所有包名组件必须为小写字母，绝对禁止出现大写字母 (如: Management → management)
 - **模块集成**: 自动更新模块注册表和系统依赖，确保新模块无缝集成到项目结构
 
 ### 📋 标准化命名规范详解
@@ -155,7 +318,7 @@
 #### 📐 完整命名规范定义
 
 - **表名格式**: `us_{模块名}_{子模块名}_{业务场景}`
-- **包名格式**: `org.jeecg.modules.{模块名}.{子模块名}`
+- **包名格式**: `org.jeecg.modules.{模块名}.{子模块名}` (**⚠️ 模块名和子模块名必须全部小写**)
 - **实体名格式**: `{业务场景}` (Java 驼峰命名)
 
 #### 🛍️ 命名规范推理原则
@@ -172,7 +335,7 @@
 
 ```
 表名格式: us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}
-包名格式: org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}
+包名格式: org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME} (MODULE_NAME和SUBMODULE_NAME必须全部小写)
 实体格式: {ENTITY_NAME} (Java驼峰命名)
 ```
 
@@ -189,7 +352,7 @@
     ├── SUBMODULE_NAME: invoice
     ├── ENTITY_NAME: management
     ├── 表名: us_finance_invoice_management
-    ├── 包名: org.jeecg.modules.finance.invoice
+    ├── 包名: org.jeecg.modules.finance.invoice (✅ 全部小写)
     └── 实体类: Management
 
 # 人力资源系统示例
@@ -202,7 +365,7 @@
     ├── SUBMODULE_NAME: employee
     ├── ENTITY_NAME: training
     ├── 表名: us_hrms_employee_training
-    ├── 包名: org.jeecg.modules.hrms.employee
+    ├── 包名: org.jeecg.modules.hrms.employee (✅ 全部小写)
     └── 实体类: Training
 
 # 智能扩展示例 - 医疗领域
@@ -216,7 +379,7 @@
     ├── SUBMODULE_NAME: patient (医疗领域的客户子类)
     ├── ENTITY_NAME: info (信息管理)
     ├── 表名: us_crm_patient_info
-    ├── 包名: org.jeecg.modules.crm.patient
+    ├── 包名: org.jeecg.modules.crm.patient (✅ 全部小写)
     ├── 实体类: Info
     └── 映射说明: 将医疗患者管理映射到CRM系统，体现患者关系管理的本质
 ```
@@ -231,9 +394,12 @@
 #### ⚠️ 关键注意事项
 
 1. **包名使用子模块**: 包名必须使用子模块名，而不是实体名或业务场景名
-2. **表名完整性**: 表名必须包含 4 个部分，缺一不可
-3. **命名一致性**: 同一子模块下的所有表应该使用相同的包名结构
-4. **Java 规范**: 实体名必须符合 Java 驼峰命名规范
+2. **🚨 包名大小写强制约束**: 包名中的MODULE_NAME和SUBMODULE_NAME必须全部为小写字母，绝对禁止出现大写字母
+   - ❌ 错误示例: `org.jeecg.modules.ecommerce.Management` 
+   - ✅ 正确示例: `org.jeecg.modules.ecommerce.management`
+3. **表名完整性**: 表名必须包含 4 个部分，缺一不可
+4. **命名一致性**: 同一子模块下的所有表应该使用相同的包名结构
+5. **Java 规范**: 实体名必须符合 Java 驼峰命名规范
 
 ---
 
@@ -306,25 +472,29 @@
 7. **质量控制**: 生成代码必须符合 JeecgBoot 规范，通过语法和逻辑检查
 8. **无害化**: 不允许生成任何可能影响系统安全的代码或配置
 9. **确认机制**: 步骤 3 的需求确认与执行模式选择为必选环节，不可绕过
-10. **系统识别准确性**: 必须准确识别业务系统类型，特别是财务相关功能(发票、账单、付款等)必须识别为 finance 系统
-11. **核心变量一致性**: 一旦确定三核心变量，必须保持一致性，不允许在执行过程中被错误覆盖
-12. **标准化命名**: 严格遵循标准化变量命名(MODULE_NAME, ENTITY_NAME, PACKAGE_NAME)
-13. **推理过程透明**: 清晰展示从业务需求到核心变量的推理过程和决策依据
-14. **灵活性保持**: 基于用户的具体业务描述进行智能推理，避免机械套用固定模板
-15. **禁止读取现有代码**: 严禁使用 codebase-retrieval 或任何文件读取工具访问现有的项目代码文件
-16. **禁止跳过工作流程**: 必须严格按照步骤 0→ 步骤 1→ 步骤 2→ 步骤 3 的顺序执行
-17. **禁止访问不存在文档**: 只能引用项目根目录中实际存在的文档文件
-18. **强制数据字典获取**: 在执行任何需求分析之前，必须先调用 `python3 Code_Gen_Guide.py --dict` 获取最新数据字典
-19. **数据字典验证**: 必须验证 Code_Gen_DICT.json 文件存在且为最新版本
-20. **🔍 强制 JSON 验证**: 步骤 5 的临时 JSON 文件验证为强制环节，必须查阅 Code_Gen_Guide.md 确认参数要求
-21. **📋 文档依赖验证**: 在 JSON 验证过程中，必须查阅相关技术文档，确保配置文件完全符合脚本要求
-22. **🚫 验证失败处理**: 如果 JSON 文件验证失败，必须重新推理并重新生成，禁止跳过验证直接执行
-23. **✅ 验证通过确认**: 只有通过完整验证的 JSON 文件才能进入代码生成执行阶段
-24. **🚨 执行结果监控**: 步骤 6 必须监控脚本执行结果，检测"创建表单失败"、"操作失败"等错误
-25. **🔄 自动重试机制**: 检测到执行失败时，必须自动返回步骤 1 重新分析，最多重试 3 次
-26. **📊 错误分析**: 每次失败都必须分析具体原因（JSON 格式、字段缺失、API 兼容性等）
-27. **🛡️ 防护机制**: 特别防护 fields 数组为 null 的情况，确保 API 调用不会出现 NullPointerException
-28. **📝 失败日志**: 记录每次失败的详细信息，包括 JSON 内容、错误信息、重试次数等
+10. **🔴 强制五步算法**: 必须严格执行 BUSINESS_ENTITY_INFERENCE_ALGORITHM 五步推理算法，绝不允许跳过或简化
+11. **🔴 模块映射强制**: MODULE_NAME 必须从 [finance, hrms, crm, scm, oa] 中选择，禁止使用 customer/product/order 等非标准名称
+12. **🔴 语义化强制**: BUSINESS_ENTITY 必须是语义化名称（如CustomerProfile），禁止使用 info/management/data 等通用名称
+13. **系统识别准确性**: 必须准确识别业务系统类型，特别是财务相关功能(发票、账单、付款等)必须识别为 finance 系统  
+14. **核心变量一致性**: 一旦确定三核心变量，必须保持一致性，不允许在执行过程中被错误覆盖
+15. **标准化命名**: 严格遵循标准化变量命名(MODULE_NAME, BUSINESS_ENTITY, PACKAGE_NAME) - 已统一为BUSINESS_ENTITY概念
+    - **🚨 包名大小写强制约束**: MODULE_NAME和SUBMODULE_NAME必须全部为小写字母，绝对禁止出现大写字母
+16. **推理过程透明**: 清晰展示从业务需求到核心变量的推理过程和决策依据
+17. **灵活性保持**: 基于用户的具体业务描述进行智能推理，避免机械套用固定模板
+18. **禁止读取现有代码**: 严禁使用 codebase-retrieval 或任何文件读取工具访问现有的项目代码文件
+19. **禁止跳过工作流程**: 必须严格按照步骤 0→ 步骤 1→ 步骤 2→ 步骤 3 的顺序执行
+20. **禁止访问不存在文档**: 只能引用项目根目录中实际存在的文档文件
+21. **强制数据字典获取**: 在执行任何需求分析之前，必须先调用 `python3 Code_Gen_Guide.py --dict` 获取最新数据字典
+22. **数据字典验证**: 必须验证 Code_Gen_DICT.json 文件存在且为最新版本
+23. **🔍 强制 JSON 验证**: 步骤 5 的临时 JSON 文件验证为强制环节，必须查阅 Code_Gen_Guide.md 确认参数要求
+24. **📋 文档依赖验证**: 在 JSON 验证过程中，必须查阅相关技术文档，确保配置文件完全符合脚本要求
+25. **🚫 验证失败处理**: 如果 JSON 文件验证失败，必须重新推理并重新生成，禁止跳过验证直接执行
+26. **✅ 验证通过确认**: 只有通过完整验证的 JSON 文件才能进入代码生成执行阶段
+27. **🚨 执行结果监控**: 步骤 6 必须监控脚本执行结果，检测"创建表单失败"、"操作失败"等错误
+28. **🔄 自动重试机制**: 检测到执行失败时，必须自动返回步骤 1 重新分析，最多重试 3 次
+29. **📊 错误分析**: 每次失败都必须分析具体原因（JSON 格式、字段缺失、API 兼容性等）
+30. **🛡️ 防护机制**: 特别防护 fields 数组为 null 的情况，确保 API 调用不会出现 NullPointerException
+31. **📝 失败日志**: 记录每次失败的详细信息，包括 JSON 内容、错误信息、重试次数等
 
 ---
 
@@ -357,16 +527,55 @@ python3 Code_Gen_Guide.py --dict
 
 ---
 
-### **步骤 1：智能需求分析**
+### **步骤 1：智能需求分析（基于五步推理算法）**
 
 **前置条件**: 步骤 0 必须成功完成
 
-基于用户需求和获取的数据字典进行智能分析：
+**🎯 核心原则**: 必须严格执行 BUSINESS_ENTITY_INFERENCE_ALGORITHM 五步推理算法，生成语义化实体名称
 
-1. **业务需求理解**：分析用户描述的业务场景
-2. **核心变量提取**：提取 MODULE_NAME、SUBMODULE_NAME、ENTITY_NAME
-3. **字段需求分析**：理解用户需要的业务字段
-4. **数据字典智能匹配**：将业务字段与数据字典进行语义匹配
+**分析流程**：
+
+1. **业务需求理解**：深度分析用户描述的业务场景和功能需求
+2. **五步推理算法执行**：
+   - **第一步：业务层次分析** - 识别主体实体（客户/产品/订单等）
+   - **第二步：语义特征提取** - 识别功能特征（档案/目录/单据等）
+   - **第三步：领域前缀映射** - 将业务领域映射为英文前缀（Customer/Product等）
+   - **第四步：特征后缀映射** - 将实体特征映射为英文后缀（Profile/Catalog等）
+   - **第五步：智能组合生成** - 生成语义化BUSINESS_ENTITY（如CustomerProfile）
+3. **三核心变量推理**：基于BUSINESS_ENTITY推理 MODULE_NAME、SUBMODULE_NAME
+4. **字段需求分析**：理解用户需要的业务字段
+5. **数据字典智能匹配**：将业务字段与数据字典进行语义匹配
+
+**⚠️ 强制要求**: 绝对禁止生成通用化实体名称（如"info"、"management"、"data"），必须生成具备明确业务语义的实体名称！
+
+**🎯 五步推理算法正确示例**：
+
+| 用户需求 | 步骤1<br/>业务层次 | 步骤2<br/>语义特征 | 步骤3<br/>领域前缀 | 步骤4<br/>特征后缀 | 步骤5<br/>智能组合 | MODULE_NAME | SUBMODULE_NAME | BUSINESS_ENTITY |
+|---------|------------|------------|------------|------------|------------|-------------|---------------|-----------------|
+| 客户基础信息维护 | 客户(主体实体) | 基础信息(档案特征) | Customer | Profile | CustomerProfile | crm | customer | CustomerProfile |
+| 产品目录管理 | 产品(主体实体) | 目录(分类管理) | Product | Catalog | ProductCatalog | scm | product | ProductCatalog |  
+| 订单基础信息维护 | 订单(主体实体) | 基础信息(单据头) | Order | Header | OrderHeader | scm | order | OrderHeader |
+| 客户明细信息维护 | 客户(主体实体) | 明细信息(详细记录) | Customer | Detail | CustomerDetail | crm | customer | CustomerDetail |
+| 产品明细信息维护 | 产品(主体实体) | 明细信息(详细规格) | Product | Specification | ProductSpecification | scm | product | ProductSpecification |
+| 订单明细信息维护 | 订单(主体实体) | 明细信息(条目详情) | Order | Detail | OrderDetail | scm | order | OrderDetail |
+
+**❌ 错误推理对比（用户原始错误结果）**：
+```yaml
+# 错误示例 - 绝对禁止此类推理！
+客户基础信息维护:
+  MODULE_NAME: customer      # ❌ 应该是 crm
+  SUBMODULE_NAME: basic      # ❌ 应该是 customer  
+  BUSINESS_ENTITY: info      # ❌ 应该是 CustomerProfile
+```
+
+**✅ 正确推理要求**：
+```yaml  
+# 正确示例 - 必须遵循此类推理！
+客户基础信息维护:
+  MODULE_NAME: crm           # ✅ 标准业务系统
+  SUBMODULE_NAME: customer   # ✅ 具体功能模块
+  BUSINESS_ENTITY: CustomerProfile  # ✅ 语义化实体名称
+```
 
    **匹配算法**：
 
@@ -403,19 +612,34 @@ python3 Code_Gen_Guide.py --dict
 3. **添加业务字段**：基于 Code_Gen_field_templates.json 添加字段配置
 4. **应用数据字典匹配**：为匹配的字段设置 dictField 属性
 
-**配置文件结构**：
+**配置文件结构 (重构版)**：
 
 ```json
 {
   "head": {
-    "tableName": "us_hrms_teacher_info",
-    "tableTxt": "教师信息管理表",
+    "tableName": "us_hrms_teacher_employee_profile",
+    "tableTxt": "员工档案管理表",
+    "business_entity": "EmployeeProfile",
     "tableType": "1",
     "idType": "UUID",
     "isCheckbox": "Y",
     "isDbSynch": "Y",
     "isPage": "Y",
     "isTree": "N"
+  },
+  "metadata": {
+    "generation_info": {
+      "module_name": "hrms",
+      "submodule_name": "teacher",
+      "business_entity": "EmployeeProfile",
+      "inference_strategy": "Employee(领域前缀) + Profile(特征后缀)",
+      "semantic_analysis": "人力资源管理业务域的员工档案管理功能"
+    },
+    "derived_formats": {
+      "table_suffix": "employee_profile",
+      "url_path": "employee-profile",
+      "frontend_path": "employee/profile"
+    }
   },
   "fields": [
     // 系统字段 (orderNum 1-7)
@@ -431,8 +655,8 @@ python3 Code_Gen_Guide.py --dict
     // 业务字段 (orderNum 8+)
     {
       "orderNum": 8,
-      "dbFieldName": "teacher_name",
-      "dbFieldTxt": "教师姓名",
+      "dbFieldName": "employee_name",
+      "dbFieldTxt": "员工姓名",
       "dbType": "string",
       "dbLength": 50,
       "fieldShowType": "text",
@@ -468,8 +692,13 @@ python3 Code_Gen_Guide.py --dict
 **执行命令**：
 
 ```bash
-python3 Code_Gen_Guide.py --module-name {MODULE_NAME} --form-config temp_{ENTITY_NAME}_config.json
+python3 Code_Gen_Guide.py --module-name {MODULE_NAME} --form-config temp_{BUSINESS_ENTITY}_config.json
 ```
+
+**⚠️ 参数说明**:
+- `{MODULE_NAME}`: 第一步推理得出的模块名称
+- `{BUSINESS_ENTITY}`: 五步算法生成的语义化实体名称（如CustomerProfile）
+- 配置文件命名: `temp_CustomerProfile_config.json`（而非通用的temp_info_config.json）
 
 **⚠️ 严格约束**：
 
@@ -484,19 +713,21 @@ python3 Code_Gen_Guide.py --module-name {MODULE_NAME} --form-config temp_{ENTITY
 
 **参数传递**：
 
-| 参数名称        | 来源                      | 示例值                     | 说明             |
-| --------------- | ------------------------- | -------------------------- | ---------------- |
-| `--module-name` | 步骤 1 提取的 MODULE_NAME | `hrms`                     | 目标模块名称     |
-| `--form-config` | 步骤 2 生成的配置文件     | `temp_teacher_config.json` | 临时配置文件路径 |
+| 参数名称        | 来源                         | 示例值                            | 说明                      |
+| --------------- | ---------------------------- | --------------------------------- | ------------------------- |
+| `--module-name` | 步骤 1 推理的 MODULE_NAME    | `hrms`                            | 目标模块名称              |
+| `--form-config` | 步骤 2 生成的配置文件        | `temp_EmployeeProfile_config.json`| 基于BUSINESS_ENTITY命名的配置文件 |
 
 **核心变量**：
 
 ```yaml
 PROJECT_PATH_PREFIX: "从Code_Gen_Config.json读取project.path_prefix"
 PROJECT_PATH: "{PREFIX}/jeecg-boot/jeecg-boot-module/jeecg-module-{MODULE_NAME}"
-ENTITY_NAME: "{ENTITY_NAME}"
-PACKAGE_NAME: "org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
+BUSINESS_ENTITY: "{BUSINESS_ENTITY}"  # 重构后的统一实体概念
+PACKAGE_NAME: "org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}" # MODULE_NAME和SUBMODULE_NAME必须全部小写
 ```
+
+**重要说明**: 已统一使用 BUSINESS_ENTITY 概念，替代原有的 ENTITY_NAME，确保语义化实体命名。
 
 **执行流程**：
 
@@ -517,7 +748,7 @@ PACKAGE_NAME: "org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
 ## Variables
 
 ```yaml
-# 核心变量定义 - Code_Gen_Guide.py脚本的严格输入要求
+# 核心变量定义 (重构版) - 统一为BUSINESS_ENTITY概念
 CORE_VARIABLES:
   # 第一层：模块名/系统名称 - 对应业务系统类型
   MODULE_NAME:
@@ -526,7 +757,6 @@ CORE_VARIABLES:
     format: "lowercase_english_word"
     validation: "in_allowed_list"
     extraction_method: "KEYWORD_ANALYSIS + CONTEXT_REASONING"
-    priority_matching: "基于BUSINESS_SYSTEM_KEYWORDS优先级进行智能匹配"
     source: "BUSINESS_DOMAIN_ANALYSIS"
     table_name_segment: 1
 
@@ -536,28 +766,29 @@ CORE_VARIABLES:
     format: "lowercase_english_word"
     validation: "^[a-z][a-z0-9_]*$"
     extraction_method: "FUNCTIONAL_DOMAIN_EXTRACTION"
-    requirements: "单一英文词汇，遵循行业最佳实践，避免下划线或驼峰命名"
+    requirements: "单一英文词汇，遵循行业最佳实践，避免下划线"
     source: "FUNCTIONAL_ANALYSIS"
     table_name_segment: 2
 
-  # 第三层：业务场景/实体名称 - 对应具体业务实体
-  ENTITY_NAME:
-    description: "具体业务实体或场景，必须识别业务操作的核心对象或场景"
-    format: "lowercase_for_table_camelcase_for_java"
-    validation: "^[a-z][a-z0-9_]*$"
-    extraction_method: "BUSINESS_OBJECT_IDENTIFICATION"
-    requirements: "体现业务场景的核心操作或数据特征，与子模块名形成合理业务逻辑关系"
-    java_format: "PascalCase"
-    source: "BUSINESS_SCENARIO_EXTRACTION"
-    table_name_segment: 3
+  # 第三层：业务实体语义标识符 - 唯一核心概念
+  BUSINESS_ENTITY:
+    description: "业务实体的语义化标识符，作为所有格式转换的单一源头"
+    format: "PascalCase"
+    validation: "^[A-Z][a-zA-Z0-9]*$"
+    naming_strategy: "业务领域前缀 + 实体特征后缀"
+    examples: ["CustomerProfile", "ProductCatalog", "OrderHeader"]
+    extraction_method: "FIVE_STEP_INFERENCE_ALGORITHM"
+    source: "INTELLIGENT_SEMANTIC_ANALYSIS"
+    note: "替代原ENTITY_NAME和JAVA_ENTITY_NAME，统一概念"
 
 # 派生变量 - 由核心变量计算得出
 DERIVED_VARIABLES:
   # 表名 - 由三个核心变量组合而成
   TABLE_NAME:
-    format: "us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}"
-    validation: "^us_[a-z]+_[a-z]+_[a-z]+$"
-    example: "us_finance_invoice_management"
+    format: "us_{MODULE_NAME}_{SUBMODULE_NAME}_{TABLE_SUFFIX}"
+    where: "TABLE_SUFFIX = pascal_to_snake_case(BUSINESS_ENTITY)"
+    validation: "^us_[a-z]+_[a-z]+_[a-z_]+$"
+    example: "us_finance_invoice_customer_profile"
     source: "CORE_VARIABLES_COMBINATION"
 
   # 包名 - 由模块名和子模块名组合而成
@@ -567,19 +798,122 @@ DERIVED_VARIABLES:
     example: "org.jeecg.modules.finance.invoice"
     source: "CORE_VARIABLES_COMBINATION"
 
-  # Java实体名 - 由业务场景转换而成
-  JAVA_ENTITY_NAME:
-    format: "PascalCase"
-    validation: "^[A-Z][a-zA-Z0-9]*$"
-    example: "Management"
-    source: "ENTITY_NAME_TRANSFORMATION"
-
   # 项目路径 - 由配置和模块名组合而成
   PROJECT_PATH:
     format: "{PROJECT_PATH_PREFIX}/jeecg-boot/jeecg-boot-module/jeecg-module-{MODULE_NAME}"
     example: "{PROJECT_PATH_PREFIX}/jeecg-boot/jeecg-boot-module/jeecg-module-{MODULE_NAME}"
     source: "CONFIG_AND_MODULE_COMBINATION"
     note: "此路径仅用于脚本执行时的目标目录，AI推理阶段不应访问此路径"
+
+# BUSINESS_ENTITY五步智能推理算法 (核心)
+BUSINESS_ENTITY_INFERENCE_ALGORITHM:
+  description: "智能推理用户需求中的核心业务实体，生成语义化标识符"
+  
+  # 第一步：业务层次分析
+  step1_business_hierarchy_analysis:
+    description: "识别业务实体的层次级别和主从关系"
+    primary_level: 
+      keywords: ["客户", "产品", "订单", "员工", "供应商", "合同", "发票"]
+      characteristics: ["主体实体", "独立存在", "业务核心"]
+      domain_prefixes: 
+        客户: "Customer"
+        产品: "Product"
+        订单: "Order"
+        员工: "Employee"
+        供应商: "Supplier"
+        合同: "Contract"
+        发票: "Invoice"
+    secondary_level:
+      keywords: ["发票", "合同", "采购", "销售", "库存", "报表"]
+      characteristics: ["业务流程", "功能模块", "二级实体"]
+    item_level:
+      keywords: ["明细", "条目", "记录", "项目", "行"]
+      characteristics: ["明细数据", "从属关系", "列表项"]
+      
+  # 第二步：语义特征提取
+  step2_semantic_feature_extraction:
+    description: "从业务需求中提取实体的功能特征"
+    entity_features:
+      档案类:
+        keywords: ["基础信息", "档案", "资料", "信息", "主表", "概要"]
+        suffix: "Profile"
+        semantics: "基础档案信息管理"
+      目录类:
+        keywords: ["目录", "清单", "列表", "库存", "分类"]
+        suffix: "Catalog" 
+        semantics: "分类目录管理"
+      单据类:
+        keywords: ["订单", "发票", "合同", "申请", "单据"]
+        suffix: "Header"
+        semantics: "单据头信息管理"
+      明细类:
+        keywords: ["明细", "详情", "条目", "子项", "行项目"]
+        suffix: "Detail"
+        semantics: "明细条目管理"
+      规格类:
+        keywords: ["规格", "参数", "属性", "配置", "设置"]
+        suffix: "Specification"
+        semantics: "规格参数管理"
+      条目类:
+        keywords: ["项目", "条目", "记录", "元素"]
+        suffix: "Item"
+        semantics: "条目记录管理"
+        
+  # 第三步：领域前缀映射
+  step3_domain_prefix_mapping:
+    description: "将业务领域映射为标准的英文前缀"
+    business_domains:
+      customer: "Customer"
+      product: "Product"
+      order: "Order"
+      employee: "Employee"
+      supplier: "Supplier"
+      contract: "Contract"
+      invoice: "Invoice"
+      inventory: "Inventory"
+      finance: "Finance"
+      report: "Report"
+      
+  # 第四步：特征后缀映射  
+  step4_semantic_suffix_mapping:
+    description: "将实体特征映射为标准的英文后缀"
+    semantic_suffixes:
+      profile: "Profile"     # 档案、资料
+      catalog: "Catalog"     # 目录、清单
+      header: "Header"       # 主表、单据头
+      detail: "Detail"       # 明细、详情
+      specification: "Specification"  # 规格、参数
+      item: "Item"           # 条目、项目
+      record: "Record"       # 记录、日志
+      config: "Config"       # 配置、设置
+      
+  # 第五步：智能组合生成
+  step5_intelligent_combination:
+    description: "基于语义分析结果智能组合生成BUSINESS_ENTITY"
+    combination_pattern: "{domain_prefix}{feature_suffix}"
+    validation_rules:
+      - "必须符合PascalCase命名规范"
+      - "领域前缀必须明确体现业务特征"
+      - "特征后缀必须准确反映实体功能"
+      - "避免过于通用的组合(如Profile、Detail)"
+      - "确保在业务上下文中语义唯一"
+    examples:
+      "客户基础信息维护": 
+        analysis: "客户(Customer) + 基础信息(Profile)"
+        result: "CustomerProfile"
+      "产品目录管理":
+        analysis: "产品(Product) + 目录(Catalog)" 
+        result: "ProductCatalog"
+      "订单主表信息":
+        analysis: "订单(Order) + 主表(Header)"
+        result: "OrderHeader"
+      "员工培训记录":
+        analysis: "员工(Employee) + 培训(Training)"
+        result: "EmployeeTraining"
+    quality_scoring:
+      excellent: "具备明确业务领域 + 精确实体特征"
+      good: "包含业务领域 + 通用实体特征"
+      poor: "缺乏业务领域特征或过于通用"
 
 # 业务参数 - 用于代码生成的其他必要参数
 BUSINESS_PARAMS:
@@ -596,6 +930,168 @@ BUSINESS_PARAMS:
     format: "[{name,type,desc,required}]"
     example: "[{name:'invoice_no',type:'text_field',desc:'发票编号',required:true}]"
     source: "FIELD_ANALYSIS_RESULT"
+
+# 🔥 差异化命名策略定义 (增强版)
+DIFFERENTIATION_STRATEGY:
+  core_principle: "基于业务实体特征和数据层次进行精细化差异化命名，避免抽象化"
+  
+  # 增强语义理解规则
+  semantic_enhancement_rules:
+    # 主从关系识别模式
+    master_detail_patterns:
+      master_keywords: ["基础", "主表", "基本", "总体", "概览", "主要", "核心"]
+      detail_keywords: ["明细", "详情", "子表", "条目", "扩展", "规格", "属性", "细节"]
+      
+    # 业务层次语义分析
+    business_hierarchy:
+      primary_level: 
+        patterns: ["基础信息", "主表信息", "概要信息", "核心信息"]
+        entity_suffix: ["profile", "catalog", "header", "master"]
+      secondary_level: 
+        patterns: ["详细信息", "明细信息", "扩展信息", "补充信息"]
+        entity_suffix: ["detail", "specification", "extension", "supplement"]
+      item_level: 
+        patterns: ["条目信息", "行项目", "子项", "明细行"]
+        entity_suffix: ["item", "line", "entry", "row"]
+        
+    # 业务关系语义识别
+    relationship_analysis:
+      one_to_one: ["档案", "资料", "配置", "设置"]
+      one_to_many: ["明细", "条目", "项目", "列表"]
+      reference: ["字典", "码表", "配置", "参数"]
+  
+  # 精细化映射策略 (基于6个测试场景优化 + Java类名增强)
+  enhanced_mappings:
+    # 客户相关业务场景
+    customer_scenarios:
+      basic_maintenance:
+        keywords: ["客户基础信息维护", "客户主表", "客户档案", "客户基本信息"]
+        recommended_entity: "profile"
+        business_semantics: "客户档案管理"
+        frontend_directory: "/views/customer/"
+        table_suffix: "profile"
+        java_class_name: "CustomerProfile"
+        class_naming_logic: "Customer(业务领域) + Profile(档案特征)"
+        reasoning: "体现客户基础档案特征，区别于详细信息"
+      detail_maintenance:
+        keywords: ["客户明细信息维护", "客户详情", "客户扩展信息", "客户补充资料"]
+        recommended_entity: "detail"
+        business_semantics: "客户详细资料管理"
+        frontend_directory: "/views/customer/"
+        table_suffix: "detail"
+        java_class_name: "CustomerDetail"
+        class_naming_logic: "Customer(业务领域) + Detail(详情特征)"
+        reasoning: "体现客户扩展详情特征，补充基础档案"
+        
+    # 产品相关业务场景  
+    product_scenarios:
+      basic_maintenance:
+        keywords: ["产品基础信息维护", "产品主表", "产品目录", "产品基本信息"]
+        recommended_entity: "catalog"
+        business_semantics: "产品目录管理"
+        frontend_directory: "/views/product/"
+        table_suffix: "catalog"
+        java_class_name: "ProductCatalog"
+        class_naming_logic: "Product(业务领域) + Catalog(目录特征)"
+        reasoning: "体现产品目录特征，强调产品分类管理"
+      detail_maintenance:
+        keywords: ["产品详情信息维护", "产品规格", "产品属性", "产品详细参数"]
+        recommended_entity: "specification"
+        business_semantics: "产品规格管理"
+        frontend_directory: "/views/product/"
+        table_suffix: "specification"
+        java_class_name: "ProductSpecification"
+        class_naming_logic: "Product(业务领域) + Specification(规格特征)"
+        reasoning: "体现产品技术规格特征，详细属性管理"
+      
+    # 订单相关业务场景
+    order_scenarios:
+      basic_maintenance:
+        keywords: ["订单基础信息维护", "订单主表", "订单头", "订单基本信息"]
+        recommended_entity: "header"
+        business_semantics: "订单头信息管理"
+        frontend_directory: "/views/order/"
+        table_suffix: "header"
+        java_class_name: "OrderHeader"
+        class_naming_logic: "Order(业务领域) + Header(头部特征)"
+        reasoning: "体现订单头特征，区别于订单明细行"
+      item_maintenance:
+        keywords: ["订单条目信息维护", "订单明细", "订单行项目", "订单商品明细"]
+        recommended_entity: "item"
+        business_semantics: "订单明细管理"
+        frontend_directory: "/views/order/"
+        table_suffix: "item"
+        java_class_name: "OrderItem"
+        class_naming_logic: "Order(业务领域) + Item(条目特征)"
+        reasoning: "体现订单行项目特征，明细商品管理"
+        
+    # 智能推理算法增强 (含Java类名推理)
+    intelligent_inference:
+      context_analysis:
+        - "分析业务需求中的层次关系关键词"
+        - "识别主从表关系和数据依赖"
+        - "理解业务场景的功能定位"
+        - "评估实体间的关联关系"
+        - "🔥 提取业务领域特征用于Java类名构建"
+      
+      semantic_matching:
+        priority_rules:
+          1: "精确匹配业务场景关键词组合"
+          2: "语义相似度分析和上下文推理"
+          3: "业务层次结构分析"
+          4: "实体关系模式识别"
+          5: "行业最佳实践参考"
+          6: "🔥 Java类名语义强化验证"
+          
+      confidence_scoring:
+        high_confidence: "语义匹配度 >= 90%，关键词完全吻合，Java类名具备领域特征"
+        medium_confidence: "语义匹配度 70-89%，关键词部分吻合，Java类名相对通用"
+        low_confidence: "语义匹配度 < 70%，需要用户确认，Java类名过于通用"
+        
+      # 🔥 Java类名推理增强算法
+      java_class_naming_algorithm:
+        step1_domain_extraction:
+          description: "从SUBMODULE_NAME提取业务领域前缀"
+          mapping_rules:
+            customer: "Customer"
+            product: "Product"
+            order: "Order"
+            employee: "Employee"
+            supplier: "Supplier"
+            inventory: "Inventory"
+            finance: "Finance"
+          
+        step2_feature_suffix:
+          description: "基于ENTITY_NAME确定特征后缀"
+          mapping_rules:
+            profile: "Profile"
+            detail: "Detail"  
+            catalog: "Catalog"
+            specification: "Specification"
+            header: "Header"
+            item: "Item"
+            record: "Record"
+            
+        step3_semantic_validation:
+          description: "验证类名语义强度和业务特征"
+          validation_criteria:
+            - "类名必须包含明确的业务领域前缀"
+            - "类名必须体现具体的实体特征"
+            - "避免过于通用的命名（如Profile、Detail等）"
+            - "确保类名在业务上下文中具有唯一性"
+            
+        step4_best_practice_check:
+          description: "对照行业最佳实践进行验证"
+          best_practices:
+            - "使用PascalCase命名规范"
+            - "领域驱动设计(DDD)命名原则"
+            - "类名长度控制在2-4个单词"
+            - "避免缩写和数字"
+          
+        naming_quality_metrics:
+          excellent: "具备明确业务领域 + 精确实体特征 (如CustomerProfile)"
+          good: "包含业务领域 + 通用实体特征 (如CustomerDetail)"
+          poor: "缺乏业务领域特征 (如Profile、Detail等)"
 
 # 字段类型智能推理策略
 FIELD_TYPE_INFERENCE:
@@ -990,27 +1486,46 @@ python3 Code_Gen_Guide.py --dict
 - 确认 Code_Gen_DICT.json 文件已更新
 - 确认控制台显示"数据字典获取完成"
 
-### 步骤 1: 业务需求分析与三核心变量提取
+### 步骤 1: 业务需求分析与智能实体推理 (重构版)
 
 ```
 📝 Input: <用户业务描述> + <已获取的数据字典>
-🔍 Process:
+🔍 Process: 强制执行BUSINESS_ENTITY_INFERENCE_ALGORITHM五步推理算法
+
   1.1 数据字典验证 → 确认Code_Gen_DICT.json文件存在且有效
-  1.2 关键词提取 → 识别业务领域和核心概念
-  1.3 业务系统识别 → 基于语义分析确定MODULE_NAME
-      - 分析业务需求的核心语义和功能特征
-      - 评估业务流程与各系统语义域的匹配度
-      - 优先映射到核心业务系统(finance/hrms/crm/scm/oa)
-      - 财务相关业务(发票、付款等)优先识别为finance系统
-  1.4 子模块分析 → 从功能描述中提取SUBMODULE_NAME
-      - 基于业务功能领域进行推理(invoice, payment, employee, customer等)
-      - 使用单一英文词汇，遵循行业最佳实践
-  1.5 实体场景确定 → 从业务对象中识别ENTITY_NAME
-      - 基于具体业务操作或数据实体进行推理(management, info, record等)
-      - 体现业务场景的核心操作或数据特征
-  1.6 表名生成 → 按照us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}格式组合
-  1.7 字段识别 → 分析并列举所需数据字段及其业务含义
-📤 Output: 包含三核心变量的标准化业务需求分析报告
+  
+  1.2 第一步：业务层次分析
+      - 识别业务实体层次级别：primary_level(客户/产品/订单) vs secondary_level vs item_level
+      - 提取领域关键词：分析"客户基础信息维护"中的"客户"→Customer域前缀
+      - 确定MODULE_NAME：基于业务域映射到标准模块(finance/hrms/crm/scm/oa)
+      
+  1.3 第二步：语义特征提取  
+      - 识别实体功能特征：分析"基础信息维护"中的功能特征
+      - 分类实体类型：档案类(Profile) vs 目录类(Catalog) vs 单据类(Header) vs 明细类(Detail)
+      - 确定SUBMODULE_NAME：基于具体业务功能域(customer/product/order等)
+      
+  1.4 第三步：领域前缀映射
+      - 业务域识别：客户→Customer, 产品→Product, 订单→Order
+      - 确定领域前缀：Customer/Product/Order/Employee/Supplier等
+      
+  1.5 第四步：特征后缀映射
+      - 功能特征映射：基础信息→Profile, 目录→Catalog, 主表→Header, 明细→Detail
+      - 确定实体后缀：Profile/Catalog/Header/Detail/Specification/Item等
+      
+  1.6 第五步：智能组合生成BUSINESS_ENTITY
+      - 语义组合：领域前缀 + 特征后缀 = BUSINESS_ENTITY
+      - 示例生成：Customer + Profile = CustomerProfile
+      - 质量验证：确保符合PascalCase规范且语义明确
+      
+  1.7 派生变量计算
+      - TABLE_NAME: us_{MODULE_NAME}_{SUBMODULE_NAME}_{pascal_to_snake_case(BUSINESS_ENTITY)}
+      - PACKAGE_NAME: org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME} (MODULE_NAME和SUBMODULE_NAME必须全部小写)
+      
+  1.8 字段识别 → 分析并列举所需数据字段及其业务含义
+  
+📤 Output: 包含BUSINESS_ENTITY的标准化业务需求分析报告
+
+⚡ 关键变化：从通用的"info"实体名转变为语义化的"CustomerProfile"实体名
 ```
 
 ### 步骤 2: 数据结构设计与建模
@@ -1294,7 +1809,7 @@ python3 Code_Gen_Guide.py --dict
 
 - **标准表名**: `{TABLE_NAME}` (us*{MODULE_NAME}*{SUBMODULE*NAME}*{ENTITY_NAME})
 - **Java 实体名**: {JAVA_ENTITY_NAME}
-- **包名**: {PACKAGE_NAME} (org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME})
+- **包名**: {PACKAGE_NAME} (org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}) (**MODULE_NAME和SUBMODULE_NAME必须全部小写**)
 - **项目路径**: {PROJECT_PATH}
 
 ### 🔍 字段设计详情
@@ -1329,7 +1844,7 @@ python3 Code_Gen_Guide.py --dict
 | 派生变量         | 推理值               | 计算公式                                         | 验证状态                         |
 | ---------------- | -------------------- | ------------------------------------------------ | -------------------------------- |
 | TABLE_NAME       | `{TABLE_NAME}`       | us*{MODULE_NAME}*{SUBMODULE*NAME}*{ENTITY_NAME}  | {table_validation_status}        |
-| PACKAGE_NAME     | `{PACKAGE_NAME}`     | org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME} | {package_validation_status}      |
+| PACKAGE_NAME     | `{PACKAGE_NAME}`     | org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME} (全部小写) | {package_validation_status}      |
 | JAVA_ENTITY_NAME | `{JAVA_ENTITY_NAME}` | PascalCase({ENTITY_NAME})                        | {java_entity_validation_status}  |
 | PROJECT_PATH     | `{PROJECT_PATH}`     | {PREFIX}/jeecg-module-{MODULE_NAME}              | {project_path_validation_status} |
 

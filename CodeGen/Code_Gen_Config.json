@@ -20,7 +20,7 @@
   },
   "codegen": {
     "project_path": "{{PROJECT_PATH}}",
-    "entity_name": "{{ENTITY_NAME}}",
+    "entity_name": "{{BUSINESS_ENTITY}}",
     "jsp_mode": "one",
     "jform_type": "1",
     "package_style": "service",

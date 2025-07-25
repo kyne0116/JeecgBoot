@@ -1,32 +1,53 @@
-# JeecgBoot 代码生成系统 - 三核心变量规范
+# JeecgBoot 代码生成系统 - 核心变量规范 (重构版)
 
-> **文档定位**: 代码生成系统三核心变量的定义、使用规范和最佳实践  
-> **配合文档**: Code_Gen_Agent.md (AI 提示词文档), Code_Gen_Guide.md (技术实现指南)
+> **文档定位**: 代码生成系统核心变量的定义、使用规范和最佳实践  
+> **配合文档**: Code_Gen_Agent.md (AI 提示词文档), Code_Gen_Guide.md (技术实现指南)  
+> **重构版本**: 统一为BUSINESS_ENTITY概念，消除概念重复
 
 ---
 
-## 📋 三核心变量概述
+## 📋 三核心变量概述 (统一后)
 
-JeecgBoot 代码生成系统基于三个核心变量构建，这三个变量共同决定了生成代码的结构、命名和组织方式。理解和正确使用这三个变量是高效使用代码生成系统的关键。
+JeecgBoot 代码生成系统基于三个核心变量构建，统一概念后更加清晰和高效。
 
 ### 🎯 三核心变量定义
 
-| 变量层级 | 变量名称           | 中文名称          | 定义                                       | 示例                         |
-| -------- | ------------------ | ----------------- | ------------------------------------------ | ---------------------------- |
-| 第一层   | **MODULE_NAME**    | 模块名/系统名称   | 表示一级业务领域，对应业务系统类型         | finance, hrms, crm           |
-| 第二层   | **SUBMODULE_NAME** | 子模块名/系统模块 | 表示二级业务领域，对应业务系统内的功能模块 | invoice, payment, employee   |
-| 第三层   | **ENTITY_NAME**    | 业务场景/实体名称 | 表示操作对象，对应具体业务实体             | management, processing, info |
+| 变量层级 | 变量名称 | 中文名称 | 定义 | 格式 | 示例 |
+|---------|----------|------|------|------|------|
+| 第一层 | **MODULE_NAME** | 业务系统模块名称 | 表示一级业务领域，对应业务系统类型 | lowercase | finance, hrms, crm |
+| 第二层 | **SUBMODULE_NAME** | 系统内功能子模块 | 表示二级业务领域，对应业务系统内的功能模块 | lowercase | invoice, employee, customer |
+| 第三层 | **BUSINESS_ENTITY** | 业务实体语义标识符 | 业务实体的语义化标识符，作为所有格式转换的单一源头 | PascalCase | CustomerProfile, ProductCatalog |
 
-### 📊 派生变量关系
-
-三核心变量会派生出多个关键变量，用于代码生成过程：
+### 📊 核心变量关系
 
 ```
-MODULE_NAME + SUBMODULE_NAME + ENTITY_NAME → TABLE_NAME
-                                           → PACKAGE_NAME
-                                           → JAVA_ENTITY_NAME
-                                           → PROJECT_PATH
+MODULE_NAME + SUBMODULE_NAME + BUSINESS_ENTITY → TABLE_NAME
+                                               → PACKAGE_NAME
 ```
+
+## 🔄 格式转换规则
+
+**唯一核心概念**: BUSINESS_ENTITY = "CustomerProfile" (PascalCase, 推理源头)
+
+**派生格式** (机械转换):
+- **TABLE_SUFFIX**: customer_profile (snake_case转换)
+- **URL_PATH**: customer-profile (kebab-case转换)
+- **FRONTEND_PATH**: customer/profile (路径分割转换)
+- **FILE_NAME**: customerProfile (camelCase转换)
+
+**直接使用场景**:
+- **Java类名**: 直接使用BUSINESS_ENTITY值，无需转换
+- **配置传递**: entity_name参数直接使用BUSINESS_ENTITY
+- **代码生成**: JeecgBoot API接收BUSINESS_ENTITY作为实体名
+
+## 📋 推理策略
+
+**BUSINESS_ENTITY 智能推理**:
+1. **业务层次分析**: 识别主体 (客户/产品/订单)
+2. **语义特征提取**: 识别功能 (档案/目录/订单)  
+3. **领域前缀映射**: 客户 → Customer
+4. **特征后缀映射**: 档案 → Profile
+5. **智能组合生成**: Customer + Profile = CustomerProfile
 
 ## 🔍 三核心变量详解
 
@@ -101,48 +122,60 @@ MODULE_NAME = "finance"
 SUBMODULE_NAME = "invoice"
 ```
 
-### 3. ENTITY_NAME (业务场景/实体名称)
+### 3. BUSINESS_ENTITY (业务实体语义标识符) - 重构后统一概念
 
-**定义**: 表示操作对象，对应具体业务实体。
+**定义**: 业务实体的语义化标识符，作为所有格式转换的单一源头，替代原有的ENTITY_NAME概念。
 
 **格式要求**:
 
-- 小写英文单词
-- 表名中使用小写形式
-- Java 实体使用 PascalCase 形式
+- PascalCase 命名规范
+- 必须是语义化的业务实体名称
+- 禁止使用通用化名称 (如info、management、data等)
 
-**命名建议**:
+**命名策略**:
 
-- 使用单个英文单词
-- 表示具体业务对象
-- 避免使用过于抽象的词汇
+- 业务领域前缀 + 实体特征后缀
+- 体现明确的业务语义
+- 遵循五步推理算法生成
 
 **用途**:
 
-- 构成表名的第三部分
-- 转换为 Java 实体名
-- 决定前端路由和组件名
+- 构成表名的第三部分 (转换为snake_case)
+- 直接作为Java实体名使用
+- 生成前端路由和组件名
+- 配置文件中的entity_name参数值
 
-**示例**:
+**正确示例**:
 
 ```
-ENTITY_NAME = "management"
-JAVA_ENTITY_NAME = "Management"
+BUSINESS_ENTITY = "CustomerProfile"    # ✅ 语义化实体名称
+BUSINESS_ENTITY = "ProductCatalog"     # ✅ 业务前缀+特征后缀
+BUSINESS_ENTITY = "OrderHeader"        # ✅ 明确业务含义
+```
+
+**错误示例 (严禁使用)**:
+
+```
+BUSINESS_ENTITY = "info"               # ❌ 通用化名称
+BUSINESS_ENTITY = "management"         # ❌ 过于抽象
+BUSINESS_ENTITY = "data"               # ❌ 无业务语义
 ```
 
 ## 🔄 派生变量计算规则
 
 ### TABLE_NAME (表名)
 
-**计算公式**: `us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}`
+**计算公式**: `us_{MODULE_NAME}_{SUBMODULE_NAME}_{TABLE_SUFFIX}`
+**其中**: `TABLE_SUFFIX = pascal_to_snake_case(BUSINESS_ENTITY)`
 
-**示例**:
+**正确示例**:
 
 ```
 MODULE_NAME = "finance"
 SUBMODULE_NAME = "invoice"
-ENTITY_NAME = "management"
-TABLE_NAME = "us_finance_invoice_management"
+BUSINESS_ENTITY = "CustomerProfile"
+TABLE_SUFFIX = "customer_profile"  # 自动转换
+TABLE_NAME = "us_finance_invoice_customer_profile"
 ```
 
 ### PACKAGE_NAME (包名)
@@ -157,15 +190,23 @@ SUBMODULE_NAME = "invoice"
 PACKAGE_NAME = "org.jeecg.modules.finance.invoice"
 ```
 
-### JAVA_ENTITY_NAME (Java 实体名)
+### Java 实体类名称
 
-**计算公式**: `PascalCase({ENTITY_NAME})`
+**直接使用**: `BUSINESS_ENTITY` (无需转换，已经是PascalCase格式)
 
-**示例**:
+**正确示例**:
 
 ```
-ENTITY_NAME = "management"
-JAVA_ENTITY_NAME = "Management"
+BUSINESS_ENTITY = "CustomerProfile"     # ✅ 直接作为Java类名使用
+BUSINESS_ENTITY = "ProductCatalog"      # ✅ 无需转换
+BUSINESS_ENTITY = "OrderHeader"         # ✅ 已经是PascalCase格式
+```
+
+**错误示例 (严禁使用)**:
+
+```  
+ENTITY_NAME = "management"              # ❌ 旧概念，已废弃
+JAVA_ENTITY_NAME = "Management"         # ❌ 通用化名称
 ```
 
 ### PROJECT_PATH (项目路径)
@@ -190,44 +231,60 @@ PROJECT_PATH = "{PREFIX}/jeecg-boot/jeecg-boot-module/jeecg-module-finance"
 
 ### 常见示例
 
-#### 财务系统示例
+#### 财务系统示例 (重构版 - 使用BUSINESS_ENTITY概念)
 
 ```
-# 发票管理
+# 发票客户档案管理  
 MODULE_NAME = "finance"
 SUBMODULE_NAME = "invoice"
-ENTITY_NAME = "management"
-TABLE_NAME = "us_finance_invoice_management"
+BUSINESS_ENTITY = "CustomerProfile"
+TABLE_NAME = "us_finance_invoice_customer_profile"
 PACKAGE_NAME = "org.jeecg.modules.finance.invoice"
-JAVA_ENTITY_NAME = "Management"
 
-# 付款处理
+# 付款处理流程
 MODULE_NAME = "finance"
 SUBMODULE_NAME = "payment"
-ENTITY_NAME = "processing"
-TABLE_NAME = "us_finance_payment_processing"
+BUSINESS_ENTITY = "ProcessRecord"
+TABLE_NAME = "us_finance_payment_process_record"
 PACKAGE_NAME = "org.jeecg.modules.finance.payment"
-JAVA_ENTITY_NAME = "Processing"
 ```
 
-#### 人力资源系统示例
+**❌ 错误示例对比 (旧版本 - 严禁使用)**:
 
 ```
-# 员工培训
+# 错误示例 - 已废弃的通用化命名
+ENTITY_NAME = "management"              # ❌ 通用化，无业务语义
+JAVA_ENTITY_NAME = "Management"         # ❌ 过于抽象
+ENTITY_NAME = "processing"              # ❌ 通用化，无业务语义
+JAVA_ENTITY_NAME = "Processing"         # ❌ 过于抽象
+```
+
+#### 人力资源系统示例 (重构版 - 使用BUSINESS_ENTITY概念)
+
+```
+# 员工培训记录管理
 MODULE_NAME = "hrms"
 SUBMODULE_NAME = "employee"
-ENTITY_NAME = "training"
-TABLE_NAME = "us_hrms_employee_training"
+BUSINESS_ENTITY = "TrainingRecord"
+TABLE_NAME = "us_hrms_employee_training_record"
 PACKAGE_NAME = "org.jeecg.modules.hrms.employee"
-JAVA_ENTITY_NAME = "Training"
 
-# 薪资计算
+# 薪资计算报表
 MODULE_NAME = "hrms"
 SUBMODULE_NAME = "payroll"
-ENTITY_NAME = "calculation"
-TABLE_NAME = "us_hrms_payroll_calculation"
+BUSINESS_ENTITY = "SalaryReport"
+TABLE_NAME = "us_hrms_payroll_salary_report"
 PACKAGE_NAME = "org.jeecg.modules.hrms.payroll"
-JAVA_ENTITY_NAME = "Calculation"
+```
+
+**❌ 错误示例对比 (旧版本 - 严禁使用)**:
+
+```
+# 错误示例 - 已废弃的通用化命名
+ENTITY_NAME = "training"                # ❌ 过于简单，缺乏业务特征
+JAVA_ENTITY_NAME = "Training"           # ❌ 不体现具体业务含义
+ENTITY_NAME = "calculation"             # ❌ 通用化，无业务语义
+JAVA_ENTITY_NAME = "Calculation"        # ❌ 过于抽象
 ```
 
 #### 智能映射扩展示例
@@ -236,22 +293,22 @@ JAVA_ENTITY_NAME = "Calculation"
 # 医疗领域 - 患者管理
 用户需求: "医院患者信息管理"
 智能映射: 患者管理 → 客户关系管理
+五步推理: 患者(Patient) + 档案(Profile) = PatientProfile
 MODULE_NAME = "crm"
 SUBMODULE_NAME = "patient"
-ENTITY_NAME = "info"
-TABLE_NAME = "us_crm_patient_info"
+BUSINESS_ENTITY = "PatientProfile"
+TABLE_NAME = "us_crm_patient_patient_profile"
 PACKAGE_NAME = "org.jeecg.modules.crm.patient"
-JAVA_ENTITY_NAME = "Info"
 
 # 教育领域 - 学生管理
 用户需求: "学校学生档案管理"
 智能映射: 学生管理 → 客户关系管理
+五步推理: 学生(Student) + 档案(Profile) = StudentProfile
 MODULE_NAME = "crm"
 SUBMODULE_NAME = "student"
-ENTITY_NAME = "profile"
-TABLE_NAME = "us_crm_student_profile"
+BUSINESS_ENTITY = "StudentProfile"
+TABLE_NAME = "us_crm_student_student_profile"
 PACKAGE_NAME = "org.jeecg.modules.crm.student"
-JAVA_ENTITY_NAME = "Profile"
 ```
 
 ## ⚠️ 常见错误与避免方法
@@ -264,16 +321,18 @@ JAVA_ENTITY_NAME = "Profile"
 2. **表名不完整**: 表名必须包含 4 个部分，缺一不可
 
    - ❌ `us_finance_invoice`
-   - ✅ `us_finance_invoice_management`
+   - ✅ `us_finance_invoice_customer_profile` (基于BUSINESS_ENTITY语义化命名)
 
 3. **命名不一致**: 同一子模块下的表应使用相同的包名结构
 
    - ❌ 同一子模块下使用不同的包名
    - ✅ 同一子模块下使用相同的包名
 
-4. **Java 命名不规范**: 实体名必须符合 Java 驼峰命名规范
-   - ❌ `management` (作为 Java 类名)
-   - ✅ `Management` (作为 Java 类名)
+4. **BUSINESS_ENTITY 命名不规范**: 必须使用语义化的 PascalCase 命名
+   - ❌ `management` (通用化，无业务语义)
+   - ❌ `info` (过于抽象)
+   - ✅ `CustomerProfile` (语义化，有明确业务含义)
+   - ✅ `ProductCatalog` (遵循业务前缀+特征后缀模式)
 
 ---
 
