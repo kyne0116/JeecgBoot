@@ -1,0 +1,370 @@
+# 财务发票管理系统 - 原始业务需求
+# 文件类型: 用户原始需求输入
+# 创建时间: 2025-07-26
+# 需求提出方: XX公司财务部门
+
+requirement_input:
+  # 基础信息
+  requirement_id: "REQ-FINANCE-001"
+  requirement_name: "企业财务发票管理系统"
+  requirement_type: "business_process"           # 业务流程需求
+  priority: "high"                              # 高优先级
+  urgency: "normal"                             # 正常紧急度
+  
+  # 业务信息
+  business_domain: "finance"                    # 财务管理领域
+  complexity_level: "standard"                 # 标准复杂度
+  
+  # 原始需求描述
+  raw_description: |
+    我们公司目前的发票管理还是手工处理，效率很低，经常出错，急需一个电子化的发票管理系统。
+    
+    主要需求包括：
+    1. 发票的创建和编辑功能，支持多种发票类型（普通发票、专用发票、电子发票）
+    2. 发票审核流程，需要经过财务主管和财务经理两级审核
+    3. 发票发送给客户，支持邮件发送和系统内消息通知
+    4. 收款管理，跟踪发票的付款状态
+    5. 发票归档和查询，方便后续查找和统计
+    6. 各种报表，包括发票汇总、应收账款统计、客户对账单等
+    
+    系统要求操作简单，界面友好，响应速度快，数据安全可靠。
+
+  business_background: |
+    我们是一家中型制造企业，有300多个客户，每月大概要开具800-1000张发票。
+    目前的发票管理流程是：
+    1. 销售人员填写纸质发票申请单
+    2. 财务人员手工录入系统开票
+    3. 打印发票后手工装订存档
+    4. 通过电话或邮件通知客户取票
+    5. 收款后手工记录并核销
+    
+    这个流程存在很多问题：
+    - 数据录入错误率高，经常要重新开票
+    - 审核流程不规范，有时跳过审核直接开票
+    - 发票状态不透明，客户经常询问发票进度
+    - 收款情况难以实时掌握，影响资金管理
+    - 月末统计报表需要2-3天时间，效率低下
+    - 纸质档案管理困难，查找历史发票很麻烦
+
+  current_situation: |
+    目前使用的是一套老旧的财务软件，只有基本的开票功能，没有流程管理和统计分析功能。
+    
+    现状问题：
+    1. 系统功能单一，只能录入发票基本信息
+    2. 没有审核流程，容易出现违规开票
+    3. 无法跟踪发票状态和收款进度
+    4. 报表功能缺失，无法进行数据分析
+    5. 界面老旧，操作复杂，新员工学习成本高
+    6. 数据备份不及时，存在丢失风险
+    
+    人员配置：
+    - 财务部门共8人，其中开票人员3人，审核人员2人
+    - 使用人员计算机操作水平一般，需要系统操作简单直观
+    - 部门经理希望能够随时了解开票和收款情况
+
+  expected_outcome: |
+    希望通过新的发票管理系统实现以下目标：
+    
+    1. 提高工作效率：发票处理时间从目前的30分钟缩短到10分钟以内
+    2. 降低错误率：发票录入错误率从目前的5%降低到1%以下
+    3. 规范流程：100%的发票都要经过规定的审核流程
+    4. 提升透明度：客户和内部人员都能实时查询发票状态
+    5. 加强管控：财务经理能够实时掌握应收账款情况
+    6. 提供决策支持：通过报表分析支持经营决策
+    
+    具体期望：
+    - 系统响应速度快，页面加载时间不超过3秒
+    - 界面简洁美观，操作流程不超过5步
+    - 支持移动端查询，方便领导随时了解情况
+    - 数据安全可靠，有完善的备份机制
+    - 与现有的客户管理系统能够集成
+
+  # 利益相关方
+  stakeholders:
+    primary_users:                              # 主要用户
+      - name: "张会计"
+        role: "开票员"
+        department: "财务部"
+        contact: "zhang.kuaiji@company.com"
+      - name: "李主管"
+        role: "财务主管"
+        department: "财务部"
+        contact: "li.zhuguan@company.com"
+      - name: "王经理"
+        role: "财务经理"
+        department: "财务部"
+        contact: "wang.jingli@company.com"
+    
+    secondary_users:                            # 次要用户
+      - name: "销售人员"
+        role: "发票申请人"
+        department: "销售部"
+      - name: "客户"
+        role: "发票接收方"
+        department: "客户公司"
+    
+    decision_makers:                            # 决策者
+      - name: "陈总监"
+        role: "财务总监"
+        authority_level: "部门决策"
+      - name: "刘总经理"
+        role: "总经理"
+        authority_level: "公司决策"
+
+  # 业务实体 (初步识别)
+  business_entities:
+    - entity_name: "发票"
+      entity_description: "企业开具的各类发票"
+      key_attributes:
+        - attribute_name: "发票号码"
+          attribute_type: "字符串"
+          is_required: true
+        - attribute_name: "发票类型"
+          attribute_type: "枚举"
+          is_required: true
+        - attribute_name: "开票日期"
+          attribute_type: "日期"
+          is_required: true
+        - attribute_name: "客户信息"
+          attribute_type: "关联"
+          is_required: true
+        - attribute_name: "发票金额"
+          attribute_type: "数值"
+          is_required: true
+        - attribute_name: "税额"
+          attribute_type: "数值"
+          is_required: true
+        - attribute_name: "发票状态"
+          attribute_type: "枚举"
+          is_required: true
+    
+    - entity_name: "客户"
+      entity_description: "发票开具的客户信息"
+      key_attributes:
+        - attribute_name: "客户名称"
+          attribute_type: "字符串"
+          is_required: true
+        - attribute_name: "纳税人识别号"
+          attribute_type: "字符串"
+          is_required: true
+        - attribute_name: "客户地址"
+          attribute_type: "字符串"
+          is_required: false
+        - attribute_name: "联系电话"
+          attribute_type: "字符串"
+          is_required: false
+        - attribute_name: "电子邮箱"
+          attribute_type: "字符串"
+          is_required: false
+    
+    - entity_name: "收款记录"
+      entity_description: "发票对应的收款记录"
+      key_attributes:
+        - attribute_name: "收款日期"
+          attribute_type: "日期"
+          is_required: true
+        - attribute_name: "收款金额"
+          attribute_type: "数值"
+          is_required: true
+        - attribute_name: "收款方式"
+          attribute_type: "枚举"
+          is_required: true
+        - attribute_name: "银行流水号"
+          attribute_type: "字符串"
+          is_required: false
+
+  # 业务流程 (初步描述)
+  business_processes:
+    - process_name: "发票开具流程"
+      process_description: "从发票申请到开具完成的完整流程"
+      process_steps:
+        - step_name: "发票申请"
+          step_description: "销售人员或财务人员创建发票申请"
+          participants: ["销售人员", "开票员"]
+        - step_name: "财务主管审核"
+          step_description: "财务主管审核发票信息的准确性"
+          participants: ["财务主管"]
+        - step_name: "财务经理审批"
+          step_description: "财务经理最终审批发票开具"
+          participants: ["财务经理"]
+        - step_name: "发票开具"
+          step_description: "系统自动生成发票并分配发票号码"
+          participants: ["系统"]
+        - step_name: "发票发送"
+          step_description: "通过邮件或其他方式发送给客户"
+          participants: ["开票员", "系统"]
+    
+    - process_name: "收款管理流程"
+      process_description: "跟踪发票收款状态的管理流程"
+      process_steps:
+        - step_name: "收款登记"
+          step_description: "财务人员登记收到的款项"
+          participants: ["财务人员"]
+        - step_name: "发票核销"
+          step_description: "将收款与对应发票进行核销"
+          participants: ["财务人员"]
+        - step_name: "账龄分析"
+          step_description: "分析超期未收款的发票"
+          participants: ["财务主管"]
+
+  # 约束条件
+  constraints:
+    technical_constraints:
+      - constraint_type: "技术平台"
+        constraint_description: "必须基于公司现有的JeecgBoot技术平台"
+        impact_level: "high"
+      - constraint_type: "数据库"
+        constraint_description: "使用公司统一的MySQL数据库"
+        impact_level: "high"
+      - constraint_type: "集成要求"
+        constraint_description: "需要与现有的客户管理系统集成"
+        impact_level: "medium"
+    
+    business_constraints:
+      - constraint_type: "合规要求"
+        constraint_description: "必须符合国家税务部门的发票管理规定"
+        impact_level: "high"
+      - constraint_type: "审计要求"
+        constraint_description: "系统操作要有完整的审计日志"
+        impact_level: "high"
+      - constraint_type: "权限控制"
+        constraint_description: "不同角色的用户有不同的操作权限"
+        impact_level: "high"
+    
+    time_constraints:
+      expected_start_date: "2025-08-01"
+      expected_delivery_date: "2025-08-30"
+      key_milestones:
+        - milestone_name: "需求确认"
+          milestone_date: "2025-08-05"
+        - milestone_name: "系统设计完成"
+          milestone_date: "2025-08-12"
+        - milestone_name: "开发完成"
+          milestone_date: "2025-08-25"
+        - milestone_name: "测试验收"
+          milestone_date: "2025-08-30"
+    
+    budget_constraints:
+      estimated_budget: 50000
+      budget_approval_status: "已批准"
+
+  # 质量要求 (初步)
+  quality_requirements:
+    performance_expectations: |
+      - 系统响应时间：页面加载时间不超过3秒，查询响应时间不超过2秒
+      - 并发支持：支持10个用户同时在线操作
+      - 数据处理能力：支持每月1000张发票的处理量
+      - 系统可用性：工作时间系统可用性不低于99%
+    
+    security_requirements: |
+      - 用户认证：采用公司统一的用户认证系统
+      - 权限控制：严格的角色权限控制，不同用户只能访问授权功能
+      - 数据加密：敏感数据要进行加密存储
+      - 操作审计：所有关键操作要记录审计日志
+      - 数据备份：每日自动备份，支持数据恢复
+    
+    usability_expectations: |
+      - 界面设计：简洁美观，符合用户使用习惯
+      - 操作便捷：常用功能不超过3次点击完成
+      - 学习成本：新用户2小时内能掌握基本操作
+      - 帮助支持：提供在线帮助文档和操作指导
+      - 移动支持：支持手机端查询功能
+    
+    reliability_requirements: |
+      - 系统稳定性：连续运行不出现系统崩溃
+      - 数据完整性：确保发票数据的准确性和完整性
+      - 容错能力：网络中断后能自动恢复
+      - 升级维护：支持在线升级，不影响正常使用
+
+  # 集成需求 (如适用)
+  integration_requirements:
+    existing_systems:
+      - system_name: "客户管理系统"
+        system_type: "CRM系统"
+        integration_type: "data_sync"
+        integration_frequency: "实时同步"
+      - system_name: "财务核算系统"
+        system_type: "ERP系统"
+        integration_type: "data_sync"
+        integration_frequency: "每日同步"
+    
+    external_systems:
+      - system_name: "税务系统"
+        vendor: "国家税务总局"
+        integration_method: "API接口"
+
+  # 数据需求 (初步)
+  data_requirements:
+    data_sources:
+      - source_name: "客户基础数据"
+        source_type: "database"
+        data_format: "MySQL表"
+        data_volume: "约1000条客户记录"
+      - source_name: "产品价格数据"
+        source_type: "api"
+        data_format: "JSON"
+        data_volume: "约500个产品"
+    
+    data_processing:
+      - processing_type: "validation"
+        processing_description: "发票信息的有效性检查"
+      - processing_type: "calculation"
+        processing_description: "税额自动计算"
+      - processing_type: "transformation"
+        processing_description: "数据格式转换"
+    
+    data_output:
+      - output_type: "report"
+        output_format: "Excel表格"
+        output_frequency: "月度"
+      - output_type: "export"
+        output_format: "PDF发票"
+        output_frequency: "按需"
+
+  # 用户体验需求
+  user_experience:
+    target_users: "财务部门工作人员，计算机操作水平一般"
+    usage_scenarios:
+      - scenario_name: "日常开票"
+        scenario_description: "财务人员每天处理20-30张发票"
+        frequency: "daily"
+      - scenario_name: "月末统计"
+        scenario_description: "财务主管每月生成各类统计报表"
+        frequency: "monthly"
+      - scenario_name: "领导查询"
+        scenario_description: "财务经理随时查询发票和收款情况"
+        frequency: "weekly"
+    
+    interface_preferences: "界面简洁，颜色搭配合理，字体大小适中，按钮布局清晰"
+    mobile_requirements: true
+
+  # 附加信息
+  additional_info:
+    reference_materials:
+      - material_type: "现有系统截图"
+        material_description: "当前财务软件的操作界面"
+        material_source: "财务部门提供"
+      - material_type: "业务流程图"
+        material_description: "手工绘制的发票管理流程图"
+        material_source: "财务主管整理"
+    
+    similar_systems:
+      - system_name: "用友财务软件"
+        similarity_description: "类似的发票管理功能，但界面较复杂"
+      - system_name: "金蝶财务软件"
+        similarity_description: "功能较全面，但价格昂贵"
+    
+    special_notes: |
+      1. 系统要考虑后续扩展，可能会增加电子发票功能
+      2. 希望能够支持发票模板自定义
+      3. 报表功能要丰富，支持多维度分析
+      4. 系统要稳定可靠，不能影响正常业务
+
+  # 元数据
+  metadata:
+    created_by: "王经理"
+    created_date: "2025-07-26T09:00:00"
+    last_modified_by: "王经理"
+    last_modified_date: "2025-07-26T10:30:00"
+    version: "1.0"
+    status: "draft"

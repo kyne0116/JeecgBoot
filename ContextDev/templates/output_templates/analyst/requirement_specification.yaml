@@ -1,0 +1,437 @@
+# 需求分析专家 - 需求规格说明书输出模板
+# Template: requirement_specification.yaml
+# Version: v2.0.0
+# Description: 标准化需求规格说明书格式，供system_architect专家使用
+
+requirement_specification:
+  # 文档信息
+  document_info:
+    document_title: string            # 需求规格说明书标题
+    document_version: string          # 文档版本号
+    created_by: string                # 创建人
+    created_date: datetime            # 创建时间
+    approved_by: string               # 审批人
+    approval_date: datetime           # 审批时间
+    document_status: enum             # 状态: draft|review|approved|baseline
+  
+  # 项目基础信息
+  project_info:
+    project_id: string                # 项目唯一标识
+    project_name: string              # 项目名称
+    business_domain: enum             # 业务领域
+    complexity_level: enum            # 复杂度级别
+    priority: enum                    # 项目优先级
+    estimated_duration: string        # 预估工期
+    budget_estimate: number           # 预算估算
+  
+  # 业务概述
+  business_overview:
+    business_background: string       # 业务背景
+    business_objectives: array        # 业务目标
+      - objective_id: string
+        objective_description: string
+        success_metrics: array
+          - metric_name: string
+            target_value: string
+            measurement_method: string
+    current_situation: string         # 当前现状分析
+    expected_benefits: array          # 预期收益
+      - benefit_type: enum            # cost_saving|efficiency_improvement|revenue_increase|risk_reduction
+        benefit_description: string
+        quantified_value: string
+  
+  # 利益相关方需求
+  stakeholder_requirements:
+    primary_users: array              # 主要用户需求
+      - user_role: string
+        user_department: string
+        key_requirements: array
+          - requirement_id: string
+            requirement_description: string
+            priority: enum            # high|medium|low
+            rationale: string
+    secondary_users: array            # 次要用户需求
+      - user_role: string
+        user_department: string
+        key_requirements: array
+          - requirement_id: string
+            requirement_description: string
+            impact_level: enum        # high|medium|low
+    decision_makers: array            # 决策者关注点
+      - decision_maker_role: string
+        authority_level: string
+        key_concerns: array
+          - concern_type: string
+            concern_description: string
+            decision_criteria: string
+  
+  # 功能需求规格
+  functional_requirements:
+    module_breakdown: array           # 功能模块分解
+      - module_id: string
+        module_name: string
+        module_description: string
+        module_priority: enum         # must_have|should_have|could_have|won_not_have
+        sub_functions: array
+          - function_id: string
+            function_name: string
+            function_description: string
+            function_type: enum       # crud|calculation|workflow|integration|report
+            complexity: enum          # simple|standard|complex
+            
+            # EARS格式需求描述
+            ears_specification:
+              ubiquitous_requirements: array  # 无条件需求
+                - "The system shall [action]"
+              event_driven_requirements: array # 事件驱动需求
+                - "When [trigger], the system shall [response]"
+              unwanted_behavior: array        # 不期望行为
+                - "If [condition], then the system shall not [action]"
+              state_driven_requirements: array # 状态驱动需求
+                - "While [state], the system shall [action]"
+              optional_requirements: array    # 可选需求
+                - "Where [feature] is supported, the system shall [action]"
+            
+            # 功能详细规格
+            input_specification: array # 输入规格
+              - input_name: string
+                input_type: enum      # form_field|file_upload|api_parameter|database_query
+                data_type: string     # 符合JeecgBoot数据类型
+                validation_rules: array
+                  - rule_type: string
+                    rule_description: string
+                    error_message: string
+                required: boolean
+                default_value: string
+            
+            output_specification: array # 输出规格
+              - output_name: string
+                output_type: enum     # screen_display|file_export|api_response|database_update
+                data_format: string
+                content_description: string
+                success_criteria: string
+            
+            processing_logic: array   # 处理逻辑
+              - logic_step: string
+                logic_description: string
+                business_rules: array
+                  - rule_id: string
+                    rule_description: string
+                    rule_condition: string
+                    rule_action: string
+                error_handling: string
+  
+  # 非功能需求
+  non_functional_requirements:
+    performance_requirements:
+      response_time: string           # 响应时间要求
+      throughput: string              # 吞吐量要求
+      concurrent_users: number        # 并发用户数
+      data_volume: string             # 数据量要求
+      availability: string            # 可用性要求
+      
+    usability_requirements:
+      user_interface_standards: string # UI标准要求
+      accessibility_requirements: string # 可访问性要求
+      user_training_requirements: string # 用户培训要求
+      help_documentation: string      # 帮助文档要求
+      
+    security_requirements:
+      authentication: string          # 认证要求
+      authorization: string           # 授权要求
+      data_encryption: string         # 数据加密要求
+      audit_logging: string           # 审计日志要求
+      compliance_requirements: array  # 合规要求
+        - regulation_name: string
+          compliance_description: string
+          
+    compatibility_requirements:
+      browser_compatibility: array    # 浏览器兼容性
+        - browser_name: string
+          version_requirement: string
+      mobile_compatibility: string    # 移动端兼容性
+      system_integration: array       # 系统集成兼容性
+        - target_system: string
+          integration_method: string
+          compatibility_notes: string
+  
+  # 业务实体模型
+  business_entities:
+    core_entities: array              # 核心业务实体
+      - entity_id: string
+        entity_name: string           # 实体名称
+        entity_description: string    # 实体描述
+        entity_type: enum             # master_data|transaction_data|reference_data|configuration_data
+        
+        attributes: array             # 实体属性
+          - attribute_id: string
+            attribute_name: string
+            attribute_description: string
+            data_type: enum           # string|integer|decimal|boolean|date|datetime|text|json
+            max_length: number
+            is_required: boolean
+            is_unique: boolean
+            default_value: string
+            validation_rules: array
+              - rule_type: string
+                rule_expression: string
+                error_message: string
+            dictionary_code: string   # 数据字典编码
+            
+        relationships: array          # 实体关系
+          - relationship_id: string
+            related_entity: string
+            relationship_type: enum   # one_to_one|one_to_many|many_to_many
+            foreign_key: string
+            relationship_description: string
+            
+        business_rules: array         # 实体业务规则
+          - rule_id: string
+            rule_name: string
+            rule_description: string
+            rule_type: enum           # validation|calculation|derivation|constraint
+            rule_expression: string
+            error_handling: string
+  
+  # 业务流程模型
+  business_processes:
+    core_processes: array             # 核心业务流程
+      - process_id: string
+            process_name: string
+        process_description: string
+        process_type: enum            # linear|parallel|conditional|loop
+        trigger_conditions: array     # 触发条件
+          - trigger_type: string
+            trigger_description: string
+            
+        process_steps: array          # 流程步骤
+          - step_id: string
+            step_name: string
+            step_description: string
+            step_type: enum           # manual|automatic|system|decision
+            participants: array       # 参与者
+              - participant_role: string
+                participant_responsibility: string
+            input_data: array         # 输入数据
+              - data_name: string
+                data_source: string
+                data_format: string
+            output_data: array        # 输出数据
+              - data_name: string
+                data_destination: string
+                data_format: string
+            business_rules: array     # 业务规则
+              - rule_description: string
+                rule_condition: string
+            exception_handling: array # 异常处理
+              - exception_type: string
+                handling_procedure: string
+                
+        process_flow: array           # 流程控制
+          - from_step: string
+            to_step: string
+            condition: string
+            flow_description: string
+            
+        kpi_metrics: array            # 流程KPI指标
+          - metric_name: string
+            metric_description: string
+            target_value: string
+            measurement_method: string
+  
+  # 数据需求规格
+  data_requirements:
+    data_sources: array               # 数据源
+      - source_id: string
+        source_name: string
+        source_type: enum             # manual_input|file_import|database_sync|api_integration|batch_processing
+        data_format: string           # json|xml|csv|excel|sql|api
+        data_volume: string
+        update_frequency: string
+        quality_requirements: string
+        
+    data_processing: array           # 数据处理需求
+      - processing_id: string
+        processing_name: string
+        processing_type: enum         # validation|transformation|calculation|aggregation|enrichment
+        processing_description: string
+        input_data: array
+          - data_element: string
+            data_type: string
+            validation_rules: string
+        output_data: array
+          - data_element: string
+            data_type: string
+            derivation_logic: string
+        processing_rules: array
+          - rule_description: string
+            rule_logic: string
+            error_handling: string
+            
+    data_output: array                # 数据输出需求
+      - output_id: string
+        output_name: string
+        output_type: enum             # report|export|dashboard|api|notification
+        output_format: string
+        output_frequency: string
+        target_audience: string
+        delivery_method: string
+        output_specification: string
+  
+  # 集成需求规格
+  integration_requirements:
+    internal_integrations: array      # 内部系统集成
+      - integration_id: string
+        target_system: string
+        integration_purpose: string
+        integration_method: enum      # database_sync|api_call|file_exchange|message_queue
+        data_synchronization: string
+        frequency: string
+        error_handling: string
+        
+    external_integrations: array      # 外部系统集成  
+      - integration_id: string
+        vendor_system: string
+        integration_purpose: string
+        integration_protocol: enum    # rest_api|soap|ftp|email|webhook
+        authentication_method: string
+        data_mapping: array
+          - source_field: string
+            target_field: string
+            transformation_rule: string
+        sla_requirements: string
+  
+  # 约束条件
+  constraints:
+    technical_constraints: array      # 技术约束
+      - constraint_id: string
+        constraint_type: enum         # platform|framework|database|integration|performance
+        constraint_description: string
+        impact_analysis: string
+        mitigation_strategy: string
+        
+    business_constraints: array       # 业务约束
+      - constraint_id: string
+        constraint_type: enum         # regulatory|policy|budget|timeline|resource
+        constraint_description: string
+        compliance_requirement: string
+        impact_analysis: string
+        
+    jeecgboot_constraints:            # JeecgBoot框架约束
+      required_technologies:
+        backend: ["Spring Boot 3.x", "MyBatis-Plus", "Spring Security", "MySQL 8.0+", "Redis"]
+        frontend: ["Vue 3", "TypeScript", "Ant Design Vue", "Vite"]
+        prohibited_technologies: ["MongoDB", "Elasticsearch", "微服务架构", "GraphQL"]
+      framework_limitations: string
+      integration_constraints: string
+  
+  # 验收标准
+  acceptance_criteria:
+    functional_acceptance: array      # 功能验收标准
+      - criteria_id: string
+        criteria_description: string
+        test_method: string
+        success_criteria: string
+        failure_criteria: string
+        
+    performance_acceptance: array     # 性能验收标准
+      - performance_metric: string
+        target_value: string
+        measurement_method: string
+        acceptance_threshold: string
+        
+    usability_acceptance: array       # 易用性验收标准
+      - usability_aspect: string
+        acceptance_criteria: string
+        test_method: string
+        success_metrics: string
+        
+    security_acceptance: array        # 安全验收标准
+      - security_requirement: string
+        verification_method: string
+        compliance_standard: string
+        acceptance_criteria: string
+  
+  # 风险评估
+  risk_assessment:
+    identified_risks: array           # 识别的风险
+      - risk_id: string
+        risk_category: enum           # technical|business|resource|timeline|external
+        risk_description: string
+        probability: enum             # high|medium|low
+        impact: enum                  # high|medium|low
+        risk_level: enum              # critical|high|medium|low
+        mitigation_strategy: string
+        contingency_plan: string
+        risk_owner: string
+        
+    risk_mitigation_plan: array       # 风险缓解计划
+      - mitigation_id: string
+        target_risks: array
+        mitigation_action: string
+        responsible_party: string
+        timeline: string
+        success_criteria: string
+  
+  # 追溯性矩阵
+  traceability_matrix:
+    business_objectives_to_requirements: array # 业务目标到需求的追溯
+      - objective_id: string
+        related_requirements: array
+          - requirement_id: string
+            traceability_description: string
+    
+    requirements_to_test_cases: array          # 需求到测试用例的追溯
+      - requirement_id: string
+        related_test_cases: array
+          - test_case_id: string
+            coverage_description: string
+  
+  # 附录
+  appendix:
+    glossary: array                   # 术语表
+      - term: string
+        definition: string
+        context: string
+        
+    reference_documents: array        # 参考文档
+      - document_title: string
+        document_type: string
+        document_source: string
+        relevance: string
+        
+    assumptions: array                # 假设条件
+      - assumption_id: string
+        assumption_description: string
+        impact_if_invalid: string
+        validation_method: string
+  
+  # 元数据
+  metadata:
+    creation_info:
+      analyst_name: string            # 分析师姓名
+      analysis_start_date: datetime   # 分析开始时间
+      analysis_end_date: datetime     # 分析结束时间
+      total_effort_hours: number      # 分析总工时
+      
+    review_info:
+      reviewers: array                # 评审人员
+        - reviewer_name: string
+          reviewer_role: string
+          review_date: datetime
+          review_comments: string
+          approval_status: enum       # approved|rejected|needs_revision
+          
+    change_history: array            # 变更历史
+      - version: string
+        change_date: datetime
+        changed_by: string
+        change_description: string
+        change_reason: string
+        impact_analysis: string
+    
+    # 下游专家使用接口
+    downstream_interface:
+      target_expert: "system_architect"
+      interface_validation: "所有字段必须完整填写，数据类型符合JeecgBoot规范"
+      usage_instructions: "系统架构专家使用此规格进行技术架构设计"

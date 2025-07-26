@@ -1,0 +1,140 @@
+# 需求分析专家 - 基础需求输入模板
+# Template: basic_requirement_input.yaml
+# Version: v2.0.0
+# Description: 标准化接收用户原始需求的输入格式
+
+requirement_input:
+  # 基础信息
+  requirement_id: string              # 需求唯一标识
+  requirement_name: string            # 需求名称
+  requirement_type: enum              # 需求类型: crud|business_process|data_analysis|integration
+  priority: enum                      # 优先级: high|medium|low
+  urgency: enum                       # 紧急度: urgent|normal|low
+  
+  # 业务信息
+  business_domain: enum               # 业务领域: core|finance|supply|crm|hrm|inventory|order|reporting|workflow|integration
+  complexity_level: enum             # 复杂度: simple|standard|complex|enterprise
+  
+  # 原始需求描述
+  raw_description: string             # 用户原始需求描述
+  business_background: string         # 业务背景和上下文
+  current_situation: string           # 当前业务现状
+  expected_outcome: string            # 期望达成的效果
+  
+  # 利益相关方
+  stakeholders:
+    primary_users: array              # 主要用户
+      - name: string
+        role: string
+        department: string
+        contact: string
+    secondary_users: array            # 次要用户
+      - name: string
+        role: string
+        department: string
+    decision_makers: array            # 决策者
+      - name: string
+        role: string
+        authority_level: string
+  
+  # 业务实体 (初步识别)
+  business_entities: array
+    - entity_name: string             # 实体名称
+      entity_description: string      # 实体描述
+      key_attributes: array           # 关键属性
+        - attribute_name: string
+          attribute_type: string
+          is_required: boolean
+  
+  # 业务流程 (初步描述)
+  business_processes: array
+    - process_name: string            # 流程名称
+      process_description: string     # 流程描述
+      process_steps: array            # 流程步骤
+        - step_name: string
+          step_description: string
+          participants: array
+  
+  # 约束条件
+  constraints:
+    technical_constraints: array      # 技术约束
+      - constraint_type: string
+        constraint_description: string
+        impact_level: enum            # high|medium|low
+    business_constraints: array       # 业务约束
+      - constraint_type: string
+        constraint_description: string
+        impact_level: enum
+    time_constraints:                 # 时间约束
+      expected_start_date: date
+      expected_delivery_date: date
+      key_milestones: array
+        - milestone_name: string
+          milestone_date: date
+    budget_constraints:               # 预算约束
+      estimated_budget: number
+      budget_approval_status: string
+  
+  # 质量要求 (初步)
+  quality_requirements:
+    performance_expectations: string  # 性能期望
+    security_requirements: string     # 安全要求
+    usability_expectations: string    # 易用性期望
+    reliability_requirements: string  # 可靠性要求
+  
+  # 集成需求 (如适用)
+  integration_requirements:
+    existing_systems: array           # 现有系统
+      - system_name: string
+        system_type: string
+        integration_type: string      # data_sync|api_call|file_exchange
+        integration_frequency: string
+    external_systems: array           # 外部系统
+      - system_name: string
+        vendor: string
+        integration_method: string
+  
+  # 数据需求 (初步)
+  data_requirements:
+    data_sources: array               # 数据来源
+      - source_name: string
+        source_type: enum             # database|file|api|manual_input
+        data_format: string
+        data_volume: string
+    data_processing: array            # 数据处理需求
+      - processing_type: string       # calculation|validation|transformation
+        processing_description: string
+    data_output: array                # 数据输出需求
+      - output_type: string           # report|export|api|screen
+        output_format: string
+        output_frequency: string
+  
+  # 用户体验需求
+  user_experience:
+    target_users: string              # 目标用户描述
+    usage_scenarios: array            # 使用场景
+      - scenario_name: string
+        scenario_description: string
+        frequency: enum               # daily|weekly|monthly|occasional
+    interface_preferences: string     # 界面偏好
+    mobile_requirements: boolean      # 移动端需求
+  
+  # 附加信息
+  additional_info:
+    reference_materials: array        # 参考资料
+      - material_type: string
+        material_description: string
+        material_source: string
+    similar_systems: array            # 类似系统
+      - system_name: string
+        similarity_description: string
+    special_notes: string             # 特殊说明
+  
+  # 元数据
+  metadata:
+    created_by: string                # 创建人
+    created_date: datetime            # 创建时间
+    last_modified_by: string          # 最后修改人
+    last_modified_date: datetime      # 最后修改时间
+    version: string                   # 版本号
+    status: enum                      # 状态: draft|review|approved|rejected

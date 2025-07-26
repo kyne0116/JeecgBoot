@@ -1,0 +1,242 @@
+# 需求分析专家 - 需求分析标准流程模板
+# Template: requirement_analysis_process.yaml
+# Version: v2.0.0
+# Description: 标准化需求分析工作流程和方法规范
+
+requirement_analysis_process:
+  # 流程概述
+  process_info:
+    process_name: "标准化需求分析流程"
+    process_version: "2.0.0"
+    applicable_domains: ["core", "finance", "supply", "crm", "hrm", "inventory", "order", "reporting", "workflow", "integration"]
+    complexity_levels: ["simple", "standard", "complex", "enterprise"]
+    estimated_duration: "2-8小时 (根据复杂度)"
+  
+  # 阶段1: 需求理解与初步分析
+  phase_1_requirement_understanding:
+    phase_name: "需求理解与初步分析"
+    duration: "30-60分钟"
+    
+    activities:
+      activity_1_raw_requirement_parsing:
+        name: "原始需求解析"
+        description: "深度理解用户提供的原始需求描述"
+        steps:
+          - step: "阅读并理解原始需求描述"
+            method: "仔细阅读raw_description字段，标记关键信息"
+            output: "需求关键点清单"
+          - step: "识别业务领域和复杂度"
+            method: "基于需求内容判断business_domain和complexity_level"
+            validation: "确保分类准确性，如有疑问向用户确认"
+          - step: "提取核心业务价值"
+            method: "识别需求的核心业务价值和解决的问题"
+            output: "业务价值陈述"
+      
+      activity_2_context_analysis:
+        name: "业务上下文分析"
+        description: "分析需求的业务背景和环境约束"
+        steps:
+          - step: "分析业务背景"
+            method: "深入理解business_background，识别业务驱动因素"
+            tools: ["业务流程图", "组织架构图", "系统现状图"]
+          - step: "评估当前现状"
+            method: "分析current_situation，识别痛点和改进机会"
+            output: "现状分析报告"
+          - step: "明确期望成果"
+            method: "细化expected_outcome，定义成功标准"
+            validation: "确保期望成果具体可衡量"
+  
+  # 阶段2: 利益相关方分析
+  phase_2_stakeholder_analysis:
+    phase_name: "利益相关方分析"
+    duration: "30-45分钟"
+    
+    activities:
+      activity_1_stakeholder_identification:
+        name: "利益相关方识别"
+        description: "全面识别和分类利益相关方"
+        steps:
+          - step: "识别主要用户"
+            method: "分析primary_users，确定直接使用系统的人员"
+            validation: "确认用户角色和职责描述准确"
+          - step: "识别次要用户"
+            method: "分析secondary_users，确定间接影响的人员"
+            output: "完整用户角色清单"
+          - step: "识别决策者"
+            method: "分析decision_makers，确定关键决策人员"
+            tools: ["权力/影响力矩阵", "利益相关方地图"]
+      
+      activity_2_stakeholder_requirements:
+        name: "利益相关方需求分析"
+        description: "深入分析各利益相关方的具体需求"
+        method: "EARS语法结构化需求描述"
+        requirements_template:
+          functional_requirements: "When <trigger>, the system shall <response>"
+          performance_requirements: "The system shall <action> within <time>"
+          usability_requirements: "The system shall be <characteristic> for <user_type>"
+        output: "结构化利益相关方需求清单"
+  
+  # 阶段3: 业务实体和数据模型分析
+  phase_3_business_entity_analysis:
+    phase_name: "业务实体和数据模型分析"
+    duration: "45-90分钟"
+    
+    activities:
+      activity_1_entity_identification:
+        name: "业务实体识别"
+        description: "识别和定义核心业务实体"
+        steps:
+          - step: "提取核心实体"
+            method: "从需求描述中识别名词和业务概念"
+            tools: ["实体关系图", "概念模型图"]
+          - step: "定义实体属性"
+            method: "为每个实体定义关键属性和约束"
+            validation: "确保属性符合JeecgBoot数据类型规范"
+          - step: "确定实体关系"
+            method: "分析实体间的关联关系和基数"
+            output: "实体关系模型"
+      
+      activity_2_data_requirement_analysis:
+        name: "数据需求分析"
+        description: "详细分析数据相关需求"
+        steps:
+          - step: "数据来源分析"
+            method: "识别和分类所有数据来源"
+            categories: ["manual_input", "file_import", "api_integration", "database_sync"]
+          - step: "数据处理需求"
+            method: "定义数据验证、转换、计算规则"
+            tools: ["数据流程图", "业务规则表"]
+          - step: "数据输出需求"
+            method: "定义报表、导出、展示需求"
+            output: "数据需求规格书"
+  
+  # 阶段4: 业务流程建模
+  phase_4_business_process_modeling:
+    phase_name: "业务流程建模"
+    duration: "60-120分钟"
+    
+    activities:
+      activity_1_as_is_process_analysis:
+        name: "现状流程分析 (AS-IS)"
+        description: "分析和建模当前业务流程"
+        steps:
+          - step: "绘制现状流程图"
+            method: "使用BPMN或泳道图描述当前流程"
+            tools: ["流程图工具", "时间线分析"]
+          - step: "识别流程痛点"
+            method: "分析流程中的瓶颈、延误、错误点"
+            output: "流程问题清单"
+          - step: "量化流程指标"
+            method: "测量流程时间、成本、质量指标"
+            metrics: ["处理时间", "错误率", "资源消耗", "用户满意度"]
+      
+      activity_2_to_be_process_design:
+        name: "目标流程设计 (TO-BE)"
+        description: "设计优化后的目标业务流程"
+        steps:
+          - step: "设计优化流程"
+            method: "基于需求和技术能力设计新流程"
+            principles: ["自动化", "标准化", "简化", "透明化"]
+          - step: "定义流程节点"
+            method: "详细定义每个流程节点的输入、处理、输出"
+            validation: "确保流程在JeecgBoot框架内可实现"
+          - step: "设计异常处理"
+            method: "定义异常情况的处理流程和回滚机制"
+            output: "完整的目标流程模型"
+  
+  # 阶段5: 功能需求规格化
+  phase_5_functional_requirements:
+    phase_name: "功能需求规格化"
+    duration: "45-90分钟"
+    
+    activities:
+      activity_1_functional_decomposition:
+        name: "功能分解"
+        description: "将业务需求分解为具体功能需求"
+        steps:
+          - step: "功能模块划分"
+            method: "按业务领域和技术架构划分功能模块"
+            pattern: "领域驱动设计 (DDD) 模式"
+          - step: "功能点识别"
+            method: "使用功能点分析法识别和量化功能"
+            categories: ["输入", "输出", "查询", "文件", "接口"]
+          - step: "功能优先级排序"
+            method: "使用MoSCoW方法确定功能优先级"
+            levels: ["Must have", "Should have", "Could have", "Won't have"]
+      
+      activity_2_requirements_specification:
+        name: "需求规格编写"
+        description: "编写结构化的功能需求规格"
+        format: "IEEE 830标准 + EARS语法"
+        sections:
+          - "功能概述"
+          - "功能详细描述"
+          - "输入输出规格"
+          - "处理逻辑规则"
+          - "异常处理规则"
+          - "性能要求"
+          - "安全要求"
+        validation: "需求规格必须完整、一致、可测试、可追溯"
+  
+  # 阶段6: 验收标准定义
+  phase_6_acceptance_criteria:
+    phase_name: "验收标准定义"
+    duration: "30-60分钟"
+    
+    activities:
+      activity_1_bdd_scenarios:
+        name: "BDD场景设计"
+        description: "使用行为驱动开发方法定义验收场景"
+        format: "Gherkin语法"
+        template: |
+          Feature: [功能名称]
+          Scenario: [场景名称]
+            Given [前置条件]
+            When [操作步骤]
+            Then [预期结果]
+            And [附加验证]
+        validation: "场景必须可测试、可自动化"
+      
+      activity_2_success_criteria:
+        name: "成功标准定义"
+        description: "定义项目成功的量化标准"
+        categories:
+          functional_criteria: "功能完整性和正确性标准"
+          performance_criteria: "性能指标和响应时间标准"
+          usability_criteria: "用户体验和易用性标准"
+          quality_criteria: "代码质量和系统稳定性标准"
+  
+  # 技术约束验证
+  technical_constraint_validation:
+    jeecgboot_compatibility:
+      database: "确保数据模型符合MySQL 8.0+规范"
+      framework: "确保功能在Spring Boot 3.x框架内可实现"
+      frontend: "确保UI需求在Vue 3 + Ant Design Vue内可实现"
+      integration: "确保集成需求符合JeecgBoot集成模式"
+    
+    technology_restrictions:
+      prohibited_technologies: ["MongoDB", "Elasticsearch", "微服务架构", "GraphQL"]
+      required_technologies: ["MySQL", "Redis", "MyBatis-Plus", "Spring Security"]
+      validation_method: "技术可行性检查清单"
+  
+  # 质量保证检查点
+  quality_checkpoints:
+    completeness_check: "需求覆盖度检查 - 所有利益相关方需求都已识别和分析"
+    consistency_check: "需求一致性检查 - 需求间无冲突和矛盾"
+    testability_check: "可测试性检查 - 所有需求都有明确的验证方法"
+    traceability_check: "可追溯性检查 - 需求与业务目标可双向追溯"
+    technical_feasibility_check: "技术可行性检查 - 所有需求在JeecgBoot框架内可实现"
+  
+  # 输出物检查清单
+  deliverable_checklist:
+    - "需求规格说明书 (requirement_specification.yaml)"
+    - "业务规则文档 (business_rules_document.yaml)"
+    - "验收标准文档 (acceptance_criteria.yaml)"
+    - "利益相关方分析 (stakeholder_analysis.yaml)"
+    - "数据模型需求 (data_model_requirements.yaml)"
+  
+  # 流程改进和反馈
+  process_improvement:
+    feedback_collection: "收集流程执行中的问题和改进建议"
+    metrics_tracking: "跟踪需求分析质量和效率指标"
+    process_optimization: "基于反馈持续优化分析流程"
