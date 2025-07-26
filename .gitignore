@@ -25,3 +25,10 @@ PRPs/
 
 # AI Configuration (symbolic link to PRPs/CLAUDE.md)
 CLAUDE.md
+
+## ContextDev temporary files
+**/installation_report_*.json
+**/validation_report_*.json
+**/deployment_report_*.json
+**/*_backup_*
+ContextDev/**/*_20*

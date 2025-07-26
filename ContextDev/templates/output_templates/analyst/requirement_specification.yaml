@@ -1,6 +1,6 @@
 # 需求分析专家 - 需求规格说明书输出模板
 # Template: requirement_specification.yaml
-# Version: v2.0.0
+# Version: v4.0.0
 # Description: 标准化需求规格说明书格式，供system_architect专家使用
 
 requirement_specification:

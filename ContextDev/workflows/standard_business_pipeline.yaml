@@ -1,6 +1,6 @@
 # 标准业务开发流水线 - 组合模板
 # Template: standard_business_pipeline.yaml
-# Version: v2.0.0
+# Version: v4.0.0
 # Description: 标准业务需求的完整开发流水线，整合5个专家的协作流程
 
 standard_business_pipeline:
