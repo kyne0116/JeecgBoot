@@ -25,7 +25,7 @@ class CodeGenValidator:
             "update_by", "update_time", "sys_org_code", "del_flag"
         ]
         self.required_head_fields = [
-            "tableName", "tableTxt", "tableType", "formCategory", "idType",
+            "tableName", "tableTxt", "business_entity", "tableType", "formCategory", "idType",
             "isCheckbox", "themeTemplate", "formTemplate", "scroll",
             "isPage", "isTree", "extConfigJson", "isDesForm", "desFormCode"
         ]
@@ -93,6 +93,23 @@ class CodeGenValidator:
             if required_field not in head:
                 errors.append(f"🚨 head缺少必需字段: {required_field}")
 
+        # 验证business_entity字段（关键字段）
+        if 'business_entity' not in head:
+            errors.append("🚨 关键错误: head节点缺少business_entity字段")
+        elif not head['business_entity']:
+            errors.append("🚨 关键错误: business_entity字段不能为空")
+        elif not isinstance(head['business_entity'], str):
+            errors.append("🚨 关键错误: business_entity必须是字符串类型")
+        else:
+            # 验证business_entity格式（PascalCase）
+            business_entity = head['business_entity']
+            if not business_entity[0].isupper():
+                errors.append(f"⚠️ business_entity应使用PascalCase格式: {business_entity}")
+            if '_' in business_entity or '-' in business_entity:
+                errors.append(f"⚠️ business_entity不应包含下划线或连字符: {business_entity}")
+            if any(word.lower() in ['info', 'management', 'data', 'basic'] for word in business_entity.split()):
+                errors.append(f"⚠️ business_entity应避免通用化命名: {business_entity}")
+
         # 验证tableType数据类型
         if 'tableType' in head and not isinstance(head['tableType'], int):
             errors.append("🚨 tableType必须是整数类型，不能是字符串")
@@ -133,6 +150,19 @@ class CodeGenValidator:
         table_name = config.get('head', {}).get('tableName', '')
         if not table_name.startswith('us_') or table_name.count('_') != 3:
             errors.append(f"⚠️ 表名格式不正确: {table_name} (应为us_{{模块}}_{{子模块}}_{{实体}})")
+
+        # 验证表名与business_entity的一致性
+        if 'business_entity' in head and head['business_entity']:
+            business_entity = head['business_entity']
+            # 将PascalCase转换为snake_case进行比较
+            expected_suffix = self._pascal_to_snake_case(business_entity)
+            if not table_name.endswith(expected_suffix):
+                errors.append(f"⚠️ 表名后缀与business_entity不匹配: {table_name} vs {expected_suffix}")
+
+        # 验证metadata节点（推荐但非必需）
+        if 'metadata' in config:
+            metadata_errors = self._validate_metadata(config['metadata'], head.get('business_entity', ''))
+            errors.extend(metadata_errors)
         
         # 验证字段必需属性
         for i, field in enumerate(config['fields']):
@@ -148,7 +178,51 @@ class CodeGenValidator:
                 errors.append(f"🚨 {array_name}必须是数组类型")
         
         return errors
-    
+
+    def _pascal_to_snake_case(self, pascal_str: str) -> str:
+        """将PascalCase转换为snake_case"""
+        import re
+        # 在大写字母前插入下划线，然后转换为小写
+        snake_str = re.sub(r'(?<!^)(?=[A-Z])', '_', pascal_str).lower()
+        return snake_str
+
+    def _validate_metadata(self, metadata: Dict, business_entity: str) -> List[str]:
+        """验证metadata节点"""
+        errors = []
+
+        if not isinstance(metadata, dict):
+            errors.append("⚠️ metadata必须是对象类型")
+            return errors
+
+        # 验证generation_info节点
+        if 'generation_info' in metadata:
+            gen_info = metadata['generation_info']
+            if not isinstance(gen_info, dict):
+                errors.append("⚠️ metadata.generation_info必须是对象类型")
+            else:
+                # 验证关键字段
+                required_gen_fields = ['module_name', 'submodule_name', 'business_entity']
+                for field in required_gen_fields:
+                    if field not in gen_info:
+                        errors.append(f"💡 建议添加metadata.generation_info.{field}字段")
+
+                # 验证business_entity一致性
+                if 'business_entity' in gen_info and gen_info['business_entity'] != business_entity:
+                    errors.append(f"⚠️ metadata中的business_entity与head中的不一致")
+
+        # 验证derived_formats节点
+        if 'derived_formats' in metadata:
+            derived = metadata['derived_formats']
+            if not isinstance(derived, dict):
+                errors.append("⚠️ metadata.derived_formats必须是对象类型")
+            else:
+                recommended_fields = ['table_suffix', 'url_path', 'frontend_path']
+                for field in recommended_fields:
+                    if field not in derived:
+                        errors.append(f"💡 建议添加metadata.derived_formats.{field}字段")
+
+        return errors
+
     def _validate_field(self, field: Dict, field_index: int) -> List[str]:
         """验证单个字段"""
         errors = []

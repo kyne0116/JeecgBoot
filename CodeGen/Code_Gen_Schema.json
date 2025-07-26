@@ -9,7 +9,8 @@
       "type": "object",
       "required": [
         "tableName",
-        "tableTxt", 
+        "tableTxt",
+        "business_entity",
         "tableType",
         "formCategory",
         "idType",
@@ -34,6 +35,12 @@
           "minLength": 1,
           "maxLength": 50,
           "description": "表描述不能为空"
+        },
+        "business_entity": {
+          "type": "string",
+          "pattern": "^[A-Z][a-zA-Z]*$",
+          "minLength": 1,
+          "description": "业务实体名称，必须使用PascalCase格式"
         },
         "tableType": {
           "type": "integer",
@@ -200,6 +207,56 @@
     "deleteIndexIds": {
       "type": "array",
       "description": "删除索引ID数组"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "元数据信息（可选）",
+      "properties": {
+        "generation_info": {
+          "type": "object",
+          "description": "生成信息",
+          "properties": {
+            "module_name": {
+              "type": "string",
+              "description": "模块名称"
+            },
+            "submodule_name": {
+              "type": "string",
+              "description": "子模块名称"
+            },
+            "business_entity": {
+              "type": "string",
+              "description": "业务实体名称"
+            },
+            "inference_strategy": {
+              "type": "string",
+              "description": "推理策略说明"
+            },
+            "semantic_analysis": {
+              "type": "string",
+              "description": "语义分析结果"
+            }
+          }
+        },
+        "derived_formats": {
+          "type": "object",
+          "description": "派生格式",
+          "properties": {
+            "table_suffix": {
+              "type": "string",
+              "description": "表名后缀"
+            },
+            "url_path": {
+              "type": "string",
+              "description": "URL路径"
+            },
+            "frontend_path": {
+              "type": "string",
+              "description": "前端路径"
+            }
+          }
+        }
+      }
     }
   },
   "additionalProperties": false
