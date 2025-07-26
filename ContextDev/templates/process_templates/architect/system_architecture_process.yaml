@@ -1,0 +1,534 @@
+# 系统架构专家 - 系统架构设计标准流程模板
+# Template: system_architecture_process.yaml
+# Version: v2.0.0
+# Description: 标准化系统架构设计工作流程和方法规范
+
+system_architecture_process:
+  # 流程概述
+  process_info:
+    process_name: "JeecgBoot系统架构设计流程"
+    process_version: "2.0.0"
+    applicable_domains: ["core", "finance", "supply", "crm", "hrm", "inventory", "order", "reporting", "workflow", "integration"]
+    complexity_levels: ["simple", "standard", "complex", "enterprise"]
+    estimated_duration: "4-16小时 (根据复杂度)"
+    framework_constraints: "严格遵循JeecgBoot 3.8.1+架构规范"
+  
+  # 阶段1: 需求分析与架构规划
+  phase_1_requirement_analysis:
+    phase_name: "需求分析与架构规划"
+    duration: "60-90分钟"
+    
+    activities:
+      activity_1_requirement_understanding:
+        name: "深度需求理解"
+        description: "全面理解业务需求并提取架构设计要素"
+        steps:
+          - step: "业务需求分解"
+            method: "分析functional_requirements，提取架构相关信息"
+            focus_points: ["数据处理复杂度", "集成复杂度", "性能要求", "安全要求"]
+            output: "架构需求清单"
+            
+          - step: "非功能需求映射"
+            method: "将non_functional_requirements映射到架构质量属性"
+            mapping_rules:
+              performance: "响应时间、吞吐量、并发支持"
+              scalability: "水平扩展、垂直扩展、弹性伸缩"
+              availability: "高可用、容灾、故障恢复"
+              security: "身份认证、访问控制、数据保护"
+              usability: "用户界面、交互体验、跨平台支持"
+            validation: "确保所有质量属性在JeecgBoot框架内可实现"
+            
+          - step: "业务复杂度评估"
+            method: "基于business_entities和business_processes评估系统复杂度"
+            complexity_indicators:
+              simple: "实体数量<5，流程步骤<10，无复杂集成"
+              standard: "实体数量5-15，流程步骤10-30，标准集成"
+              complex: "实体数量15-50，流程步骤30-100，复杂流程和集成"
+              enterprise: "实体数量>50，流程步骤>100，企业级集成和分布式处理"
+            output: "复杂度评估报告"
+      
+      activity_2_architecture_vision:
+        name: "架构愿景设计"
+        description: "制定系统架构愿景和设计原则"
+        steps:
+          - step: "架构愿景定义"
+            method: "基于业务目标定义技术架构愿景"
+            principles: ["简洁性", "可扩展性", "可维护性", "安全性", "性能优化"]
+            jeecgboot_alignment: "确保愿景与JeecgBoot框架能力对齐"
+            
+          - step: "架构风格选择"
+            method: "基于需求特点选择适合的架构风格"
+            available_styles:
+              layered_architecture: "分层架构 (推荐用于大多数业务系统)"
+              event_driven_architecture: "事件驱动架构 (适用于复杂业务流程)"
+              domain_driven_design: "领域驱动设计 (适用于复杂业务领域)"
+            jeecgboot_constraint: "必须基于单体分层架构，严禁微服务架构"
+            
+          - step: "设计约束确认"
+            method: "确认技术约束和设计边界"
+            constraints_validation:
+              framework_constraints: "验证JeecgBoot框架约束"
+              technology_constraints: "确认技术栈选择"
+              integration_constraints: "验证集成模式兼容性"
+              performance_constraints: "确认性能目标可达性"
+  
+  # 阶段2: 系统架构设计
+  phase_2_system_architecture_design:
+    phase_name: "系统架构设计"
+    duration: "120-240分钟"
+    
+    activities:
+      activity_1_overall_architecture:
+        name: "整体架构设计"
+        description: "设计系统整体架构和组件布局"
+        steps:
+          - step: "系统架构建模"
+            method: "使用4+1视图模型进行架构设计"
+            views:
+              logical_view: "逻辑架构视图 - 模块和组件关系"
+              process_view: "进程视图 - 并发和同步机制"
+              development_view: "开发视图 - 包结构和代码组织"
+              physical_view: "物理视图 - 部署架构和基础设施"
+              scenarios: "场景视图 - 关键用例和质量场景"
+            tools: ["架构图", "组件图", "部署图"]
+            
+          - step: "模块划分和职责定义"
+            method: "基于业务领域和技术层次进行模块划分"
+            jeecgboot_module_structure:
+              presentation_layer: 
+                - "Controller层 - REST API接口"
+                - "Vue3组件 - 用户界面组件"
+                - "路由配置 - 前端路由管理"
+              business_layer:
+                - "Service层 - 业务逻辑处理"
+                - "ServiceImpl - 业务逻辑实现"
+                - "工作流集成 - 流程引擎集成"
+              data_layer:
+                - "Entity层 - 数据实体定义"
+                - "Mapper层 - 数据访问接口"
+                - "数据库表 - 物理数据存储"
+              integration_layer:
+                - "外部API集成"
+                - "文件处理组件"
+                - "消息队列集成"
+            validation: "确保模块职责清晰，耦合度低，内聚度高"
+            
+          - step: "组件间通信设计"
+            method: "设计组件间的通信机制和接口"
+            communication_patterns:
+              synchronous: "同步调用 - 直接方法调用，REST API"
+              asynchronous: "异步调用 - 消息队列，事件驱动"
+              database_shared: "数据库共享 - 通过数据库进行数据交换"
+            jeecgboot_integration: "充分利用JeecgBoot框架的集成能力"
+      
+      activity_2_layer_design:
+        name: "分层架构详细设计"
+        description: "详细设计各层的架构和实现方案"
+        steps:
+          - step: "表现层架构设计"
+            method: "设计用户界面和API接口架构"
+            components:
+              rest_controllers:
+                naming_convention: "{Module}Controller"
+                responsibility: "接收HTTP请求，参数验证，调用业务服务，返回响应"
+                annotations: ["@RestController", "@RequestMapping", "@RequiresPermissions"]
+                error_handling: "统一异常处理和错误响应格式"
+              vue_components:
+                component_structure: "组合式API + TypeScript"
+                state_management: "Pinia状态管理"
+                ui_components: "Ant Design Vue组件库"
+                routing: "Vue Router路由配置"
+            design_patterns:
+              - "MVC模式 - 模型视图控制器分离"
+              - "RESTful API设计 - 资源导向的接口设计"
+              - "统一响应格式 - 标准化API响应结构"
+            
+          - step: "业务层架构设计"
+            method: "设计业务逻辑层的服务架构"
+            components:
+              service_interfaces:
+                naming_convention: "I{Module}Service"
+                responsibility: "定义业务服务接口契约"
+                design_principles: ["接口隔离原则", "依赖倒置原则"]
+              service_implementations:
+                naming_convention: "{Module}ServiceImpl"
+                responsibility: "实现具体业务逻辑，事务控制，异常处理"
+                annotations: ["@Service", "@Transactional"]
+              business_rules:
+                validation_layer: "输入参数验证和业务规则验证"
+                calculation_layer: "业务计算和数据处理逻辑"
+                workflow_layer: "业务流程控制和状态管理"
+            design_patterns:
+              - "服务层模式 - 封装业务逻辑"
+              - "事务脚本模式 - 简单业务逻辑处理"
+              - "领域服务模式 - 复杂业务逻辑处理"
+              
+          - step: "数据访问层架构设计"
+            method: "设计数据持久化和访问架构"
+            components:
+              entity_classes:
+                naming_convention: "{EntityName}"
+                responsibility: "数据实体定义，ORM映射，验证注解"
+                annotations: ["@TableName", "@TableId", "@TableField"]
+              mapper_interfaces:
+                naming_convention: "{Entity}Mapper"
+                responsibility: "数据访问接口定义，SQL映射"
+                inheritance: "extends BaseMapper<Entity>"
+              custom_sql:
+                xml_mappers: "复杂查询SQL定义"
+                dynamic_sql: "动态SQL构建"
+                performance_optimization: "查询优化和索引策略"
+            design_patterns:
+              - "数据访问对象模式 (DAO)"
+              - "仓储模式 (Repository)"
+              - "工作单元模式 (Unit of Work)"
+  
+  # 阶段3: 数据库架构设计
+  phase_3_database_architecture:
+    phase_name: "数据库架构设计"
+    duration: "90-180分钟"
+    
+    activities:
+      activity_1_logical_data_model:
+        name: "逻辑数据模型设计"
+        description: "设计概念和逻辑数据模型"
+        steps:
+          - step: "概念数据模型"
+            method: "基于business_entities创建ER模型"
+            modeling_approach:
+              entity_identification: "识别核心业务实体和属性"
+              relationship_modeling: "定义实体间关系和基数"
+              business_rule_modeling: "建模业务约束和完整性规则"
+            tools: ["ER图", "UML类图", "领域模型图"]
+            validation: "与业务专家确认模型准确性"
+            
+          - step: "逻辑数据模型细化"
+            method: "将概念模型转化为逻辑数据模型"
+            normalization:
+              first_normal_form: "确保原子性，消除重复组"
+              second_normal_form: "消除部分函数依赖"
+              third_normal_form: "消除传递函数依赖"
+              denormalization_strategy: "基于性能考虑的反规范化"
+            integrity_constraints:
+              entity_integrity: "主键约束定义"
+              referential_integrity: "外键约束定义"
+              domain_integrity: "字段约束和检查约束"
+              business_rule_constraints: "业务规则约束实现"
+      
+      activity_2_physical_data_model:
+        name: "物理数据模型设计"
+        description: "设计MySQL物理数据库结构"
+        steps:
+          - step: "表结构设计"
+            method: "将逻辑模型转换为MySQL表结构"
+            jeecgboot_naming_convention:
+              table_naming: "us_{domain}_{module}_{entity}"
+              column_naming: "snake_case命名方式"
+              index_naming: "idx_{table}_{column}"
+              constraint_naming: "fk_{table}_{column}"
+            mysql_data_types:
+              string_types: ["VARCHAR", "TEXT", "LONGTEXT"]
+              numeric_types: ["INT", "BIGINT", "DECIMAL", "DOUBLE"]
+              date_types: ["DATE", "DATETIME", "TIMESTAMP"]
+              boolean_type: "TINYINT(1)"
+              json_type: "JSON (MySQL 5.7+)"
+            
+          - step: "索引策略设计"
+            method: "基于查询模式设计索引策略"
+            index_types:
+              primary_index: "主键索引 (聚集索引)"
+              unique_index: "唯一索引 (业务唯一约束)"
+              normal_index: "普通索引 (查询优化)"
+              composite_index: "复合索引 (多字段查询)"
+              foreign_key_index: "外键索引 (关联查询优化)"
+            performance_considerations:
+              query_patterns: "分析常用查询模式"
+              index_selectivity: "评估索引选择性"
+              maintenance_cost: "考虑索引维护成本"
+              
+          - step: "分区和分表策略"
+            method: "基于数据量和性能要求设计分区策略"
+            partitioning_strategies:
+              range_partitioning: "范围分区 (按时间或数值范围)"
+              list_partitioning: "列表分区 (按枚举值)"
+              hash_partitioning: "哈希分区 (均匀分布)"
+              key_partitioning: "键分区 (基于主键)"
+            sharding_considerations: "垂直分片和水平分片策略"
+  
+  # 阶段4: API接口架构设计
+  phase_4_api_architecture:
+    phase_name: "API接口架构设计"
+    duration: "60-120分钟"
+    
+    activities:
+      activity_1_restful_api_design:
+        name: "RESTful API设计"
+        description: "设计符合REST原则的API接口"
+        steps:
+          - step: "资源识别和URI设计"
+            method: "基于业务实体设计RESTful资源"
+            uri_design_principles:
+              resource_oriented: "以资源为中心的URI设计"
+              hierarchical_structure: "层次化资源结构"
+              consistent_naming: "一致的命名规范"
+            jeecgboot_api_patterns:
+              collection_resource: "/api/{domain}/{resources}"
+              instance_resource: "/api/{domain}/{resources}/{id}"
+              nested_resource: "/api/{domain}/{parent}/{id}/{children}"
+              action_resource: "/api/{domain}/{resources}/{id}/actions/{action}"
+            examples:
+              - "GET /api/finance/invoices - 获取发票列表"
+              - "POST /api/finance/invoices - 创建新发票"
+              - "GET /api/finance/invoices/123 - 获取特定发票"
+              - "PUT /api/finance/invoices/123 - 更新发票"
+              - "DELETE /api/finance/invoices/123 - 删除发票"
+              - "POST /api/finance/invoices/123/actions/submit - 提交发票审核"
+              
+          - step: "HTTP方法和状态码设计"
+            method: "标准化HTTP方法使用和状态码返回"
+            http_methods:
+              GET: "资源查询，幂等性，无副作用"
+              POST: "资源创建，非幂等性，有副作用"
+              PUT: "资源更新 (完整替换)，幂等性"
+              PATCH: "资源更新 (部分更新)，非幂等性"
+              DELETE: "资源删除，幂等性"
+            status_codes:
+              success_codes: ["200 OK", "201 Created", "204 No Content"]
+              client_error_codes: ["400 Bad Request", "401 Unauthorized", "403 Forbidden", "404 Not Found"]
+              server_error_codes: ["500 Internal Server Error", "503 Service Unavailable"]
+            jeecgboot_response_format:
+              success_response: '{"success": true, "message": "操作成功", "result": {...}, "timestamp": "..."}'
+              error_response: '{"success": false, "message": "错误信息", "code": "ERROR_CODE", "timestamp": "..."}'
+              
+          - step: "请求响应数据结构设计"
+            method: "设计标准化的请求响应数据格式"
+            request_structure:
+              query_parameters: "查询参数 (分页、排序、过滤)"
+              path_parameters: "路径参数 (资源标识)"
+              request_body: "请求体 (JSON格式)"
+              headers: "请求头 (认证、内容类型)"
+            response_structure:
+              data_transfer_objects: "DTO设计和数据传输优化"
+              pagination_format: "分页数据标准格式"
+              error_handling: "统一错误处理和响应格式"
+              metadata: "响应元数据 (时间戳、版本信息)"
+      
+      activity_2_api_security_design:
+        name: "API安全架构设计"
+        description: "设计API的安全防护机制"
+        steps:
+          - step: "身份认证机制"
+            method: "基于JeecgBoot框架设计认证方案"
+            authentication_methods:
+              jwt_authentication: "JWT令牌认证 (推荐)"
+              session_authentication: "会话认证 (传统方式)"
+              api_key_authentication: "API密钥认证 (系统集成)"
+            jeecgboot_integration:
+              shiro_integration: "集成Shiro安全框架"
+              custom_realm: "自定义认证和授权规则"
+              token_management: "令牌生成、验证、刷新机制"
+              
+          - step: "权限控制设计"
+            method: "设计细粒度的权限控制机制"
+            authorization_models:
+              rbac_model: "基于角色的访问控制"
+              data_permission: "数据级权限控制"
+              operation_permission: "操作级权限控制"
+            permission_annotations:
+              - "@RequiresPermissions - 方法级权限控制"
+              - "@RequiresRoles - 角色级权限控制"
+              - "@DataPermission - 数据权限过滤"
+            
+          - step: "API安全加固"
+            method: "实施API安全最佳实践"
+            security_measures:
+              input_validation: "输入参数验证和净化"
+              output_encoding: "输出数据编码和过滤"
+              rate_limiting: "API访问频率限制"
+              cors_configuration: "跨域资源共享配置"
+              https_enforcement: "强制HTTPS传输"
+              sql_injection_prevention: "SQL注入防护"
+              xss_prevention: "XSS攻击防护"
+  
+  # 阶段5: 集成架构设计
+  phase_5_integration_architecture:
+    phase_name: "集成架构设计"
+    duration: "45-90分钟"
+    
+    activities:
+      activity_1_internal_integration:
+        name: "内部系统集成设计"
+        description: "设计与内部系统的集成方案"
+        steps:
+          - step: "集成模式选择"
+            method: "基于集成需求选择合适的集成模式"
+            integration_patterns:
+              database_integration: "数据库直接集成 (紧耦合)"
+              api_integration: "API接口集成 (松耦合，推荐)"
+              file_integration: "文件交换集成 (批处理)"
+              message_integration: "消息队列集成 (异步处理)"
+            jeecgboot_capabilities:
+              rest_client: "HTTP客户端工具"
+              file_processing: "文件上传下载处理"
+              scheduled_tasks: "定时任务调度"
+              
+          - step: "数据同步策略"
+            method: "设计数据同步和一致性保证机制"
+            synchronization_strategies:
+              real_time_sync: "实时同步 (API调用)"
+              batch_sync: "批量同步 (定时任务)"
+              event_driven_sync: "事件驱动同步 (消息机制)"
+            consistency_guarantees:
+              eventual_consistency: "最终一致性 (推荐)"
+              strong_consistency: "强一致性 (事务保证)"
+              weak_consistency: "弱一致性 (性能优先)"
+      
+      activity_2_external_integration:
+        name: "外部系统集成设计"
+        description: "设计与第三方系统的集成方案"
+        steps:
+          - step: "外部接口适配"
+            method: "设计外部系统接口的适配层"
+            adapter_patterns:
+              protocol_adapter: "协议适配 (HTTP/SOAP/FTP转换)"
+              data_format_adapter: "数据格式适配 (JSON/XML/CSV转换)"
+              authentication_adapter: "认证方式适配"
+            error_handling:
+              circuit_breaker: "熔断机制防止级联故障"
+              retry_strategy: "重试策略和退避算法"
+              fallback_mechanism: "降级和备用方案"
+              
+          - step: "外部服务治理"
+            method: "管理外部服务的可用性和性能"
+            service_governance:
+              health_check: "外部服务健康检查"
+              performance_monitoring: "性能监控和告警"
+              sla_management: "服务等级协议管理"
+              version_management: "接口版本管理和兼容性"
+  
+  # 阶段6: 性能和安全架构设计
+  phase_6_performance_security:
+    phase_name: "性能和安全架构设计"
+    duration: "60-90分钟"
+    
+    activities:
+      activity_1_performance_architecture:
+        name: "性能架构设计"
+        description: "设计高性能的系统架构"
+        steps:
+          - step: "缓存架构设计"
+            method: "设计多层缓存架构提升性能"
+            caching_layers:
+              browser_cache: "浏览器缓存 (静态资源)"
+              cdn_cache: "CDN缓存 (全局静态内容)"
+              application_cache: "应用缓存 (热点数据)"
+              database_cache: "数据库缓存 (查询结果)"
+            jeecgboot_caching:
+              redis_integration: "Redis缓存集成"
+              spring_cache: "Spring Cache注解"
+              ehcache_support: "EhCache本地缓存"
+            cache_strategies:
+              cache_aside: "缓存旁路模式 (推荐)"
+              write_through: "写穿透模式"
+              write_behind: "写回模式"
+              
+          - step: "数据库性能优化"
+            method: "优化数据库访问性能"
+            optimization_techniques:
+              query_optimization: "SQL查询优化"
+              index_optimization: "索引策略优化"
+              connection_pooling: "数据库连接池配置"
+              read_write_separation: "读写分离架构"
+            mybatis_optimization:
+              lazy_loading: "延迟加载配置"
+              batch_operations: "批量操作优化"
+              pagination: "分页查询优化"
+              sql_session_management: "SqlSession管理"
+      
+      activity_2_security_architecture:
+        name: "安全架构设计"
+        description: "设计全面的安全防护架构"
+        steps:
+          - step: "多层安全防护"
+            method: "设计纵深防御的安全架构"
+            security_layers:
+              network_security: "网络层安全 (防火墙、VPN)"
+              application_security: "应用层安全 (认证、授权)"
+              data_security: "数据层安全 (加密、脱敏)"
+              transport_security: "传输层安全 (HTTPS、TLS)"
+            jeecgboot_security:
+              shiro_configuration: "Shiro安全框架配置"
+              permission_management: "权限管理体系"
+              audit_logging: "操作审计日志"
+              
+          - step: "数据保护设计"
+            method: "设计敏感数据保护机制"
+            data_protection:
+              encryption_at_rest: "静态数据加密"
+              encryption_in_transit: "传输数据加密"
+              key_management: "密钥管理和轮换"
+              data_masking: "敏感数据脱敏"
+              backup_security: "备份数据安全"
+  
+  # JeecgBoot框架集成验证
+  jeecgboot_integration_validation:
+    framework_compliance:
+      code_generation: "验证设计与CodeGen系统的兼容性"
+      permission_system: "确保权限设计符合JeecgBoot权限体系"
+      workflow_engine: "验证流程设计与工作流引擎的集成"
+      reporting_system: "确保报表需求与报表系统的兼容"
+      
+    technology_stack_validation:
+      backend_validation:
+        spring_boot: "确保Spring Boot 3.x兼容性"
+        mybatis_plus: "验证MyBatis-Plus映射正确性"
+        mysql_compatibility: "确保MySQL 8.0+兼容性"
+        redis_integration: "验证Redis集成方案"
+      frontend_validation:
+        vue3_compatibility: "确保Vue 3框架兼容性"
+        typescript_support: "验证TypeScript类型定义"
+        antd_integration: "确保Ant Design Vue组件兼容"
+        
+    prohibited_technology_check:
+      microservices_check: "确认未使用微服务架构"
+      nosql_check: "确认未使用MongoDB/Elasticsearch"
+      graphql_check: "确认未使用GraphQL"
+      
+  # 质量保证检查点
+  quality_checkpoints:
+    architectural_consistency: "架构一致性检查 - 各层设计协调一致"
+    performance_feasibility: "性能可行性检查 - 性能目标可达成"
+    security_completeness: "安全完整性检查 - 安全措施全面覆盖"
+    scalability_assessment: "可扩展性评估 - 支持未来增长需求"
+    maintainability_evaluation: "可维护性评估 - 便于后续维护和扩展"
+    jeecgboot_compliance: "JeecgBoot合规性检查 - 完全符合框架规范"
+    
+  # 输出物检查清单
+  deliverable_checklist:
+    - "系统架构文档 (system_architecture.yaml)"
+    - "数据库设计文档 (database_schema.yaml)"
+    - "API接口规范 (api_specification.yaml)"
+    - "安全架构文档 (security_architecture.yaml)"
+    - "技术选型文档 (technology_selection.yaml)"
+    - "集成架构文档 (integration_architecture.yaml)"
+    
+  # 架构评审和验证
+  architecture_review:
+    review_criteria:
+      business_alignment: "架构与业务需求的对齐度"
+      technical_feasibility: "技术实现的可行性"
+      performance_adequacy: "性能满足度评估"
+      security_robustness: "安全防护的健壮性"
+      maintainability_score: "可维护性评分"
+      
+    stakeholder_review:
+      business_stakeholders: "业务相关方架构评审"
+      technical_stakeholders: "技术相关方架构评审"
+      security_stakeholders: "安全相关方架构评审"
+      
+  # 架构持续改进
+  continuous_improvement:
+    feedback_collection: "收集架构设计反馈"
+    metrics_definition: "定义架构质量指标"
+    improvement_tracking: "跟踪架构改进效果"
+    best_practices_update: "更新架构设计最佳实践"
