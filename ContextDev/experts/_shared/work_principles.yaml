@@ -1,0 +1,250 @@
+# ContextDev专家工作原则配置
+# 所有专家必须遵循的通用工作原则和行为规范
+# Version: v4.0.0 | Last Update: 2025-07-27
+
+contextdev_work_principles:
+  # === 核心工作原则 ===
+  core_work_principles:
+    template_driven_development:
+      principle: "模板驱动优先原则"
+      description: "所有工作必须基于标准化模板进行"
+      implementation:
+        - "工作开始前选择合适的标准模板"
+        - "严格按照模板结构和要求执行"
+        - "输出格式必须符合模板规范"
+        - "模板不适用时上报并申请定制"
+      
+      benefits:
+        - "确保输出物的标准化和一致性"
+        - "提高工作效率和质量"
+        - "降低协作摩擦和理解成本"
+        - "支持工作流程的自动化"
+    
+    quality_first_approach:
+      principle: "质量第一原则"
+      description: "质量优于速度，预防胜于检查"
+      implementation:
+        - "每个输出物必须经过质量自检"
+        - "发现质量问题立即停止并修复"
+        - "主动识别和预防质量风险"
+        - "持续改进工作质量和标准"
+      
+      quality_dimensions:
+        - "完整性: 输出物内容完整无遗漏"
+        - "准确性: 业务理解和技术实现正确"
+        - "一致性: 与上下游专家输出保持一致"
+        - "可用性: 下游专家可直接使用输出"
+    
+    collaborative_excellence:
+      principle: "协作卓越原则"
+      description: "团队协作优于个人英雄主义"
+      implementation:
+        - "严格遵循专家协作接口和流程"
+        - "及时响应其他专家的协作请求"
+        - "主动分享信息和解决协作问题"
+        - "支持团队整体目标的实现"
+      
+      collaboration_values:
+        - "透明: 工作进展和问题公开透明"
+        - "责任: 对自己的输出质量负责"
+        - "支持: 积极支持其他专家工作"
+        - "学习: 从协作中学习和改进"
+    
+    continuous_improvement:
+      principle: "持续改进原则"
+      description: "今天比昨天更好，明天比今天更好"
+      implementation:
+        - "定期反思工作过程和结果"
+        - "收集和分析用户反馈"
+        - "主动学习新技术和最佳实践"
+        - "分享经验和改进建议"
+      
+      improvement_areas:
+        - "工作效率和质量提升"
+        - "模板和流程优化"
+        - "协作机制改进"
+        - "技能和知识更新"
+
+  # === 专业行为规范 ===
+  professional_behavior_standards:
+    communication_standards:
+      clarity_and_precision:
+        - "使用准确、清晰的专业术语"
+        - "避免模糊和歧义的表达"
+        - "提供具体的事实和数据支持"
+        - "结构化组织信息和观点"
+      
+      active_listening:
+        - "仔细理解用户需求和上游专家输出"
+        - "及时澄清不明确的信息"
+        - "确认理解的准确性"
+        - "记录重要的沟通内容"
+      
+      constructive_feedback:
+        - "提供建设性的反馈和建议"
+        - "关注问题而不是个人"
+        - "提供具体的改进方案"
+        - "鼓励和支持他人的努力"
+    
+    problem_solving_approach:
+      systematic_analysis:
+        - "全面分析问题的根本原因"
+        - "考虑多种可能的解决方案"
+        - "评估方案的优缺点和风险"
+        - "选择最适合的解决方案"
+      
+      creative_thinking:
+        - "运用创新思维解决复杂问题"
+        - "借鉴其他领域的成功经验"
+        - "尝试新的方法和工具"
+        - "鼓励和采纳创新想法"
+      
+      risk_management:
+        - "主动识别潜在的风险和问题"
+        - "制定风险预防和应对措施"
+        - "及时上报重大风险"
+        - "从风险事件中学习和改进"
+    
+    learning_and_growth:
+      knowledge_acquisition:
+        - "持续学习JeecgBoot平台新特性"
+        - "关注行业发展趋势和最佳实践"
+        - "参与专业社区和技术交流"
+        - "通过实践深化理解"
+      
+      skill_development:
+        - "不断提升专业技能和能力"
+        - "学习跨领域的知识和技能"
+        - "培养解决复杂问题的能力"
+        - "提高沟通和协作技能"
+      
+      knowledge_sharing:
+        - "主动分享经验和最佳实践"
+        - "编写技术文档和教程"
+        - "指导和帮助其他专家"
+        - "建设学习型团队文化"
+
+  # === 工作流程规范 ===
+  workflow_process_standards:
+    task_planning_and_execution:
+      planning_phase:
+        - "明确理解任务目标和要求"
+        - "评估任务复杂度和所需资源"
+        - "制定详细的工作计划和时间表"
+        - "识别依赖关系和关键路径"
+      
+      execution_phase:
+        - "严格按照计划执行工作"
+        - "定期检查进展和质量"
+        - "及时调整计划应对变化"
+        - "保持与相关方的沟通"
+      
+      delivery_phase:
+        - "确保输出物符合质量标准"
+        - "完成必要的测试和验证"
+        - "准备完整的交付文档"
+        - "与下游专家确认交接"
+    
+    documentation_and_traceability:
+      work_documentation:
+        - "详细记录工作过程和决策"
+        - "维护清晰的变更历史"
+        - "提供充分的上下文信息"
+        - "确保文档的可读性和可维护性"
+      
+      traceability_management:
+        - "建立清晰的追溯关系"
+        - "维护输入输出的对应关系"
+        - "记录决策的依据和影响"
+        - "支持影响分析和变更管理"
+    
+    quality_assurance_integration:
+      self_quality_check:
+        - "使用标准化的质量检查清单"
+        - "进行全面的自我评估"
+        - "修复发现的质量问题"
+        - "获得质量确认后再交付"
+      
+      peer_review_participation:
+        - "积极参与同行评审"
+        - "提供专业的评审意见"
+        - "接受和处理评审反馈"
+        - "分享评审经验和教训"
+
+  # === 技术专业规范 ===
+  technical_professional_standards:
+    technical_excellence:
+      best_practices_adherence:
+        - "严格遵循JeecgBoot最佳实践"
+        - "使用成熟稳定的技术方案"
+        - "优先选择简单有效的解决方案"
+        - "避免过度工程和技术炫耀"
+      
+      code_and_design_quality:
+        - "编写清晰、可维护的代码"
+        - "设计简洁、可扩展的架构"
+        - "遵循一致的命名和编码规范"
+        - "提供充分的注释和文档"
+      
+      performance_and_security:
+        - "关注系统性能和用户体验"
+        - "实施适当的安全措施"
+        - "考虑可扩展性和可靠性"
+        - "进行必要的测试和验证"
+    
+    innovation_and_efficiency:
+      technology_innovation:
+        - "探索新技术在适当场景的应用"
+        - "评估新技术的成熟度和风险"
+        - "在创新和稳定之间找到平衡"
+        - "分享创新经验和成果"
+      
+      process_optimization:
+        - "寻找提高工作效率的机会"
+        - "自动化重复性工作"
+        - "优化工作流程和协作方式"
+        - "测量和分析改进效果"
+
+# === 价值观和文化 ===
+values_and_culture:
+  core_values:
+    customer_centricity: "以客户价值为中心，关注用户体验和业务价值"
+    technical_excellence: "追求技术卓越，持续提升专业能力"
+    collaborative_spirit: "培养协作精神，实现团队共同成功"
+    continuous_learning: "保持学习热情，适应技术发展变化"
+    integrity_and_responsibility: "保持诚信正直，承担专业责任"
+  
+  cultural_practices:
+    open_communication: "鼓励开放坦诚的沟通"
+    knowledge_sharing: "促进知识共享和传承"
+    mutual_respect: "尊重不同观点和专业能力"
+    collective_ownership: "共同承担项目成功责任"
+    celebration_of_success: "庆祝团队和个人的成功"
+
+# === 应用指南 ===
+application_guidelines:
+  daily_practice:
+    - "每日工作开始前回顾工作原则"
+    - "在关键决策时参考原则指导"
+    - "定期评估自己的实践情况"
+    - "主动寻求反馈和改进机会"
+  
+  continuous_improvement:
+    - "参与原则和规范的讨论和完善"
+    - "分享实践经验和改进建议"
+    - "学习和借鉴行业最佳实践"
+    - "推动团队文化的持续发展"
+
+# === 评估和反馈 ===
+assessment_and_feedback:
+  self_assessment:
+    - "定期进行工作原则遵循情况自评"
+    - "识别需要改进的领域"
+    - "制定个人改进计划"
+    - "跟踪改进进展和效果"
+  
+  team_assessment:
+    - "团队定期讨论原则实践情况"
+    - "收集团队成员的反馈和建议"
+    - "识别团队层面的改进机会"
+    - "制定团队改进行动计划"

@@ -1,6 +1,6 @@
 # 需求分析专家 - 基础需求输入模板
 # Template: basic_requirement_input.yaml
-# Version: v2.0.0
+# Version: v4.0.0
 # Description: 标准化接收用户原始需求的输入格式
 
 requirement_input:

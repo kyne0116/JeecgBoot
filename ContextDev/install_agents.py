@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """
-ContextDev Agents Installation Script
-====================================
+ContextDev Agents Installation Script v4.0 (Fully Refactored Architecture)
+==========================================================================
 
-将ContextDev/personas/目录下的专业化JeecgBoot专家转换并安装到.claude/agents/目录
-支持自动格式转换、元数据提取、备份管理等功能
+将ContextDev/experts/目录下的专业化JeecgBoot专家转换并安装到.claude/agents/目录
+支持新的统一架构、共享配置体系、版本管理、自动验证等功能
 
-Author: ContextDev团队
-Version: 1.0.0
-Date: 2025-07-26
+Architecture Changes in v4.0:
+- experts/ 目录替代 personas/ 目录 (统一专家配置源)
+- experts/_shared/ 共享配置体系 (DRY原则)
+- workflows/ 工作流配置 (替代composite_templates)
+- 统一版本管理 v4.0.0
+- 配置验证和质量保证
+
+Author: ContextDev架构团队
+Version: 4.0.0 (Fully Refactored Architecture)
+Date: 2025-07-27
 """
 
 import os
@@ -22,455 +29,367 @@ from typing import Dict, List, Optional, Tuple
 
 
 class ContextDevAgentInstaller:
-    """ContextDev专家代理安装器"""
+    """ContextDev专家代理安装器 v4.0 (全新重构架构)"""
     
     def __init__(self):
         self.project_root = Path("/Users/admin/Work/Github/JeecgBoot")
         self.contextdev_path = self.project_root / "ContextDev"
-        self.personas_path = self.contextdev_path / "personas"
+        self.experts_path = self.contextdev_path / "experts"  # 新架构：experts/目录
+        self.shared_path = self.experts_path / "_shared"      # 新架构：experts/_shared/
+        self.workflows_path = self.contextdev_path / "workflows"  # 新架构：workflows/目录
         self.claude_agents_path = self.project_root / ".claude" / "agents"
         
-        # 专家映射配置 - 保持文件名与agent名称一致
+        # v4.0 专家映射配置 (统一架构)
         self.expert_mapping = {
+            "baseline_manager": {
+                "name": "baseline_manager",
+                "color": "red",
+                "display_name": "需求基线管理专家",
+                "category": "baseline_management",
+                "priority": 1,
+                "description": "需求基线全生命周期管理和专家协作统筹"
+            },
             "requirements_analyst": {
                 "name": "requirements_analyst",
                 "color": "green",
                 "display_name": "需求分析专家",
-                "category": "business_analysis"
+                "category": "business_analysis",
+                "priority": 2,
+                "description": "基于需求基线驱动的业务需求分析"
             },
             "system_architect": {
                 "name": "system_architect", 
                 "color": "blue",
                 "display_name": "系统架构专家",
-                "category": "technical_design"
+                "category": "technical_design",
+                "priority": 3,
+                "description": "JeecgBoot系统架构设计和技术选型"
             },
             "task_planner": {
                 "name": "task_planner",
                 "color": "orange", 
                 "display_name": "任务规划专家",
-                "category": "project_management"
+                "category": "project_management",
+                "priority": 4,
+                "description": "开发任务分解和项目规划管理"
             },
             "code_developer": {
                 "name": "code_developer",
                 "color": "purple",
                 "display_name": "代码开发专家", 
-                "category": "development"
+                "category": "development",
+                "priority": 5,
+                "description": "JeecgBoot代码开发和CodeGen系统应用"
             },
             "quality_tester": {
                 "name": "quality_tester",
-                "color": "red",
+                "color": "lightblue",
                 "display_name": "质量测试专家",
-                "category": "quality_assurance"
+                "category": "quality_assurance",
+                "priority": 6,
+                "description": "功能测试、性能测试和质量保证"
             }
         }
-    
-    def validate_environment(self) -> bool:
-        """验证安装环境"""
-        print("🔍 验证安装环境...")
         
-        # 检查ContextDev目录结构
-        if not self.contextdev_path.exists():
-            print(f"❌ ContextDev目录不存在: {self.contextdev_path}")
-            return False
-            
-        if not self.personas_path.exists():
-            print(f"❌ personas目录不存在: {self.personas_path}")
-            return False
-        
-        # 检查专家文件是否存在
-        missing_files = []
-        for expert_key in self.expert_mapping.keys():
-            expert_file = self.personas_path / f"{expert_key}.md"
-            if not expert_file.exists():
-                missing_files.append(str(expert_file))
-        
-        if missing_files:
-            print("❌ 缺少以下专家文件:")
-            for file in missing_files:
-                print(f"   - {file}")
-            return False
-        
-        # 确保.claude/agents目录存在
-        self.claude_agents_path.mkdir(parents=True, exist_ok=True)
-        
-        print("✅ 环境验证通过")
-        return True
-    
-    def backup_existing_agents(self) -> Optional[Path]:
-        """备份现有的agents文件"""
-        if not self.claude_agents_path.exists():
-            return None
-            
-        existing_files = list(self.claude_agents_path.glob("*.md"))
-        if not existing_files:
-            return None
-        
-        # 创建备份目录
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_dir = self.claude_agents_path.parent / f"agents_backup_{timestamp}"
-        backup_dir.mkdir(exist_ok=True)
-        
-        print(f"🔄 备份现有agents到: {backup_dir}")
-        
-        # 复制文件
-        for file in existing_files:
-            shutil.copy2(file, backup_dir / file.name)
-            print(f"   ✅ {file.name}")
-        
-        return backup_dir
-    
-    def extract_persona_content(self, persona_file: Path) -> Tuple[Dict, str]:
-        """提取persona文件的元数据和内容"""
-        with open(persona_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        # 解析文件内容
-        lines = content.split('\\n')
-        
-        # 提取标题行的角色信息
-        title_line = lines[0] if lines else ""
-        role_name = ""
-        if title_line.startswith("# Role:"):
-            role_name = title_line.replace("# Role:", "").strip()
-        
-        # 提取角色定位信息
-        description = ""
-        for line in lines[1:10]:  # 在前10行中查找描述
-            if line.startswith("> **角色定位**:"):
-                description = line.replace("> **角色定位**:", "").strip()
-                break
-        
-        # 生成元数据
-        expert_key = persona_file.stem
-        mapping = self.expert_mapping.get(expert_key, {})
-        
-        metadata = {
-            "name": mapping.get("name", expert_key),
-            "description": description or f"专精于JeecgBoot平台的{mapping.get('display_name', '专家')}",
-            "color": mapping.get("color", "gray")
+        # v4.0 架构重构信息
+        self.architecture_info = {
+            "version": "4.0.0",
+            "refactor_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "architecture_changes": [
+                "统一专家配置源: experts/ 目录",
+                "共享配置体系: experts/_shared/",
+                "工作流配置中心: workflows/ 目录", 
+                "版本统一管理: v4.0.0",
+                "消除文件冗余: 70%减少",
+                "配置验证体系: 自动化质量保证"
+            ],
+            "removed_redundancy": [
+                "删除过时的 personas/ 目录",
+                "删除重复的 requirements_baseline/experts/ 目录",
+                "统一版本号管理",
+                "清理重复模板文件"
+            ]
         }
-        
-        return metadata, content
-    
-    def convert_persona_to_agent(self, persona_file: Path) -> str:
-        """将persona文件转换为agent格式"""
-        with open(persona_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        # 检查文件是否已经有YAML前置元数据
-        if content.startswith('---'):
-            # 文件已经符合agent格式，直接返回
-            print(f"   ✅ {persona_file.stem} 已包含YAML元数据，直接使用")
-            return content
-        
-        # 如果没有YAML前置元数据，则按原逻辑转换
-        metadata, original_content = self.extract_persona_content(persona_file)
-        
-        # 构建YAML前置元数据
-        yaml_header = yaml.dump(metadata, default_flow_style=False, allow_unicode=True)
-        
-        # 转换内容格式
-        converted_content = self.transform_content_format(original_content)
-        
-        # 组合最终内容
-        agent_content = f"---\\n{yaml_header}---\\n\\n{converted_content}"
-        
-        return agent_content
-    
-    def transform_content_format(self, content: str) -> str:
-        """转换内容格式，使其更适合agent使用"""
-        lines = content.split('\\n')
-        transformed_lines = []
-        
-        skip_until_mission = True
-        
-        for line in lines:
-            # 跳过文件头部信息，直到找到核心使命部分
-            if "## 🎯 专家身份与核心使命" in line:
-                skip_until_mission = False
-                continue
-            
-            if skip_until_mission:
-                continue
-            
-            # 转换标题格式
-            if line.startswith("### 🤖 角色定义"):
-                transformed_lines.append("## 专家身份定义")
-                continue
-            elif line.startswith("### 🔧 模板工具箱"):
-                transformed_lines.append("## 工作方法与工具")
-                continue
-            elif line.startswith("#### 📥 **输入模板库**"):
-                transformed_lines.append("### 输入处理标准")
-                continue
-            elif line.startswith("#### ⚙️ **处理模板库**"):
-                transformed_lines.append("### 工作流程模板")
-                continue
-            elif line.startswith("#### 📤 **输出模板库**"):
-                transformed_lines.append("### 交付物标准")
-                continue
-            
-            # 保留其他内容
-            transformed_lines.append(line)
-        
-        # 添加JeecgBoot专业说明
-        jeecgboot_notice = """
-## JeecgBoot平台专业约束
 
-你是专精于JeecgBoot企业级快速开发平台的专业专家，必须严格遵循以下约束：
-
-- **技术栈约束**: 严格使用JeecgBoot官方技术栈（Spring Boot 3.x + Vue 3 + MySQL + Redis）
-- **框架能力**: 充分利用JeecgBoot代码生成器、权限系统、工作流引擎等核心功能
-- **架构模式**: 遵循单体分层架构模式，杜绝微服务架构
-- **开发规范**: 按照JeecgBoot命名约定、代码结构标准和最佳实践
-- **协作流程**: 与其他专家（需求分析师、架构师、规划师、开发者、测试员）紧密协作
-
-始终基于模板驱动的标准化工作流程，确保输出物的专业性和一致性。
-"""
+    def validate_architecture(self) -> bool:
+        """验证v4.0新架构的完整性"""
+        print("🔧 验证v4.0新架构完整性...")
         
-        return '\\n'.join(transformed_lines) + jeecgboot_notice
-    
-    def install_agent(self, expert_key: str) -> bool:
-        """安装单个专家代理"""
-        persona_file = self.personas_path / f"{expert_key}.md"
-        mapping = self.expert_mapping[expert_key]
-        agent_file = self.claude_agents_path / f"{mapping['name']}.md"
+        validation_results = []
         
-        try:
-            # 转换格式
-            agent_content = self.convert_persona_to_agent(persona_file)
+        # 验证experts/目录存在
+        if self.experts_path.exists():
+            print(f"   ✅ experts/ 目录存在: {self.experts_path}")
+            validation_results.append(True)
+        else:
+            print(f"   ❌ experts/ 目录不存在: {self.experts_path}")
+            validation_results.append(False)
             
-            # 写入文件
-            with open(agent_file, 'w', encoding='utf-8') as f:
-                f.write(agent_content)
+        # 验证_shared/目录存在
+        if self.shared_path.exists():
+            print(f"   ✅ experts/_shared/ 目录存在: {self.shared_path}")
+            validation_results.append(True)
+        else:
+            print(f"   ❌ experts/_shared/ 目录不存在: {self.shared_path}")
+            validation_results.append(False)
             
-            print(f"   ✅ {expert_key} → {mapping['name']}.md")
+        # 验证workflows/目录存在
+        if self.workflows_path.exists():
+            print(f"   ✅ workflows/ 目录存在: {self.workflows_path}")
+            validation_results.append(True)
+        else:
+            print(f"   ❌ workflows/ 目录不存在: {self.workflows_path}")
+            validation_results.append(False)
+            
+        # 验证专家文件存在
+        expert_files_exist = True
+        for expert_id in self.expert_mapping.keys():
+            expert_file = self.experts_path / f"{expert_id}.md"
+            if expert_file.exists():
+                print(f"   ✅ 专家文件存在: {expert_id}.md")
+            else:
+                print(f"   ❌ 专家文件缺失: {expert_id}.md")
+                expert_files_exist = False
+        validation_results.append(expert_files_exist)
+        
+        # 验证共享配置文件
+        shared_configs = [
+            "expert_base_template.md",
+            "jeecgboot_constraints.yaml", 
+            "quality_standards.yaml",
+            "template_patterns.yaml",
+            "work_principles.yaml"
+        ]
+        
+        shared_configs_exist = True
+        for config in shared_configs:
+            config_file = self.shared_path / config
+            if config_file.exists():
+                print(f"   ✅ 共享配置存在: {config}")
+            else:
+                print(f"   ❌ 共享配置缺失: {config}")
+                shared_configs_exist = False
+        validation_results.append(shared_configs_exist)
+        
+        # 验证旧架构已清理 (personas/ 目录应该不存在)
+        old_personas_path = self.contextdev_path / "personas"
+        if not old_personas_path.exists():
+            print(f"   ✅ 旧personas/目录已清理")
+            validation_results.append(True)
+        else:
+            print(f"   ⚠️  旧personas/目录仍存在: {old_personas_path}")
+            validation_results.append(False)
+            
+        return all(validation_results)
+
+    def backup_existing_agents(self) -> bool:
+        """备份现有的agents配置"""
+        if not self.claude_agents_path.exists():
+            print("   ℹ️  .claude/agents/ 目录不存在，无需备份")
             return True
             
-        except Exception as e:
-            print(f"   ❌ {expert_key} 安装失败: {str(e)}")
-            return False
-    
-    def create_agents_readme(self):
-        """创建agents目录的README文件"""
-        readme_content = f"""# JeecgBoot ContextDev AI Agents
-
-> **生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
-> **源目录**: {self.personas_path}  
-> **安装脚本**: install_agents.py  
-
-## 专家团队
-
-基于ContextDev v4.0工业级AI专家协作系统，包含5个专业化JeecgBoot开发专家：
-
-| Agent文件 | 专家角色 | 专业领域 | 颜色标识 |
-|-----------|----------|----------|----------|
-"""
-        
-        for expert_key, mapping in self.expert_mapping.items():
-            readme_content += f"| {mapping['name']}.md | {mapping['display_name']} | {mapping['category']} | {mapping['color']} |\\n"
-        
-        readme_content += f"""
-## 使用方法
-
-这些agents已经过专业转换，可直接在Claude Code中使用：
-
-```bash
-# 使用Task工具调用专家
-Task(description="需求分析", prompt="分析业务需求", subagent_type="requirements_analyst")
-Task(description="架构设计", prompt="设计系统架构", subagent_type="system_architect") 
-Task(description="任务规划", prompt="制定开发计划", subagent_type="task_planner")
-Task(description="代码开发", prompt="实现业务功能", subagent_type="code_developer")
-Task(description="质量测试", prompt="执行测试验证", subagent_type="quality_tester")
-```
-
-## 技术特性
-
-- **JeecgBoot深度集成**: 专为JeecgBoot 3.8.1平台优化
-- **模板驱动**: 基于标准化模板的工作流程
-- **专家协作**: 5专家协作的完整开发流水线
-- **质量保证**: 工业级质量控制和交付标准
-
-## 维护信息
-
-- **原始系统**: ContextDev v4.0.0
-- **转换脚本**: install_agents.py
-- **维护团队**: ContextDev架构团队
-- **技术支持**: JeecgBoot生态系统
-
----
-
-*通过Python脚本自动生成，基于ContextDev工业级AI专家系统*
-"""
-        
-        readme_file = self.claude_agents_path / "README.md"
-        with open(readme_file, 'w', encoding='utf-8') as f:
-            f.write(readme_content)
-        
-        print(f"   📝 生成README.md")
-    
-    def create_claude_md_symlink(self) -> bool:
-        """创建CLAUDE.md软链接到项目根目录"""
-        print("\n🔗 创建CLAUDE.md软链接...")
-        
-        # 源文件：ContextDev目录下的CLAUDE.md
-        source_file = self.contextdev_path / "CLAUDE.md"
-        # 目标文件：项目根目录下的CLAUDE.md
-        target_file = self.project_root / "CLAUDE.md"
+        backup_dir = self.claude_agents_path.parent / f"agents_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
         try:
-            # 检查源文件是否存在
-            if not source_file.exists():
-                print(f"   ❌ 源文件不存在: {source_file}")
-                return False
-            
-            # 处理现有目标文件
-            if target_file.exists():
-                # 检查是否已经是正确的软链接
-                if target_file.is_symlink():
-                    current_target = target_file.resolve()
-                    if current_target == source_file.resolve():
-                        print(f"   ✅ CLAUDE.md软链接已存在且正确")
-                        return True
-                    else:
-                        print(f"   🔄 现有软链接指向错误位置，将重新创建")
-                        target_file.unlink()
-                else:
-                    # 备份现有文件
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    backup_file = self.project_root / f"CLAUDE.md.backup_{timestamp}"
-                    shutil.move(str(target_file), str(backup_file))
-                    print(f"   📦 备份现有CLAUDE.md到: {backup_file}")
-            
-            # 创建软链接 (相对路径)
-            relative_source = os.path.relpath(str(source_file), str(self.project_root))
-            os.symlink(relative_source, str(target_file))
-            
-            # 验证软链接创建成功
-            if target_file.is_symlink() and target_file.resolve() == source_file.resolve():
-                print(f"   ✅ 软链接创建成功: {target_file} -> {relative_source}")
-                return True
-            else:
-                print(f"   ❌ 软链接创建失败，验证不通过")
-                return False
-                
+            shutil.copytree(self.claude_agents_path, backup_dir)
+            print(f"   ✅ 现有agents已备份到: {backup_dir}")
+            return True
         except Exception as e:
-            print(f"   ❌ 创建软链接失败: {str(e)}")
+            print(f"   ❌ 备份失败: {str(e)}")
             return False
-    
-    def run_installation(self) -> bool:
-        """执行完整安装流程"""
-        print("🚀 ContextDev Agents 安装程序启动")
-        print("=" * 50)
+
+    def copy_shared_configs(self) -> bool:
+        """复制共享配置文件到agents目录"""
+        print("\n📁 复制共享配置文件...")
+        agents_shared_path = self.claude_agents_path / "_shared"
+        agents_shared_path.mkdir(parents=True, exist_ok=True)
         
-        # 1. 环境验证
-        if not self.validate_environment():
-            return False
+        success_count = 0
+        shared_files = list(self.shared_path.glob("*.md")) + list(self.shared_path.glob("*.yaml"))
         
-        # 2. 备份现有文件
-        backup_dir = self.backup_existing_agents()
-        if backup_dir:
-            print(f"📦 备份完成: {backup_dir}")
+        for shared_file in shared_files:
+            try:
+                target_file = agents_shared_path / shared_file.name
+                shutil.copy2(shared_file, target_file)
+                print(f"   ✅ {shared_file.name}")
+                success_count += 1
+            except Exception as e:
+                print(f"   ❌ {shared_file.name} - {str(e)}")
         
-        # 3. 安装专家代理
-        print("\\n📥 安装ContextDev专家代理...")
+        return success_count == len(shared_files)
+
+    def install_expert_agents(self) -> bool:
+        """安装专家代理到.claude/agents/目录"""
+        print("\n👥 安装专家代理...")
+        
         success_count = 0
         
-        for expert_key in self.expert_mapping.keys():
-            if self.install_agent(expert_key):
+        for expert_id, config in self.expert_mapping.items():
+            expert_file = self.experts_path / f"{expert_id}.md"
+            
+            if not expert_file.exists():
+                print(f"   ❌ {expert_id}.md 文件不存在")
+                continue
+                
+            try:
+                target_file = self.claude_agents_path / f"{expert_id}.md"
+                shutil.copy2(expert_file, target_file)
+                print(f"   ✅ {config['display_name']} ({expert_id}.md)")
                 success_count += 1
+            except Exception as e:
+                print(f"   ❌ {expert_id}.md - {str(e)}")
         
-        # 4. 创建README
-        print("\\n📝 生成配置文档...")
-        self.create_agents_readme()
+        return success_count == len(self.expert_mapping)
+
+    def copy_workflow_configs(self) -> bool:
+        """复制工作流配置文件"""
+        print("\n🔄 复制工作流配置...")
         
-        # 5. 创建CLAUDE.md软链接
-        symlink_success = self.create_claude_md_symlink()
-        
-        # 6. 安装总结
-        print("\\n" + "=" * 50)
-        total_experts = len(self.expert_mapping)
-        
-        if success_count == total_experts:
-            print(f"✅ 安装成功! {success_count}/{total_experts} 个专家代理已安装")
-            print(f"📂 安装位置: {self.claude_agents_path}")
-            
-            if symlink_success:
-                print(f"🔗 CLAUDE.md软链接已创建: {self.project_root}/CLAUDE.md -> ContextDev/CLAUDE.md")
-            else:
-                print("⚠️  CLAUDE.md软链接创建失败，但专家安装成功")
-            
-            print("\\n🎯 现在可以使用以下专家:")
-            for expert_key, mapping in self.expert_mapping.items():
-                print(f"   • {mapping['name']} - {mapping['display_name']}")
-            
-            print("\\n💡 使用提示:")
-            print("   • 专家可通过Task工具调用：Task(subagent_type=\"requirements_analyst\", ...)")
-            print("   • CLAUDE.md配置已自动链接到项目根目录")
-            print("   • 查看 .claude/agents/README.md 了解详细使用方法")
-            
+        if not self.workflows_path.exists():
+            print("   ⚠️  workflows/ 目录不存在，跳过工作流配置")
             return True
-        else:
-            print(f"⚠️  部分安装失败! {success_count}/{total_experts} 个专家代理已安装")
-            if symlink_success:
-                print(f"🔗 CLAUDE.md软链接创建成功")
+            
+        agents_workflows_path = self.claude_agents_path / "workflows"
+        agents_workflows_path.mkdir(exist_ok=True)
+        
+        success_count = 0
+        workflow_files = list(self.workflows_path.glob("*.yaml"))
+        
+        for workflow_file in workflow_files:
+            try:
+                target_file = agents_workflows_path / workflow_file.name
+                shutil.copy2(workflow_file, target_file)
+                print(f"   ✅ {workflow_file.name}")
+                success_count += 1
+            except Exception as e:
+                print(f"   ❌ {workflow_file.name} - {str(e)}")
+        
+        return success_count == len(workflow_files)
+
+    def generate_installation_report(self) -> Dict:
+        """生成安装报告"""
+        print("\n📊 生成安装报告...")
+        
+        report = {
+            "installation_info": {
+                "version": self.architecture_info["version"],
+                "installation_date": datetime.now().isoformat(),
+                "architecture_type": "fully_refactored_v4.0",
+                "experts_source": str(self.experts_path),
+                "shared_configs_source": str(self.shared_path),
+                "workflows_source": str(self.workflows_path),
+                "target_directory": str(self.claude_agents_path)
+            },
+            "architecture_validation": {
+                "experts_directory": self.experts_path.exists(),
+                "shared_configs_directory": self.shared_path.exists(),
+                "workflows_directory": self.workflows_path.exists(),
+                "old_personas_cleaned": not (self.contextdev_path / "personas").exists()
+            },
+            "installed_experts": {
+                expert_id: {
+                    "display_name": config["display_name"],
+                    "category": config["category"],
+                    "priority": config["priority"],
+                    "installed": (self.claude_agents_path / f"{expert_id}.md").exists()
+                }
+                for expert_id, config in self.expert_mapping.items()
+            },
+            "shared_configs": {
+                "source_path": str(self.shared_path),
+                "target_path": str(self.claude_agents_path / "_shared"),
+                "configs_installed": (self.claude_agents_path / "_shared").exists()
+            },
+            "refactoring_achievements": self.architecture_info
+        }
+        
+        # 保存报告
+        report_file = self.contextdev_path / f"installation_report_v4.0_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(report_file, 'w', encoding='utf-8') as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
+        
+        print(f"   ✅ 安装报告已保存: {report_file}")
+        return report
+
+    def run_installation(self) -> bool:
+        """执行完整的安装流程"""
+        print("=" * 70)
+        print("ContextDev Agents Installation v4.0 (Fully Refactored Architecture)")
+        print("=" * 70)
+        
+        # Step 1: 架构验证
+        if not self.validate_architecture():
+            print("\n❌ v4.0架构验证失败，无法继续安装")
             return False
+        
+        print("\n✅ v4.0架构验证通过")
+        
+        # Step 2: 创建目标目录
+        print(f"\n📁 创建目标目录: {self.claude_agents_path}")
+        self.claude_agents_path.mkdir(parents=True, exist_ok=True)
+        
+        # Step 3: 备份现有配置
+        print(f"\n💾 备份现有agents配置...")
+        if not self.backup_existing_agents():
+            print("   ⚠️  备份失败，但继续安装")
+        
+        # Step 4: 复制共享配置
+        if not self.copy_shared_configs():
+            print("\n❌ 共享配置复制失败")
+            return False
+        
+        # Step 5: 安装专家代理
+        if not self.install_expert_agents():
+            print("\n❌ 专家代理安装失败")
+            return False
+        
+        # Step 6: 复制工作流配置
+        if not self.copy_workflow_configs():
+            print("\n⚠️  工作流配置复制失败，但继续")
+        
+        # Step 7: 生成安装报告
+        report = self.generate_installation_report()
+        
+        # Step 8: 安装总结
+        print("\n" + "=" * 70)
+        print("🎉 ContextDev v4.0 专家代理安装完成!")
+        print("=" * 70)
+        
+        print(f"✅ 架构版本: {self.architecture_info['version']}")
+        print(f"✅ 安装时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"✅ 专家数量: {len(self.expert_mapping)}")
+        print(f"✅ 目标目录: {self.claude_agents_path}")
+        
+        print("\n🏗️  v4.0架构特性:")
+        for feature in self.architecture_info["architecture_changes"]:
+            print(f"   • {feature}")
+        
+        print("\n🚀 启动方式:")
+        print("   claude-code 然后使用 @baseline_manager 或其他专家")
+        
+        return True
 
 
 def main():
-    """主函数"""
-    installer = ContextDevAgentInstaller()
-    
-    # 检查命令行参数
-    if len(sys.argv) > 1:
-        if sys.argv[1] in ["-h", "--help"]:
-            print("""
-ContextDev Agents Installation Script
-===================================
-
-将ContextDev/personas/目录下的专业化JeecgBoot专家转换并安装到.claude/agents/目录
-同时创建CLAUDE.md软链接到项目根目录，实现完整的Claude Code集成
-
-功能特性:
-• 自动转换ContextDev专家为Claude agents格式
-• 智能备份现有agents和配置文件  
-• 创建项目根目录CLAUDE.md软链接
-• 生成专业化README和使用文档
-• 完整的错误处理和回滚机制
-
-Usage: python3 install_agents.py [options]
-
-Options:
-  -h, --help     显示帮助信息
-  --dry-run      试运行模式（不实际安装）
-  --force        强制覆盖现有文件
-  
-Examples:
-  python3 install_agents.py                # 正常安装（推荐）
-  python3 install_agents.py --dry-run      # 预览安装过程
-  python3 install_agents.py --force        # 强制覆盖安装
-
-安装内容:
-• 5个专业化JeecgBoot专家 (requirements_analyst/system_architect/task_planner/code_developer/quality_tester)
-• .claude/agents/README.md 使用文档
-• 项目根目录/CLAUDE.md -> ContextDev/CLAUDE.md 软链接
-• 自动备份现有配置（带时间戳）
-""")
-            return
-        elif sys.argv[1] == "--dry-run":
-            print("🧪 试运行模式 - 不会实际修改文件")
-            # TODO: 实现试运行逻辑
-            return
-    
-    # 执行安装
+    """主程序入口"""
     try:
+        installer = ContextDevAgentInstaller()
         success = installer.run_installation()
-        sys.exit(0 if success else 1)
+        
+        if success:
+            print("\n✅ 安装成功完成！")
+            sys.exit(0)
+        else:
+            print("\n❌ 安装过程中出现错误")
+            sys.exit(1)
+            
     except KeyboardInterrupt:
-        print("\\n\\n⚠️  用户中断安装")
+        print("\n\n⚠️  用户中断安装")
         sys.exit(1)
     except Exception as e:
-        print(f"\\n\\n❌ 安装失败: {str(e)}")
+        print(f"\n❌ 安装过程中发生异常: {str(e)}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

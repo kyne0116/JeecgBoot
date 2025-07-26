@@ -1,0 +1,521 @@
+# 需求分析专家 - 基线驱动分析处理模板
+# Template: baseline_driven_analysis.yaml
+# Version: v4.0.0
+# Description: 基于需求基线的标准化需求分析处理流程
+
+baseline_driven_analysis_process:
+  # === 流程元信息 ===
+  process_info:
+    process_name: "基线驱动需求分析流程"
+    process_version: "v1.0.0"
+    process_owner: "requirements_analyst"
+    process_type: "standard_analysis"
+    estimated_duration: "4-6小时"
+    complexity_applicability: ["simple", "standard", "complex"]
+    
+  # === 前置条件检查 ===
+  prerequisites:
+    required_inputs: array              # 必需输入
+      - input_name: "requirement_baseline.yaml"
+        input_source: "baseline_manager"
+        validation_criteria: "完整性100%，格式正确"
+      - input_name: "baseline_requirement_input.yaml"
+        input_source: "baseline_manager"
+        validation_criteria: "任务定义清晰，指导信息完整"
+      - input_name: "expert_collaboration_context.yaml"
+        input_source: "baseline_manager"
+        validation_criteria: "协作接口定义明确"
+        
+    readiness_checks: array             # 就绪性检查
+      - check_name: "基线数据完整性验证"
+        check_method: "schema_validation"
+        pass_criteria: "所有必填字段已填写"
+      - check_name: "协作环境准备"
+        check_method: "interface_connectivity_test"
+        pass_criteria: "与baseline_manager通信正常"
+      - check_name: "分析工具准备"
+        check_method: "tool_availability_check"
+        pass_criteria: "所需模板和工具可用"
+        
+    risk_assessment: array              # 风险评估
+      - risk_item: "基线数据不完整"
+        risk_impact: "high"
+        mitigation_action: "立即联系baseline_manager补充"
+      - risk_item: "利益相关方信息缺失"
+        risk_impact: "medium"
+        mitigation_action: "主动收集补充信息"
+  
+  # === 阶段1: 基线理解与准备 (30分钟) ===
+  phase_1_baseline_understanding:
+    phase_name: "基线理解与分析准备"
+    phase_duration: "30分钟"
+    phase_criticality: "critical"
+    
+    step_1_1_baseline_data_analysis:
+      step_name: "需求基线数据分析"
+      step_duration: "15分钟"
+      step_description: "深入理解需求基线的所有信息"
+      
+      activities: array
+        - activity: "基线基本信息解读"
+          method: "structured_reading"
+          focus_areas: ["requirement_id", "title", "description", "priority", "complexity"]
+          output: "基线信息理解确认"
+          
+        - activity: "业务上下文分析"
+          method: "context_mapping"
+          focus_areas: ["stakeholders", "business_rules", "acceptance_criteria"]
+          output: "业务理解框架"
+          
+        - activity: "技术约束识别"
+          method: "constraint_analysis"
+          focus_areas: ["jeecgboot_modules", "database_tables", "api_endpoints"]
+          output: "技术约束清单"
+          
+        - activity: "追溯关系梳理"
+          method: "traceability_mapping"
+          focus_areas: ["source_documents", "design_documents", "implementation_files"]
+          output: "当前追溯关系图"
+      
+      quality_checks: array
+        - check_item: "基线信息理解准确性"
+          check_method: "理解确认与baseline_manager沟通"
+          pass_criteria: "理解无偏差，重点明确"
+        - check_item: "分析范围确定"
+          check_method: "范围边界清晰定义"
+          pass_criteria: "分析边界清晰，无遗漏"
+    
+    step_1_2_analysis_task_planning:
+      step_name: "分析任务规划"
+      step_duration: "15分钟"
+      step_description: "基于基线信息制定详细的分析计划"
+      
+      activities: array
+        - activity: "任务优先级排序"
+          method: "priority_matrix"
+          input: "baseline_requirement_input.yaml中的任务定义"
+          output: "优先级排序的任务列表"
+          
+        - activity: "时间分配规划"
+          method: "time_boxing"
+          input: "任务复杂度评估"
+          output: "详细时间分配计划"
+          
+        - activity: "资源需求确认"
+          method: "resource_assessment"
+          input: "分析任务要求"
+          output: "资源需求清单"
+          
+        - activity: "风险点识别"
+          method: "risk_brainstorming"
+          input: "业务复杂度和技术约束"
+          output: "风险识别和应对计划"
+      
+      deliverables: array
+        - deliverable: "analysis_task_plan.yaml"
+          content: "详细的分析任务执行计划"
+        - deliverable: "risk_mitigation_plan.yaml"
+          content: "风险识别和缓解措施"
+  
+  # === 阶段2: 深度业务分析 (3-4小时) ===
+  phase_2_deep_business_analysis:
+    phase_name: "深度业务需求分析"
+    phase_duration: "3-4小时"
+    phase_criticality: "critical"
+    
+    step_2_1_stakeholder_deep_analysis:
+      step_name: "利益相关方深度分析"
+      step_duration: "45-60分钟"
+      step_description: "深入分析利益相关方需求和期望"
+      
+      activities: array
+        - activity: "利益相关方需求细化"
+          method: "stakeholder_interview_simulation"
+          input: "基线中的stakeholder信息"
+          processing_template: "stakeholder_analysis_process.yaml"
+          output: "详细的利益相关方需求描述"
+          
+        - activity: "权力影响力分析"
+          method: "power_influence_matrix"
+          input: "利益相关方基本信息"
+          output: "权力影响力矩阵图"
+          
+        - activity: "需求冲突识别"
+          method: "conflict_analysis"
+          input: "不同利益相关方的需求"
+          output: "需求冲突清单和解决建议"
+          
+        - activity: "关键决策者识别"
+          method: "decision_authority_mapping"
+          input: "组织结构和决策流程"
+          output: "决策者角色和职责定义"
+      
+      baseline_updates: array
+        - update_section: "business_context.stakeholders"
+          update_type: "expand_and_detail"
+          update_content: "补充详细的利益相关方信息"
+        - update_section: "business_context.business_rules"
+          update_type: "stakeholder_driven_rules"
+          update_content: "基于利益相关方需求的业务规则"
+    
+    step_2_2_functional_requirements_analysis:
+      step_name: "功能需求深度分析"
+      step_duration: "90-120分钟"
+      step_description: "详细分析和规格化功能需求"
+      
+      activities: array
+        - activity: "功能需求EARS规格化"
+          method: "ears_specification"
+          input: "基线中的功能描述"
+          processing_rules: array
+            - rule: "无条件需求使用'The system shall [action]'"
+            - rule: "事件驱动需求使用'When [trigger], the system shall [response]'"
+            - rule: "状态驱动需求使用'While [state], the system shall [action]'"
+            - rule: "不期望行为使用'If [condition], then the system shall not [action]'"
+          output: "EARS格式的功能需求规格"
+          
+        - activity: "输入输出规格定义"
+          method: "input_output_specification"
+          input: "功能需求描述"
+          jeecgboot_constraints: "数据类型必须符合框架规范"
+          output: "详细的输入输出规格说明"
+          
+        - activity: "业务逻辑流程建模"
+          method: "business_process_modeling"
+          input: "功能需求和业务规则"
+          output: "业务流程图和逻辑描述"
+          
+        - activity: "异常场景分析"
+          method: "exception_scenario_analysis"
+          input: "正常业务流程"
+          output: "异常场景清单和处理规则"
+      
+      baseline_updates: array
+        - update_section: "technical_context.api_endpoints"
+          update_type: "detailed_specification"
+          update_content: "详细的API接口规格"
+        - update_section: "business_context.business_rules"
+          update_type: "functional_business_rules"
+          update_content: "功能相关的业务规则详细定义"
+    
+    step_2_3_non_functional_requirements_analysis:
+      step_name: "非功能需求分析"
+      step_duration: "45-60分钟"
+      step_description: "分析性能、安全、易用性等非功能需求"
+      
+      activities: array
+        - activity: "性能需求分析"
+          method: "performance_requirement_specification"
+          jeecgboot_baseline: "响应时间<300ms, 并发用户1000+"
+          input: "业务量预估和用户期望"
+          output: "量化的性能需求指标"
+          
+        - activity: "安全需求分析"
+          method: "security_requirement_analysis"
+          jeecgboot_constraints: "基于Spring Security + RBAC"
+          input: "业务安全敏感性分析"
+          output: "安全需求清单和实现约束"
+          
+        - activity: "易用性需求分析"
+          method: "usability_requirement_specification"
+          jeecgboot_ui_standards: "Ant Design Vue组件规范"
+          input: "用户体验期望"
+          output: "易用性需求和界面设计约束"
+          
+        - activity: "兼容性需求分析"
+          method: "compatibility_analysis"
+          jeecgboot_constraints: "浏览器兼容性和移动端适配"
+          input: "部署环境和用户环境"
+          output: "兼容性需求清单"
+      
+      baseline_updates: array
+        - update_section: "technical_context"
+          update_type: "non_functional_constraints"
+          update_content: "详细的非功能需求约束"
+  
+  # === 阶段3: 数据和集成分析 (1-1.5小时) ===
+  phase_3_data_integration_analysis:
+    phase_name: "数据模型和集成需求分析"
+    phase_duration: "1-1.5小时"
+    phase_criticality: "high"
+    
+    step_3_1_data_model_analysis:
+      step_name: "业务数据模型分析"
+      step_duration: "45-60分钟"
+      step_description: "分析业务实体、属性和关系"
+      
+      activities: array
+        - activity: "核心业务实体识别"
+          method: "entity_identification"
+          input: "功能需求和业务流程"
+          jeecgboot_constraints: "实体设计符合MyBatis-Plus规范"
+          output: "业务实体清单和基本属性"
+          
+        - activity: "实体关系建模"
+          method: "entity_relationship_modeling"
+          input: "业务实体和业务规则"
+          output: "实体关系图(ERD)"
+          
+        - activity: "数据约束规则定义"
+          method: "data_constraint_specification"
+          input: "业务规则和数据质量要求"
+          output: "数据约束和验证规则"
+          
+        - activity: "数据字典设计"
+          method: "data_dictionary_design"
+          jeecgboot_integration: "使用框架数据字典功能"
+          input: "枚举值和代码表需求"
+          output: "数据字典定义"
+      
+      baseline_updates: array
+        - update_section: "technical_context.database_tables"
+          update_type: "detailed_table_design"
+          update_content: "详细的数据库表结构设计"
+    
+    step_3_2_integration_requirements_analysis:
+      step_name: "系统集成需求分析"
+      step_duration: "30-45分钟"
+      step_description: "分析与其他系统的集成需求"
+      
+      activities: array
+        - activity: "内部系统集成分析"
+          method: "internal_integration_analysis"
+          input: "现有系统信息和业务流程"
+          jeecgboot_modules: "分析与现有JeecgBoot模块的集成"
+          output: "内部系统集成需求清单"
+          
+        - activity: "外部系统集成分析"
+          method: "external_integration_analysis"
+          input: "第三方系统和业务需求"
+          output: "外部系统集成需求和接口规范"
+          
+        - activity: "数据同步需求分析"
+          method: "data_synchronization_analysis"
+          input: "数据流向和同步频率要求"
+          output: "数据同步策略和技术方案约束"
+      
+      baseline_updates: array
+        - update_section: "technical_context.api_endpoints"
+          update_type: "integration_apis"
+          update_content: "集成相关的API接口定义"
+  
+  # === 阶段4: 验收标准和约束分析 (45-60分钟) ===
+  phase_4_acceptance_constraints_analysis:
+    phase_name: "验收标准和约束条件分析"
+    phase_duration: "45-60分钟"
+    phase_criticality: "high"
+    
+    step_4_1_acceptance_criteria_definition:
+      step_name: "验收标准详细定义"
+      step_duration: "30-40分钟"
+      step_description: "定义可测试的验收标准"
+      
+      activities: array
+        - activity: "功能验收标准定义"
+          method: "functional_acceptance_specification"
+          input: "详细功能需求"
+          format: "Given-When-Then格式"
+          output: "功能验收标准清单"
+          
+        - activity: "性能验收标准定义"
+          method: "performance_acceptance_specification"
+          input: "非功能需求"
+          measurement_tools: "JMeter, 系统监控工具"
+          output: "性能验收标准和测试方法"
+          
+        - activity: "用户体验验收标准"
+          method: "ux_acceptance_specification"
+          input: "易用性需求"
+          evaluation_method: "用户测试和满意度调查"
+          output: "用户体验验收标准"
+      
+      baseline_updates: array
+        - update_section: "business_context.acceptance_criteria"
+          update_type: "detailed_testable_criteria"
+          update_content: "详细的可测试验收标准"
+    
+    step_4_2_constraint_analysis:
+      step_name: "约束条件综合分析"
+      step_duration: "15-20分钟"
+      step_description: "分析技术、业务、法规等约束条件"
+      
+      activities: array
+        - activity: "技术约束整理"
+          method: "technical_constraint_consolidation"
+          input: "JeecgBoot框架约束和基础设施限制"
+          output: "完整的技术约束清单"
+          
+        - activity: "业务约束分析"
+          method: "business_constraint_analysis"
+          input: "业务政策和流程限制"
+          output: "业务约束清单和影响分析"
+          
+        - activity: "合规性约束检查"
+          method: "compliance_constraint_check"
+          input: "法规要求和行业标准"
+          output: "合规性约束清单"
+      
+      baseline_updates: array
+        - update_section: "technical_context"
+          update_type: "comprehensive_constraints"
+          update_content: "完整的约束条件定义"
+  
+  # === 阶段5: 基线整合与质量验证 (30-45分钟) ===
+  phase_5_baseline_integration_validation:
+    phase_name: "基线整合与质量验证"
+    phase_duration: "30-45分钟"
+    phase_criticality: "critical"
+    
+    step_5_1_baseline_data_integration:
+      step_name: "分析结果基线整合"
+      step_duration: "20-30分钟"
+      step_description: "将所有分析结果整合到需求基线"
+      
+      activities: array
+        - activity: "分析结果汇总"
+          method: "analysis_result_consolidation"
+          input: "各阶段的分析输出"
+          output: "完整的需求分析结果集"
+          
+        - activity: "基线数据更新"
+          method: "baseline_data_update"
+          input: "分析结果集"
+          update_strategy: "增量更新 + 版本控制"
+          output: "更新的requirement_baseline.yaml"
+          
+        - activity: "追溯关系建立"
+          method: "traceability_establishment"
+          input: "原始需求、分析过程、分析结果"
+          output: "完整的追溯关系矩阵"
+          
+        - activity: "状态信息更新"
+          method: "status_synchronization"
+          input: "分析完成确认"
+          baseline_manager_notification: true
+          output: "基线状态更新确认"
+    
+    step_5_2_quality_validation:
+      step_name: "分析质量验证"
+      step_duration: "10-15分钟"
+      step_description: "验证分析结果的质量和完整性"
+      
+      validation_checks: array
+        - check_name: "需求完整性验证"
+          check_method: "completeness_checklist"
+          check_criteria: "所有功能点都有清晰描述"
+          pass_threshold: "100%"
+          
+        - check_name: "业务规则一致性验证"
+          check_method: "consistency_validation"
+          check_criteria: "业务规则逻辑一致，无冲突"
+          pass_threshold: "100%"
+          
+        - check_name: "验收标准可测试性验证"
+          check_method: "testability_assessment"
+          check_criteria: "验收标准可量化、可测试"
+          pass_threshold: "100%"
+          
+        - check_name: "JeecgBoot兼容性验证"
+          check_method: "framework_compatibility_check"
+          check_criteria: "所有需求在JeecgBoot框架下可实现"
+          pass_threshold: "100%"
+      
+      quality_metrics: array
+        - metric_name: "需求完整性评分"
+          calculation_method: "完整需求项/总需求项 * 100"
+          target_value: ">= 95%"
+          
+        - metric_name: "需求清晰度评分"
+          calculation_method: "清晰需求项/总需求项 * 100"
+          target_value: ">= 90%"
+          
+        - metric_name: "技术可行性评分"
+          calculation_method: "可实现需求项/总需求项 * 100"
+          target_value: "100%"
+  
+  # === 专家协作交接 ===
+  expert_handoff_preparation:
+    handoff_target: "system_architect"
+    handoff_requirements: array
+      - requirement: "需求规格说明书完整性"
+        validation_method: "template_compliance_check"
+        pass_criteria: "所有必填字段完整填写"
+        
+      - requirement: "基线数据一致性"
+        validation_method: "baseline_consistency_check"
+        pass_criteria: "基线数据与需求规格完全一致"
+        
+      - requirement: "追溯关系完整性"
+        validation_method: "traceability_completeness_check"
+        pass_criteria: "所有需求项都有完整追溯关系"
+    
+    handoff_deliverables: array
+      - deliverable: "requirement_specification_{ID}.yaml"
+        format: "标准需求规格说明书模板"
+        quality_check: "模板符合性100%"
+        
+      - deliverable: "requirement_baseline_{ID}_v2.yaml"
+        format: "更新的需求基线"
+        quality_check: "基线完整性>=95%"
+        
+      - deliverable: "analyst_to_architect_handoff_{ID}.yaml"
+        format: "专家交接文档"
+        quality_check: "交接信息完整，关键点明确"
+    
+    handoff_process:
+      notification: "通知baseline_manager分析完成"
+      quality_gate: "baseline_manager质量检查通过"
+      authorization: "获得进入架构设计阶段授权"
+      status_update: "更新基线状态为'in_architecture'"
+  
+  # === 流程监控和改进 ===
+  process_monitoring:
+    progress_tracking: array
+      - milestone: "阶段1完成"
+        completion_criteria: "基线理解和任务规划完成"
+        time_checkpoint: "30分钟"
+        
+      - milestone: "阶段2完成"
+        completion_criteria: "深度业务分析完成"
+        time_checkpoint: "3.5小时"
+        
+      - milestone: "阶段3完成"
+        completion_criteria: "数据和集成分析完成"
+        time_checkpoint: "5小时"
+        
+      - milestone: "阶段4完成"
+        completion_criteria: "验收标准和约束分析完成"
+        time_checkpoint: "5.5小时"
+        
+      - milestone: "阶段5完成"
+        completion_criteria: "基线整合和质量验证完成"
+        time_checkpoint: "6小时"
+    
+    risk_monitoring: array
+      - risk: "分析进度滞后"
+        monitoring_method: "时间节点检查"
+        escalation_trigger: "超时30分钟"
+        escalation_action: "通知baseline_manager"
+        
+      - risk: "质量标准不达标"
+        monitoring_method: "实时质量检查"
+        escalation_trigger: "质量评分<90%"
+        escalation_action: "暂停流程，质量改进"
+    
+    continuous_improvement: array
+      - improvement_area: "分析效率"
+        measurement_method: "时间和质量双重评估"
+        improvement_target: "在保持质量前提下提升10%效率"
+        
+      - improvement_area: "协作顺畅度"
+        measurement_method: "协作满意度调查"
+        improvement_target: "baseline_manager和system_architect满意度>95%"
+  
+  # === 元数据 ===
+  metadata:
+    template_author: "ContextDev Team"
+    template_version: "v1.0.0"
+    last_updated: "2025-07-26"
+    applicable_scenarios: ["standard business requirements", "complex business processes"]
+    customization_guidelines: "可根据具体业务领域调整分析深度和重点"
+    integration_dependencies: ["baseline_manager", "requirement_baseline_template", "collaboration_interface"]

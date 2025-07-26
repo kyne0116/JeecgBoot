@@ -1,0 +1,143 @@
+# JeecgBoot平台技术约束配置
+# 所有专家必须严格遵循的技术栈约束和平台规范
+# Version: v4.0.0 | Last Update: 2025-07-27
+
+jeecgboot_platform_constraints:
+  # === 强制技术栈约束 ===
+  mandatory_tech_stack:
+    backend_framework:
+      - "Spring Boot 3.x (最新稳定版)"
+      - "MyBatis-Plus (数据持久层)"
+      - "Spring Security (安全框架)"
+      - "Maven 3.9+ (构建工具)"
+      - "JDK 17+ (运行环境)"
+    
+    frontend_technology:
+      - "Vue 3 + Composition API"
+      - "TypeScript 4.x+"
+      - "Ant Design Vue 4.x"
+      - "Vite (构建工具)"
+      - "Pinia (状态管理)"
+    
+    data_storage:
+      - "MySQL 8.0+ (主数据库)"
+      - "Redis 7.x (缓存/会话)"
+    
+    architecture_pattern:
+      - "单体分层架构 (Controller-Service-Mapper-Entity)"
+      - "前后端分离架构"
+      - "RESTful API设计"
+
+  # === 严格禁止项 ===
+  strictly_forbidden:
+    database_alternatives:
+      - "MongoDB (文档数据库)"
+      - "Elasticsearch (搜索引擎)"
+      - "ClickHouse (分析数据库)"
+      - "Neo4j (图数据库)"
+    
+    architecture_patterns:
+      - "微服务架构 (杜绝技术复杂度)"
+      - "分布式架构设计"
+      - "事件驱动架构"
+      - "CQRS架构模式"
+    
+    infrastructure_tech:
+      - "Docker容器化"
+      - "Kubernetes编排"
+      - "服务注册发现"
+      - "配置中心"
+    
+    middleware_components:
+      - "消息队列 (RabbitMQ/Kafka/RocketMQ)"
+      - "分布式事务组件"
+      - "分布式锁组件"
+      - "非Redis缓存中间件"
+    
+    framework_extensions:
+      - "Spring Cloud微服务框架"
+      - "Dubbo分布式框架"
+      - "非官方UI组件库"
+      - "自定义权限认证体系"
+
+  # === CodeGen系统约束 ===
+  codegen_system_constraints:
+    mandatory_usage_scenarios:
+      - "单表数据管理 (标准CRUD操作)"
+      - "标准字段类型 (文本/数字/日期/选择)"
+      - "基础业务逻辑 (状态管理/数据校验)"
+      - "标准权限控制 (基于RBAC角色权限)"
+    
+    codegen_capabilities:
+      - "自然语言需求理解和智能解析"
+      - "全栈代码生成 (Entity+Controller+Service+Vue)"
+      - "数据库自动化 (表结构+索引+约束)"
+      - "企业级功能 (权限+Excel+字典+审计)"
+    
+    violation_consequences:
+      - "代码审查不通过"
+      - "重新执行CodeGen流程"
+      - "项目延期和质量风险"
+      - "违反工业级开发标准"
+
+  # === 开发规范约束 ===
+  development_standards:
+    naming_conventions:
+      - "实体类: PascalCase (如: UserInfo)"
+      - "数据表: snake_case (如: user_info)"
+      - "接口路径: kebab-case (如: /api/user-info)"
+      - "前端组件: PascalCase (如: UserInfoForm)"
+    
+    code_structure:
+      - "Controller层: 仅处理HTTP请求响应"
+      - "Service层: 实现核心业务逻辑"
+      - "Mapper层: 数据库操作和SQL映射"
+      - "Entity层: 数据模型和业务实体"
+    
+    api_design_principles:
+      - "RESTful风格接口设计"
+      - "统一响应格式 (Result<T>)"
+      - "标准HTTP状态码使用"
+      - "统一异常处理机制"
+
+  # === 质量约束 ===
+  quality_constraints:
+    performance_requirements:
+      - "接口响应时间 < 300ms"
+      - "数据库查询优化 (使用索引)"
+      - "合理的缓存策略设计"
+      - "分页查询强制限制"
+    
+    security_requirements:
+      - "基于JWT的无状态认证"
+      - "RBAC权限控制模型"
+      - "SQL注入防护"
+      - "XSS攻击防护"
+      - "数据脱敏处理"
+    
+    maintainability_requirements:
+      - "代码注释覆盖率 >= 80%"
+      - "方法复杂度控制 (圈复杂度 < 10)"
+      - "类文件长度限制 (< 500行)"
+      - "遵循SOLID设计原则"
+
+# === 使用说明 ===
+usage_guidelines:
+  for_experts:
+    - "所有专家必须严格遵循本约束配置"
+    - "设计方案前先检查技术栈合规性"
+    - "发现违规需求立即提出约束提醒"
+    - "定期检查实现方案的约束符合性"
+  
+  violation_handling:
+    - "发现违规立即停止工作"
+    - "向用户说明JeecgBoot平台约束"
+    - "提供符合约束的替代方案"
+    - "记录违规情况用于约束优化"
+
+# === 更新维护 ===
+maintenance_info:
+  update_frequency: "随JeecgBoot版本更新"
+  review_cycle: "季度技术约束评审"
+  feedback_channel: "ContextDev架构团队"
+  version_control: "与JeecgBoot版本同步"

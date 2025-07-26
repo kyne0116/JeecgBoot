@@ -1,0 +1,167 @@
+# ContextDev专家质量标准配置
+# 所有专家输出物必须遵循的质量标准和验证规则
+# Version: v4.0.0 | Last Update: 2025-07-27
+
+quality_assurance_standards:
+  # === 输出物通用质量要求 ===
+  universal_output_requirements:
+    completeness_standards:
+      - "所有模板字段100%填充 (必填字段不得为空)"
+      - "业务流程描述完整无遗漏"
+      - "验收标准覆盖所有功能点"
+      - "追溯信息完整记录"
+    
+    consistency_standards:
+      - "术语使用统一标准 (参考JeecgBoot术语库)"
+      - "业务规则逻辑一致无冲突"
+      - "输出格式严格符合模板规范"
+      - "数据结构与接口规范一致"
+    
+    usability_standards:
+      - "输出可直接被下游专家使用"
+      - "技术实现完全可行"
+      - "业务价值清晰明确"
+      - "文档表达清晰准确"
+
+  # === 模板符合性标准 ===
+  template_compliance_standards:
+    format_validation:
+      - "YAML格式语法正确性验证"
+      - "必填字段完整性检查"
+      - "数据类型符合性验证"
+      - "字段约束条件验证"
+    
+    content_validation:
+      - "业务逻辑合理性检查"
+      - "技术方案可行性验证"
+      - "与上游输入的一致性检查"
+      - "JeecgBoot平台约束符合性验证"
+    
+    structure_validation:
+      - "模板结构完整性验证"
+      - "章节逻辑关系正确性"
+      - "引用关系完整性检查"
+      - "版本信息准确性验证"
+
+  # === 专家协作质量标准 ===
+  collaboration_quality_standards:
+    input_processing_standards:
+      - "上游专家输出100%理解和处理"
+      - "输入验证和异常处理完整"
+      - "业务上下文准确理解"
+      - "协作接口严格遵循"
+    
+    output_delivery_standards:
+      - "下游专家可直接使用输出"
+      - "协作接口数据完整准确"
+      - "交接文档清晰详细"
+      - "质量自检通过确认"
+    
+    communication_standards:
+      - "专家间沟通及时准确"
+      - "问题反馈机制有效"
+      - "协作冲突及时解决"
+      - "进度同步实时准确"
+
+  # === 技术质量标准 ===
+  technical_quality_standards:
+    architecture_quality:
+      - "架构设计符合JeecgBoot规范"
+      - "系统边界清晰合理"
+      - "接口设计标准规范"
+      - "数据模型设计合理"
+    
+    code_quality:
+      - "代码编译通过无错误"
+      - "代码符合JeecgBoot编码规范"
+      - "单元测试覆盖率 >= 80%"
+      - "代码静态检查通过"
+    
+    performance_quality:
+      - "接口响应时间 < 300ms"
+      - "数据库查询性能优化"
+      - "内存使用合理控制"
+      - "并发处理能力符合要求"
+    
+    security_quality:
+      - "权限控制完整有效"
+      - "数据验证和过滤完整"
+      - "敏感信息保护到位"
+      - "安全漏洞扫描通过"
+
+  # === 质量验证流程 ===
+  quality_validation_process:
+    self_validation:
+      validation_checklist:
+        - "输出完整性自检"
+        - "格式规范性自检"
+        - "业务逻辑正确性自检"
+        - "技术可行性自检"
+      
+      validation_tools:
+        - "YAML格式验证器"
+        - "业务规则验证器"
+        - "技术约束检查器"
+        - "模板符合性检查器"
+    
+    peer_validation:
+      validation_criteria:
+        - "下游专家输入验证通过"
+        - "协作接口兼容性确认"
+        - "业务理解一致性确认"
+        - "技术实现可行性确认"
+    
+    quality_gate_validation:
+      gate_criteria:
+        - "阶段质量目标达成"
+        - "关键质量指标通过"
+        - "风险评估在可控范围"
+        - "stakeholder验收通过"
+
+  # === 质量度量标准 ===
+  quality_metrics_standards:
+    effectiveness_metrics:
+      - "需求理解准确率 >= 95%"
+      - "输出物可用率 >= 90%"
+      - "返工率 <= 5%"
+      - "质量缺陷密度 <= 1个/1000行代码"
+    
+    efficiency_metrics:
+      - "专家协作等待时间 <= 2小时"
+      - "质量检查处理时间 <= 1小时"
+      - "问题解决响应时间 <= 4小时"
+      - "交付及时率 >= 90%"
+    
+    satisfaction_metrics:
+      - "下游专家满意度 >= 90%"
+      - "最终用户满意度 >= 85%"
+      - "业务方满意度 >= 90%"
+      - "技术团队满意度 >= 85%"
+
+# === 质量保证实施指南 ===
+implementation_guidelines:
+  for_experts:
+    - "每个输出物必须经过质量自检"
+    - "严格按照质量标准执行工作"
+    - "主动收集和处理质量反馈"
+    - "持续改进工作质量和效率"
+  
+  quality_improvement:
+    - "定期分析质量指标趋势"
+    - "识别质量问题根本原因"
+    - "制定和实施改进措施"
+    - "分享质量最佳实践"
+
+# === 质量文化建设 ===
+quality_culture:
+  core_principles:
+    - "质量第一，效率第二"
+    - "预防胜于检查"
+    - "持续改进，追求卓越"
+    - "全员参与，共同负责"
+  
+  quality_mindset:
+    - "视质量为生命线"
+    - "注重细节，追求完美"
+    - "勇于承担质量责任"
+    - "积极分享质量经验"

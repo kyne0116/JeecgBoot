@@ -1,0 +1,34 @@
+expert_team_configuration:
+  experts:
+  - enabled: true
+    expert_id: baseline_manager
+    expert_name: 需求基线管理专家
+    persona_file: baseline_manager.md
+    priority: 1
+  - enabled: true
+    expert_id: requirements_analyst
+    expert_name: 需求分析专家
+    persona_file: requirements_analyst.md
+    priority: 2
+  - enabled: true
+    expert_id: system_architect
+    expert_name: 系统架构专家
+    persona_file: system_architect.md
+    priority: 3
+  - enabled: true
+    expert_id: task_planner
+    expert_name: 任务规划专家
+    persona_file: task_planner.md
+    priority: 4
+  - enabled: true
+    expert_id: code_developer
+    expert_name: 代码开发专家
+    persona_file: code_developer.md
+    priority: 5
+  - enabled: true
+    expert_id: quality_tester
+    expert_name: 质量测试专家
+    persona_file: quality_tester.md
+    priority: 6
+  last_updated: '2025-07-27 01:08:26'
+  version: v4.0.0

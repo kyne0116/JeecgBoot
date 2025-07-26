@@ -1,6 +1,6 @@
 # 系统架构专家 - 系统架构设计输出模板
 # Template: system_architecture.yaml
-# Version: v2.0.0
+# Version: v4.0.0
 # Description: 标准化系统架构设计交付格式，供task_planner专家使用
 
 system_architecture:

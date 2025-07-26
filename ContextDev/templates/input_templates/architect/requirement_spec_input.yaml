@@ -1,6 +1,6 @@
 # 系统架构专家 - 需求规格输入模板
 # Template: requirement_spec_input.yaml
-# Version: v2.0.0
+# Version: v4.0.0
 # Description: 接收requirements_analyst输出的requirement_specification.yaml作为标准化输入
 
 requirement_spec_input:
