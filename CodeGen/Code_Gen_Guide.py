@@ -4076,30 +4076,68 @@ def main():
     # 预处理工作流变量（确保在显示配置前就有实际值）
     global PROJECT_PATH, ENTITY_NAME, MODULE_NAME, SUBMODULE_NAME, PACKAGE_NAME, JAVA_ENTITY_NAME, TABLE_NAME
 
+    # 处理特殊命令（不需要表单配置）
+    if args.dict:
+        # 获取系统数据字典
+        fetch_system_dict()
+        return
+
+    if args.test:
+        # 运行系统诊断
+        run_diagnostics()
+        return
+
+    if args.validate:
+        # 仅验证配置
+        print("🔍 验证模式 - 仅检查配置和数据")
+        config_errors = validate_config()
+        if config_errors:
+            print("❌ 配置验证失败:")
+            for error in config_errors:
+                print(f"   - {error}")
+        else:
+            print("✅ 配置验证通过")
+
+        # 验证表单数据（如果提供了配置文件）
+        if args.form_config:
+            try:
+                with open(args.form_config, 'r', encoding='utf-8') as f:
+                    form_data = json.load(f)
+                form_errors = validate_form_data(form_data)
+                if form_errors:
+                    print("❌ 表单数据验证失败:")
+                    for error in form_errors:
+                        print(f"   - {error}")
+                else:
+                    print("✅ 表单数据验证通过")
+            except Exception as e:
+                print(f"❌ 表单数据加载失败: {e}")
+        return
+
     # 1. 处理业务实体和格式派生 (重构版)
     if args.form_config:
         try:
             # 使用新的业务实体提取和格式派生逻辑
             formats = extract_business_entity_from_config(args.form_config)
-            
+
             # 设置全局变量
             ENTITY_NAME = formats['java_class_name']  # 使用业务实体作为Java类名
-            
+
             # 从配置文件中读取表名和模块信息
             with open(args.form_config, 'r', encoding='utf-8') as f:
                 form_data = json.load(f)
                 table_name = form_data.get('head', {}).get('tableName', '')
                 CURRENT_TABLE_NAME = table_name
-                
+
                 # 从metadata中获取模块信息 (如果有的话)
                 metadata = form_data.get('metadata', {}).get('generation_info', {})
                 if metadata.get('module_name'):
                     MODULE_NAME = metadata['module_name']
                 if metadata.get('submodule_name'):
                     SUBMODULE_NAME = metadata['submodule_name']
-                    
+
             print("✅ 从配置文件提取业务实体成功")
-            
+
         except Exception as e:
             print(f"❌ 业务实体提取失败: {e}")
             print("💡 请检查配置文件是否包含正确的business_entity字段")
@@ -4131,37 +4169,9 @@ def main():
     if args.form_config:
         print(f"📋 表单配置文件: {args.form_config}")
 
-    if args.test:
-        # 运行系统诊断
-        run_diagnostics()
-        return
 
-    if args.validate:
-        # 仅验证配置
-        print("🔍 验证模式 - 仅检查配置和数据")
-        config_errors = validate_config()
-        if config_errors:
-            print("❌ 配置验证失败:")
-            for error in config_errors:
-                print(f"   - {error}")
-        else:
-            print("✅ 配置验证通过")
 
-        # 验证表单数据
-        if args.form_config:
-            try:
-                with open(args.form_config, 'r', encoding='utf-8') as f:
-                    form_data = json.load(f)
-                form_errors = validate_form_data(form_data)
-                if form_errors:
-                    print("❌ 表单数据验证失败:")
-                    for error in form_errors:
-                        print(f"   - {error}")
-                else:
-                    print("✅ 表单数据验证通过")
-            except Exception as e:
-                print(f"❌ 表单数据加载失败: {e}")
-        return
+
 
     if args.try_run:
         print("🔍 试运行模式 - 将显示操作但不执行")
@@ -4190,10 +4200,7 @@ def main():
 
         return
 
-    if args.dict:
-        # 获取系统数据字典
-        fetch_system_dict()
-        return
+
 
     # 处理表单配置文件
     if args.form_config:
