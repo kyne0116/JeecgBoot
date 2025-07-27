@@ -19,11 +19,13 @@ ContextDev v4.1 基于**需求工程驱动的智能开发**理念，专注于需
   分层模板架构: 基于共享基线的三层模板体系 (shared/专家模板/baseline)
   5专家技术链路: 覆盖需求分析到开发测试的专家独立工作能力
   JeecgBoot深度集成: 严格遵循框架约束，最大化CodeGen系统利用
+  AIGC稳定性增强: 智能错误恢复系统，支持8种错误类型自动识别和恢复
 
 系统特点:
   专业专精: 每个专家专注特定领域的深度处理能力
   模板驱动: 基于标准化YAML模板的统一输入输出格式
   质量保证: 内置完整的质量检查和追溯管理机制
+  智能恢复: AIGC错误恢复系统确保系统稳定性和鲁棒性
   即插即用: 根据需求选择合适的专家，无需复杂配置
 ```
 
@@ -201,6 +203,9 @@ ContextDev v4.1 构建了创新的**分层模板架构**，实现基于共享基
 ContextDev/
 ├── README.md                    # 系统概述和使用指南 (本文档)
 ├── CLAUDE.md                    # 系统核心配置规范 (第二人称视角)
+├── EVALUATION_REPORT.md         # 系统评估报告和改进建议
+├── IMPROVEMENT_TASKS.md         # 系统优化任务清单和进度跟踪
+├── TEMPLATE_REFERENCE_STANDARD.md # 模板引用路径标准规范
 ├── experts/                     # 5专家角色定义 (独立专家能力描述)
 │   ├── requirements_analyst.md  # 需求分析专家角色定义
 │   ├── baseline_manager.md     # 需求基线管理专家角色定义
@@ -217,24 +222,32 @@ ContextDev/
 │   │   └── output.yaml         # 需求分析输出模板
 │   ├── baseline/               # 需求基线管理专家模板
 │   │   ├── input.yaml          # 基线管理输入模板
-│   │   └── output.yaml         # 基线管理输出模板
+│   │   ├── output.yaml         # 基线管理输出模板
+│   │   ├── baseline_template.yaml  # 基线管理规范
+│   │   ├── traceability_matrix.yaml # 需求追溯矩阵
+│   │   ├── change_request.yaml     # 变更请求管理
+│   │   └── quality_checklist.yaml  # 质量检查清单
 │   ├── architecture/            # 系统架构专家模板
 │   │   ├── input.yaml          # 架构设计输入模板
 │   │   └── output.yaml         # 架构设计输出模板
 │   ├── development/            # 代码开发专家模板
 │   │   ├── input.yaml          # 代码开发输入模板
 │   │   └── output.yaml         # 代码开发输出模板
-│   ├── testing/                # 质量测试专家模板
-│   │   ├── input.yaml          # 质量测试输入模板
-│   │   └── output.yaml         # 质量测试输出模板
-│   └── baseline/               # 基线管理层
-│       ├── baseline_template.yaml  # 基线管理规范
-│       ├── traceability_matrix.yaml # 需求追溯矩阵
-│       ├── change_request.yaml     # 变更请求管理
-│       └── quality_checklist.yaml  # 质量检查清单
-├── examples/                   # 完整开发示例
-│   └── finance_invoice_management/ # 财务发票管理系统示例
-└── templates_old/              # 旧版模板 (待清理)
+│   └── testing/                # 质量测试专家模板
+│       ├── input.yaml          # 质量测试输入模板
+│       └── output.yaml         # 质量测试输出模板
+├── aigc/                       # AIGC错误恢复系统 (稳定性增强)
+│   ├── error_recovery_system.py # 核心错误恢复系统实现
+│   ├── test_error_recovery.py  # 错误恢复系统测试套件
+│   ├── config.json             # 系统配置文件
+│   ├── AIGC_ERROR_RECOVERY_GUIDE.md # 错误恢复系统使用指南
+│   └── error_recovery_test_report.json # 测试报告
+├── scripts/                    # 自动化脚本工具
+│   ├── check_template_references.sh # 模板引用路径检查脚本
+│   └── validate_references.py  # Python版本引用验证工具
+└── examples/                   # 完整开发示例
+    └── finance_invoice_management/ # 财务发票管理系统示例
+        └── stage_1_requirements_analysis/ # 需求分析阶段示例
 ```
 
 ### 📋 **文件用途详解**
@@ -242,6 +255,9 @@ ContextDev/
 #### **核心配置文件**
 - **CLAUDE.md**: 系统核心配置规范，定义了系统身份、5专家团队架构、核心行为规则、技术约束等，使用第二人称视角
 - **README.md**: 系统概述和使用指南，介绍系统运行机制、目录结构和使用方法
+- **EVALUATION_REPORT.md**: 系统全面评估报告，包含系统评分、优化建议和改进路线图
+- **IMPROVEMENT_TASKS.md**: 系统优化任务清单，包含12个具体改进任务的详细规划和进度跟踪
+- **TEMPLATE_REFERENCE_STANDARD.md**: 模板引用路径标准规范，确保YAML模板间引用的标准化和一致性
 
 #### **专家角色定义** (`experts/`)
 - **requirements_analyst.md**: 需求分析专家的专业能力、工作流程、输入输出标准
@@ -261,10 +277,22 @@ ContextDev/
 - **output.yaml**: 专家交付成果的标准化输出模板，支持下游专家输入
 
 #### **基线管理层** (`templates/baseline/`)
+- **input.yaml / output.yaml**: 基线管理专家的标准化输入输出模板
 - **baseline_template.yaml**: 需求基线管理的标准化规范和流程
 - **traceability_matrix.yaml**: 需求追溯矩阵，支持需求全生命周期追溯
 - **change_request.yaml**: 变更请求管理模板，确保变更控制
 - **quality_checklist.yaml**: 质量检查清单，确保交付质量
+
+#### **AIGC错误恢复系统** (`aigc/`)
+- **error_recovery_system.py**: 核心错误恢复系统实现，支持8种错误类型智能分类和恢复
+- **test_error_recovery.py**: 完整的错误恢复系统测试套件，验证各种错误场景
+- **config.json**: 系统配置文件，包含重试策略、恢复规则、质量阈值等配置
+- **AIGC_ERROR_RECOVERY_GUIDE.md**: 详细的使用指南和最佳实践文档
+- **error_recovery_test_report.json**: 测试执行报告，包含成功率、性能指标等数据
+
+#### **自动化脚本工具** (`scripts/`)
+- **check_template_references.sh**: Bash版本的模板引用路径检查脚本
+- **validate_references.py**: Python版本的引用验证工具，支持YAML解析和锚点验证
 
 ---
 
@@ -572,6 +600,17 @@ cat CLAUDE.md
 
 # 查看模板结构
 ls -la templates/
+
+# 检查系统完整性
+bash scripts/check_template_references.sh   # 检查模板引用路径
+python3 scripts/validate_references.py     # 验证引用有效性
+
+# 测试AIGC错误恢复系统
+python3 aigc/test_error_recovery.py        # 运行错误恢复测试
+
+# 查看系统评估和改进建议
+cat EVALUATION_REPORT.md                   # 系统评估报告
+cat IMPROVEMENT_TASKS.md                   # 改进任务清单
 ```
 
 ---
