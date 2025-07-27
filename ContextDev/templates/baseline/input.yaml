@@ -1,0 +1,303 @@
+# ContextDev v4.1 - Baseline Manager Expert Input Template (AIGC Enhanced)
+# 需求基线管理专家输入模板 - 基于需求分析结果进行基线管理 (AIGC稳定性增强)
+
+# AIGC稳定性元数据
+aigc_input_metadata:
+  template_version: "v4.1.0_aigc_enhanced"
+  input_validation_level: "strict"
+  error_tolerance: "minimal"
+  auto_correction: "enabled"
+  
+  # 智能默认值策略
+  intelligent_defaults:
+    task_type_default: "establish"  # 默认任务类型
+    priority_default: "high"  # 默认优先级
+    compliance_mandatory: ["ieee_830", "cmmi_level3", "iso_9001"]  # 强制合规
+    quality_threshold: 85  # 默认质量阈值
+  
+  # 输入验证规则
+  input_quality_rules:
+    min_requirements_count: 5  # 最少需求数量
+    max_empty_fields_percentage: 15  # 最大空字段比例
+    mandatory_sections: ["requirement_specification", "baseline_management_task", "compliance_standards"]
+    quality_score_minimum: 80  # 最低质量分数
+
+baseline_manager_input:
+  # 基线引用 - 继承共享基线和项目上下文
+  baseline_reference: 
+    shared_baseline: "../shared/baseline_shared.yaml#/shared_baseline"
+    project_context: "../shared/project_context.yaml#/project_context"
+    
+  # 输入来源 - 接收需求分析专家的输出或直接基线管理任务
+  input_source:
+    source_expert: "requirements_analyst"  # AIGC: 固定上游专家
+    source_document: "requirement_specification.yaml"  # AIGC: 标准输入文档
+    requirement_version: "${REQUIREMENT_VERSION_AUTO}"  # AIGC: 自动生成版本号
+    alternative_source: "direct_baseline_task"  # AIGC: 备用输入源
+    
+  # 需求分析输入信息
+  requirements_analysis_input:
+    # 需求规格说明书内容
+    requirement_specification:
+      functional_requirements: []    # 功能需求列表
+      non_functional_requirements: [] # 非功能需求列表  
+      business_rules: []            # 业务规则
+      constraints: []               # 约束条件
+      acceptance_criteria: []       # 验收标准
+      
+    # 需求质量评估
+    requirement_quality_assessment:
+      completeness_score: "${COMPLETENESS_SCORE_REQUIRED}"  # AIGC: 必须>=85%
+      consistency_score: "${CONSISTENCY_SCORE_REQUIRED}"  # AIGC: 必须>=90%
+      verifiability_score: "${VERIFIABILITY_SCORE_REQUIRED}"  # AIGC: 必须>=80%
+      requirement_quality_issues: []  # AIGC: 空数组表示无问题
+      
+    # 需求变更历史
+    requirement_change_history:
+      initial_version: ""           # 初始版本
+      change_requests: []           # 变更请求历史
+      version_evolution: []         # 版本演进历史
+      
+  # 基线管理任务定义
+  baseline_management_task:
+    # 任务类型 (AIGC稳定性增强)
+    task_type: "${TASK_TYPE_ENUM:establish|update|review|audit|release}"  # AIGC: 枚举验证
+    task_priority: "${PRIORITY_ENUM:high|medium|low}"  # AIGC: 枚举验证，默认high
+    task_urgency: "${URGENCY_ENUM:urgent|normal|low}"  # AIGC: 枚举验证，默认normal
+    
+    # 基线管理范围
+    baseline_scope:
+      requirement_categories: []    # 需求类别范围
+      functional_domains: []        # 功能域范围
+      stakeholder_groups: []        # 利益相关方范围
+      system_boundaries: []         # 系统边界范围
+      
+    # 基线管理目标
+    baseline_objectives:
+      primary_objectives: []        # 主要目标
+      secondary_objectives: []      # 次要目标
+      success_criteria: []          # 成功标准
+      quality_targets: []           # 质量目标
+      
+  # 项目约束与标准要求
+  project_constraints:
+    # 合规标准要求
+    compliance_standards:
+      ieee_830_compliance: true     # IEEE 830标准合规
+      cmmi_level3_compliance: true  # CMMI Level 3合规
+      iso_9001_compliance: true     # ISO 9001合规
+      custom_standards: []          # 自定义标准
+      
+    # 项目约束
+    project_limitations:
+      time_constraints: "${TIME_CONSTRAINT_REQUIRED}"  # AIGC: 必填，格式: X天/X周/X月
+      resource_constraints: ["${RESOURCE_CONSTRAINT_LIST}"]  # AIGC: 资源限制列表
+      budget_constraints: "${BUDGET_CONSTRAINT_AMOUNT}"  # AIGC: 预算限制金额
+      technology_constraints: ["JeecgBoot_Only", "MySQL_Only", "No_Microservices"]  # AIGC: 强制技术约束
+      
+    # 组织环境
+    organizational_context:
+      organization_maturity: ""     # 组织成熟度
+      process_maturity: ""          # 过程成熟度
+      team_capabilities: []         # 团队能力
+      existing_baselines: []        # 现有基线
+      
+  # JeecgBoot特定约束
+  jeecgboot_constraints:
+    # 框架集成要求
+    framework_integration:
+      permission_system_integration: true  # 权限系统集成
+      version_control_integration: true    # 版本控制集成
+      codegen_impact_consideration: true   # CodeGen影响考虑
+      
+    # 技术约束
+    technical_constraints:
+      database_storage: "MySQL"           # 数据存储约束
+      security_framework: "Spring Security" # 安全框架
+      api_standards: "RESTful"            # 接口标准
+      frontend_framework: "Vue 3 + Ant Design Vue" # 前端框架
+      
+  # 基线管理配置要求
+  baseline_configuration:
+    # 基线结构要求
+    baseline_structure:
+      hierarchical_organization: true     # 层次化组织
+      requirement_classification: []      # 需求分类方式
+      traceability_requirements: []       # 追溯要求
+      version_control_strategy: ""        # 版本控制策略
+      
+    # 变更控制要求
+    change_control_requirements:
+      change_identification: []           # 变更识别要求
+      change_evaluation_criteria: []      # 变更评估标准
+      change_approval_process: ""         # 变更批准流程
+      change_implementation_control: []   # 变更实施控制
+      
+    # 配置管理要求
+    configuration_management:
+      configuration_items: []             # 配置项定义
+      version_control_tools: []           # 版本控制工具
+      release_management: ""              # 发布管理要求
+      audit_requirements: []              # 审计要求
+      
+  # 质量保证要求
+  quality_assurance_requirements:
+    # 质量标准
+    quality_standards:
+      baseline_quality_criteria: []       # 基线质量标准
+      process_quality_requirements: []    # 过程质量要求
+      deliverable_quality_standards: []   # 交付物质量标准
+      
+    # 质量检查要求
+    quality_check_requirements:
+      review_checkpoints: []              # 评审检查点
+      audit_frequency: ""                 # 审计频率
+      quality_metrics: []                 # 质量度量指标
+      quality_gates: []                   # 质量门禁
+      
+  # 利益相关方信息
+  stakeholder_information:
+    # 主要利益相关方
+    primary_stakeholders:
+      - stakeholder_role: ""
+        responsibilities: []
+        authority_level: ""
+        involvement_level: ""
+        
+    # 基线管理责任
+    baseline_responsibilities:
+      baseline_owner: ""                   # 基线负责人
+      change_control_board: []            # 变更控制委员会
+      quality_assurance_team: []          # 质量保证团队
+      configuration_manager: ""           # 配置管理员
+
+# AIGC增强型输入验证规则
+input_validation:
+  # AIGC稳定性验证
+  aigc_stability_validation:
+    placeholder_completeness:
+      - "All ${PLACEHOLDER_REQUIRED} fields must be filled (0% empty allowed)"
+      - "Enum fields must match predefined values exactly"
+      - "Auto-generated fields must have valid generation patterns"
+      - "Quality scores must be numeric and within valid ranges"
+    
+    data_type_validation:
+      - "Completeness score: numeric, range 0-100"
+      - "Consistency score: numeric, range 0-100"
+      - "Verifiability score: numeric, range 0-100"
+      - "Task type: enum validation against allowed values"
+      - "Priority/Urgency: enum validation required"
+    
+    cross_field_consistency:
+      - "Task urgency 'urgent' requires priority 'high'"
+      - "Compliance standards must include all three mandatory standards"
+      - "Time constraints must be realistic for task type"
+      - "Resource constraints must align with project scope"
+  
+  # 强化必填字段 (AIGC增强)
+  required_fields:
+    mandatory_sections:  # 100%必填，无异常
+      - "requirements_analysis_input.requirement_specification"
+      - "baseline_management_task.task_type"
+      - "baseline_management_task.baseline_scope"
+      - "project_constraints.compliance_standards"
+      - "jeecgboot_constraints.technical_constraints"
+      
+    quality_required_fields:  # 质量相关必填
+      - "requirement_quality_assessment.completeness_score"
+      - "requirement_quality_assessment.consistency_score"
+      - "requirement_quality_assessment.verifiability_score"
+      - "baseline_management_task.task_priority"
+      - "baseline_management_task.task_urgency"
+    
+  # 增强型质量要求 (AIGC增强)
+  quality_requirements:
+    compliance_requirements:  # 100%合规要求
+      - "IEEE 830 compliance score >= 95% (not just 'meet standards')"
+      - "CMMI Level 3 compliance verified through checklist"
+      - "ISO 9001 requirements mapped to specific processes"
+      - "JeecgBoot technical constraints 100% enforced"
+    
+    measurable_objectives:  # 可量化目标
+      - "Baseline management task SMART criteria: 100% specific, measurable, achievable, relevant, time-bound"
+      - "Quality objectives must have numeric targets (not 'high quality')"
+      - "Success criteria must be boolean-testable"
+      - "All scores must be >= minimum thresholds"
+    
+    jeecgboot_specific:  # JeecgBoot特定要求
+      - "Database storage limited to MySQL only (0% MongoDB/Elasticsearch)"
+      - "API standards must be RESTful (100% compliance)"
+      - "Frontend framework must be Vue 3 + Ant Design Vue (no alternatives)"
+      - "CodeGen impact consideration mandatory for all CRUD requirements"
+  
+  # 一致性检查 (AIGC增强)
+  consistency_check:
+    scope_alignment:  # 范围一致性
+      - "Baseline scope covers 100% of requirement specification scope"
+      - "Functional domains match requirement categories exactly"
+      - "System boundaries align with technical constraints"
+      - "Stakeholder groups include all requirement sources"
+    
+    resource_feasibility:  # 资源可行性
+      - "Time constraints realistic for task complexity (verified against benchmarks)"
+      - "Resource constraints sufficient for compliance requirements"
+      - "Budget constraints adequate for technology stack"
+      - "Team capabilities match required skill levels"
+    
+    quality_coherence:  # 质量连贯性
+      - "Quality objectives achievable within project constraints"
+      - "Quality metrics measurable with available tools"
+      - "Quality gates enforceable within process framework"
+      - "Quality standards consistent across all requirements"
+  
+  # 完整性验证 (AIGC增强)
+  completeness_validation:
+    mandatory_coverage:  # 100%覆盖要求
+      - "All three compliance standards (IEEE 830, CMMI L3, ISO 9001) explicitly addressed"
+      - "All five baseline management task types have defined procedures"
+      - "All stakeholder roles have clear responsibilities and authority levels"
+      - "All quality aspects (functional, non-functional, process) covered"
+      
+    process_completeness:  # 流程完整性
+      - "Change control process covers identification, evaluation, approval, implementation, verification"
+      - "Configuration management includes items, tools, procedures, audits"
+      - "Quality assurance spans requirements, design, implementation, testing phases"
+      - "Risk management addresses technical, schedule, resource, quality risks"
+      
+    deliverable_readiness:  # 交付物就绪度
+      - "All baseline templates and procedures ready for immediate use"
+      - "All quality checklists complete with pass/fail criteria"
+      - "All approval workflows defined with clear decision points"
+      - "All measurement mechanisms operational and calibrated"
+
+# AIGC错误处理和自动纠错
+aigc_error_handling:
+  input_missing_handling:
+    strategy: "intelligent_defaults_with_warnings"
+    missing_enum_values: "use_most_common_default"
+    missing_scores: "calculate_from_available_data"
+    missing_constraints: "apply_framework_defaults"
+    
+  input_invalid_handling:
+    strategy: "auto_correct_with_logging"
+    invalid_enum_values: "map_to_closest_valid_option"
+    invalid_scores: "clamp_to_valid_range"
+    invalid_formats: "auto_format_correction"
+    
+  consistency_violation_handling:
+    strategy: "prioritize_safety_and_compliance"
+    scope_misalignment: "expand_baseline_scope_to_cover_all_requirements"
+    resource_insufficiency: "flag_as_high_risk_and_require_confirmation"
+    quality_conflicts: "choose_highest_standard_automatically"
+
+# AIGC性能监控
+aigc_performance_monitoring:
+  input_processing_metrics:
+    average_validation_time: "${TARGET_VALIDATION_TIME}"  # 目标验证时间
+    auto_correction_success_rate: "${TARGET_CORRECTION_RATE}"  # 目标纠错成功率
+    input_quality_score: "${TARGET_INPUT_QUALITY}"  # 目标输入质量
+    
+  validation_effectiveness:
+    false_positive_rate: "${MAX_FALSE_POSITIVE_RATE}"  # 最大误报率
+    false_negative_rate: "${MAX_FALSE_NEGATIVE_RATE}"  # 最大漏报率
+    validation_coverage: "${MIN_VALIDATION_COVERAGE}"  # 最小验证覆盖率

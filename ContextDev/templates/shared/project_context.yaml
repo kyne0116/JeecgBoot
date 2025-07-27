@@ -1,0 +1,181 @@
+# 项目上下文共享模板 (ContextDev专家协作上下文)
+# ========================================================================
+# 版本: v1.0.0 | 创建日期: 2025-07-27
+# 用途: 5专家协作的统一项目上下文信息，确保专家间信息一致性
+# 引用: 基于baseline_shared.yaml的扩展上下文信息
+
+project_context:
+  # 引用共享基线 (通过$ref方式)
+  baseline_reference: "../shared/baseline_shared.yaml#/shared_baseline"
+  
+  # 需求分析上下文
+  requirements_context:
+    # 需求来源信息
+    requirement_sources:
+      business_stakeholders: []        # 业务相关方列表
+      user_groups: []                  # 用户群体
+      regulatory_requirements: []      # 法规要求
+      market_drivers: []               # 市场驱动因素
+      
+    # 需求范围界定
+    scope_definition:
+      included_functions: []           # 包含功能
+      excluded_functions: []           # 排除功能
+      integration_points: []           # 集成点
+      external_interfaces: []          # 外部接口
+      
+    # 业务背景上下文
+    business_context:
+      current_business_process: ""     # 当前业务流程
+      pain_points: []                  # 痛点问题
+      expected_improvements: []        # 期望改进
+      success_criteria: []             # 成功标准
+      
+  # 技术架构上下文
+  architecture_context:
+    # JeecgBoot技术栈上下文
+    technology_stack:
+      backend_framework: "Spring Boot 3.x"
+      frontend_framework: "Vue 3 + TypeScript"
+      database: "MySQL 8.0+"
+      cache: "Redis 7.x"
+      build_tool: "Maven 3.9+"
+      
+    # 架构约束
+    architectural_constraints:
+      pattern: "单体分层架构"
+      prohibited_patterns: ["微服务", "分布式架构"]
+      framework_limitations: []
+      performance_requirements: {}
+      
+    # CodeGen系统约束
+    codegen_constraints:
+      applicable_scenarios: []         # 适用场景
+      limitations: []                  # 限制条件
+      custom_development_needs: []     # 需要自定义开发的部分
+      
+  # 开发实施上下文  
+  development_context:
+    # 开发环境配置
+    development_environment:
+      ide_requirements: ["IntelliJ IDEA", "VS Code"]
+      development_tools: []
+      testing_framework: []
+      deployment_environment: ""
+      
+    # 代码规范
+    coding_standards:
+      java_conventions: ""             # Java编码规范
+      frontend_conventions: ""         # 前端编码规范
+      database_conventions: ""         # 数据库设计规范
+      api_design_standards: ""         # API设计标准
+      
+    # 质量标准
+    quality_requirements:
+      code_coverage_target: "≥95%"     # 代码覆盖率目标
+      performance_targets: {}          # 性能目标
+      security_requirements: []        # 安全要求
+      accessibility_standards: []      # 可访问性标准
+      
+  # 测试验证上下文
+  testing_context:
+    # 测试策略
+    testing_strategy:
+      test_levels: ["unit", "integration", "system", "acceptance"]
+      test_types: ["functional", "performance", "security", "usability"]
+      automation_requirements: {}      # 自动化测试要求
+      
+    # 测试环境
+    test_environments:
+      development_testing: {}          # 开发测试环境
+      integration_testing: {}          # 集成测试环境
+      user_acceptance_testing: {}      # 用户验收测试环境
+      
+    # 验收标准框架
+    acceptance_criteria_framework:
+      bdd_format: true                 # 使用BDD格式
+      measurable_criteria: true        # 可测量标准
+      traceability_required: true      # 需要追溯性
+      
+  # 专家协作上下文
+  expert_collaboration_context:
+    # 数据流标准
+    data_flow_standards:
+      input_validation: true           # 输入验证要求
+      output_standardization: true     # 输出标准化要求
+      error_handling: {}               # 错误处理规范
+      
+    # 协作接口规范
+    collaboration_interfaces:
+      handoff_protocols: {}            # 交接协议
+      quality_gates: {}                # 质量门禁
+      feedback_mechanisms: {}          # 反馈机制
+      
+    # 共享词汇表
+    shared_vocabulary:
+      business_terms: {}               # 业务术语
+      technical_terms: {}              # 技术术语
+      acronyms: {}                     # 缩略语定义
+      
+  # 项目约束上下文
+  project_constraints:
+    # 时间约束
+    time_constraints:
+      project_deadline: ""             # 项目截止日期
+      milestone_dates: {}              # 里程碑日期
+      critical_path_constraints: []    # 关键路径约束
+      
+    # 资源约束
+    resource_constraints:
+      team_size: {}                    # 团队规模
+      skill_requirements: []           # 技能要求
+      budget_limitations: {}           # 预算限制
+      
+    # 业务约束
+    business_constraints:
+      regulatory_compliance: []        # 法规合规要求
+      organizational_policies: []      # 组织政策
+      existing_system_integration: [] # 现有系统集成约束
+      
+# 上下文使用指南
+context_usage_guidelines:
+  purpose: "为5专家提供统一的项目上下文信息，确保协作一致性"
+  
+  expert_specific_context:
+    requirements_analyst:
+      focus_areas: ["requirements_context", "business_context"]
+      critical_information: ["stakeholders", "scope_definition", "success_criteria"]
+      
+    system_architect:
+      focus_areas: ["architecture_context", "technology_stack"]
+      critical_information: ["architectural_constraints", "codegen_constraints"]
+      
+    task_planner:
+      focus_areas: ["development_context", "project_constraints"]
+      critical_information: ["time_constraints", "resource_constraints"]
+      
+    code_developer:
+      focus_areas: ["development_context", "coding_standards"]
+      critical_information: ["development_environment", "quality_requirements"]
+      
+    quality_tester:
+      focus_areas: ["testing_context", "quality_requirements"]
+      critical_information: ["testing_strategy", "acceptance_criteria_framework"]
+      
+  consistency_requirements:
+    - "所有专家必须基于相同的project_context工作"
+    - "上下文信息变更时必须通知所有相关专家"
+    - "专家间的协作必须遵循collaboration_interfaces规范"
+    - "共享词汇表必须在所有专家文档中保持一致"
+
+# 质量保证机制
+quality_assurance:
+  context_validation:
+    completeness_check: "确保所有必要的上下文信息都已定义"
+    consistency_check: "验证上下文信息在专家间的一致性"
+    currency_check: "确保上下文信息是最新的"
+    
+  change_management:
+    change_notification: "上下文变更时的通知机制"
+    impact_assessment: "评估上下文变更对各专家的影响"
+    version_control: "上下文信息的版本控制管理"
