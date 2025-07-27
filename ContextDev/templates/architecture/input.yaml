@@ -1,15 +1,12 @@
-# 系统架构专家 - 输入模板
+# 系统架构专家 - 输入模板 (扁平化引用优化)
 # ========================================================================
-# 版本: v1.0.0 | 创建日期: 2025-07-27
+# 版本: v1.1.0 | 创建日期: 2025-07-27 | 优化: 2025-07-27
 # 专家: system_architect
 # 用途: 接收requirements_analyst输出，进行系统架构设计
 
 system_architect_input:
-  # 引用共享基础信息基线
-  baseline_reference:
-    shared_baseline: "../shared/baseline_shared.yaml#/shared_baseline"
-    project_context: "../shared/project_context.yaml#/project_context"
-    data_types: "../shared/data_types.yaml#/data_types"
+  # 统一配置引用 (扁平化架构)
+  config_reference: "../shared/config.yaml"
     
   # 输入来源信息
   input_source:
