@@ -1,0 +1,488 @@
+# ContextDev v4.1 - Code Developer Expert Output Template (AIGC Enhanced)
+# 代码开发专家输出模板 - 完整的全栈代码交付 (AIGC稳定性增强)
+
+# AIGC稳定性元数据
+aigc_metadata:
+  template_version: "v4.1.0_aigc_enhanced"
+  stability_level: "production"
+  robustness_score: 95
+  validation_strictness: "high"
+  error_tolerance: "low"
+  
+  # 默认值策略
+  default_value_strategy:
+    empty_strings: "${PLACEHOLDER_REQUIRED}"  # 必填字段明确标识
+    zero_values: -1  # 使用-1表示未设置，区别于真正的0
+    boolean_values: null  # 使用null表示未设置
+    
+  # 输出完整性验证
+  completeness_requirements:
+    mandatory_sections: ["backend_delivery", "frontend_delivery", "quality_report"]
+    minimum_modules: 1
+    maximum_empty_fields_percentage: 10
+
+code_developer_output:
+  # 基线信息继承
+  baseline_info:
+    project_reference: ""           # 引用baseline_shared.yaml
+    development_version: ""         # 开发版本号
+    completion_date: ""            # 完成日期
+    developer_signature: "code_developer_v4.1"
+    
+  # 开发交付总览
+  delivery_overview:
+    # 交付内容概述
+    delivery_summary:
+      total_modules: -1             # 总模块数 (AIGC: -1表示未设置)
+      codegen_modules: -1           # CodeGen生成模块数 (AIGC: 必须>0)
+      manual_modules: -1            # 手动开发模块数 (AIGC: 可为0)
+      frontend_components: -1       # 前端组件数 (AIGC: 必须>0)
+      backend_services: -1          # 后端服务数 (AIGC: 必须>0)
+      database_tables: -1           # 数据库表数 (AIGC: 必须>0)
+      
+    # 技术栈使用情况
+    technology_usage:
+      backend_technologies:
+        - technology: "Spring Boot"
+          version: "${SPRING_BOOT_VERSION}"  # AIGC: 自动填充框架版本
+          usage_scope: "${BACKEND_FRAMEWORK}"  # AIGC: 默认后端框架
+        - technology: "MyBatis-Plus"
+          version: "${MYBATIS_PLUS_VERSION}"  # AIGC: 自动填充版本
+          usage_scope: "${DATA_ACCESS_LAYER}"  # AIGC: 数据访问层
+          
+      frontend_technologies:
+        - technology: "Vue 3"
+          version: "${VUE3_VERSION}"  # AIGC: 自动填充Vue版本
+          usage_scope: "${FRONTEND_FRAMEWORK}"  # AIGC: 前端框架
+        - technology: "TypeScript"
+          version: "${TYPESCRIPT_VERSION}"  # AIGC: 自动填充TS版本
+          usage_scope: "${TYPE_SAFETY}"  # AIGC: 类型安全
+          
+  # 后端代码交付
+  backend_delivery:
+    # 数据库设计实现
+    database_implementation:
+      # 数据表创建
+      table_definitions:
+        - table_name: "${TABLE_NAME_REQUIRED}"  # AIGC: 必填，遵循命名规范
+          table_comment: "${TABLE_COMMENT_REQUIRED}"  # AIGC: 必填，中文描述
+          ddl_script: |
+            -- AIGC Generated DDL Script
+            -- Table: ${TABLE_NAME_REQUIRED}
+            -- Generated at: ${GENERATION_TIMESTAMP}
+            CREATE TABLE ${TABLE_NAME_REQUIRED} (
+              ${DDL_CONTENT_REQUIRED}
+            ) COMMENT='${TABLE_COMMENT_REQUIRED}';
+          table_fields:
+            - field_name: "${FIELD_NAME_REQUIRED}"  # AIGC: 遵循驼峰命名
+              field_type: "${FIELD_TYPE_REQUIRED}"  # AIGC: 从预定义类型选择
+              field_length: -1  # AIGC: -1表示需要设置
+              nullable: null  # AIGC: null表示需要明确设置
+              comment: "${FIELD_COMMENT_REQUIRED}"  # AIGC: 必填中文注释
+              
+      # 索引创建
+      index_definitions:
+        - index_name: ""
+          table_name: ""
+          index_type: ""            # unique/normal/fulltext
+          index_columns: []
+          
+      # 数据字典配置
+      dictionary_config:
+        - dict_code: ""
+          dict_name: ""
+          dict_items:
+            - item_code: ""
+              item_text: ""
+              item_value: ""
+              
+    # 实体类实现
+    entity_implementation:
+      # CodeGen生成实体
+      codegen_entities:
+        - entity_name: ""
+          entity_file_path: ""
+          generation_config:
+            table_name: ""
+            primary_key: ""
+            generation_options: {}
+          generated_content: |
+            // Generated entity code
+            
+      # 手动开发实体
+      manual_entities:
+        - entity_name: ""
+          entity_file_path: ""
+          entity_purpose: ""
+          custom_features: []
+          source_code: |
+            // Manual entity code
+            
+    # 数据访问层实现
+    mapper_implementation:
+      # Mapper接口
+      mapper_interfaces:
+        - mapper_name: ""
+          mapper_file_path: ""
+          base_mapper: "BaseMapper<EntityName>"
+          custom_methods:
+            - method_name: ""
+              method_signature: ""
+              method_purpose: ""
+              
+      # XML映射文件
+      mapper_xml_files:
+        - xml_file_path: ""
+          namespace: ""
+          sql_definitions:
+            - sql_id: ""
+              sql_type: ""          # select/insert/update/delete
+              sql_content: |
+                -- SQL content
+                
+    # 服务层实现
+    service_implementation:
+      # 服务接口
+      service_interfaces:
+        - service_name: ""
+          service_file_path: ""
+          base_service: "IService<EntityName>"
+          business_methods:
+            - method_name: ""
+              method_signature: ""
+              business_logic: ""
+              
+      # 服务实现类
+      service_implementations:
+        - impl_name: ""
+          impl_file_path: ""
+          base_impl: "ServiceImpl<MapperName, EntityName>"
+          implemented_methods:
+            - method_name: ""
+              implementation_details: ""
+              transaction_config: ""
+              
+    # 控制器实现
+    controller_implementation:
+      # REST控制器
+      rest_controllers:
+        - controller_name: ""
+          controller_file_path: ""
+          base_controller: "JeecgController<EntityName, ServiceName>"
+          api_endpoints:
+            - endpoint_path: ""
+              http_method: ""
+              method_name: ""
+              request_params: []
+              response_type: ""
+              business_logic: ""
+              
+  # 前端代码交付
+  frontend_delivery:
+    # Vue页面组件
+    vue_page_components:
+      # 列表页面
+      list_pages:
+        - page_name: ""
+          component_file_path: ""
+          page_features:
+            - feature: "数据列表展示"
+              implementation: ""
+            - feature: "搜索过滤"
+              implementation: ""
+            - feature: "分页处理"
+              implementation: ""
+              
+      # 表单页面
+      form_pages:
+        - page_name: ""
+          component_file_path: ""
+          form_features:
+            - feature: "数据录入"
+              validation_rules: []
+            - feature: "数据编辑"
+              implementation: ""
+            - feature: "数据验证"
+              validation_config: {}
+              
+    # 可复用组件
+    reusable_components:
+      - component_name: ""
+        component_file_path: ""
+        component_type: ""          # business/ui/utility
+        props_definition: {}
+        events_definition: {}
+        usage_examples: []
+        
+    # 路由配置
+    routing_configuration:
+      - route_path: ""
+        route_name: ""
+        component_reference: ""
+        route_meta:
+          title: ""
+          permissions: []
+          cache: false
+          
+    # API调用封装
+    api_service_layer:
+      - api_module_name: ""
+        api_file_path: ""
+        api_methods:
+          - method_name: ""
+            endpoint_url: ""
+            http_method: ""
+            request_config: {}
+            response_handling: ""
+            
+  # 配置文件交付
+  configuration_delivery:
+    # 后端配置
+    backend_configurations:
+      # 应用配置
+      application_config:
+        - config_file: "application.yml"
+          config_content: |
+            # Application configuration
+            
+      # MyBatis配置
+      mybatis_config:
+        - config_file: "mybatis-plus.yml"
+          config_content: |
+            # MyBatis-Plus configuration
+            
+    # 前端配置
+    frontend_configurations:
+      # 构建配置
+      build_config:
+        - config_file: "vite.config.ts"
+          config_content: |
+            // Vite configuration
+            
+      # 项目配置
+      project_config:
+        - config_file: "tsconfig.json"
+          config_content: |
+            // TypeScript configuration
+            
+  # 测试代码交付
+  testing_delivery:
+    # 后端测试
+    backend_tests:
+      # 单元测试
+      unit_tests:
+        - test_class_name: ""
+          test_file_path: ""
+          test_methods:
+            - test_method: ""
+              test_purpose: ""
+              test_scenario: ""
+              
+      # 集成测试
+      integration_tests:
+        - test_class_name: ""
+          test_file_path: ""
+          test_scope: ""
+          
+    # 前端测试
+    frontend_tests:
+      # 组件测试
+      component_tests:
+        - test_file_name: ""
+          test_file_path: ""
+          tested_component: ""
+          test_cases: []
+          
+  # 文档交付
+  documentation_delivery:
+    # API文档
+    api_documentation:
+      swagger_config: ""
+      api_specs:
+        - api_group: ""
+          endpoints_count: 0
+          documentation_url: ""
+          
+    # 技术文档
+    technical_documentation:
+      - document_name: ""
+        document_type: ""           # setup/usage/maintenance
+        document_content: |
+          # Document content
+          
+  # 部署交付
+  deployment_delivery:
+    # 构建脚本
+    build_scripts:
+      - script_name: ""
+        script_purpose: ""
+        script_content: |
+          #!/bin/bash
+          # Build script content
+          
+    # 部署配置
+    deployment_configs:
+      - config_name: ""
+        environment: ""             # dev/test/prod
+        config_content: {}
+        
+  # 质量报告
+  quality_report:
+    # 代码质量指标
+    code_quality_metrics:
+      backend_metrics:
+        lines_of_code: -1  # AIGC: -1表示未计算，必须>0
+        code_coverage: "${CODE_COVERAGE_PERCENTAGE}"  # AIGC: 必须>=80%
+        code_quality_score: "${QUALITY_SCORE}"  # AIGC: 必须>=90%
+        
+      frontend_metrics:
+        components_count: 0
+        typescript_coverage: ""
+        eslint_score: ""
+        
+    # 性能指标
+    performance_metrics:
+      api_response_times:
+        - endpoint: ""
+          avg_response_time: ""
+          max_response_time: ""
+          
+      frontend_performance:
+        bundle_size: ""
+        loading_time: ""
+        
+    # 安全检查
+    security_assessment:
+      security_vulnerabilities: []
+      security_compliance_score: ""
+      
+  # 交付验收
+  delivery_acceptance:
+    # 功能验收
+    functional_acceptance:
+      implemented_features:
+        - feature_name: ""
+          implementation_status: ""  # completed/partial/pending
+          acceptance_criteria_met: true
+          
+    # 技术验收
+    technical_acceptance:
+      code_standard_compliance: ""
+      framework_integration: ""
+      performance_requirements_met: ""
+      
+    # 部署验收
+    deployment_acceptance:
+      deployment_success: true
+      environment_compatibility: ""
+      rollback_capability: ""
+      
+  # 后续维护指南
+  maintenance_guide:
+    # 维护说明
+    maintenance_instructions:
+      routine_maintenance: []
+      troubleshooting_guide: []
+      
+    # 扩展指南
+    extension_guide:
+      adding_new_features: ""
+      modifying_existing_features: ""
+      integration_points: []
+
+# AIGC增强型输出验证规则
+output_validation:
+  # AIGC稳定性验证
+  aigc_stability_check:
+    placeholder_validation:
+      - "No ${PLACEHOLDER_REQUIRED} fields remain unfilled"
+      - "All -1 numeric values have been set to valid numbers"
+      - "All null boolean values have been set to true/false"
+      - "Variable substitution success rate >= 98%"
+    
+    content_consistency:
+      - "Total modules count matches sum of codegen + manual modules"
+      - "Database tables count matches table_definitions array length"
+      - "Frontend components count matches actual component deliveries"
+      - "Technology versions are consistent across all sections"
+    
+    error_resilience:
+      - "Missing input gracefully handled with defaults"
+      - "Invalid input automatically corrected or flagged"
+      - "Partial failures do not break entire output"
+      - "Error recovery mechanisms tested and functional"
+  
+  # 传统完整性检查 (AIGC增强)
+  completeness_check:
+    mandatory_requirements:
+      - "All planned modules implemented (100% requirement)"
+      - "Backend AND frontend components delivered (no exceptions)"
+      - "Database scripts complete with DDL+DML+initialization"
+      - "Testing code covers >= 80% main functionality"
+    
+    aigc_specific_requirements:
+      - "CodeGen usage rate >= 70% for eligible modules"
+      - "JeecgBoot compliance rate = 100%"
+      - "Auto-generated code quality score >= 90%"
+      - "Manual code integration seamless with generated code"
+    
+  # 质量检查 (AIGC增强)
+  quality_check:
+    code_quality_standards:
+      - "Code follows JeecgBoot standards (100% compliance)"
+      - "All APIs follow RESTful principles (strict validation)"
+      - "Vue 3 + TypeScript best practices (ESLint score >= 95%)"
+      - "Security requirements implemented (0 high/medium vulnerabilities)"
+    
+    aigc_quality_metrics:
+      - "Generated code readability score >= 85%"
+      - "Code documentation coverage >= 90%"
+      - "Automated code review passed (0 critical issues)"
+      - "Performance benchmarks within acceptable range"
+  
+  # 集成检查 (AIGC增强)
+  integration_check:
+    system_integration:
+      - "JeecgBoot framework integration tested (100% pass rate)"
+      - "UI system integration seamless (visual regression < 5%)"
+      - "Database architecture alignment verified (0 conflicts)"
+      - "API documentation auto-generated and accurate"
+    
+    deployment_readiness:
+      - "Production deployment configuration validated"
+      - "Environment compatibility tested across target systems"
+      - "Rollback procedures tested and documented"
+      - "Performance under load meets SLA requirements"
+
+# AIGC错误处理机制
+error_handling:
+  output_generation_failures:
+    partial_completion:
+      strategy: "deliver_partial_with_status"
+      minimum_threshold: "50%"
+      recovery_actions: ["log_failures", "request_input_clarification", "use_fallback_templates"]
+    
+    validation_failures:
+      strategy: "iterative_correction"
+      max_retry_attempts: 3
+      correction_actions: ["fix_placeholders", "validate_consistency", "verify_compliance"]
+    
+    quality_failures:
+      strategy: "quality_improvement"
+      failure_threshold: "quality_score < 80%"
+      improvement_actions: ["code_review", "refactoring", "additional_testing"]
+
+# AIGC性能监控
+performance_monitoring:
+  generation_metrics:
+    average_generation_time: "${TARGET_GENERATION_TIME}"  # 目标生成时间
+    success_rate: "${TARGET_SUCCESS_RATE}"  # 目标成功率
+    quality_consistency: "${TARGET_QUALITY_CONSISTENCY}"  # 质量一致性
+    
+  resource_utilization:
+    memory_usage: "${MAX_MEMORY_USAGE}"  # 最大内存使用
+    cpu_utilization: "${MAX_CPU_UTILIZATION}"  # 最大CPU利用率
+    
+  output_quality_trends:
+    quality_degradation_threshold: 5  # 质量下降阈值
+    performance_regression_threshold: 20  # 性能退化阈值

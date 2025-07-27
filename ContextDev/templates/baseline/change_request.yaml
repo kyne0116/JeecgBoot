@@ -1,0 +1,267 @@
+# 需求基线变更请求模板 (CMMI Level 3 + IEEE 830 + ISO 9001)
+# ========================================================================
+# 版本: v1.0.0 | 创建日期: 2025-07-27
+# 标准依据: CMMI-DEV Level 3 REQ Practice, IEEE 830-1998, ISO 9001:2015
+# 用途: JeecgBoot项目需求基线变更请求和影响分析管理
+
+baseline_change_request:
+  # 变更请求基本信息
+  change_request_info:
+    change_request_id: ""              # 变更请求ID 格式: CR-{项目代码}-{YYYYMMDD}-{序号}
+    baseline_id: ""                    # 关联基线ID 格式: RBL-{项目代码}-{日期}-{序号}
+    project_code: ""                   # 项目代码
+    request_title: ""                  # 变更请求标题
+    request_priority: ""               # 优先级: critical/high/medium/low
+    request_type: ""                   # 变更类型: addition/modification/deletion/clarification
+    
+    # 时间信息
+    request_date: ""                   # 请求日期 ISO 8601格式
+    required_by_date: ""               # 要求完成日期
+    submitted_by: ""                   # 提交人
+    affected_stakeholders: []          # 受影响的利益相关方
+    
+    # 状态跟踪
+    status: "submitted"                # 状态: submitted/under_review/approved/rejected/implemented/closed
+    workflow_stage: ""                 # 工作流阶段: initial_review/impact_analysis/ccb_review/implementation/validation
+
+  # 变更请求详细描述
+  change_description:
+    current_state:                     # 当前状态描述
+      existing_requirements: []        # 现有需求描述
+      current_implementation: ""       # 当前实现情况
+      current_business_rules: []       # 当前业务规则
+      existing_acceptance_criteria: [] # 现有验收标准
+    
+    requested_change:                  # 请求的变更
+      new_requirements: []             # 新增需求
+      modified_requirements: []        # 修改的需求
+      deleted_requirements: []         # 删除的需求
+      updated_business_rules: []       # 更新的业务规则
+      new_acceptance_criteria: []      # 新的验收标准
+    
+    change_justification:              # 变更理由
+      business_rationale: ""           # 业务理由
+      technical_rationale: ""          # 技术理由
+      regulatory_requirements: ""      # 法规需求
+      customer_feedback: ""            # 客户反馈
+      market_changes: ""               # 市场变化
+      risk_mitigation: ""              # 风险缓解
+    
+    expected_benefits:                 # 预期收益
+      business_benefits: []            # 业务收益
+      technical_benefits: []           # 技术收益
+      cost_savings: ""                 # 成本节约
+      risk_reduction: ""               # 风险降低
+      performance_improvement: ""      # 性能改进
+
+  # 影响分析 (详细的变更影响评估)
+  impact_analysis:
+    requirements_impact:               # 需求影响分析
+      affected_requirements: []        # 受影响的需求列表
+      traceability_changes: []         # 追溯关系变更
+      dependency_impact: []            # 依赖关系影响
+      requirements_conflicts: []       # 需求冲突分析
+    
+    technical_impact:                  # 技术影响分析
+      architecture_changes: []         # 架构变更需求
+      jeecgboot_compatibility: ""      # JeecgBoot兼容性影响
+      codegen_applicability: ""        # CodeGen适用性变化
+      database_schema_changes: []      # 数据库模式变更
+      api_interface_changes: []        # API接口变更
+      existing_code_impact: []         # 现有代码影响
+    
+    project_impact:                    # 项目影响分析
+      schedule_impact:                 # 进度影响
+        additional_time_required: ""   # 额外时间需求
+        critical_path_effect: ""       # 关键路径影响
+        milestone_adjustments: []      # 里程碑调整
+      
+      resource_impact:                 # 资源影响
+        additional_resources_needed: []# 额外资源需求
+        skill_requirements: []         # 技能要求
+        external_dependencies: []      # 外部依赖
+      
+      cost_impact:                     # 成本影响
+        development_cost: ""           # 开发成本
+        testing_cost: ""               # 测试成本
+        deployment_cost: ""            # 部署成本
+        maintenance_cost: ""           # 维护成本
+        total_cost_estimate: ""        # 总成本估算
+    
+    quality_impact:                    # 质量影响分析
+      testing_impact: []               # 测试影响
+      documentation_updates: []        # 文档更新需求
+      training_requirements: []        # 培训需求
+      user_acceptance_impact: ""       # 用户验收影响
+    
+    risk_assessment:                   # 风险评估
+      implementation_risks: []         # 实施风险
+      technical_risks: []              # 技术风险
+      business_risks: []               # 业务风险
+      mitigation_strategies: []        # 缓解策略
+
+  # 替代方案分析
+  alternative_analysis:
+    alternative_solutions: []          # 替代解决方案
+    solution_comparison:               # 方案比较
+      - solution_name: ""              # 方案名称
+        pros: []                       # 优点
+        cons: []                       # 缺点
+        cost: ""                       # 成本
+        timeline: ""                   # 时间线
+        risk_level: ""                 # 风险级别
+        recommendation: ""             # 推荐度
+    
+    recommended_approach: ""           # 推荐方法
+    rationale_for_recommendation: ""   # 推荐理由
+
+  # 实施计划
+  implementation_plan:
+    implementation_strategy: ""        # 实施策略
+    implementation_phases: []          # 实施阶段
+    timeline_details:                  # 时间线详情
+      start_date: ""                   # 开始日期
+      end_date: ""                     # 结束日期
+      key_milestones: []               # 关键里程碑
+    
+    resource_allocation:               # 资源分配
+      assigned_personnel: []           # 分配人员
+      required_skills: []              # 所需技能
+      external_support: []             # 外部支持
+    
+    validation_plan:                   # 验证计划
+      validation_criteria: []          # 验证标准
+      testing_requirements: []         # 测试需求
+      acceptance_procedures: []        # 验收程序
+
+  # 审查和批准
+  review_and_approval:
+    initial_review:                    # 初步审查
+      reviewer: ""                     # 审查人
+      review_date: ""                  # 审查日期
+      review_comments: []              # 审查意见
+      recommendation: ""               # 推荐: approve/reject/needs_more_info
+    
+    impact_analysis_review:            # 影响分析审查
+      technical_reviewer: ""           # 技术审查人
+      business_reviewer: ""            # 业务审查人
+      analysis_completeness: ""        # 分析完整性
+      accuracy_assessment: ""          # 准确性评估
+    
+    ccb_decision:                      # 变更控制委员会决策
+      ccb_meeting_date: ""             # CCB会议日期
+      attendees: []                    # 参会人员
+      decision: ""                     # 决策: approved/rejected/deferred
+      decision_rationale: ""           # 决策理由
+      conditions_or_modifications: []  # 条件或修改要求
+    
+    final_approval:                    # 最终批准
+      approver: ""                     # 批准人
+      approval_date: ""                # 批准日期
+      approval_signature: ""           # 批准签字
+      implementation_authorization: "" # 实施授权
+
+  # 实施跟踪
+  implementation_tracking:
+    implementation_status: ""          # 实施状态: not_started/in_progress/testing/completed
+    progress_updates: []               # 进度更新
+    issues_encountered: []             # 遇到的问题
+    resolution_actions: []             # 解决行动
+    
+    validation_results:                # 验证结果
+      validation_status: ""            # 验证状态
+      test_results: []                 # 测试结果
+      acceptance_status: ""            # 验收状态
+      stakeholder_feedback: []         # 利益相关方反馈
+    
+    closure_information:               # 关闭信息
+      actual_completion_date: ""       # 实际完成日期
+      lessons_learned: []              # 经验教训
+      follow_up_actions: []            # 后续行动
+      baseline_update_status: ""       # 基线更新状态
+
+  # JeecgBoot特定考虑
+  jeecgboot_specific:
+    framework_constraints:             # 框架约束
+      supported_features: []           # 支持的特性
+      technical_limitations: []        # 技术限制
+      workaround_solutions: []         # 变通解决方案
+    
+    codegen_impact:                    # CodeGen影响
+      codegen_template_changes: []     # CodeGen模板变更
+      custom_code_requirements: []     # 自定义代码需求
+      generation_strategy: ""          # 生成策略
+    
+    integration_considerations:        # 集成考虑
+      existing_module_impact: []       # 现有模块影响
+      data_migration_needs: []         # 数据迁移需求
+      backward_compatibility: ""       # 向后兼容性
+
+  # 质量保证
+  quality_assurance:
+    completeness_check:                # 完整性检查
+      required_fields_completed: ""    # 必填字段完成情况
+      supporting_documents: []         # 支撑文档
+      stakeholder_sign_offs: []        # 利益相关方签字
+    
+    consistency_verification:          # 一致性验证
+      baseline_alignment: ""           # 基线对齐情况
+      requirement_consistency: ""      # 需求一致性
+      technical_feasibility: ""        # 技术可行性
+    
+    standards_compliance:              # 标准合规性
+      cmmi_compliance: ""              # CMMI合规性
+      ieee_830_compliance: ""          # IEEE 830合规性
+      iso_9001_compliance: ""          # ISO 9001合规性
+
+# 模板使用指南
+template_usage_guide:
+  purpose: "JeecgBoot项目需求基线变更请求的标准化管理"
+  scope: "从变更请求提交到实施完成的全过程管理"
+  
+  workflow_stages:
+    - stage: "变更请求提交"
+      description: "利益相关方提交正式变更请求"
+      responsible: "需求提出方"
+      deliverable: "完整的变更请求文档"
+    
+    - stage: "初步审查"
+      description: "Requirements Analyst进行初步审查和影响分析"
+      responsible: "Requirements Analyst"
+      deliverable: "影响分析报告"
+    
+    - stage: "CCB评审"
+      description: "变更控制委员会进行正式评审"
+      responsible: "Change Control Board"
+      deliverable: "变更决策文档"
+    
+    - stage: "实施跟踪"
+      description: "变更实施过程跟踪和验证"
+      responsible: "Project Team"
+      deliverable: "实施完成报告"
+
+# 质量检查清单
+quality_checklist:
+  submission_completeness:
+    - "变更请求信息完整填写"
+    - "变更理由充分说明"
+    - "预期收益明确定义"
+    - "利益相关方确认签字"
+  
+  impact_analysis_thoroughness:
+    - "技术影响全面分析"
+    - "项目影响准确评估"
+    - "成本影响详细计算"
+    - "风险评估完整覆盖"
+  
+  approval_process_compliance:
+    - "审查流程严格遵循"
+    - "决策理由充分记录"
+    - "批准授权正式有效"
+    - "实施计划详细可行"
+  
+  jeecgboot_compatibility:
+    - "框架约束充分考虑"
+    - "CodeGen影响准确评估"
+    - "集成方案技术可行"
+    - "兼容性问题妥善解决"

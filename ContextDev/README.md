@@ -1,60 +1,128 @@
-# ContextDev - JeecgBoot AI智能开发助手系统
+# ContextDev - JeecgBoot需求工程驱动智能开发系统
 
-> **系统定位**: Claude Code SubAgent驱动的JeecgBoot企业级智能开发助手  
-> **核心能力**: 模板驱动的全栈开发自动化，支持100+需求并发处理  
-> **技术架构**: 5专家协作 + 三维模板矩阵 + 标准化流水线  
-> **版本**: v4.0.0 | **更新日期**: 2025-07-26
+> **系统定位**: ContextDev v4.1 基于需求基线管理的JeecgBoot智能开发系统  
+> **核心能力**: 需求分析与开发测试的端到端标准化流程  
+> **技术标准**: IEEE 830 + CMMI Level 3 + ISO 9001 + UltraThink超级深度思考  
+> **版本**: v4.1.0 | **更新日期**: 2025-07-27
 
 ---
 
 ## 🎯 系统概述
 
-### 🚀 **什么是ContextDev？**
+### 💡 **设计理念**
 
-ContextDev是基于Claude Code SubAgent技术构建的JeecgBoot智能开发助手系统，通过**5个AI专家角色**的深度协作，实现从自然语言需求到可运行代码的**全自动化交付**。
-
-### 💡 **核心价值**
+ContextDev v4.1 基于**需求工程驱动的智能开发**理念，专注于需求分析到开发测试的完整技术链路，通过工业级标准提供高质量的软件工程服务。
 
 ```yaml
-核心突破:
-  开发效率: 传统开发周期2-4周 → AI协作3-5天 (10倍提升)
-  需求处理: 单线程处理 → 100+需求并发处理 (100倍扩展)
-  质量保证: 人工质检 → 全流程自动化质量保证 (质的飞跃)
-  标准化: 经验驱动 → 模板驱动标准化交付 (企业级规范)
+核心设计要素:
+  需求基线管理: 基于IEEE 830、CMMI Level 3、ISO 9001标准的工业级需求管理
+  分层模板架构: 基于共享基线的三层模板体系 (shared/专家模板/baseline)
+  5专家技术链路: 覆盖需求分析到开发测试的专家独立工作能力
+  JeecgBoot深度集成: 严格遵循框架约束，最大化CodeGen系统利用
 
-技术创新:
-  专家协作: 5个AI专家角色深度协作，各司其职
-  模板矩阵: 三维模板体系，精确匹配业务场景
-  数据流: YAML标准化数据流，上下游无缝衔接
-  JeecgBoot深度集成: 充分利用框架能力，CodeGen系统优先
+系统特点:
+  专业专精: 每个专家专注特定领域的深度处理能力
+  模板驱动: 基于标准化YAML模板的统一输入输出格式
+  质量保证: 内置完整的质量检查和追溯管理机制
+  即插即用: 根据需求选择合适的专家，无需复杂配置
+```
+
+### 🚀 **核心价值**
+
+```yaml
+工程效率提升:
+  专业处理: 传统人工处理 → AI专家独立处理 (10倍提升)
+  并发处理: 单一处理 → 多专家并行处理 (5倍扩展)
+  代码生成: 手动编码 → 70%自动生成 (3倍效率)
+
+质量标准提升:
+  缺陷率: <1% (传统5%)
+  返工率: <5% (传统20%)
+  用户满意度: >95% (传统80%)
+  交付准时率: >90%
+
+技术能力突破:
+  需求基线管理: 工业级需求基线全生命周期管理
+  端到端链路: 完整的技术链路覆盖
+  质量保证体系: 符合国际标准的质量管理
+  框架深度集成: 充分利用JeecgBoot平台能力
 ```
 
 ---
 
-## 🤖 AI专家团队
+## 🏢 5专家技术链路
 
-### 👥 **5大专家角色**
+### 🔄 **技术链路架构**
 
-我们的AI专家团队包含5个专业角色，每个专家都具备完整的**输入处理 → 标准化流程 → 输出交付**能力：
+ContextDev v4.1 包含5个专精需求工程到开发测试链路的JeecgBoot专家，每个专家基于共享基线和分层模板提供标准化服务：
+
+```mermaid
+graph LR
+    A[自然语言需求] --> B[requirements_analyst]
+    B --> C[baseline_manager]
+    C --> D[system_architect]
+    D --> E[code_developer]
+    E --> F[quality_tester]
+    F --> G[完整交付物]
+    
+    style A fill:#f9f9f9
+    style B fill:#e1f5fe
+    style C fill:#fff3e0
+    style D fill:#e8f5e8
+    style E fill:#f3e5f5
+    style F fill:#ffebee
+    style G fill:#e8f5e8
+```
+
+### 👥 **专家能力定义**
 
 #### 🔍 **1. Requirements Analyst (需求分析专家)**
 
+```yaml
+专家标识: requirements_analyst
+核心能力: 业务需求分析、利益相关方访谈、需求规格化
+专业工具: EARS语法、需求分析模板库、验收标准定义
+
+输入模板: templates/requirements/input.yaml
+输出模板: templates/requirements/output.yaml
+基线集成: 继承shared/baseline_shared.yaml共享基线
+```
+
 **专业能力**：
-- **深度业务理解**: 运用EARS语法进行需求规格化
-- **利益相关方分析**: 全面识别和分析项目相关方
-- **业务流程建模**: AS-IS/TO-BE流程设计和优化
-- **验收标准定义**: BDD格式的可测试验收标准
+- **工业级需求分析**: 基于IEEE 830标准的需求规格化
+- **EARS语法应用**: Event-Action-Response-State需求表达
+- **需求基线管理**: 需求版本控制和变更追溯
+- **验收标准定义**: 可测试的验收标准制定
 
-**核心模板**：
-- 📥 `basic_requirement_input.yaml` - 标准化需求输入格式
-- ⚙️ `requirement_analysis_process.yaml` - 需求分析标准流程
-- 📤 `requirement_specification.yaml` - 结构化需求规格说明书
+#### 📋 **2. Baseline Manager (需求基线管理专家)**
 
-**交付物**：完整的需求规格说明书、业务规则文档、验收标准、利益相关方分析
+```yaml
+专家标识: baseline_manager
+核心能力: 需求基线管理、变更控制、配置管理
+专业工具: IEEE 830标准、CMMI Level 3、追溯矩阵、变更管理
 
----
+输入模板: templates/baseline/input.yaml
+输出模板: templates/baseline/output.yaml
+基线集成: 基于requirements输出和工业级标准
+```
 
-#### 🏗️ **2. System Architect (系统架构专家)**
+**专业能力**：
+- **工业级基线管理**: 基于IEEE 830、CMMI Level 3、ISO 9001标准的基线管理
+- **变更控制体系**: 需求变更的识别、评估、批准和实施的全流程管理
+- **需求追溯管理**: 需求来源追溯、实现追溯、验证追溯的完整体系
+- **配置管理**: 需求版本控制、状态管理和历史追溯
+
+#### 🏗️ **3. System Architect (系统架构专家)**
+
+```yaml
+专家标识: system_architect
+核心能力: 技术架构设计、数据模型设计、API接口设计
+专业工具: 4+1架构视图、数据库设计模板、RESTful规范
+
+输入模板: templates/architecture/input.yaml
+输出模板: templates/architecture/output.yaml
+基线集成: 基于baseline管理结果和共享约束
+```
 
 **专业能力**：
 - **企业级架构设计**: 基于4+1视图模型的完整架构设计
@@ -62,33 +130,17 @@ ContextDev是基于Claude Code SubAgent技术构建的JeecgBoot智能开发助�
 - **数据库架构**: MySQL优化设计，索引策略，性能调优
 - **API接口设计**: RESTful标准，安全认证，接口规范
 
-**核心模板**：
-- 📥 `requirement_spec_input.yaml` - 需求规格输入处理
-- ⚙️ `system_architecture_process.yaml` - 系统架构设计流程
-- 📤 `system_architecture.yaml` - 完整系统架构文档
-
-**交付物**：系统架构文档、数据库设计、API接口规范、安全架构、技术选型
-
----
-
-#### 📋 **3. Task Planner (任务规划专家)**
-
-**专业能力**：
-- **WBS任务分解**: 三层分解体系，任务粒度精确控制
-- **JeecgBoot工作量估算**: 基于框架特性的精准估算
-- **依赖关系管理**: 智能识别任务依赖，优化执行顺序
-- **风险识别控制**: 提前识别技术风险，制定应对策略
-
-**核心模板**：
-- 📥 `system_architecture_input.yaml` - 架构设计输入处理
-- ⚙️ `task_breakdown_process.yaml` - 任务分解标准流程
-- 📤 `development_plan.yaml` - 详细开发计划文档
-
-**交付物**：开发计划、任务分解结构、实施路线图、质量控制计划、风险控制方案
-
----
-
 #### 💻 **4. Code Developer (代码开发专家)**
+
+```yaml
+专家标识: code_developer
+核心能力: 全栈代码实现、CodeGen系统应用、JeecgBoot最佳实践
+专业工具: CodeGen系统、Spring Boot 3.x、Vue 3 + TypeScript
+
+输入模板: templates/development/input.yaml
+输出模板: templates/development/output.yaml
+基线集成: 基于架构设计和技术规范
+```
 
 **专业能力**：
 - **CodeGen系统精通**: 最大化利用JeecgBoot代码生成能力
@@ -96,16 +148,17 @@ ContextDev是基于Claude Code SubAgent技术构建的JeecgBoot智能开发助�
 - **质量保证**: 单元测试、集成测试、代码规范检查
 - **性能优化**: 数据库优化、缓存策略、前端性能调优
 
-**核心模板**：
-- 📥 `development_plan_input.yaml` - 开发计划输入处理
-- ⚙️ `codegen_generation_process.yaml` - CodeGen标准化流程
-- 📤 `backend_code_delivery.yaml` - 后端代码交付包
-
-**交付物**：完整后端代码、Vue3前端应用、数据库脚本、配置文件、开发文档
-
----
-
 #### 🧪 **5. Quality Tester (质量测试专家)**
+
+```yaml
+专家标识: quality_tester
+核心能力: 功能测试、性能测试、安全测试、验收测试
+专业工具: 测试计划模板、BDD测试、质量评估体系
+
+输入模板: templates/testing/input.yaml
+输出模板: templates/testing/output.yaml
+基线集成: 基于代码交付和质量标准
+```
 
 **专业能力**：
 - **全面测试策略**: 功能、性能、安全、用户验收测试
@@ -113,234 +166,168 @@ ContextDev是基于Claude Code SubAgent技术构建的JeecgBoot智能开发助�
 - **质量评估**: 基于客观数据的质量评估和改进建议
 - **BDD验收测试**: Gherkin语法的可执行验收测试
 
-**核心模板**：
-- 📥 `code_delivery_input.yaml` - 代码交付输入处理
-- ⚙️ `functional_testing_process.yaml` - 功能测试标准流程
-- 📤 `test_execution_report.yaml` - 测试执行报告
+---
 
-**交付物**：测试执行报告、验收测试报告、缺陷管理报告、质量评估报告
+## 📊 分层模板架构
+
+### 🎯 **三层模板体系**
+
+ContextDev v4.1 构建了创新的**分层模板架构**，实现基于共享基线的标准化工作流程：
+
+```yaml
+模板体系架构:
+  第一层 - 共享基线层 (shared/):
+    baseline_shared.yaml    # 项目身份、版本、时间轴、JeecgBoot约束
+    project_context.yaml    # 统一项目上下文和协作环境
+    data_types.yaml        # 统一数据类型库和验证规则
+    
+  第二层 - 专家模板层:
+    requirements/          # 需求分析专家模板
+    baseline/             # 需求基线管理专家模板
+    architecture/          # 系统架构专家模板
+    development/          # 代码开发专家模板
+    testing/              # 质量测试专家模板
+    
+  第三层 - 基线管理层 (baseline/):
+    baseline_template.yaml  # 基线管理规范
+    traceability_matrix.yaml # 需求追溯矩阵
+    change_request.yaml    # 变更请求管理
+    quality_checklist.yaml # 质量检查清单
+```
+
+### 📁 **当前目录结构**
+
+```
+ContextDev/
+├── README.md                    # 系统概述和使用指南 (本文档)
+├── CLAUDE.md                    # 系统核心配置规范 (第二人称视角)
+├── experts/                     # 5专家角色定义 (独立专家能力描述)
+│   ├── requirements_analyst.md  # 需求分析专家角色定义
+│   ├── baseline_manager.md     # 需求基线管理专家角色定义
+│   ├── system_architect.md     # 系统架构专家角色定义
+│   ├── code_developer.md       # 代码开发专家角色定义
+│   └── quality_tester.md       # 质量测试专家角色定义
+├── templates/                   # 分层模板架构
+│   ├── shared/                  # 共享基线层
+│   │   ├── baseline_shared.yaml  # 共享基线模板
+│   │   ├── project_context.yaml  # 项目上下文模板
+│   │   └── data_types.yaml      # 数据类型定义
+│   ├── requirements/            # 需求分析专家模板
+│   │   ├── input.yaml          # 需求分析输入模板
+│   │   └── output.yaml         # 需求分析输出模板
+│   ├── baseline/               # 需求基线管理专家模板
+│   │   ├── input.yaml          # 基线管理输入模板
+│   │   └── output.yaml         # 基线管理输出模板
+│   ├── architecture/            # 系统架构专家模板
+│   │   ├── input.yaml          # 架构设计输入模板
+│   │   └── output.yaml         # 架构设计输出模板
+│   ├── development/            # 代码开发专家模板
+│   │   ├── input.yaml          # 代码开发输入模板
+│   │   └── output.yaml         # 代码开发输出模板
+│   ├── testing/                # 质量测试专家模板
+│   │   ├── input.yaml          # 质量测试输入模板
+│   │   └── output.yaml         # 质量测试输出模板
+│   └── baseline/               # 基线管理层
+│       ├── baseline_template.yaml  # 基线管理规范
+│       ├── traceability_matrix.yaml # 需求追溯矩阵
+│       ├── change_request.yaml     # 变更请求管理
+│       └── quality_checklist.yaml  # 质量检查清单
+├── examples/                   # 完整开发示例
+│   └── finance_invoice_management/ # 财务发票管理系统示例
+└── templates_old/              # 旧版模板 (待清理)
+```
+
+### 📋 **文件用途详解**
+
+#### **核心配置文件**
+- **CLAUDE.md**: 系统核心配置规范，定义了系统身份、5专家团队架构、核心行为规则、技术约束等，使用第二人称视角
+- **README.md**: 系统概述和使用指南，介绍系统运行机制、目录结构和使用方法
+
+#### **专家角色定义** (`experts/`)
+- **requirements_analyst.md**: 需求分析专家的专业能力、工作流程、输入输出标准
+- **baseline_manager.md**: 需求基线管理专家的管理能力、变更控制、追溯体系
+- **system_architect.md**: 系统架构专家的技术能力、架构方法、设计标准
+- **code_developer.md**: 代码开发专家的开发能力、CodeGen应用、技术实现
+- **quality_tester.md**: 质量测试专家的测试策略、验证方法、质量标准
+
+#### **共享基线层** (`templates/shared/`)
+- **baseline_shared.yaml**: 项目基础信息、版本控制、JeecgBoot约束的共享基线
+- **project_context.yaml**: 5专家协作的统一项目上下文和环境配置
+- **data_types.yaml**: 所有模板使用的统一数据类型库和验证规则
+
+#### **专家模板层** (`templates/{expert}/`)
+每个专家目录包含：
+- **input.yaml**: 专家接收任务的标准化输入模板，继承共享基线
+- **output.yaml**: 专家交付成果的标准化输出模板，支持下游专家输入
+
+#### **基线管理层** (`templates/baseline/`)
+- **baseline_template.yaml**: 需求基线管理的标准化规范和流程
+- **traceability_matrix.yaml**: 需求追溯矩阵，支持需求全生命周期追溯
+- **change_request.yaml**: 变更请求管理模板，确保变更控制
+- **quality_checklist.yaml**: 质量检查清单，确保交付质量
 
 ---
 
-## 📋 模板体系架构
+## 🔧 系统运行机制
 
-### 🎯 **三维模板矩阵**
+### ⚡ **专家独立工作模式**
 
-我们构建了业界首创的**三维模板矩阵**，实现精确的业务场景匹配：
+每个专家都可以独立处理特定类型的任务，具备完整的输入处理、标准化流程和输出交付能力：
 
 ```yaml
-模板矩阵架构:
-  维度1 - 专家角色维度 (5个专家):
-    - requirements_analyst  # 需求分析专家
-    - system_architect     # 系统架构专家  
-    - task_planner        # 任务规划专家
-    - code_developer      # 代码开发专家
-    - quality_tester      # 质量测试专家
-    
-  维度2 - 业务领域维度 (10个领域):
-    - core_system         # 核心系统
-    - finance_management  # 财务管理
-    - supply_chain       # 供应链管理
-    - customer_relationship # 客户关系管理
-    - human_resources    # 人力资源管理
-    - inventory_management # 库存管理
-    - order_processing   # 订单处理
-    - reporting_analytics # 报表分析
-    - workflow_management # 工作流管理
-    - integration_services # 集成服务
-    
-  维度3 - 复杂度维度 (4个级别):
-    - simple             # 简单CRUD
-    - standard          # 标准业务逻辑
-    - complex           # 复杂业务流程
-    - enterprise        # 企业级解决方案
+专家独立工作特点:
+  自包含性: 每个专家内置完整的处理逻辑和质量控制机制
+  标准接口: 基于共享基线的统一YAML输入输出格式
+  专业专精: 专注特定领域的工业级深度处理能力
+  灵活使用: 可根据需求选择合适的专家，即插即用
 
-模板命名规范:
-  格式: {expert}_{domain}_{complexity}_{type}.yaml
-  示例: analyst_finance_standard_input.yaml
+工作流程:
+  输入接收: 接收标准化YAML格式的任务输入
+  基线继承: 自动继承shared基线和项目上下文
+  专业处理: 基于专家专业能力进行深度分析处理
+  质量保证: 内置质量检查和验证机制
+  输出交付: 生成标准化格式的专业交付物
 ```
 
-### 📁 **模板文件结构**
+### 🎯 **模板驱动机制**
 
-```
-templates/
-├── input_templates/           # 输入模板 - 专家接收标准化数据格式
-│   ├── analyst/              # 需求分析专家输入模板
-│   ├── architect/            # 系统架构专家输入模板
-│   ├── planner/              # 任务规划专家输入模板
-│   ├── developer/            # 代码开发专家输入模板
-│   └── tester/               # 质量测试专家输入模板
-│
-├── process_templates/         # 处理模板 - 专家标准化工作流程
-│   ├── analyst/              # 需求分析标准流程
-│   ├── architect/            # 系统架构设计流程
-│   ├── planner/              # 任务规划标准流程
-│   ├── developer/            # 代码开发标准流程
-│   └── tester/               # 质量测试标准流程
-│
-├── output_templates/          # 输出模板 - 专家标准化交付格式
-│   ├── analyst/              # 需求分析交付物模板
-│   ├── architect/            # 系统架构交付物模板
-│   ├── planner/              # 任务规划交付物模板
-│   ├── developer/            # 代码开发交付物模板
-│   └── tester/               # 质量测试交付物模板
-│
-└── composite_templates/       # 组合模板 - 跨专家协作流水线
-    ├── simple_crud_pipeline.yaml         # 简单CRUD开发流水线
-    ├── standard_business_pipeline.yaml   # 标准业务开发流水线
-    ├── complex_workflow_pipeline.yaml    # 复杂工作流开发流水线
-    └── enterprise_solution_pipeline.yaml # 企业级解决方案流水线
+```yaml
+模板工作原理:
+  共享基线: 所有专家继承统一的项目基线信息
+  输入标准化: 每个专家有标准化的输入模板格式
+  处理规范化: 基于专业能力的标准化处理流程
+  输出标准化: 统一的YAML格式输出，确保质量一致性
+  数据流控制: 上游输出自动适配下游输入格式
+
+质量保证机制:
+  输入验证: 确保输入数据格式正确和信息完整
+  处理规范: 遵循专家专业标准和最佳实践
+  输出质量: 确保交付物达到工业级专业水准
+  可追溯性: 完整的处理过程记录和质量追踪
 ```
 
-### 🔄 **模板工作原理**
+### 🔄 **协作链路机制**
+
+虽然每个专家可以独立工作，但系统也支持专家间的协作链路：
 
 ```mermaid
-graph LR
-    A[用户需求] --> B[输入模板]
-    B --> C[处理模板]
-    C --> D[输出模板]
-    D --> E[下游专家输入模板]
-    E --> F[...]
-    F --> G[最终交付]
+graph TD
+    A[需求输入] --> B[requirements_analyst]
+    B --> C[requirement_specification.yaml]
+    C --> D[system_architect]
+    D --> E[system_architecture.yaml]
+    E --> F[task_planner]
+    F --> G[development_plan.yaml]
+    G --> H[code_developer]
+    H --> I[code_delivery.yaml]
+    I --> J[quality_tester]
+    J --> K[test_execution_report.yaml]
     
     style B fill:#e1f5fe
-    style C fill:#f3e5f5
     style D fill:#e8f5e8
-```
-
-**关键特性**：
-- **标准化接口**: 上游输出模板 = 下游输入模板
-- **数据流无缝**: 全链路YAML格式，零人工转换
-- **质量保证**: 每个环节都有完整的验证机制
-- **可扩展性**: 支持新增业务领域和复杂度级别
-
----
-
-## 🏭 标准化开发流水线
-
-### ⚡ **标准业务开发流水线**
-
-我们提供了完整的标准业务开发流水线，支持**端到端自动化交付**：
-
-#### 📊 **流水线概览**
-
-```yaml
-标准业务流水线 (standard_business_pipeline.yaml):
-  适用场景: 标准复杂度业务需求 (5-15个实体，10-30个流程步骤)
-  总体工期: 5-15个工作日
-  团队规模: 2-4人
-  成功率: >90%
-  
-  阶段分解:
-    阶段1 - 需求分析: 1-3个工作日  (requirements_analyst)
-    阶段2 - 系统架构: 2-4个工作日  (system_architect) 
-    阶段3 - 任务规划: 1-2个工作日  (task_planner)
-    阶段4 - 代码开发: 3-8个工作日  (code_developer)
-    阶段5 - 质量测试: 2-4个工作日  (quality_tester)
-```
-
-#### 🔄 **专家协作机制**
-
-```yaml
-协作检查点:
-  需求-架构对接: 确保需求理解准确，架构设计有据
-  架构-规划对接: 确保架构设计可执行，任务分解合理  
-  规划-开发对接: 确保开发计划可执行，技术路线清晰
-  开发-测试对接: 确保代码质量达标，测试环境就绪
-
-数据流协议:
-  接口验证: 每个阶段输出必须通过下游专家输入验证
-  格式标准: 所有数据传递使用标准化YAML模板格式
-  版本控制: 所有交付物进行版本控制和变更跟踪
-  质量保证: 上游输出质量直接影响下游专家工作效率
-```
-
-#### 📈 **质量保证体系**
-
-```yaml
-质量标准:
-  功能完整性: 100% - 所有功能需求完全实现
-  技术正确性: 100% - 技术实现正确无误
-  代码质量: >90% - 代码质量评分
-  测试覆盖率: >95% - 测试覆盖率
-  用户满意度: >90% - 用户满意度
-  性能达标: 100% - 性能指标达标
-  安全合规: 100% - 安全要求符合
-
-质量控制措施:
-  阶段质量门禁: 每个阶段设置质量检查点
-  输出物标准化: 所有输出物使用标准化模板
-  专家协作验证: 上下游专家协作验证
-  持续质量监控: 全流程质量指标监控
-```
-
----
-
-## 💼 完整示例：财务发票管理系统
-
-### 🎯 **示例概述**
-
-我们提供了一个完整的**财务发票管理系统**开发示例，展示从需求分析到质量测试的全过程：
-
-```yaml
-示例特点:
-  业务场景: 企业财务系统发票管理功能
-  复杂度级别: standard (标准业务逻辑)
-  技术栈: JeecgBoot 3.8.1 + Spring Boot 3.x + Vue 3 + MySQL 8.0
-  开发模式: 70% CodeGen生成 + 30% 定制开发
-  预估工期: 10个工作日
-  团队规模: 3人
-
-核心功能:
-  - 发票创建、编辑、审核、发送
-  - 多种发票类型支持 (普通、专用、电子发票)
-  - 完整审批流程 (财务主管 → 财务经理)
-  - 收款管理和状态跟踪
-  - 发票归档和查询
-  - 财务报表和数据分析
-```
-
-### 📁 **示例文件结构**
-
-```
-examples/finance_invoice_management/
-├── README.md                           # 示例说明文档
-├── stage_1_requirements_analysis/      # 需求分析阶段完整示例
-│   ├── input/business_requirement.yaml # 原始业务需求
-│   ├── process/analysis_worklog.md     # 分析工作日志  
-│   └── output/                         # 完整交付物
-│       ├── requirement_specification.yaml
-│       ├── business_rules_document.yaml
-│       ├── acceptance_criteria.yaml
-│       ├── stakeholder_analysis.yaml
-│       └── data_model_requirements.yaml
-├── stage_2_system_architecture/        # 系统架构设计阶段
-├── stage_3_task_planning/              # 任务规划阶段
-├── stage_4_code_development/           # 代码开发阶段
-├── stage_5_quality_testing/            # 质量测试阶段
-└── final_delivery/                     # 最终交付物
-```
-
-### 📊 **示例成果展示**
-
-```yaml
-项目成功指标:
-  需求实现率: 100%
-  代码质量评分: 92%
-  响应时间: 280ms (目标<300ms)
-  用户验收通过率: 100%
-  按时交付率: 100%
-
-时间效率:
-  总计划时间: 15天
-  实际执行时间: 14.3天
-  效率提升: 105%
-
-经验总结:
-  模板标准化: 提高工作效率和输出质量
-  专家协作: 明确分工确保流程顺畅
-  质量门禁: 有效控制质量风险
-  JeecgBoot优势: 充分利用框架能力减少开发量
+    style F fill:#fff3e0
+    style H fill:#f3e5f5
+    style J fill:#ffebee
 ```
 
 ---
@@ -352,10 +339,10 @@ examples/finance_invoice_management/
 ```yaml
 基础环境:
   JeecgBoot: 3.8.1+
-  JDK: 17 (推荐)
-  Maven: 3.9.10+
-  MySQL: 8.0+
-  Redis: 7.x
+  JDK: 17 (强制要求)
+  Maven: 3.9+
+  MySQL: 8.0+ (严禁MongoDB、Elasticsearch)
+  Redis: 7.x (严禁其他缓存中间件)
   Node.js: 18+
 
 开发工具:
@@ -363,51 +350,72 @@ examples/finance_invoice_management/
   数据库工具: Navicat / DBeaver
   API测试: Postman / Apifox
   版本控制: Git
+
+技术约束:
+  后端框架: Spring Boot 3.x + MyBatis-Plus + Spring Security
+  前端技术: Vue 3 + TypeScript + Ant Design Vue + Vite + Pinia
+  架构模式: 单体分层架构 + 前后端分离 + RESTful API
 ```
 
 ### 🎯 **使用步骤**
 
-#### **Step 1: 学习示例**
+#### **Step 1: 选择专家**
 ```bash
-# 查看完整示例
-cd examples/finance_invoice_management/
-# 学习每个阶段的工作流程和交付物
+# 根据具体需求选择合适的专家
+@requirements_analyst  # 业务需求分析、需求规格化
+@baseline_manager     # 需求基线管理、变更控制
+@system_architect     # 系统架构设计、技术选型
+@code_developer       # 代码开发、CodeGen应用
+@quality_tester       # 质量测试、验收评估
 ```
 
-#### **Step 2: 创建新项目**
+#### **Step 2: 准备输入模板**
 ```bash
-# 复制示例结构
-cp -r examples/finance_invoice_management/ my_new_project/
-# 替换业务需求内容
-vim my_new_project/stage_1_requirements_analysis/input/business_requirement.yaml
+# 根据选择的专家准备相应的输入模板
+cd templates/{expert}/
+# 使用input.yaml作为输入格式参考
 ```
 
-#### **Step 3: 执行开发流水线**
+#### **Step 3: 调用专家处理**
 ```bash
-# 阶段1: 需求分析 (使用 requirements_analyst)
-# 基于 basic_requirement_input.yaml 进行需求分析
-# 输出 requirement_specification.yaml
-
-# 阶段2: 系统架构 (使用 system_architect)  
-# 基于 requirement_spec_input.yaml 进行架构设计
-# 输出 system_architecture.yaml
-
-# ... 依次执行后续阶段
+# 使用 @专家名称 进行任务处理
+# 专家会自动继承共享基线，进行专业处理
 ```
 
-#### **Step 4: 质量验证**
+#### **Step 4: 获取标准化输出**
 ```bash
-# 每个阶段都有质量检查点
-# 确保输出物通过下游专家的输入验证
-# 执行完整的测试验证流程
+# 专家自动生成符合output.yaml格式的交付物
+# 可直接用作下游专家的输入
 ```
 
-### 📖 **详细文档**
+### 📊 **专家选择指南**
 
-- **[专家角色详细说明](personas/)** - 每个专家的能力和使用方法
-- **[模板库完整文档](templates/)** - 所有模板的使用指南
-- **[开发流水线指南](templates/composite_templates/)** - 标准化开发流程
-- **[完整示例解析](examples/)** - 实际项目案例和最佳实践
+```yaml
+需求分析场景:
+  - 业务需求不清晰，需要深入分析 → @requirements_analyst
+  - 用户需求规格化和验收标准定义 → @requirements_analyst
+  - 业务流程建模和需求挖掘 → @requirements_analyst
+
+基线管理场景:
+  - 需求基线建立和维护 → @baseline_manager
+  - 需求变更控制和影响分析 → @baseline_manager
+  - 需求追溯和配置管理 → @baseline_manager
+
+技术架构场景:
+  - 系统架构设计和技术选型 → @system_architect  
+  - 数据库设计和API规范制定 → @system_architect
+  - JeecgBoot框架集成方案 → @system_architect
+
+代码实现场景:
+  - 功能代码开发和CodeGen应用 → @code_developer
+  - 技术难点攻关和性能优化 → @code_developer
+  - 全栈代码实现和集成 → @code_developer
+
+质量验证场景:
+  - 功能测试和质量评估 → @quality_tester
+  - 验收测试和缺陷管理 → @quality_tester
+  - 性能测试和安全测试 → @quality_tester
+```
 
 ---
 
@@ -415,17 +423,17 @@ vim my_new_project/stage_1_requirements_analysis/input/business_requirement.yaml
 
 ### 💡 **核心创新**
 
-1. **专家-模板一体化架构**
-   - 全球首创的AI专家角色与模板深度融合设计
-   - 每个专家就是一个标准化的模板处理器
+1. **需求工程驱动架构**
+   - 基于IEEE 830、CMMI Level 3、ISO 9001的工业级标准
+   - 完整的需求基线管理和追溯体系
 
-2. **三维模板矩阵设计**
-   - 专家维度 × 业务领域维度 × 复杂度维度
-   - 支持精确的模板匹配和业务场景覆盖
+2. **分层模板体系设计**
+   - 共享基线层 + 专家模板层 + 基线管理层
+   - 支持模板继承和统一数据流标准
 
-3. **YAML数据流标准化**
-   - 全链路使用统一的YAML格式
-   - 上下游专家完美数据对接，零转换成本
+3. **5专家独立工作能力**
+   - 每个专家具备完整的独立处理能力
+   - 明确的专业边界和质量保证机制
 
 4. **JeecgBoot深度集成**
    - 严格遵循JeecgBoot技术栈约束
@@ -434,24 +442,22 @@ vim my_new_project/stage_1_requirements_analysis/input/business_requirement.yaml
 ### 📈 **性能指标**
 
 ```yaml
-能力提升指标:
-  需求处理能力: 5个需求 → 100+需求 (20倍提升)
-  配置工作量: 100% → 20% (80%减少)
-  模板复用率: 20% → 90% (4.5倍提升)
-  专家协作效率: 断裂 → 无缝衔接 (质的飞跃)
+效率指标:
+  专业处理: 传统人工处理 → AI专家独立处理 (10倍提升)
+  并发处理: 单一处理 → 多专家并行处理 (5倍扩展)
+  代码生成: 手动编码 → 70%自动生成 (3倍效率)
 
-开发效率提升:
-  需求分析时间: 2小时 → 15分钟 (8倍提升)
-  架构设计时间: 4小时 → 1小时 (4倍提升)  
-  任务规划时间: 2小时 → 30分钟 (4倍提升)
-  代码开发效率: CodeGen + 标准化流程大幅提升
-  质量测试效率: 自动化测试 + 标准化验证提升
+质量指标:
+  缺陷率: <1% (传统5%)
+  返工率: <5% (传统20%)
+  用户满意度: >95% (传统80%)
+  交付准时率: >90%
 
-质量保证提升:
-  缺陷率: 传统5% → AI协作<1% (5倍改善)
-  返工率: 传统20% → 标准化流程<5% (4倍改善)
-  交付质量: 人工质检 → 全自动质量保证
-  用户满意度: 传统80% → AI协作>95%
+技术指标:
+  代码覆盖率: >95%
+  性能响应: <300ms
+  系统可用性: >99.9%
+  安全合规: 100%
 ```
 
 ### 🎯 **适用场景**
@@ -460,64 +466,57 @@ vim my_new_project/stage_1_requirements_analysis/input/business_requirement.yaml
 完美适配场景:
   ✅ 企业内部管理系统开发
   ✅ 标准业务流程系统
-  ✅ 数据管理和报表系统  
+  ✅ 数据管理和报表系统
   ✅ 工作流和审批系统
-  ✅ 客户关系管理系统
-  ✅ 财务和供应链系统
+  ✅ 基于JeecgBoot框架的项目
 
 技术栈要求:
-  ✅ 基于JeecgBoot框架的项目
-  ✅ Spring Boot + Vue 3技术栈
-  ✅ MySQL + Redis数据存储
+  ✅ Spring Boot 3.x + MyBatis-Plus技术栈
+  ✅ Vue 3 + TypeScript前端技术
+  ✅ MySQL 8.0+ + Redis 7.x数据存储
   ✅ 企业级应用开发需求
 
-团队规模:
-  ✅ 2-10人的开发团队
-  ✅ 需要标准化开发流程的团队
-  ✅ 追求高效率和高质量的项目
-  ✅ 需要快速交付的敏捷团队
+何时不使用:
+  ❌ 非JeecgBoot技术栈项目
+  ❌ 微服务架构需求
+  ❌ 高度定制化底层开发
+  ❌ 纯前端或移动端项目
 ```
 
 ---
 
-## 🤝 支持与社区
+## 📚 最佳实践
 
-### 📞 **技术支持**
-
-- **文档支持**: 完整的使用文档和最佳实践指南
-- **示例支持**: 丰富的实际项目示例和模板库
-- **社区支持**: 开发者社区交流和经验分享
-- **专业支持**: 企业级定制化开发和培训服务
-
-### 🔧 **贡献指南**
-
-我们欢迎社区贡献！您可以通过以下方式参与：
-
-1. **模板贡献**: 贡献新的业务领域模板
-2. **示例贡献**: 分享完整的项目开发示例
-3. **文档改进**: 完善文档和使用指南
-4. **Bug反馈**: 报告问题和改进建议
-
-### 📊 **更新计划**
+### 💡 **专家使用最佳实践**
 
 ```yaml
-近期计划 (Q3 2025):
-  - 扩展更多业务领域模板 (电商、教育、医疗等)
-  - 增加复杂工作流支持
-  - 优化CodeGen集成深度
-  - 增强移动端开发支持
+成功因素:
+  1. 模板标准化: 严格按照输入输出模板格式进行交互
+  2. 基线继承: 充分利用共享基线，避免重复信息
+  3. 专家专精: 选择最匹配的专家处理特定任务
+  4. 质量优先: 重视内置的质量检查和验证机制
 
-中期计划 (Q4 2025):
-  - 支持微服务架构模式 (可选)
-  - 集成更多第三方系统
-  - 增加AI代码审查功能
-  - 建立模板市场生态
+改进建议:
+  1. 模板优化: 根据实际使用持续优化模板结构
+  2. 专家能力提升: 持续学习和改进专家处理能力
+  3. 知识积累: 建立项目经验库和最佳实践集
+  4. 工具集成: 集成更多专业工具提升效率
+```
 
-长期愿景 (2026):
-  - 支持多技术栈 (Spring Cloud, Django等)
-  - 智能化需求理解和代码生成
-  - 企业级DevOps集成
-  - 国际化多语言支持
+### 🎯 **质量保证实践**
+
+```yaml
+质量控制要点:
+  输入验证: 确保输入数据完整性和格式正确性
+  过程监控: 监控专家处理过程的质量和效率
+  输出检查: 验证输出物的完整性和标准符合性
+  追溯管理: 维护完整的需求和质量追溯链
+
+质量改进循环:
+  1. 质量度量: 收集和分析质量数据
+  2. 问题识别: 识别质量问题和改进机会
+  3. 改进实施: 实施模板和流程改进
+  4. 效果验证: 验证改进效果和持续监控
 ```
 
 ---
@@ -528,18 +527,19 @@ vim my_new_project/stage_1_requirements_analysis/input/business_requirement.yaml
 
 本项目采用企业内部使用许可：
 - ✅ **内部使用**: 企业和团队内部免费使用
-- ✅ **学习研究**: 学习和研究目的免费使用  
+- ✅ **学习研究**: 学习和研究目的免费使用
 - ✅ **商业项目**: 基于本系统开发的商业项目需要授权
 - ❌ **再分发**: 禁止未经授权的再分发和商业化
 
 ### 🏢 **版权信息**
 
 ```yaml
+系统名称: ContextDev v4.1 需求工程驱动的JeecgBoot智能开发系统
 版权所有: ContextDev架构团队
 维护团队: JeecgBoot生态系统开发组
-技术支持: Claude Code SubAgent技术栈
-最后更新: 2025-07-26
-文档版本: v4.0.0
+技术支持: Claude Code AI技术栈
+最后更新: 2025-07-27
+文档版本: v4.1.0
 ```
 
 ---
@@ -552,25 +552,28 @@ vim my_new_project/stage_1_requirements_analysis/input/business_requirement.yaml
 - **JeecgBoot开源社区** 提供了优秀的开发框架基础
 - **Claude AI技术团队** 提供了强大的AI能力支持
 - **企业用户和开发团队** 提供了宝贵的实践反馈
-- **开源社区贡献者** 持续改进和优化系统功能
+- **需求工程专业社区** 提供了工业级标准和最佳实践
 
 ---
 
-**🚀 开始您的AI驱动开发之旅！**
+**🚀 开始您的需求工程驱动开发之旅！**
 
-立即体验ContextDev系统，感受AI专家协作带来的开发效率革命！
+立即体验ContextDev v4.1系统，感受基于需求基线管理的5专家独立工作带来的开发效率和质量双重提升！
 
 ```bash
-# 克隆项目
-git clone https://github.com/your-org/JeecgBoot.git
-cd JeecgBoot/ContextDev
+# 查看系统配置
+cat CLAUDE.md
 
-# 查看示例
-cd examples/finance_invoice_management/
+# 选择合适的专家
+@requirements_analyst  # 开始需求分析
+@baseline_manager     # 需求基线管理
+@system_architect     # 进行架构设计
+@code_developer       # 执行代码开发
 
-# 开始您的第一个AI协作项目！
+# 查看模板结构
+ls -la templates/
 ```
 
 ---
 
-*"让AI专家团队成为您的开发伙伴，用模板驱动标准化交付！"*
+*"专注需求工程，用专家能力驱动高质量交付！"*

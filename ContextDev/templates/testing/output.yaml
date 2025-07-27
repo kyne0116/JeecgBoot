@@ -1,0 +1,394 @@
+# ContextDev v4.1 - Quality Tester Expert Output Template
+# 质量测试专家输出模板 - 完整的测试执行报告与质量评估
+
+quality_tester_output:
+  # 基线信息继承
+  baseline_info:
+    project_reference: ""           # 引用baseline_shared.yaml
+    testing_version: ""             # 测试版本号
+    test_completion_date: ""        # 测试完成日期
+    tester_signature: "quality_tester_v4.1"
+    
+  # 测试执行总览
+  test_execution_overview:
+    # 测试统计摘要
+    test_statistics:
+      total_test_cases: 0
+      executed_test_cases: 0
+      passed_test_cases: 0
+      failed_test_cases: 0
+      blocked_test_cases: 0
+      skipped_test_cases: 0
+      test_execution_rate: ""       # 执行率 %
+      test_pass_rate: ""            # 通过率 %
+      
+    # 测试覆盖率统计
+    coverage_statistics:
+      requirement_coverage: ""      # 需求覆盖率
+      code_coverage: ""            # 代码覆盖率
+      branch_coverage: ""          # 分支覆盖率
+      function_coverage: ""        # 功能覆盖率
+      
+    # 缺陷统计摘要
+    defect_statistics:
+      total_defects: 0
+      critical_defects: 0
+      high_defects: 0
+      medium_defects: 0
+      low_defects: 0
+      resolved_defects: 0
+      open_defects: 0
+      defect_density: ""           # 缺陷密度
+      
+  # 功能测试报告
+  functional_testing_report:
+    # 单元测试结果
+    unit_testing_results:
+      # 后端单元测试
+      backend_unit_tests:
+        - test_class: ""
+          test_methods: []
+          total_tests: 0
+          passed_tests: 0
+          failed_tests: 0
+          coverage_percentage: ""
+          execution_time: ""
+          test_report_details:
+            - test_method: ""
+              test_status: ""       # PASS/FAIL/SKIP
+              execution_time_ms: 0
+              failure_reason: ""
+              
+      # 前端单元测试
+      frontend_unit_tests:
+        - test_file: ""
+          tested_component: ""
+          test_cases: []
+          total_tests: 0
+          passed_tests: 0
+          failed_tests: 0
+          coverage_percentage: ""
+          
+    # 集成测试结果
+    integration_testing_results:
+      # API集成测试
+      api_integration_tests:
+        - api_module: ""
+          test_scenarios:
+            - scenario_name: ""
+              test_steps: []
+              expected_result: ""
+              actual_result: ""
+              test_status: ""
+              execution_details: ""
+              
+      # 数据库集成测试
+      database_integration_tests:
+        - database_operation: ""
+          test_scenarios: []
+          data_integrity_check: ""
+          performance_metrics: {}
+          
+    # 系统测试结果
+    system_testing_results:
+      # 端到端测试
+      end_to_end_tests:
+        - business_scenario: ""
+          test_flow:
+            - step_number: 0
+              step_description: ""
+              expected_behavior: ""
+              actual_behavior: ""
+              step_status: ""
+              
+      # 用户验收测试
+      user_acceptance_tests:
+        - feature_name: ""
+          acceptance_criteria: []
+          test_execution_results:
+            - criteria: ""
+              verification_method: ""
+              test_result: ""
+              stakeholder_approval: ""
+              
+  # 非功能测试报告
+  non_functional_testing_report:
+    # 性能测试结果
+    performance_testing_results:
+      # 响应时间测试
+      response_time_tests:
+        - api_endpoint: ""
+          test_conditions:
+            concurrent_users: 0
+            test_duration: ""
+            data_load: ""
+          performance_metrics:
+            average_response_time: ""
+            95th_percentile_response_time: ""
+            maximum_response_time: ""
+            minimum_response_time: ""
+          performance_target: ""
+          test_result: ""           # PASS/FAIL
+          
+      # 负载测试结果
+      load_testing_results:
+        - test_scenario: ""
+          load_profile:
+            max_concurrent_users: 0
+            ramp_up_duration: ""
+            test_duration: ""
+          system_behavior:
+            cpu_utilization: ""
+            memory_utilization: ""
+            database_performance: ""
+            error_rate: ""
+          scalability_assessment: ""
+          
+    # 安全测试结果
+    security_testing_results:
+      # 身份认证测试
+      authentication_tests:
+        - test_case: ""
+          authentication_method: ""
+          test_procedure: ""
+          security_vulnerability: ""
+          test_result: ""
+          remediation_required: ""
+          
+      # 授权访问测试
+      authorization_tests:
+        - resource_access: ""
+          user_role: ""
+          access_level: ""
+          expected_behavior: ""
+          actual_behavior: ""
+          authorization_result: ""
+          
+      # 数据保护测试
+      data_protection_tests:
+        - data_category: ""          # sensitive/personal/confidential
+          protection_mechanism: ""
+          test_method: ""
+          protection_effectiveness: ""
+          compliance_status: ""
+          
+    # 可用性测试结果
+    usability_testing_results:
+      # 用户界面测试
+      ui_testing_results:
+        - page_component: ""
+          usability_aspects:
+            - aspect: "导航易用性"
+              test_result: ""
+              user_feedback: ""
+            - aspect: "界面直观性"
+              test_result: ""
+              improvement_suggestions: []
+              
+      # 可访问性测试
+      accessibility_testing_results:
+        - accessibility_standard: "WCAG 2.1"
+          compliance_level: ""      # A/AA/AAA
+          accessibility_issues: []
+          remediation_priority: ""
+          
+  # JeecgBoot框架特定测试报告
+  jeecgboot_framework_testing_report:
+    # 框架集成测试
+    framework_integration_results:
+      # 权限系统测试
+      permission_system_tests:
+        - permission_feature: ""
+          test_scenarios: []
+          integration_status: ""
+          framework_compliance: ""
+          
+      # CodeGen系统测试
+      codegen_system_tests:
+        - generated_module: ""
+          generation_accuracy: ""
+          customization_compatibility: ""
+          code_quality_assessment: ""
+          
+    # 框架约束验证
+    framework_constraints_validation:
+      # 技术栈合规性
+      technology_compliance:
+        - technology_component: ""
+          compliance_status: ""
+          deviation_details: ""
+          
+      # 编码标准合规性
+      coding_standards_compliance:
+        backend_compliance:
+          java_standards: ""
+          spring_boot_patterns: ""
+          mybatis_usage: ""
+          
+        frontend_compliance:
+          vue3_patterns: ""
+          typescript_usage: ""
+          component_standards: ""
+          
+  # 缺陷报告
+  defect_report:
+    # 缺陷详细列表
+    defect_details:
+      - defect_id: ""
+        defect_title: ""
+        defect_description: ""
+        severity: ""              # Critical/High/Medium/Low
+        priority: ""              # P1/P2/P3/P4
+        defect_category: ""       # Functional/Performance/Security/UI
+        affected_component: ""
+        reproduction_steps: []
+        expected_behavior: ""
+        actual_behavior: ""
+        environment_info: ""
+        defect_status: ""         # Open/In Progress/Resolved/Closed
+        assigned_to: ""
+        resolution_details: ""
+        verification_status: ""
+        
+    # 缺陷趋势分析
+    defect_trend_analysis:
+      defect_discovery_rate: ""
+      defect_resolution_rate: ""
+      defect_escape_rate: ""
+      quality_trend: ""           # Improving/Stable/Declining
+      
+    # 根本原因分析
+    root_cause_analysis:
+      - defect_category: ""
+        common_causes: []
+        prevention_recommendations: []
+        process_improvement_suggestions: []
+        
+  # 测试环境报告
+  test_environment_report:
+    # 环境配置验证
+    environment_validation:
+      database_configuration:
+        configuration_accuracy: ""
+        performance_baseline: ""
+        data_integrity: ""
+        
+      application_configuration:
+        service_availability: ""
+        integration_connectivity: ""
+        resource_allocation: ""
+        
+    # 测试数据质量
+    test_data_quality:
+      data_completeness: ""
+      data_accuracy: ""
+      data_consistency: ""
+      data_privacy_compliance: ""
+      
+  # 质量度量与分析
+  quality_metrics_analysis:
+    # 产品质量度量
+    product_quality_metrics:
+      functional_correctness: ""   # 功能正确性指标
+      performance_efficiency: ""  # 性能效率指标
+      compatibility: ""           # 兼容性指标
+      usability: ""              # 可用性指标
+      reliability: ""            # 可靠性指标
+      security: ""               # 安全性指标
+      maintainability: ""        # 可维护性指标
+      
+    # 过程质量度量
+    process_quality_metrics:
+      test_effectiveness: ""      # 测试有效性
+      defect_detection_efficiency: "" # 缺陷发现效率
+      test_automation_coverage: "" # 测试自动化覆盖率
+      
+    # 质量趋势分析
+    quality_trend_analysis:
+      quality_improvement_areas: []
+      quality_risks: []
+      recommendations: []
+      
+  # 验收决策
+  acceptance_decision:
+    # 功能验收状态
+    functional_acceptance_status:
+      overall_functional_quality: "" # Acceptable/Conditional/Unacceptable
+      critical_functionality_status: ""
+      business_requirement_fulfillment: ""
+      
+    # 非功能验收状态
+    non_functional_acceptance_status:
+      performance_acceptance: ""
+      security_acceptance: ""
+      usability_acceptance: ""
+      
+    # 总体验收建议
+    overall_acceptance_recommendation:
+      recommendation: ""          # Accept/Conditional Accept/Reject
+      conditions: []              # 如果是条件验收，列出条件
+      risk_assessment: ""
+      go_live_readiness: ""
+      
+  # 后续行动建议
+  follow_up_actions:
+    # 缺陷修复建议
+    defect_remediation:
+      immediate_actions: []       # 立即需要处理的问题
+      planned_actions: []         # 计划处理的问题
+      future_enhancements: []     # 未来改进建议
+      
+    # 质量改进建议
+    quality_improvement_recommendations:
+      process_improvements: []
+      tool_enhancements: []
+      training_needs: []
+      
+    # 回归测试计划
+    regression_testing_plan:
+      regression_scope: []
+      regression_priority: ""
+      regression_schedule: ""
+      
+  # 测试总结
+  testing_summary:
+    # 测试目标达成情况
+    test_objectives_achievement:
+      planned_vs_actual: ""
+      coverage_achievement: ""
+      quality_targets_met: ""
+      
+    # 主要发现
+    key_findings:
+      quality_strengths: []
+      quality_concerns: []
+      notable_achievements: []
+      
+    # 经验教训
+    lessons_learned:
+      effective_practices: []
+      improvement_opportunities: []
+      recommendations_for_future: []
+
+# 输出验证规则
+output_validation:
+  completeness_validation:
+    - "All test execution results are documented"
+    - "Defect report includes all identified issues"
+    - "Quality metrics are measured and analyzed"
+    - "Acceptance decision is clearly stated with justification"
+    
+  accuracy_validation:
+    - "Test statistics are mathematically consistent"
+    - "Coverage measurements are accurate and verifiable"
+    - "Defect severity and priority assignments are appropriate"
+    
+  framework_compliance:
+    - "JeecgBoot framework testing is thorough and complete"
+    - "Framework constraints validation is comprehensive"
+    - "Security testing covers framework-specific requirements"
+    
+  decision_support:
+    - "Acceptance recommendation is supported by objective evidence"
+    - "Risk assessment is comprehensive and actionable"
+    - "Follow-up actions are specific and prioritized"

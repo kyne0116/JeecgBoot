@@ -1,0 +1,150 @@
+# 共享基础信息基线 (ContextDev核心基础设施)
+# ========================================================================
+# 版本: v1.0.0 | 创建日期: 2025-07-27
+# 用途: 所有模板共享的基础信息结构，确保一致性和可追溯性
+# 引用方式: 所有专家模板通过引用此基线，避免重复定义
+
+shared_baseline:
+  # 项目核心标识信息
+  project_identity:
+    project_id: ""                     # 项目唯一标识 格式: JG-{业务域}-{序号}
+    project_name: ""                   # 项目名称
+    project_code: ""                   # 项目代码 (简短标识)
+    system_name: ""                    # 系统名称
+    
+  # 业务分类信息
+  business_classification:
+    business_domain: ""                # 业务领域: core/finance/hr/scm/crm/inventory/order/reporting/workflow/integration
+    module_name: ""                    # 模块名称
+    functional_area: ""                # 功能领域
+    complexity_level: ""               # 复杂度: simple/standard/complex/enterprise
+    
+  # 版本控制信息
+  version_control:
+    current_version: "1.0.0"           # 当前版本 (语义化版本)
+    baseline_version: ""               # 基线版本
+    change_version: ""                 # 变更版本
+    
+  # 时间轴信息 (ISO 8601格式)
+  timeline:
+    created_date: ""                   # 创建时间
+    last_modified: ""                  # 最后修改时间
+    baseline_date: ""                  # 基线确立时间
+    planned_completion: ""             # 计划完成时间
+    
+  # 责任人信息
+  responsibility:
+    project_owner: ""                  # 项目负责人
+    business_analyst: ""               # 业务分析师
+    technical_lead: ""                 # 技术负责人
+    quality_assurance: ""              # 质量保证人员
+    
+  # 状态管理
+  status_management:
+    project_status: ""                 # 项目状态: planning/analysis/design/development/testing/deployment
+    baseline_status: ""                # 基线状态: draft/review/approved/released/archived
+    change_status: ""                  # 变更状态: stable/changing/locked
+    
+  # JeecgBoot技术约束
+  jeecgboot_constraints:
+    framework_version: "3.8.1+"        # JeecgBoot框架版本要求
+    jdk_version: "17"                  # JDK版本
+    mysql_version: "8.0+"              # MySQL版本要求
+    redis_version: "7.x"               # Redis版本要求
+    architecture_pattern: "monolithic" # 架构模式：单体架构
+    
+  # 质量标准引用
+  quality_standards:
+    ieee_830_compliance: true          # IEEE 830标准合规
+    cmmi_level: 3                      # CMMI成熟度级别
+    iso_9001_compliance: true          # ISO 9001质量管理
+    internal_quality_score: ""         # 内部质量评分目标
+    
+  # 追溯关系基础
+  traceability_foundation:
+    requirement_baseline_id: ""        # 需求基线ID
+    traceability_matrix_id: ""         # 追溯矩阵ID
+    change_request_ids: []             # 相关变更请求ID列表
+    parent_dependencies: []            # 父依赖项
+    child_dependencies: []             # 子依赖项
+
+# 数据类型定义 (供所有模板引用)
+data_types:
+  # 枚举类型定义
+  enums:
+    business_domains:
+      - core                           # 核心系统
+      - finance                        # 财务管理
+      - hr                            # 人力资源
+      - scm                           # 供应链管理
+      - crm                           # 客户关系管理
+      - inventory                     # 库存管理
+      - order                         # 订单处理
+      - reporting                     # 报表分析
+      - workflow                      # 工作流管理
+      - integration                   # 集成服务
+      
+    complexity_levels:
+      - simple                        # 简单CRUD
+      - standard                      # 标准业务逻辑
+      - complex                       # 复杂业务流程
+      - enterprise                    # 企业级解决方案
+      
+    priorities:
+      - critical                      # 关键
+      - high                         # 高
+      - medium                       # 中
+      - low                          # 低
+      
+    requirement_types:
+      - functional                    # 功能需求
+      - non_functional               # 非功能需求
+      - interface                    # 接口需求
+      - data                         # 数据需求
+      
+    status_values:
+      - draft                        # 草稿
+      - review                       # 审查中
+      - approved                     # 已批准
+      - released                     # 已发布
+      - archived                     # 已归档
+      
+  # 标准字段格式
+  field_formats:
+    id_format: "^[A-Z]{2,3}-[A-Z]{2,5}-[0-9]{3}$"  # ID格式正则
+    version_format: "^[0-9]+\\.[0-9]+\\.[0-9]+$"    # 版本格式正则
+    date_format: "ISO 8601"                         # 日期格式标准
+    
+# 模板引用规范
+template_reference_guidelines:
+  purpose: "确保所有专家模板使用统一的基础信息结构"
+  usage_pattern: "通过$ref或include方式引用shared_baseline"
+  
+  mandatory_fields:
+    - project_identity.project_id
+    - project_identity.project_name
+    - project_identity.system_name
+    - business_classification.business_domain
+    - business_classification.module_name
+    - version_control.current_version
+    - timeline.created_date
+    
+  consistency_requirements:
+    - "所有模板必须引用相同的project_identity"
+    - "业务分类信息必须在所有阶段保持一致"
+    - "版本控制信息必须同步更新"
+    - "时间轴信息必须连贯追踪"
+    
+# 质量保证
+quality_assurance:
+  validation_rules:
+    - "所有引用此基线的模板必须填写mandatory_fields"
+    - "枚举字段值必须从预定义列表中选择"
+    - "ID和版本格式必须符合正则表达式要求"
+    - "时间戳必须使用ISO 8601格式"
+    
+  consistency_checks:
+    - "跨模板的project_identity一致性检查"
+    - "版本信息的递增和同步性检查"
+    - "状态转换的合理性检查"
+    - "追溯关系的完整性检查"

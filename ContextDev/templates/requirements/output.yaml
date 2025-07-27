@@ -1,0 +1,216 @@
+# 需求分析专家 - 输出模板
+# ========================================================================
+# 版本: v1.0.0 | 创建日期: 2025-07-27
+# 专家: requirements_analyst
+# 用途: 标准化需求分析结果输出，作为system_architect的输入基础
+
+requirements_analyst_output:
+  # 引用共享基础信息基线
+  baseline_reference:
+    shared_baseline: "../shared/baseline_shared.yaml#/shared_baseline"
+    project_context: "../shared/project_context.yaml#/project_context"
+    data_types: "../shared/data_types.yaml#/data_types"
+    
+  # 输出文档信息 (基于共享基线)
+  document_info:
+    document_title: ""                 # type: string - 需求规格说明书标题
+    document_type: "requirement_specification" # 固定值
+    document_version: ""               # type: version - 文档版本
+    baseline_id: ""                    # type: baseline_id - 需求基线ID
+    created_by: "requirements_analyst" # 固定值
+    created_date: ""                   # type: datetime - 创建时间
+    approved_by: ""                    # type: string - 审批人
+    approval_date: ""                  # type: datetime - 审批时间
+    document_status: ""                # type: status enum - 文档状态
+    
+  # 项目基础信息 (继承输入信息)
+  project_info:
+    project_id: "$inherited_from_input"
+    project_name: "$inherited_from_input"
+    system_name: "$inherited_from_input"
+    module_name: "$inherited_from_input"
+    business_domain: "$inherited_from_input"
+    complexity_level: "$inherited_from_input"
+    priority: "$inherited_from_input"
+    
+  # 需求分析结果
+  requirements_analysis:
+    # 业务需求概述
+    business_overview:
+      business_objectives: []          # type: array[text] - 业务目标
+      business_scope: ""               # type: text - 业务范围
+      business_context: ""             # type: text - 业务上下文
+      success_criteria: []             # type: array[text] - 成功标准
+      
+    # 利益相关方分析结果
+    stakeholder_analysis:
+      stakeholder_matrix: []           # type: array[stakeholder] - 完整利益相关方矩阵
+      power_influence_analysis: {}     # type: object - 权力影响力分析
+      communication_plan: []           # type: array[text] - 沟通计划
+      decision_making_structure: ""    # type: text - 决策结构
+      
+    # 功能需求详细说明
+    functional_requirements:
+      requirement_categories:          # 需求分类
+        core_functions: []             # type: array[requirement_item] - 核心功能
+        support_functions: []          # type: array[requirement_item] - 支撑功能
+        integration_functions: []      # type: array[requirement_item] - 集成功能
+        reporting_functions: []        # type: array[requirement_item] - 报表功能
+        
+      detailed_requirements:           # 详细需求列表
+        - requirement_id: ""           # type: requirement_id - 需求唯一标识
+          requirement_name: ""         # type: string - 需求名称
+          requirement_type: "functional" # type: requirement_type
+          priority: ""                 # type: priority_level
+          complexity: ""               # type: complexity_level
+          
+          # EARS语法需求描述
+          ears_description:
+            event: ""                  # type: text - 触发事件
+            action: ""                 # type: text - 系统行为
+            response: ""               # type: text - 系统响应
+            state: ""                  # type: text - 系统状态
+            
+          # 详细描述
+          detailed_description: ""     # type: text - 详细需求描述
+          acceptance_criteria: []      # type: array[text] - 验收标准
+          business_rules: []           # type: array[text] - 业务规则
+          assumptions: []              # type: array[text] - 假设条件
+          dependencies: []             # type: array[requirement_id] - 依赖需求
+          
+          # JeecgBoot技术映射
+          technical_mapping:           # type: technical_mapping
+            entity_design: ""          # 实体设计建议
+            codegen_applicability: ""  # CodeGen适用性
+            framework_components: []   # 推荐框架组件
+            technical_feasibility: ""  # 技术可行性评估
+            
+    # 非功能需求
+    non_functional_requirements:
+      performance_requirements:
+        response_time: ""              # type: text - 响应时间要求
+        throughput: ""                 # type: text - 吞吐量要求
+        concurrent_users: ""           # type: text - 并发用户数
+        scalability: ""                # type: text - 可扩展性要求
+        
+      security_requirements:
+        authentication: ""             # type: text - 认证要求
+        authorization: ""              # type: text - 授权要求
+        data_protection: ""            # type: text - 数据保护
+        audit_trail: ""                # type: text - 审计跟踪
+        
+      usability_requirements:
+        user_interface: ""             # type: text - 用户界面要求
+        accessibility: ""              # type: text - 可访问性
+        user_experience: ""            # type: text - 用户体验
+        training_requirements: ""      # type: text - 培训需求
+        
+      reliability_requirements:
+        availability: ""               # type: text - 可用性要求
+        fault_tolerance: ""            # type: text - 容错要求
+        recovery_time: ""              # type: text - 恢复时间
+        backup_strategy: ""            # type: text - 备份策略
+        
+    # 接口需求
+    interface_requirements:
+      external_interfaces: []          # type: array[object] - 外部接口
+      internal_interfaces: []          # type: array[object] - 内部接口
+      data_interfaces: []              # type: array[object] - 数据接口
+      user_interfaces: []              # type: array[object] - 用户接口
+      
+    # 数据需求
+    data_requirements:
+      data_entities: []                # type: array[object] - 数据实体
+      data_relationships: []           # type: array[object] - 数据关系
+      data_quality: {}                 # type: object - 数据质量要求
+      data_volume: {}                  # type: object - 数据量预估
+      
+  # 需求追溯信息
+  traceability_info:
+    business_objectives_mapping: {}    # 业务目标映射
+    stakeholder_requirements_mapping: {} # 利益相关方需求映射
+    requirement_dependencies: {}       # 需求依赖关系
+    impact_analysis: {}                # 影响分析
+    
+  # JeecgBoot特定分析
+  jeecgboot_analysis:
+    framework_compatibility:
+      compatible_features: []          # type: array[text] - 兼容特性
+      incompatible_features: []        # type: array[text] - 不兼容特性
+      workarounds: []                  # type: array[text] - 变通方案
+      
+    codegen_analysis:
+      codegen_coverage: ""             # type: codegen_applicability - 覆盖率
+      auto_generated_components: []    # type: array[text] - 自动生成组件
+      custom_development_needs: []     # type: array[text] - 自定义开发需求
+      generation_complexity: ""        # type: complexity_level - 生成复杂度
+      
+    integration_analysis:
+      existing_system_integration: [] # type: array[text] - 现有系统集成
+      third_party_integration: []     # type: array[text] - 第三方集成
+      api_requirements: []             # type: array[text] - API需求
+      
+  # 质量保证信息
+  quality_assurance:
+    completeness_check:
+      requirements_coverage: ""        # type: string - 需求覆盖率
+      stakeholder_validation: ""       # type: string - 利益相关方验证状态
+      business_rule_completeness: ""   # type: string - 业务规则完整性
+      
+    consistency_verification:
+      internal_consistency: ""         # type: string - 内部一致性
+      external_consistency: ""         # type: string - 外部一致性
+      terminology_consistency: ""      # type: string - 术语一致性
+      
+    validation_results:
+      validation_method: ""            # type: string - 验证方法
+      validation_participants: []     # type: array[stakeholder] - 验证参与者
+      validation_status: ""            # type: status - 验证状态
+      validation_feedback: []          # type: array[text] - 验证反馈
+      
+  # 下游专家交接信息
+  handoff_information:
+    next_phase: "system_architecture" # 下一阶段
+    key_decisions_made: []             # type: array[text] - 关键决策
+    open_questions: []                 # type: array[text] - 未解决问题
+    recommendations: []                # type: array[text] - 建议
+    critical_success_factors: []       # type: array[text] - 关键成功因素
+    
+# 输出质量标准
+output_quality_standards:
+  completeness_requirements:
+    mandatory_sections: [
+      "business_overview",
+      "functional_requirements", 
+      "stakeholder_analysis",
+      "jeecgboot_analysis"
+    ]
+    minimum_requirements: 5            # 至少5个功能需求
+    
+  quality_metrics:
+    requirements_clarity: "≥90%"       # 需求清晰度
+    stakeholder_coverage: "≥95%"       # 利益相关方覆盖率
+    traceability_completeness: "≥95%"  # 追溯完整性
+    technical_feasibility: "≥90%"      # 技术可行性
+    
+  validation_criteria:
+    ears_compliance: "所有功能需求使用EARS语法"
+    acceptance_criteria_testability: "100%可测试的验收标准"
+    business_rule_consistency: "业务规则逻辑一致性"
+    jeecgboot_compatibility: "框架兼容性确认"
+    
+# 使用指南
+usage_guidelines:
+  purpose: "为system_architect专家提供完整、准确的需求输入"
+  
+  output_preparation:
+    - "确保所有必填字段完整填写"
+    - "功能需求必须使用EARS语法描述"
+    - "技术映射要准确反映JeecgBoot能力"
+    - "质量保证信息要完整记录"
+    
+  downstream_compatibility:
+    - "输出格式与system_architect输入模板完全兼容"
+    - "technical_mapping直接用于架构设计输入"
+    - "non_functional_requirements用于架构约束"
+    - "traceability_info支持端到端追溯"
