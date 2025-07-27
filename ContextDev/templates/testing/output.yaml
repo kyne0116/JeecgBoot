@@ -124,7 +124,7 @@ quality_tester_output:
             data_load: ""
           performance_metrics:
             average_response_time: ""
-            95th_percentile_response_time: ""
+            percentile_95_response_time: ""
             maximum_response_time: ""
             minimum_response_time: ""
           performance_target: ""
