@@ -1,15 +1,12 @@
-# 需求分析专家 - 输出模板
+# 需求分析专家 - 输出模板 (扁平化引用优化)
 # ========================================================================
-# 版本: v1.0.0 | 创建日期: 2025-07-27
+# 版本: v1.1.0 | 创建日期: 2025-07-27 | 优化: 2025-07-27
 # 专家: requirements_analyst
 # 用途: 标准化需求分析结果输出，作为system_architect的输入基础
 
 requirements_analyst_output:
-  # 引用共享基础信息基线
-  baseline_reference:
-    shared_baseline: "../shared/baseline_shared.yaml#/shared_baseline"
-    project_context: "../shared/project_context.yaml#/project_context"
-    data_types: "../shared/data_types.yaml#/data_types"
+  # 统一配置引用 (扁平化架构)
+  config_reference: "../shared/config.yaml"
     
   # 输出文档信息 (基于共享基线)
   document_info:

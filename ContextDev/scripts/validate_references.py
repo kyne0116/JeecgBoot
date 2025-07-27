@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-ContextDev 模板引用路径验证工具
-用途: 验证YAML模板中的引用路径格式和有效性
+ContextDev 模板引用路径验证工具 (扁平化引用优化版)
+用途: 验证YAML模板中简化后的引用路径格式和有效性
+版本: v1.1.0 | 更新: 2025-07-27 | 支持扁平化引用架构
 """
 
 import os
@@ -13,7 +14,9 @@ from pathlib import Path
 class ReferenceValidator:
     def __init__(self, templates_dir="templates"):
         self.templates_dir = Path(templates_dir)
-        self.reference_pattern = re.compile(r'"\.\./([^/]+)/([^"]+\.yaml)(#/[^"]+)?"')
+        # 更新引用模式以支持简化的config_reference
+        self.config_pattern = re.compile(r'config_reference:\s*"([^"]+)"')
+        self.legacy_pattern = re.compile(r'"\.\./([^/]+)/([^"]+\.yaml)(#/[^"]+)?"')
         self.errors = []
         self.warnings = []
         self.valid_refs = []
@@ -32,34 +35,35 @@ class ReferenceValidator:
         return len(self.errors) == 0
 
     def validate_file(self, file_path):
-        """验证单个文件的引用"""
+        """验证单个文件的引用（支持扁平化架构）"""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            # 查找所有引用
-            matches = self.reference_pattern.findall(content)
-            
-            for match in matches:
-                layer, filename, anchor = match
-                ref_path = f"../{layer}/{filename}"
-                full_path = file_path.parent / ".." / layer / filename
+            # 检查新的config_reference模式
+            config_matches = self.config_pattern.findall(content)
+            for config_ref in config_matches:
+                full_path = file_path.parent / config_ref
                 
-                # 检查引用格式
-                if not self.validate_reference_format(layer, filename, anchor):
-                    self.errors.append(f"❌ {file_path}: 引用格式不符合标准: {ref_path}")
-                    continue
+                # 检查config文件格式
+                if not config_ref.endswith('config.yaml'):
+                    self.warnings.append(f"⚠️  {file_path}: 建议使用config.yaml: {config_ref}")
                 
                 # 检查文件存在性
                 if not full_path.exists():
-                    self.errors.append(f"❌ {file_path}: 引用文件不存在: {ref_path}")
+                    self.errors.append(f"❌ {file_path}: 配置文件不存在: {config_ref}")
                     continue
                 
-                # 检查锚点有效性
-                if anchor and not self.validate_anchor(full_path, anchor):
-                    self.warnings.append(f"⚠️  {file_path}: 锚点可能无效: {ref_path}{anchor}")
-                
-                self.valid_refs.append(f"✅ {file_path}: {ref_path}{anchor or ''}")
+                self.valid_refs.append(f"✅ {file_path}: config_reference -> {config_ref}")
+            
+            # 检查遗留的复杂引用模式（排除已经简化的config_reference）
+            legacy_matches = self.legacy_pattern.findall(content)
+            for match in legacy_matches:
+                layer, filename, anchor = match
+                ref_path = f"../{layer}/{filename}"
+                # 排除config.yaml，因为这是正确的简化引用
+                if not (layer == "shared" and filename == "config.yaml"):
+                    self.warnings.append(f"⚠️  {file_path}: 发现遗留复杂引用，建议简化: {ref_path}{anchor or ''}")
                 
         except Exception as e:
             self.errors.append(f"❌ {file_path}: 文件读取错误: {str(e)}")

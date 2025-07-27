@@ -1,24 +1,21 @@
-# 需求分析专家 - 输入模板
+# 需求分析专家 - 输入模板 (扁平化引用优化)
 # ========================================================================
-# 版本: v1.0.0 | 创建日期: 2025-07-27
+# 版本: v1.1.0 | 创建日期: 2025-07-27 | 优化: 2025-07-27
 # 专家: requirements_analyst
-# 用途: 接收用户原始需求，基于共享基线进行标准化输入处理
+# 用途: 接收用户原始需求，基于统一配置进行标准化输入处理
 
 requirements_analyst_input:
-  # 引用共享基础信息基线
-  baseline_reference: 
-    shared_baseline: "../shared/baseline_shared.yaml#/shared_baseline"
-    project_context: "../shared/project_context.yaml#/project_context"
-    data_types: "../shared/data_types.yaml#/data_types"
+  # 统一配置引用 (扁平化架构)
+  config_reference: "../shared/config.yaml"
   
-  # 基础项目信息 (引用共享基线)
+  # 基础项目信息 (从config中获取)
   project_info:
-    project_id: "$ref:shared_baseline.project_identity.project_id"
-    project_name: "$ref:shared_baseline.project_identity.project_name"
-    system_name: "$ref:shared_baseline.project_identity.system_name"
-    module_name: "$ref:shared_baseline.business_classification.module_name"
-    business_domain: "$ref:shared_baseline.business_classification.business_domain"
-    complexity_level: "$ref:shared_baseline.business_classification.complexity_level"
+    project_id: ""                   # 从config.project_identity.project_id获取
+    project_name: ""                 # 从config.project_identity.project_name获取
+    system_name: ""                  # 从config.project_identity.system_name获取
+    module_name: ""                  # 从config.business_classification.module_name获取
+    business_domain: ""              # 从config.business_classification.business_domain获取
+    complexity_level: ""             # 从config.business_classification.complexity_level获取
     
   # 需求输入信息
   requirement_input:

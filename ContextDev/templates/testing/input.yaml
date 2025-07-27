@@ -3,9 +3,7 @@
 
 quality_tester_input:
   # 基线引用 - 继承共享基线和项目上下文
-  baseline_reference: 
-    shared_baseline: "../shared/baseline_shared.yaml#/shared_baseline"
-    project_context: "../shared/project_context.yaml#/project_context"
+  config_reference: "../shared/config.yaml" 
     
   # 输入来源 - 接收代码开发专家的输出
   input_source:
