@@ -323,6 +323,7 @@ AI Agent 在生成临时 JSON 配置文件时必须：
 - 系统字段 orderNum 必须从 0 开始连续递增，任何跳号都会导致 API 失败
 - 完全复制 Code_Gen_Example.json 的系统字段配置，严禁修改
 - 表名必须符合 us_module_submodule_entity 4 段式格式
+- **🚨 metadata 节点必须完整包含**：generation_info 和 derived_formats 两个子节点，缺失将导致前端代码迁移失败
 
 📚 **完整规范**: 参见 `Code_Gen_JSON_Standards.md`
 
@@ -497,7 +498,7 @@ AI Agent 在生成临时 JSON 配置文件时必须：
 1. **head.business_entity**：必须字段，值为 BUSINESS_ENTITY（PascalCase 格式）
 2. **head.tableName**：格式为 `us_{MODULE_NAME}_{SUBMODULE_NAME}_{lowercase(BUSINESS_ENTITY)}`
 3. **head.tableTxt**：业务功能的中文描述
-4. **metadata 节点**：包含生成信息和派生格式，便于调试和追踪
+4. **metadata 节点**：🚨 **必须字段** - 包含完整的生成信息和派生格式，用于前端代码迁移和调试追踪
 
 #### 🚨 **命名格式强制规范**
 

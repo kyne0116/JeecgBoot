@@ -2864,8 +2864,8 @@ def verify_compilation_success():
         return False
 
 def execute_post_generation_workflow():
-    """执行代码生成后的必要工作流程 - 完整版本"""
-    
+    """执行代码生成后的必要工作流程 - 顺序执行，任意环节失败即停止"""
+
     # 工作流执行结果跟踪
     workflow_results = {
         '1️⃣ 数据字典替换': False,
@@ -2877,7 +2877,7 @@ def execute_post_generation_workflow():
         '7️⃣ 管理员admin授权菜单': False,
         '8️⃣ 还原配置文件': False
     }
-    
+
     # 1. 数据字典替换逻辑（保留现有逻辑）
     print(f"\n{'='*50}")
     print("1️⃣ 执行数据字典替换...")
@@ -2886,8 +2886,9 @@ def execute_post_generation_workflow():
         print("✅ 数据字典替换完成")
         workflow_results['1️⃣ 数据字典替换'] = True
     except Exception as e:
-        print(f"⚠️ 数据字典替换失败: {e}")
-    
+        print(f"❌ 数据字典替换失败: {e}")
+        return _output_workflow_results(workflow_results)
+
     # 2. 代码生成接口调用（目前假设已经完成，因为这个函数是在代码生成成功后调用的）
     print(f"\n{'='*50}")
     print("2️⃣ 代码生成接口调用...")
@@ -2896,7 +2897,8 @@ def execute_post_generation_workflow():
         print("✅ 代码生成接口调用完成")
         workflow_results['2️⃣ 代码生成接口调用'] = True
     except Exception as e:
-        print(f"⚠️ 代码生成接口调用失败: {e}")
+        print(f"❌ 代码生成接口调用失败: {e}")
+        return _output_workflow_results(workflow_results)
 
     # 3. Java文件package替换
     print(f"\n{'='*50}")
@@ -2906,9 +2908,11 @@ def execute_post_generation_workflow():
             print("✅ Java文件package替换完成")
             workflow_results['3️⃣ Java文件package替换'] = True
         else:
-            print("⚠️ Java文件package替换失败")
+            print("❌ Java文件package替换失败")
+            return _output_workflow_results(workflow_results)
     except Exception as e:
-        print(f"⚠️ Java文件package替换异常: {e}")
+        print(f"❌ Java文件package替换异常: {e}")
+        return _output_workflow_results(workflow_results)
 
     # 4. Java路径处理
     print(f"\n{'='*50}")
@@ -2918,11 +2922,13 @@ def execute_post_generation_workflow():
             print("✅ Java路径处理完成")
             workflow_results['4️⃣ Java路径处理'] = True
         else:
-            print("⚠️ Java路径处理失败")
+            print("❌ Java路径处理失败")
+            return _output_workflow_results(workflow_results)
     except Exception as e:
-        print(f"⚠️ Java路径处理异常: {e}")
+        print(f"❌ Java路径处理异常: {e}")
+        return _output_workflow_results(workflow_results)
 
-    # 5. 前端代码迁移（保留现有逻辑） 
+    # 5. 前端代码迁移（保留现有逻辑）
     print(f"\n{'='*50}")
     print("5️⃣ 执行前端代码迁移...")
     try:
@@ -2930,9 +2936,11 @@ def execute_post_generation_workflow():
             print("✅ 前端代码迁移完成")
             workflow_results['5️⃣ 前端代码迁移'] = True
         else:
-            print("⚠️ 前端代码迁移失败或未找到前端代码")
+            print("❌ 前端代码迁移失败")
+            return _output_workflow_results(workflow_results)
     except Exception as e:
-        print(f"⚠️ 前端代码迁移异常: {e}")
+        print(f"❌ 前端代码迁移异常: {e}")
+        return _output_workflow_results(workflow_results)
 
     # 6. 数据库SQL执行（保留现有逻辑）
     print(f"\n{'='*50}")
@@ -2942,9 +2950,11 @@ def execute_post_generation_workflow():
             print("✅ 创建菜单SQL数据库执行完成")
             workflow_results['6️⃣ 创建菜单SQL数据库执行'] = True
         else:
-            print("⚠️ 创建菜单SQL数据库执行失败")
+            print("❌ 创建菜单SQL数据库执行失败")
+            return _output_workflow_results(workflow_results)
     except Exception as e:
-        print(f"⚠️ 数据库SQL执行异常: {e}")
+        print(f"❌ 数据库SQL执行异常: {e}")
+        return _output_workflow_results(workflow_results)
 
     # 7. 管理员admin授权菜单
     print(f"\n{'='*50}")
@@ -2954,13 +2964,20 @@ def execute_post_generation_workflow():
             print("✅ 管理员admin授权菜单完成")
             workflow_results['7️⃣ 管理员admin授权菜单'] = True
         else:
-            print("⚠️ 管理员admin授权菜单失败")
+            print("❌ 管理员admin授权菜单失败")
+            return _output_workflow_results(workflow_results)
     except Exception as e:
-        print(f"⚠️ 管理员admin授权菜单异常: {e}")
+        print(f"❌ 管理员admin授权菜单异常: {e}")
+        return _output_workflow_results(workflow_results)
 
     # 8. 还原配置文件（已在代码生成的finally块中完成，这里直接标记为成功）
     workflow_results['8️⃣ 还原配置文件'] = True
 
+    # 所有环节都成功，输出最终结果
+    return _output_workflow_results(workflow_results)
+
+def _output_workflow_results(workflow_results):
+    """统一输出工作流执行结果"""
     # 输出工作流执行结果（作为最后的输出）
     print(f"\n{'='*50}")
     print("📊 代码生成工作流执行结果:")
@@ -2975,7 +2992,29 @@ def execute_post_generation_workflow():
 
     print(f"\n🎯 总体执行结果: {overall_result} ({total_success}/{total_steps})")
 
-    # 工作流执行完毕，不再输出任何内容
+    # 返回总体结果（True表示Pass，False表示Fail）
+    return total_success == total_steps
+
+def _execute_failed_workflow(failed_step_name):
+    """执行失败的工作流，显示在哪个环节失败"""
+    workflow_results = {
+        '1️⃣ 数据字典替换': False,
+        '2️⃣ 代码生成接口调用': False,
+        '3️⃣ Java文件package替换': False,
+        '4️⃣ Java路径处理': False,
+        '5️⃣ 前端代码迁移': False,
+        '6️⃣ 创建菜单SQL数据库执行': False,
+        '7️⃣ 管理员admin授权菜单': False,
+        '8️⃣ 还原配置文件': False
+    }
+
+    # 根据失败的步骤名称，标记前面的步骤为成功（如果它们已经执行过）
+    if "代码生成接口调用" in failed_step_name:
+        workflow_results['1️⃣ 数据字典替换'] = True  # 数据字典替换在代码生成前已完成
+        # 2️⃣ 代码生成接口调用保持False，因为这是失败的环节
+
+    # 输出失败的工作流结果
+    _output_workflow_results(workflow_results)
 
 def replace_package_declarations():
     """
@@ -3429,6 +3468,7 @@ def jeecg_complete_workflow():
         response = requests.post(f"{BASE_URL}/sys/mLogin", json=login_data, timeout=REQUEST_TIMEOUT_LOGIN)
         if response.status_code != 200 or not response.json().get('success'):
             print("❌ 登录失败")
+            _execute_failed_workflow("登录失败")
             return
 
         token = response.json()['result']['token']
@@ -3437,6 +3477,7 @@ def jeecg_complete_workflow():
 
     except Exception as e:
         print(f"❌ 登录异常: {e}")
+        _execute_failed_workflow("登录异常")
         return
 
     # 2. 数据字典状态检查（仅检查，不进行智能匹配）
@@ -3464,6 +3505,7 @@ def jeecg_complete_workflow():
             form_data = create_form_from_config(FORM_DATA_FILE)
             if not form_data:
                 print("❌ 无法从配置文件生成表单数据")
+                _execute_failed_workflow("表单数据准备失败")
                 return
             table_name = form_data['head'].get('tableName')
             table_txt = form_data['head'].get('tableTxt')
@@ -3513,13 +3555,16 @@ def jeecg_complete_workflow():
                 print("✅ 表单数据结构验证通过")
             else:
                 print("   ❌ fields为None或空！")
+                _execute_failed_workflow("表单数据验证失败")
                 return
         else:
             print("   ❌ form_data不是字典类型！")
+            _execute_failed_workflow("表单数据验证失败")
             return
 
     except Exception as e:
         print(f"❌ 准备数据失败: {e}")
+        _execute_failed_workflow("表单数据准备异常")
         return
 
     # 5. 智能识别业务系统并确保模块存在
@@ -3544,6 +3589,7 @@ def jeecg_complete_workflow():
             # 确保模块存在
             if not ensure_module_exists(module_name):
                 print(f"❌ 模块管理失败，终止工作流")
+                _execute_failed_workflow("模块管理失败")
                 return
 
             # 更新项目路径配置 - 使用变量一致性验证
@@ -3597,6 +3643,7 @@ def jeecg_complete_workflow():
 
         except Exception as e:
             print(f"❌ 模块管理异常: {e}")
+            _execute_failed_workflow("模块管理异常")
             return
     else:
         print("\n5️⃣ 跳过模块管理（使用现有配置）")
@@ -3639,14 +3686,17 @@ def jeecg_complete_workflow():
             else:
                 print(f"❌ 创建表单失败: {result.get('message', '未知错误')}")
                 print(f"   完整响应: {result}")
+                _execute_failed_workflow("表单创建失败")
                 return
         else:
             print(f"❌ 创建请求失败: HTTP {response.status_code}")
             print(f"   响应内容: {response.text}")
+            _execute_failed_workflow("表单创建请求失败")
             return
 
     except Exception as e:
         print(f"❌ 创建表单异常: {e}")
+        _execute_failed_workflow("表单创建异常")
         return
     
     # 4. 等待并获取表单ID
@@ -3683,19 +3733,23 @@ def jeecg_complete_workflow():
                     print(f"   搜索的表名: {table_name}")
                     for i, record in enumerate(records[:MAX_DISPLAY_RECORDS]):  # 显示前N条记录
                         print(f"   记录{i+1}: {record.get('tableName')}")
+                    _execute_failed_workflow("获取表单ID失败")
                     return
 
                 print(f"✅ 表单ID: {form_id}")
             else:
                 print(f"❌ 获取表单列表失败: {result.get('message')}")
+                _execute_failed_workflow("获取表单列表失败")
                 return
         else:
             print(f"❌ 查询请求失败: HTTP {response.status_code}")
             print(f"   响应内容: {response.text}")
+            _execute_failed_workflow("获取表单ID请求失败")
             return
 
     except Exception as e:
         print(f"❌ 获取表单ID异常: {e}")
+        _execute_failed_workflow("获取表单ID异常")
         return
     
     # 7. 同步到数据库
@@ -3725,14 +3779,17 @@ def jeecg_complete_workflow():
             else:
                 print(f"❌ 数据库同步失败: {result.get('message', '未知错误')}")
                 print(f"   完整响应: {result}")
+                _execute_failed_workflow("数据库同步失败")
                 return
         else:
             print(f"❌ 同步请求失败: HTTP {response.status_code}")
             print(f"   响应内容: {response.text}")
+            _execute_failed_workflow("数据库同步请求失败")
             return
 
     except Exception as e:
         print(f"❌ 数据库同步异常: {e}")
+        _execute_failed_workflow("数据库同步异常")
         return
 
     # 8. 代码生成
@@ -3767,6 +3824,7 @@ def jeecg_complete_workflow():
         print(f"\n🔍 验证模板变量解析:")
         if not validate_template_variables():
             print("❌ 检测到未解析的模板变量，停止代码生成")
+            _execute_failed_workflow("模板变量验证失败")
             return
 
         print(f"\n🔧 其他配置:")
@@ -3876,18 +3934,24 @@ def jeecg_complete_workflow():
                 
                 # 继续执行后续工作流程
                 execute_post_generation_workflow()
-                
+
             else:
                 print(f"❌ 代码生成失败: {result.get('message', '未知错误')}")
                 print(f"   完整响应: {result}")
+                # 代码生成失败，执行失败的工作流
+                _execute_failed_workflow("代码生成接口调用失败")
                 return
         else:
             print(f"❌ 代码生成请求失败: HTTP {response.status_code}")
             print(f"   响应内容: {response.text}")
+            # 代码生成请求失败，执行失败的工作流
+            _execute_failed_workflow("代码生成接口调用失败")
             return
 
     except Exception as e:
         print(f"❌ 代码生成异常: {e}")
+        # 代码生成异常，执行失败的工作流
+        _execute_failed_workflow("代码生成接口调用异常")
         return
     finally:
         # 代码生成完成后：还原配置文件（静默执行）
