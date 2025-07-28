@@ -284,22 +284,20 @@ graph TD
 4. 📖 参考 `Code_Gen_Example.json` → 了解标准 JSON 结构和格式
 5. ⚙️ 生成 `temp_{BUSINESS_ENTITY}_config.json` → 创建临时配置文件
 
-**⚠️ JSON配置关键约束 - AIGC必读**：
+**🔴 强制要求 - JSON配置生成**：
 
-1. 🚨 **系统字段orderNum连续性** - 致命约束
-   - 必须严格从0开始连续递增：0,1,2,3,4,5,6,7,8...
-   - 任何断裂(如990,991,995)都会导致JeecgBoot API调用失败！
-   - AI常见错误：使用高位数值试图确保排序，实际违反连续性要求
+AI Agent 在生成临时JSON配置文件时必须：
 
-2. 📋 **系统字段配置标准** - 不可变更
-   - 前7个字段必须是标准系统字段：id, create_by, create_time, update_by, update_time, sys_org_code, del_flag
-   - 系统字段配置必须与Code_Gen_Example.json完全一致
-   - 严禁修改系统字段的任何属性值(fieldMustInput, isReadOnly, dbIsNull等)
+1. **📋 执行检查清单**: 严格按照 `Code_Gen_JSON_Standards.md` 中的"AIGC 5步快速检查流程"
+2. **📖 遵循技术规范**: 详细标准见 `Code_Gen_JSON_Standards.md` 权威文档
+3. **🔍 立即验证**: 生成后必须执行 `python3 Code_Gen_Advanced_Validator.py temp_config.json`
 
-3. 🔧 **配置生成规范** - AIGC指导
-   - 直接复制Code_Gen_Example.json的系统字段配置
-   - 仅修改业务字段部分(orderNum从7开始)
-   - 保持整体结构和标准属性不变
+**核心约束提醒**：
+- 系统字段orderNum必须从0开始连续递增，任何跳号都会导致API失败
+- 完全复制Code_Gen_Example.json的系统字段配置，严禁修改
+- 表名必须符合us_module_submodule_entity 4段式格式
+
+📚 **完整规范**: 参见 `Code_Gen_JSON_Standards.md`
 
 **阶段 4 - 验证阶段**：
 
@@ -911,9 +909,11 @@ graph TD
 
 1. **路径配置适配**：
 
-   - 读取 `Code_Gen_Config.json` 中的 `project.path_prefix`
-   - 动态计算项目路径和模块路径
-   - 确保跨平台兼容性（Mac/Windows/Linux）
+   - **🎯 唯一配置源**：系统根目录仅在 `Code_Gen_Config.json` 的 `project.path_prefix` 字段中定义
+   - **统一引用机制**：所有其他文件通过 `CONFIG.get('project', {}).get('path_prefix')` 获取路径
+   - **动态计算项目路径和模块路径**：基于配置的路径前缀自动计算派生路径
+   - **确保跨平台兼容性**：（Mac/Windows/Linux）
+   - **配置变更自动生效**：修改配置文件中的路径会自动影响整个系统
 
 2. **服务器配置适配**：
 

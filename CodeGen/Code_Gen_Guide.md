@@ -14,6 +14,10 @@
 - JeecgBoot 后端服务运行在 http://localhost:8080
 - Maven 3.6+
 
+### 📁 路径配置说明
+
+**🚨 重要**：系统根目录路径 `/Users/admin/Work/Github/JeecgBoot` **仅在** `Code_Gen_Config.json` 文件中定义，所有脚本和工具均通过读取该配置文件的 `project.path_prefix` 变量获取路径，确保配置的统一性和可维护性。其他文件中出现的路径均为默认回退值，实际运行时以配置文件为准。
+
 ### 基本用法
 
 ```bash

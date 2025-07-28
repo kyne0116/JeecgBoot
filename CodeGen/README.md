@@ -30,7 +30,6 @@ CodeGen/
 ├── Code_Gen_field_templates.json   # 🎨 字段模板 - 13种字段类型模板
 ├── Code_Gen_JSON_Standards.md      # 🚨 JSON配置标准 - 技术规范和约束
 ├── Code_Gen_Advanced_Validator.py  # 🔧 高级验证器 - orderNum连续性验证
-├── AIGC_JSON_Checklist.md          # ✅ AIGC检查清单 - 生成前必读
 └── temp_*_config.json              # 🚀 临时配置 - 运行时生成的配置文件
 ```
 
@@ -93,13 +92,13 @@ graph TD
 |---------|----------------|--------------------------|------------|
 | 第一层   | MODULE_NAME    | 模块名/系统名称           | finance    |
 | 第二层   | SUBMODULE_NAME | 子模块名/系统模块         | invoice    |
-| 第三层   | ENTITY_NAME    | 业务场景/实体名称         | management |
+| 第三层   | BUSINESS_ENTITY | 业务实体语义标识符        | CustomerProfile |
 
 ### 派生变量
 
-- **TABLE_NAME**: `us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}`
+- **TABLE_NAME**: `us_{MODULE_NAME}_{SUBMODULE_NAME}_{BUSINESS_ENTITY.toLowerCase()}`
 - **PACKAGE_NAME**: `org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}`
-- **JAVA_ENTITY_NAME**: `PascalCase({ENTITY_NAME})`
+- **JAVA_ENTITY_NAME**: 直接使用 `{BUSINESS_ENTITY}` (已为PascalCase格式)
 
 ## 🤖 AI代理系统
 
@@ -128,10 +127,14 @@ graph TD
 
 ### 系统配置 (`Code_Gen_Config.json`)
 
+**🚨 关键说明：项目路径配置规范**
+
+系统根目录 `/Users/admin/Work/Github/JeecgBoot` **仅在** `Code_Gen_Config.json` 文件中定义，所有其他文件均通过读取该配置文件的 `project.path_prefix` 变量进行引用，确保路径配置的统一性和可维护性。
+
 ```json
 {
   "project": {
-    "path_prefix": "/Users/admin/Work/Github/JeecgBoot"
+    "path_prefix": "/Users/admin/Work/Github/JeecgBoot"  // 🎯 系统根目录的唯一定义位置
   },
   "server": {
     "base_url": "http://localhost:8080/jeecg-boot",
@@ -143,6 +146,12 @@ graph TD
   "frontend_migration": { ... }
 }
 ```
+
+**路径配置架构**：
+- **唯一配置源**：`Code_Gen_Config.json` 的 `project.path_prefix` 字段
+- **变量引用方式**：其他文件通过 `CONFIG.get('project', {}).get('path_prefix')` 获取
+- **派生路径计算**：`PROJECT_PATH = {path_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{MODULE_NAME}`
+- **配置变更影响**：修改该字段会自动影响整个系统的路径计算
 
 ### 模板配置 (`Code_Gen_Guide.json`)
 
@@ -244,7 +253,7 @@ python3 Code_Gen_Guide.py --validate-table-name us_finance_invoice_management
 
 ### 📋 AIGC生成流程
 
-1. **生成前**：阅读`AIGC_JSON_Checklist.md`检查清单
+1. **生成前**：按照`Code_Gen_JSON_Standards.md`中的"AIGC 5步快速检查流程"执行
 2. **生成时**：直接复制`Code_Gen_Example.json`的系统字段配置
 3. **生成后**：立即使用`Code_Gen_Advanced_Validator.py`验证
 
