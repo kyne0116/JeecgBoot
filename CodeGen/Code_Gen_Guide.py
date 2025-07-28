@@ -3332,8 +3332,8 @@ def jeecg_complete_workflow():
     print("\n8️⃣ 正在生成代码...")
 
     try:
-        # 生成实体名（将表名转换为驼峰命名）
-        entity_name = ''.join(word.capitalize() for word in table_name.split('_'))
+        # 生成实体名（只使用业务实体名，不包含模块和子模块前缀）
+        entity_name = ENTITY_NAME if ENTITY_NAME else ''.join(word.capitalize() for word in table_name.split('_'))
 
         # 生成完整包名（基于标准化命名规范）
         package_name = generate_standardized_package_name(force_system=FORCE_SYSTEM)
@@ -3371,10 +3371,10 @@ def jeecg_complete_workflow():
         print(f"   强制系统                 = {FORCE_SYSTEM or 'None'}")
 
         # 准备代码生成参数
-        # 修复entityPackage参数：避免路径重复问题
-        # JeecgBoot模板中 ${bussiPackage}/${entityPackage} 会导致路径重复
-        # 正确做法：entityPackage应该为空或者是业务实体名，不应该重复bussiPackage的路径
-        entity_package = ENTITY_NAME  # 使用业务实体名，避免路径重复
+        # 修复entityPackage参数：使用业务实体名的小写形式作为子包
+        # JeecgBoot模板中 ${bussiPackage}/${entityPackage} 用于组织代码结构
+        # 正确做法：entityPackage使用业务实体名的小写形式
+        entity_package = ENTITY_NAME.lower() if ENTITY_NAME else ""  # 使用业务实体名的小写形式
 
         codegen_data = {
             "projectPath": PROJECT_PATH,
@@ -3395,9 +3395,11 @@ def jeecg_complete_workflow():
         # 打印完整的代码生成请求参数
         print(f"\n📋 代码生成请求参数:")
         print(f"   🔧 关键参数修复说明:")
-        print(f"      entityPackage = {entity_package} (避免路径重复)")
+        print(f"      entityName    = \"{entity_name}\" (只使用业务实体名，不包含模块前缀)")
+        print(f"      entityPackage = \"{entity_package}\" (使用业务实体名的小写形式)")
         print(f"      bussiPackage  = {package_name} (完整包路径)")
         print(f"      预期生成路径 = {package_name.replace('.', '/')}/{entity_package}/")
+        print(f"      修复效果     = Java类名只使用业务实体名，不包含模块和子模块前缀")
         print(f"   📋 完整参数列表:")
         for key, value in codegen_data.items():
             print(f"      {key:<20} = {value}")
@@ -4247,6 +4249,7 @@ def fix_generated_code_templates():
         components = parse_table_name_components(CURRENT_TABLE_NAME)
         module_name = components['module_name']
         sub_module = components['sub_module']
+        entity_name = components['entity_name']
 
         # 构建正确的包名 - 基于JeecgBoot标准结构
         correct_package = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}"
@@ -4380,12 +4383,12 @@ def fix_generated_code_templates():
                     if '{{PACKAGE_NAME}}' in content:
                         # 根据文件类型选择替换策略
                         if file_path.suffix == '.java':
-                            # Java文件使用基础包名，保持与目录结构一致
-                            base_package_name = f"org.jeecg.modules.{module_name}"
+                            # Java文件使用完整包名，符合Java命名规范
+                            base_package_name = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}"
                             content = content.replace('{{PACKAGE_NAME}}', base_package_name)
                         else:
-                            # 其他文件也使用基础包名
-                            base_package_name = f"org.jeecg.modules.{module_name}"
+                            # 其他文件也使用完整包名
+                            base_package_name = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}"
                             content = content.replace('{{PACKAGE_NAME}}', base_package_name)
                         template_fixed = True
 
@@ -4418,11 +4421,27 @@ def fix_generated_code_templates():
                         content = content.replace('{{TABLE_NAME}}', CURRENT_TABLE_NAME)
                         template_fixed = True
 
-                    # 检查是否包含重复的包名
-                    duplicate_package = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}.{module_name.lower()}.{sub_module.lower()}"
+                    # 检查并修复各种包名问题
                     package_fixed = False
+                    
+                    # 1. 修复重复包名
+                    duplicate_package = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}.{module_name.lower()}.{sub_module.lower()}"
                     if duplicate_package in content:
                         content = content.replace(duplicate_package, correct_package)
+                        package_fixed = True
+                    
+                    # 2. 修复包名中错误包含BUSINESS_ENTITY的情况
+                    # 例如: org.jeecg.modules.education.teacher.Teacherinfo -> org.jeecg.modules.education.teacher
+                    wrong_package_with_entity = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}.{entity_name}"
+                    if wrong_package_with_entity in content:
+                        content = content.replace(wrong_package_with_entity, correct_package)
+                        package_fixed = True
+                        
+                    # 3. 修复包名中大小写问题
+                    # 例如: org.jeecg.modules.Education.Teacher -> org.jeecg.modules.education.teacher  
+                    wrong_package_case = f"org.jeecg.modules.{module_name}.{sub_module}"
+                    if wrong_package_case in content and wrong_package_case != correct_package:
+                        content = content.replace(wrong_package_case, correct_package)
                         package_fixed = True
 
                     # 如果有任何修复，写回文件
@@ -4434,7 +4453,7 @@ def fix_generated_code_templates():
                         if template_fixed:
                             fix_type.append("模板变量")
                         if package_fixed:
-                            fix_type.append("重复包名")
+                            fix_type.append("包名规范")
 
                         print(f"   ✅ 修复文件 ({'/'.join(fix_type)}): {file_path.relative_to(module_path)}")
                         fixed_files += 1

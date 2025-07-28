@@ -262,6 +262,110 @@ def validate_system_fields(fields):
 
 ---
 
+## ✅ **AIGC 5步快速检查流程**
+
+### **生成前必须执行的检查步骤**
+
+**第一步：基础结构检查**
+- [ ] JSON格式正确，无语法错误
+- [ ] 包含head和fields两个主要部分
+- [ ] head部分包含所有必需字段
+- [ ] fields数组至少包含8个字段(7个系统字段+1个业务字段)
+
+**第二步：表名规范检查** 
+- [ ] 表名符合 us_[module]_[submodule]_[entity] 4段式格式
+- [ ] 所有部分都是小写英文字母
+- [ ] 无下划线连接符(除了4段分隔符)
+- [ ] entity部分是business_entity的全小写连续格式
+
+**第三步：系统字段强制检查**
+- [ ] 前7个字段必须是标准系统字段：id, create_by, create_time, update_by, update_time, sys_org_code, del_flag
+- [ ] 系统字段orderNum必须是：0,1,2,3,4,5,6
+- [ ] 系统字段配置与Code_Gen_Example.json完全一致
+- [ ] 未修改任何系统字段的属性值
+
+**第四步：orderNum连续性检查**
+- [ ] 所有字段的orderNum从0开始连续递增
+- [ ] 无跳号：不能是 0,1,2,3,4,5,6,990,991
+- [ ] 无重复：不能有相同的orderNum值
+- [ ] 无负数：所有orderNum都是非负整数
+
+**第五步：业务字段规范检查**
+- [ ] 业务字段orderNum从7开始递增
+- [ ] 业务字段配置合理(数据类型、长度等)
+- [ ] 字段名称符合数据库命名规范
+- [ ] 包含必要的显示和查询配置
+
+### **AIGC生成标准流程**
+
+**步骤1：复制系统字段**
+```json
+// 直接从Code_Gen_Example.json复制前7个系统字段
+// 不做任何修改，保持orderNum为0,1,2,3,4,5,6
+{
+  "fields": [
+    // 系统字段1-7: 完全复制，不修改
+    {
+      "dbFieldName": "id",
+      "orderNum": 0,
+      // ... 其他属性完全一致
+    }
+    // ... 复制完整的7个系统字段
+  ]
+}
+```
+
+**步骤2：添加业务字段**
+```json
+// 业务字段从orderNum: 7开始
+{
+  "dbFieldName": "business_field_1",
+  "orderNum": 7,
+  // ... 业务字段配置
+}
+```
+
+**步骤3：立即自检**
+```python
+# 生成后立即执行验证
+def aigc_self_check(config):
+    # 检查orderNum连续性
+    order_nums = [field['orderNum'] for field in config['fields']]
+    for i, num in enumerate(sorted(order_nums)):
+        if num != i:
+            raise Error(f"orderNum不连续: 期望{i}, 实际{num}")
+    
+    # 检查系统字段
+    system_fields = ['id', 'create_by', 'create_time', 'update_by', 
+                    'update_time', 'sys_org_code', 'del_flag']
+    for i, expected in enumerate(system_fields):
+        if config['fields'][i]['dbFieldName'] != expected:
+            raise Error(f"系统字段{i}错误")
+```
+
+### **快速验证命令**
+
+```bash
+# 使用高级验证器进行全面检查
+python3 Code_Gen_Advanced_Validator.py temp_config.json
+
+# 使用标准验证器检查格式
+python3 Code_Gen_Validator.py temp_config.json
+
+# JSON Schema验证
+jsonschema -i temp_config.json Code_Gen_Schema.json
+```
+
+### **🎯 AIGC核心要点（必记）**
+
+1. **📋 复制模板**：系统字段配置完全复制Code_Gen_Example.json
+2. **🔢 连续递增**：orderNum从0开始严格连续，不能跳号
+3. **🔍 立即验证**：生成后立即使用验证工具检查
+
+**遵循这3点，确保JSON配置100%兼容JeecgBoot API！**
+
+---
+
 ## 📖 **参考资料**
 
 - **标准模板**: `Code_Gen_Example.json` - 权威配置参考
