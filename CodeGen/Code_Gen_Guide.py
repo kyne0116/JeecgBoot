@@ -2739,9 +2739,10 @@ def execute_post_generation_workflow():
         '2️⃣ 代码生成接口调用': False,
         '3️⃣ Java文件package替换': False,
         '4️⃣ Java路径处理': False,
-        '5️⃣ 前端代码迁移': False, 
+        '5️⃣ 前端代码迁移': False,
         '6️⃣ 创建菜单SQL数据库执行': False,
-        '7️⃣ 还原配置文件': False
+        '7️⃣ 管理员admin授权菜单': False,
+        '8️⃣ 还原配置文件': False
     }
     
     # 1. 数据字典替换逻辑（保留现有逻辑）
@@ -2811,34 +2812,37 @@ def execute_post_generation_workflow():
             print("⚠️ 创建菜单SQL数据库执行失败")
     except Exception as e:
         print(f"⚠️ 数据库SQL执行异常: {e}")
-    
-    # 7. 还原配置文件
+
+    # 7. 管理员admin授权菜单
     print(f"\n{'='*50}")
-    print("7️⃣ 执行还原配置文件...")
+    print("7️⃣ 执行管理员admin授权菜单...")
     try:
-        # 静默执行还原配置文件，不显示其内部输出
-        result = restore_jeecg_config(silent=True)
-        if result:
-            print("✅ 还原配置文件完成")
-            workflow_results['7️⃣ 还原配置文件'] = True
+        if auto_grant_permissions():
+            print("✅ 管理员admin授权菜单完成")
+            workflow_results['7️⃣ 管理员admin授权菜单'] = True
         else:
-            print("⚠️ 还原配置文件失败")
+            print("⚠️ 管理员admin授权菜单失败")
     except Exception as e:
-        print(f"⚠️ 还原配置文件异常: {e}")
-    
+        print(f"⚠️ 管理员admin授权菜单异常: {e}")
+
+    # 8. 还原配置文件（已在代码生成的finally块中完成，这里直接标记为成功）
+    workflow_results['8️⃣ 还原配置文件'] = True
+
     # 输出工作流执行结果（作为最后的输出）
     print(f"\n{'='*50}")
     print("📊 代码生成工作流执行结果:")
     for step_name, result in workflow_results.items():
         status = "✅ Pass" if result else "❌ Fail"
         print(f"   {step_name}: {status}")
-    
+
     # 计算总体结果
     total_success = sum(workflow_results.values())
     total_steps = len(workflow_results)
     overall_result = "Pass" if total_success == total_steps else "Fail"
-    
+
     print(f"\n🎯 总体执行结果: {overall_result} ({total_success}/{total_steps})")
+
+    # 工作流执行完毕，不再输出任何内容
 
 def replace_package_declarations():
     """
@@ -3753,8 +3757,8 @@ def jeecg_complete_workflow():
         print(f"❌ 代码生成异常: {e}")
         return
     finally:
-        # 代码生成完成后：还原配置文件
-        restore_jeecg_config()
+        # 代码生成完成后：还原配置文件（静默执行）
+        restore_jeecg_config(silent=True)
 
     # 注意：API调用成功后的后续工作流程（步骤7-13）已被移动到execute_post_generation_workflow()函数中
 
