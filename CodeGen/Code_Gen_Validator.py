@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-JeecgBoot代码生成JSON配置文件验证器
-用于验证临时JSON配置文件是否符合JeecgBoot在线表单API要求
+JeecgBoot代码生成JSON配置文件完整验证器
+功能：
+- JSON Schema验证
+- 系统字段完整性验证
+- orderNum连续性严格验证（防止API失败）
+- 表名格式验证
+- business_entity格式验证
+- metadata节点验证
+- 字段属性完整性验证
+用于确保临时JSON配置文件完全符合JeecgBoot在线表单API要求
 防止NullPointerException和其他API调用错误
 """
 
@@ -40,6 +48,34 @@ class CodeGenValidator:
             "dbLength", "dbPointLength", "dbDefaultVal", "dbType",
             "dbIsKey", "dbIsNull", "dbIsPersist", "orderNum"
         ]
+
+        # 数据库字段长度限制（基于 onl_cgform_field 表结构）
+        self.db_field_limits = {
+            'queryMode': 10,
+            'fieldShowType': 20,
+            'queryShowType': 50,
+            'fieldValidType': 300,
+            'dictField': 100,
+            'dictText': 100,
+            'dictTable': 255,
+            'dbFieldName': 32,
+            'dbFieldTxt': 200,
+            'fieldHref': 200,
+            'fieldDefaultValue': 100,
+            'converter': 255,
+            'queryDefVal': 50,
+            'queryDictText': 100,
+            'queryDictField': 100,
+            'queryDictTable': 500
+        }
+
+        # 已知的超长 queryMode 值及其修正建议
+        self.invalid_query_modes = {
+            'group_range': 'range',
+            'date_range': 'range',
+            'multi_select': 'single',
+            'complex_query': 'like'
+        }
     
     def _load_schema(self) -> Dict:
         """加载JSON Schema"""
@@ -141,10 +177,24 @@ class CodeGenValidator:
         if missing_system_fields:
             errors.append(f"🚨 系统字段缺失: {', '.join(missing_system_fields)}")
         
-        # 验证字段orderNum连续性
-        order_nums = [field.get('orderNum', 0) for field in config['fields']]
-        if len(set(order_nums)) != len(order_nums):
-            errors.append("⚠️ 字段orderNum存在重复")
+        # 验证字段orderNum连续性（严格验证）
+        order_nums = []
+        for i, field in enumerate(config['fields']):
+            if 'orderNum' not in field:
+                errors.append(f"🚨 字段{i+1} ({field.get('dbFieldName', '未知')}) 缺少orderNum")
+                continue
+            order_nums.append((i, field.get('dbFieldName', '未知'), field['orderNum']))
+
+        # 检查orderNum重复
+        order_values = [x[2] for x in order_nums]
+        if len(set(order_values)) != len(order_values):
+            errors.append("🚨 字段orderNum存在重复 - 这会导致API失败")
+
+        # 检查orderNum连续性（必须从0开始连续递增）
+        order_nums.sort(key=lambda x: x[2])
+        for i, (field_index, field_name, order_num) in enumerate(order_nums):
+            if order_num != i:
+                errors.append(f"🚨 orderNum不连续: 字段'{field_name}' orderNum={order_num}, 期望={i} - 这会导致API失败")
         
         # 验证表名格式
         table_name = config.get('head', {}).get('tableName', '')
@@ -164,10 +214,14 @@ class CodeGenValidator:
             metadata_errors = self._validate_metadata(config['metadata'], head.get('business_entity', ''))
             errors.extend(metadata_errors)
         
-        # 验证字段必需属性
+        # 验证字段必需属性和长度限制
         for i, field in enumerate(config['fields']):
             field_errors = self._validate_field(field, i + 1)
             errors.extend(field_errors)
+
+            # 验证字段长度限制
+            length_errors = self._validate_field_lengths(field, i + 1)
+            errors.extend(length_errors)
 
         # 验证是否包含indexs, deleteFieldIds, deleteIndexIds
         required_arrays = ['indexs', 'deleteFieldIds', 'deleteIndexIds']
@@ -250,7 +304,29 @@ class CodeGenValidator:
             errors.append(f"⚠️ 字段{field_index}: dbIsPersist必须是字符串'0'或'1'")
 
         return errors
-    
+
+    def _validate_field_lengths(self, field: Dict, field_index: int) -> List[str]:
+        """验证字段值长度是否符合数据库限制"""
+        errors = []
+
+        for field_name, max_length in self.db_field_limits.items():
+            if field_name in field:
+                field_value = str(field[field_name])
+
+                # 特殊处理 queryMode 字段
+                if field_name == 'queryMode':
+                    if field_value in self.invalid_query_modes:
+                        suggested_value = self.invalid_query_modes[field_value]
+                        errors.append(f"❌ 字段{field_index}: queryMode值'{field_value}'超过10字符限制，建议改为'{suggested_value}'")
+                    elif len(field_value) > max_length:
+                        errors.append(f"❌ 字段{field_index}: queryMode值'{field_value}'长度({len(field_value)})超过{max_length}字符限制")
+
+                # 通用长度检查
+                elif len(field_value) > max_length:
+                    errors.append(f"❌ 字段{field_index}: {field_name}值过长({len(field_value)}字符)，超过{max_length}字符限制")
+
+        return errors
+
     def generate_validation_report(self, config_file: str) -> str:
         """生成验证报告"""
         is_valid, errors = self.validate_config(config_file)
@@ -266,6 +342,7 @@ class CodeGenValidator:
         
         if is_valid:
             report += "🎉 配置文件完全符合JeecgBoot在线表单API要求\n"
+            report += "✅ 通过完整验证：JSON Schema、系统字段、orderNum连续性、表名格式等\n"
             report += "✅ 可以安全地调用Code_Gen_Guide.py执行代码生成\n"
         else:
             report += f"❌ 发现 {len(errors)} 个问题:\n\n"
@@ -275,8 +352,12 @@ class CodeGenValidator:
             report += "\n🔧 修复建议:\n"
             report += "1. 检查fields数组是否存在且不为空\n"
             report += "2. 确保包含所有7个系统字段\n"
-            report += "3. 验证字段属性完整性\n"
-            report += "4. 检查表名格式是否正确\n"
+            report += "3. 验证orderNum从0开始连续递增（关键！）\n"
+            report += "4. 验证字段属性完整性\n"
+            report += "5. 检查表名格式是否正确\n"
+            report += "6. 确保business_entity使用PascalCase格式\n"
+            report += "7. 🚨 检查字段值长度限制（特别是queryMode不超过10字符）\n"
+            report += "8. 将'group_range'改为'range'，'date_range'改为'range'\n"
         
         return report
 
