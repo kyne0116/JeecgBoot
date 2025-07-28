@@ -30,7 +30,7 @@ MODULE_NAME + SUBMODULE_NAME + BUSINESS_ENTITY → TABLE_NAME
 **唯一核心概念**: BUSINESS_ENTITY = "CustomerProfile" (PascalCase, 推理源头)
 
 **派生格式** (机械转换):
-- **TABLE_SUFFIX**: customer_profile (snake_case转换)
+- **TABLE_SUFFIX**: customerprofile (全小写连续转换，用于数据库表名)
 - **URL_PATH**: customer-profile (kebab-case转换)
 - **FRONTEND_PATH**: customer/profile (路径分割转换)
 - **FILE_NAME**: customerProfile (camelCase转换)
@@ -140,7 +140,7 @@ SUBMODULE_NAME = "invoice"
 
 **用途**:
 
-- 构成表名的第三部分 (转换为snake_case)
+- 构成表名的第三部分 (转换为全小写连续格式)
 - 直接作为Java实体名使用
 - 生成前端路由和组件名
 - 配置文件中的entity_name参数值
@@ -166,7 +166,7 @@ BUSINESS_ENTITY = "data"               # ❌ 无业务语义
 ### TABLE_NAME (表名)
 
 **计算公式**: `us_{MODULE_NAME}_{SUBMODULE_NAME}_{TABLE_SUFFIX}`
-**其中**: `TABLE_SUFFIX = pascal_to_snake_case(BUSINESS_ENTITY)`
+**其中**: `TABLE_SUFFIX = pascal_to_lowercase(BUSINESS_ENTITY)`
 
 **正确示例**:
 
@@ -174,8 +174,8 @@ BUSINESS_ENTITY = "data"               # ❌ 无业务语义
 MODULE_NAME = "finance"
 SUBMODULE_NAME = "invoice"
 BUSINESS_ENTITY = "CustomerProfile"
-TABLE_SUFFIX = "customer_profile"  # 自动转换
-TABLE_NAME = "us_finance_invoice_customer_profile"
+TABLE_SUFFIX = "customerprofile"  # 自动转换（全小写连续）
+TABLE_NAME = "us_finance_invoice_customerprofile"
 ```
 
 ### PACKAGE_NAME (包名)

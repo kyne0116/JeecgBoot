@@ -28,6 +28,9 @@ CodeGen/
 ├── Code_Gen_Example.json           # 📝 示例配置 - 完整的参考示例
 ├── Code_Gen_DICT.json              # 📚 数据字典 - 系统数据字典缓存
 ├── Code_Gen_field_templates.json   # 🎨 字段模板 - 13种字段类型模板
+├── Code_Gen_JSON_Standards.md      # 🚨 JSON配置标准 - 技术规范和约束
+├── Code_Gen_Advanced_Validator.py  # 🔧 高级验证器 - orderNum连续性验证
+├── AIGC_JSON_Checklist.md          # ✅ AIGC检查清单 - 生成前必读
 └── temp_*_config.json              # 🚀 临时配置 - 运行时生成的配置文件
 ```
 
@@ -220,6 +223,41 @@ python3 Code_Gen_Guide.py --validate-table-name us_finance_invoice_management
 3. **配置生成**: 自动生成符合规范的JSON配置文件
 4. **代码生成**: 一键生成完整的CRUD功能模块
 
+## 🤖 AIGC专用指导
+
+### 🚨 关键约束 - 必须遵守
+
+1. **系统字段orderNum连续性** (致命约束)
+   - 必须从0开始严格连续递增：0,1,2,3,4,5,6,7,8...
+   - 任何断裂都会导致JeecgBoot API调用失败
+   - AI常见错误：使用990+高位数值，违反连续性要求
+
+2. **系统字段配置标准化** (不可变更)
+   - 前7个字段必须与`Code_Gen_Example.json`完全一致
+   - 严禁修改系统字段的任何属性值
+   - 直接复制标准模板，不做任何"优化"
+
+3. **表名格式4段式** (严格规范)
+   - 必须符合`us_模块_子模块_实体`格式
+   - 实体部分必须是全小写连续格式
+   - 不能有额外的下划线连接
+
+### 📋 AIGC生成流程
+
+1. **生成前**：阅读`AIGC_JSON_Checklist.md`检查清单
+2. **生成时**：直接复制`Code_Gen_Example.json`的系统字段配置
+3. **生成后**：立即使用`Code_Gen_Advanced_Validator.py`验证
+
+### 🔍 必备验证工具
+
+```bash
+# AIGC生成后必须执行的验证
+python3 Code_Gen_Advanced_Validator.py temp_config.json
+
+# 详细验证报告
+python3 Code_Gen_Advanced_Validator.py temp_config.json --report validation_report.txt
+```
+
 ## ⚠️ 最佳实践
 
 ### 命名规范
@@ -233,11 +271,13 @@ python3 Code_Gen_Guide.py --validate-table-name us_finance_invoice_management
 - 使用`temp_*_config.json`作为临时配置文件
 - 通过Schema验证确保配置文件格式正确
 - 保持系统字段完整性和业务字段合规性
+- **AIGC必须**：生成后立即进行连续性验证
 
 ### 质量保证
 
 - 必须先获取数据字典再进行代码生成
 - 通过多层验证机制确保配置文件质量
+- **新增**：使用高级验证器检查orderNum连续性
 - 使用官方API确保生成代码的标准化
 
 ## 🔧 故障排除

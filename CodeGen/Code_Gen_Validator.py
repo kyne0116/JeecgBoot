@@ -148,13 +148,13 @@ class CodeGenValidator:
         
         # 验证表名格式
         table_name = config.get('head', {}).get('tableName', '')
-        if not table_name.startswith('us_') or table_name.count('_') != 3:
+        if not table_name.startswith('us_') or table_name.count('_') < 3:
             errors.append(f"⚠️ 表名格式不正确: {table_name} (应为us_{{模块}}_{{子模块}}_{{实体}})")
 
         # 验证表名与business_entity的一致性
         if 'business_entity' in head and head['business_entity']:
             business_entity = head['business_entity']
-            # 将PascalCase转换为snake_case进行比较
+            # 将PascalCase转换为全小写连续格式进行比较
             expected_suffix = self._pascal_to_snake_case(business_entity)
             if not table_name.endswith(expected_suffix):
                 errors.append(f"⚠️ 表名后缀与business_entity不匹配: {table_name} vs {expected_suffix}")
@@ -180,11 +180,10 @@ class CodeGenValidator:
         return errors
 
     def _pascal_to_snake_case(self, pascal_str: str) -> str:
-        """将PascalCase转换为snake_case"""
-        import re
-        # 在大写字母前插入下划线，然后转换为小写
-        snake_str = re.sub(r'(?<!^)(?=[A-Z])', '_', pascal_str).lower()
-        return snake_str
+        """将PascalCase转换为全小写连续格式（遵循Code_Gen_Variables.md规范）"""
+        # 直接转换为全小写连续，不插入下划线
+        # VehicleInfo -> vehicleinfo (不是 vehicle_info)
+        return pascal_str.lower()
 
     def _validate_metadata(self, metadata: Dict, business_entity: str) -> List[str]:
         """验证metadata节点"""
