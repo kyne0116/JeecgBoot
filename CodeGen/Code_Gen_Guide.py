@@ -169,7 +169,8 @@ def set_core_variables_from_table_name(table_name):
 
         # 计算派生变量
         TABLE_NAME = table_name
-        PACKAGE_NAME = f"org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
+        # 强制确保包路径全小写，符合Java命名规范
+        PACKAGE_NAME = f"org.jeecg.modules.{MODULE_NAME.lower()}.{SUBMODULE_NAME.lower()}"
         # 修复：JAVA_ENTITY_NAME就是ENTITY_NAME本身，因为它已经是PascalCase了
         JAVA_ENTITY_NAME = ENTITY_NAME
 
@@ -272,7 +273,7 @@ def validate_core_variables():
         errors.append(f"表名解析失败: {e}")
 
     # 步骤4：包名验证
-    expected_package_name = f"org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
+    expected_package_name = f"org.jeecg.modules.{MODULE_NAME.lower()}.{SUBMODULE_NAME.lower()}"
     if PACKAGE_NAME != expected_package_name:
         errors.append(f"包名不一致: 期望={expected_package_name}, 实际={PACKAGE_NAME}")
 
@@ -467,19 +468,19 @@ def generate_standardized_package_name(table_name=None, force_system=None):
     if not table_name:
         # 如果没有表名，使用传统方式
         if force_system:
-            return f"org.jeecg.modules.{force_system}.{ENTITY_NAME}"
+            return f"org.jeecg.modules.{force_system.lower()}.{ENTITY_NAME}"
         else:
             return f"org.jeecg.modules.{ENTITY_NAME}"
     
     try:
         components = parse_table_name_components(table_name)
-        package_name = f"org.jeecg.modules.{components['module_name']}.{components['sub_module']}"
+        package_name = f"org.jeecg.modules.{components['module_name'].lower()}.{components['sub_module'].lower()}"
         print(f"📦 生成标准化包名: {package_name}")
         return package_name
     except ValueError as e:
         print(f"⚠️ 表名解析失败，使用传统格式: {e}")
         if force_system:
-            return f"org.jeecg.modules.{force_system}.{ENTITY_NAME}"
+            return f"org.jeecg.modules.{force_system.lower()}.{ENTITY_NAME}"
         else:
             return f"org.jeecg.modules.{ENTITY_NAME}"
 
@@ -746,11 +747,19 @@ def derive_all_formats_from_business_entity(business_entity):
     """
     return {
         'java_class_name': business_entity,  # 直接使用
-        'table_suffix': pascal_to_snake_case(business_entity),
+        'table_suffix': pascal_to_lowercase(business_entity),
         'url_path': pascal_to_kebab_case(business_entity),
         'frontend_path': pascal_to_path(business_entity),
         'file_name': pascal_to_camel_case(business_entity)
     }
+
+def pascal_to_lowercase(pascal_str):
+    """
+    PascalCase转全小写连续格式（用于数据库表名）
+    VehicleInfo → vehicleinfo
+    CustomerProfile → customerprofile
+    """
+    return pascal_str.lower()
 
 def pascal_to_snake_case(pascal_str):
     """
@@ -3562,7 +3571,7 @@ def jeecg_complete_workflow():
         try:
             components = parse_table_name_components(CURRENT_TABLE_NAME)
             print(f"   后端模块路径: /jeecg-boot/jeecg-boot-module/jeecg-module-{components['module_name']}")
-            print(f"   包结构: org.jeecg.modules.{components['module_name']}.{components['sub_module']}")
+            print(f"   包结构: org.jeecg.modules.{components['module_name'].lower()}.{components['sub_module'].lower()}")
             print(f"   实体类: {components['entity_name']}")
             print(f"   前端组件: 已生成Vue3组件并迁移到前端项目")
 
@@ -4240,7 +4249,7 @@ def fix_generated_code_templates():
         sub_module = components['sub_module']
 
         # 构建正确的包名 - 基于JeecgBoot标准结构
-        correct_package = f"org.jeecg.modules.{module_name}.{sub_module}"
+        correct_package = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}"
 
         # 构建正确的包路径 - 注意：{{PACKAGE_NAME}}只替换为基础包路径，不包含子模块
         # 因为官方API生成的路径结构是：{{PACKAGE_NAME}}/子模块名/controller/
@@ -4410,7 +4419,7 @@ def fix_generated_code_templates():
                         template_fixed = True
 
                     # 检查是否包含重复的包名
-                    duplicate_package = f"org.jeecg.modules.{module_name}.{sub_module}.{module_name}.{sub_module}"
+                    duplicate_package = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}.{module_name.lower()}.{sub_module.lower()}"
                     package_fixed = False
                     if duplicate_package in content:
                         content = content.replace(duplicate_package, correct_package)
