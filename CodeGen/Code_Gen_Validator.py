@@ -209,8 +209,10 @@ class CodeGenValidator:
             if not table_name.endswith(expected_suffix):
                 errors.append(f"⚠️ 表名后缀与business_entity不匹配: {table_name} vs {expected_suffix}")
 
-        # 验证metadata节点（推荐但非必需）
-        if 'metadata' in config:
+        # 验证metadata节点（必需）
+        if 'metadata' not in config:
+            errors.append("❌ 缺少必需的metadata节点，请参考Code_Gen_Example.json添加完整的metadata部分")
+        else:
             metadata_errors = self._validate_metadata(config['metadata'], head.get('business_entity', ''))
             errors.extend(metadata_errors)
         
@@ -247,32 +249,36 @@ class CodeGenValidator:
             errors.append("⚠️ metadata必须是对象类型")
             return errors
 
-        # 验证generation_info节点
-        if 'generation_info' in metadata:
+        # 验证generation_info节点（必需）
+        if 'generation_info' not in metadata:
+            errors.append("❌ metadata缺少必需的generation_info节点")
+        else:
             gen_info = metadata['generation_info']
             if not isinstance(gen_info, dict):
                 errors.append("⚠️ metadata.generation_info必须是对象类型")
             else:
-                # 验证关键字段
+                # 验证关键字段（必需）
                 required_gen_fields = ['module_name', 'submodule_name', 'business_entity']
                 for field in required_gen_fields:
                     if field not in gen_info:
-                        errors.append(f"💡 建议添加metadata.generation_info.{field}字段")
+                        errors.append(f"❌ metadata.generation_info缺少必需字段: {field}")
 
                 # 验证business_entity一致性
                 if 'business_entity' in gen_info and gen_info['business_entity'] != business_entity:
                     errors.append(f"⚠️ metadata中的business_entity与head中的不一致")
 
-        # 验证derived_formats节点
-        if 'derived_formats' in metadata:
+        # 验证derived_formats节点（必需）
+        if 'derived_formats' not in metadata:
+            errors.append("❌ metadata缺少必需的derived_formats节点")
+        else:
             derived = metadata['derived_formats']
             if not isinstance(derived, dict):
                 errors.append("⚠️ metadata.derived_formats必须是对象类型")
             else:
-                recommended_fields = ['table_suffix', 'url_path', 'frontend_path']
-                for field in recommended_fields:
+                required_fields = ['table_suffix', 'url_path', 'frontend_path']
+                for field in required_fields:
                     if field not in derived:
-                        errors.append(f"💡 建议添加metadata.derived_formats.{field}字段")
+                        errors.append(f"❌ metadata.derived_formats缺少必需字段: {field}")
 
         return errors
 
