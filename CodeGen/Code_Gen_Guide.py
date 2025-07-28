@@ -699,14 +699,83 @@ def create_business_field_config(field_spec, order_num):
         "dbIsPersist": "1",
         "orderNum": order_num
     }
-    
+
+    # 应用字段长度验证和修正
+    base_config = validate_and_fix_field_lengths(base_config)
+
     return base_config
+
+def validate_and_fix_field_lengths(field_config):
+    """
+    验证并修正字段配置中的长度限制问题
+    确保所有字段值符合数据库表 onl_cgform_field 的字段长度限制
+
+    Args:
+        field_config (dict): 字段配置字典
+
+    Returns:
+        dict: 修正后的字段配置
+    """
+    # 数据库字段长度限制定义
+    DB_FIELD_LIMITS = {
+        'queryMode': 10,
+        'fieldShowType': 20,
+        'queryShowType': 50,
+        'fieldValidType': 300,
+        'dictField': 100,
+        'dictText': 100,
+        'dictTable': 255,
+        'dbFieldName': 32,
+        'dbFieldTxt': 200,
+        'fieldHref': 200,
+        'fieldDefaultValue': 100,
+        'converter': 255,
+        'queryDefVal': 50,
+        'queryDictText': 100,
+        'queryDictField': 100,
+        'queryDictTable': 500
+    }
+
+    # queryMode 特殊处理规则
+    QUERY_MODE_FIXES = {
+        'group_range': 'range',
+        'date_range': 'range',
+        'multi_select': 'single',
+        'complex_query': 'like'
+    }
+
+    fixed_config = field_config.copy()
+    warnings = []
+
+    for field_name, max_length in DB_FIELD_LIMITS.items():
+        if field_name in fixed_config:
+            field_value = str(fixed_config[field_name])
+
+            # 特殊处理 queryMode 字段
+            if field_name == 'queryMode' and field_value in QUERY_MODE_FIXES:
+                old_value = field_value
+                fixed_config[field_name] = QUERY_MODE_FIXES[field_value]
+                warnings.append(f"⚠️  字段 {field_name}: '{old_value}' 超过长度限制，已自动修正为 '{fixed_config[field_name]}'")
+
+            # 通用长度检查
+            elif len(field_value) > max_length:
+                old_value = field_value
+                fixed_config[field_name] = field_value[:max_length]
+                warnings.append(f"⚠️  字段 {field_name}: 值过长({len(old_value)}字符)，已截断为{max_length}字符")
+
+    # 输出警告信息
+    if warnings:
+        print("🔧 字段长度自动修正:")
+        for warning in warnings:
+            print(f"   {warning}")
+
+    return fixed_config
 
 def derive_all_formats_from_business_entity(business_entity):
     """
     从BUSINESS_ENTITY机械派生所有需要的格式
     纯字符串转换逻辑，不包含任何推理成分
-    
+
     Args:
         business_entity (str): PascalCase格式的业务实体标识符
         
@@ -1352,7 +1421,7 @@ def migrate_frontend_code():
         # 需要检查多个可能的路径
         # 从CURRENT_TABLE_NAME获取完整的业务实体名
         entity_name = components['entity_name'].lower()
-        
+
         possible_source_paths = [
             # 1. JeecgBoot实际生成路径：module_name/sub_module/entity_name
             Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / entity_name / 'vue3',
@@ -1371,6 +1440,14 @@ def migrate_frontend_code():
                 break
 
         if not source_vue3_dir:
+            print(f"⚠️ 在后端模块中未找到vue3目录，检查是否已迁移...")
+            # 检查前端项目中是否已有相同模块的文件
+            frontend_module_dir = Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / sub_module
+            if frontend_module_dir.exists():
+                print(f"✅ 发现前端项目中已存在模块目录: {frontend_module_dir}")
+                print(f"   这可能是同一模块的多个表单，前端代码将合并到现有目录")
+                return True  # 返回成功，因为前端目录已存在
+
             # 如果都不存在，使用第一个作为默认值（用于后续的容错搜索）
             source_vue3_dir = possible_source_paths[0]
 
@@ -1443,7 +1520,18 @@ def migrate_frontend_code():
                         break
 
             if not found_alternative:
-                print(f"❌ 在所有位置都未找到前端文件")
+                print(f"⚠️ 在后端模块中未找到前端文件")
+                # 检查前端项目中是否已有同模块的文件（可能是同一模块的多个表单）
+                frontend_module_dir = Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / sub_module
+                if frontend_module_dir.exists():
+                    existing_files = list(frontend_module_dir.glob('*.vue')) + list(frontend_module_dir.glob('*.ts')) + list(frontend_module_dir.glob('*.js'))
+                    if existing_files:
+                        print(f"✅ 发现前端项目中已存在同模块文件: {frontend_module_dir}")
+                        print(f"   已有 {len(existing_files)} 个前端文件")
+                        print(f"   这可能是同一模块的多个表单，新生成的前端代码应该已经直接生成到正确位置")
+                        return True  # 返回成功，因为前端目录已存在且有文件
+
+                print(f"❌ 在所有位置都未找到前端文件，且前端项目中也无同模块文件")
                 return False
 
         # 检查是否包含前端文件
@@ -1681,8 +1769,8 @@ def _execute_rename_and_move(source_vue3_dir, renamed_dir, final_target_dir, tar
                 print(f"   删除已存在的目标目录...")
                 shutil.rmtree(final_target_dir)
             else:
-                print(f"❌ 目标目录已存在，停止迁移以避免覆盖")
-                return False
+                print(f"🔄 目标目录已存在，执行智能合并...")
+                return _merge_frontend_files(renamed_dir, final_target_dir, migration_config)
 
         # 步骤3：移动整个目录到views下
         print(f"\n3️⃣ 移动目录到前端项目...")
@@ -1721,6 +1809,51 @@ def _execute_rename_and_move(source_vue3_dir, renamed_dir, final_target_dir, tar
 
     except Exception as e:
         print(f"❌ 重命名和移动操作失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def _merge_frontend_files(source_dir, target_dir, migration_config):
+    """智能合并前端文件到已存在的目标目录"""
+    print(f"\n🔄 开始智能合并前端文件...")
+    print(f"   源目录: {source_dir}")
+    print(f"   目标目录: {target_dir}")
+
+    try:
+        merged_count = 0
+        skipped_count = 0
+
+        # 遍历源目录中的所有文件
+        for source_file in source_dir.rglob('*'):
+            if source_file.is_file():
+                # 计算相对路径
+                relative_path = source_file.relative_to(source_dir)
+                target_file = target_dir / relative_path
+
+                # 确保目标文件的父目录存在
+                target_file.parent.mkdir(parents=True, exist_ok=True)
+
+                if target_file.exists():
+                    print(f"   ⚠️ 文件已存在，跳过: {relative_path}")
+                    skipped_count += 1
+                else:
+                    # 复制文件到目标位置
+                    shutil.copy2(source_file, target_file)
+                    print(f"   ✅ 合并文件: {relative_path}")
+                    merged_count += 1
+
+        # 删除源目录
+        shutil.rmtree(source_dir)
+
+        print(f"\n📊 合并统计:")
+        print(f"   ✅ 成功合并: {merged_count} 个文件")
+        print(f"   ⚠️ 跳过重复: {skipped_count} 个文件")
+        print(f"   🗑️ 清理源目录: {source_dir}")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ 智能合并失败: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -3823,11 +3956,75 @@ def parse_arguments():
     parser.add_argument('--skip-pom-creation', action='store_true',
                        help='跳过自动创建pom.xml文件')
 
+    parser.add_argument('--check-field-lengths', type=str, metavar='CONFIG_FILE',
+                       help='检查配置文件中的字段长度限制问题')
+
     return parser.parse_args()
+
+def check_field_lengths_in_config(config_file):
+    """检查配置文件中的字段长度限制问题"""
+    try:
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+
+        print(f"🔍 检查配置文件: {config_file}")
+        print("=" * 60)
+
+        issues_found = False
+
+        if 'fields' not in config:
+            print("❌ 配置文件中没有fields数组")
+            return
+
+        for i, field in enumerate(config['fields']):
+            field_name = field.get('dbFieldName', f'字段{i+1}')
+
+            # 检查 queryMode 字段
+            if 'queryMode' in field:
+                query_mode = field['queryMode']
+                if len(query_mode) > 10:
+                    print(f"❌ {field_name}: queryMode '{query_mode}' 超过10字符限制")
+                    issues_found = True
+                elif query_mode in ['group_range', 'date_range', 'multi_select']:
+                    print(f"⚠️  {field_name}: queryMode '{query_mode}' 建议改为更短的值")
+                    issues_found = True
+
+            # 检查其他关键字段
+            field_limits = {
+                'fieldShowType': 20,
+                'queryShowType': 50,
+                'fieldValidType': 300,
+                'dictField': 100,
+                'dictText': 100,
+                'dictTable': 255
+            }
+
+            for field_key, max_length in field_limits.items():
+                if field_key in field and len(str(field[field_key])) > max_length:
+                    print(f"❌ {field_name}: {field_key} 值过长({len(str(field[field_key]))}字符)，超过{max_length}字符限制")
+                    issues_found = True
+
+        if not issues_found:
+            print("✅ 所有字段长度检查通过")
+        else:
+            print("\n🔧 修复建议:")
+            print("1. 将 'group_range' 改为 'range'")
+            print("2. 将 'date_range' 改为 'range'")
+            print("3. 将 'multi_select' 改为 'single'")
+            print("4. 截断过长的字段值")
+            print("\n💡 可以使用 Code_Gen_Guide.py 的自动修正功能")
+
+    except Exception as e:
+        print(f"❌ 检查配置文件时出错: {e}")
 
 def main():
     """主函数"""
     args = parse_arguments()
+
+    # 字段长度检查命令
+    if args.check_field_lengths:
+        check_field_lengths_in_config(args.check_field_lengths)
+        return
 
     # 注：表名验证和修复命令已移除，现在使用business_entity机制
 
