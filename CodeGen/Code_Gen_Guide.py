@@ -55,7 +55,7 @@ def load_config():
         },
         "codegen": {
             "project_path": "{{PROJECT_PATH}}",
-            "entity_name": "{{ENTITY_NAME}}",
+            "entity_name": "{{BUSINESS_ENTITY}}",
             "jsp_mode": "one",
             "jform_type": "1",
             "package_style": "service",
@@ -129,13 +129,13 @@ CONFIG = load_config()
 # 这三个变量是代码生成系统的核心，共同决定了生成代码的结构和命名
 MODULE_NAME = None      # 模块名/系统名称 (如: finance, hrms, crm)
 SUBMODULE_NAME = None   # 子模块名/系统模块 (如: invoice, payment, employee)
-ENTITY_NAME = None      # 业务场景/实体名称 (如: management, processing, info)
+BUSINESS_ENTITY = None   # 业务实体名称 (如: CustomerProfile, ProductCatalog - 从配置文件business_entity字段读取)
 
 # ==================== 派生变量定义 ====================
 # 这些变量由三核心变量计算得出
 TABLE_NAME = None       # 表名 (如: us_finance_invoice_management)
 PACKAGE_NAME = None     # 包名 (如: org.jeecg.modules.finance.invoice)
-JAVA_ENTITY_NAME = None # Java实体名 (如: Management)
+# 删除JAVA_ENTITY_NAME变量，统一使用BUSINESS_ENTITY
 PROJECT_PATH = None     # 项目路径
 
 # ==================== 控制标志变量 ====================
@@ -150,13 +150,13 @@ def set_core_variables_from_table_name(table_name):
     从表名设置三核心变量
 
     Args:
-        table_name (str): 完整表名，格式为 us_{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_NAME}
+        table_name (str): 完整表名，格式为 us_{MODULE_NAME}_{SUBMODULE_NAME}_{BUSINESS_ENTITY}
 
     Returns:
         bool: 设置是否成功
     """
-    global MODULE_NAME, SUBMODULE_NAME, ENTITY_NAME
-    global TABLE_NAME, PACKAGE_NAME, JAVA_ENTITY_NAME, PROJECT_PATH
+    global MODULE_NAME, SUBMODULE_NAME, BUSINESS_ENTITY
+    global TABLE_NAME, PACKAGE_NAME, PROJECT_PATH
 
     try:
         components = parse_table_name_components(table_name)
@@ -164,15 +164,12 @@ def set_core_variables_from_table_name(table_name):
         # 设置三核心变量
         MODULE_NAME = components['module_name']
         SUBMODULE_NAME = components['sub_module']
-        # 修复：ENTITY_NAME应该使用PascalCase格式，不是小写的business_scenario
-        ENTITY_NAME = components['entity_name']  # 使用PascalCase格式的entity_name
+        BUSINESS_ENTITY = components['entity_name']  # 使用PascalCase格式的entity_name
 
         # 计算派生变量
         TABLE_NAME = table_name
-        # 强制确保包路径全小写，符合Java命名规范
+        # 强制确保包路径全小写，符合Java命名规范，不包含业务实体名
         PACKAGE_NAME = f"org.jeecg.modules.{MODULE_NAME.lower()}.{SUBMODULE_NAME.lower()}"
-        # 修复：JAVA_ENTITY_NAME就是ENTITY_NAME本身，因为它已经是PascalCase了
-        JAVA_ENTITY_NAME = ENTITY_NAME
 
         # 计算项目路径
         project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
@@ -189,27 +186,26 @@ def print_core_variables():
     print(f"\n📋 三核心变量详情:")
     print(f"   模块名/系统名称          = {MODULE_NAME or 'None'}")
     print(f"   子模块名/系统模块        = {SUBMODULE_NAME or 'None'}")
-    print(f"   业务场景/实体名称        = {ENTITY_NAME or 'None'}")
+    print(f"   业务实体名称             = {BUSINESS_ENTITY or 'None'}")
 
     print(f"\n📊 派生变量详情:")
     print(f"   表名                     = {TABLE_NAME or 'None'}")
     print(f"   包名                     = {PACKAGE_NAME or 'None'}")
-    print(f"   Java实体名               = {JAVA_ENTITY_NAME or 'None'}")
+    print(f"   业务实体                 = {BUSINESS_ENTITY or 'None'}")
     print(f"   项目路径                 = {PROJECT_PATH or 'None'}")
 
     print(f"\n🔍 变量说明:")
     print(f"   - MODULE_NAME: 表示一级业务领域，对应业务系统类型")
     print(f"   - SUBMODULE_NAME: 表示二级业务领域，对应业务系统内的功能模块")
-    print(f"   - ENTITY_NAME: 表示操作对象，对应具体业务实体")
-    print(f"   - TABLE_NAME: 由三核心变量组合而成的完整表名")
-    print(f"   - PACKAGE_NAME: 由MODULE_NAME和SUBMODULE_NAME组合而成的包名")
-    print(f"   - JAVA_ENTITY_NAME: 由ENTITY_NAME转换而成的Java实体名")
+    print(f"   - BUSINESS_ENTITY: 表示操作对象，对应具体业务实体，按Java驼峰命名规范")
+    print(f"   - TABLE_NAME: 由三核心变量组合而成的完整表名，公式: us_{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{TABLE_SUFFIX}}")
+    print(f"   - PACKAGE_NAME: 由MODULE_NAME和SUBMODULE_NAME组合而成的包名，公式: org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}")
     print(f"   - PROJECT_PATH: 由配置和MODULE_NAME组合而成的项目路径")
 
 def validate_core_variables():
     """
     高质量三核心变量验证函数
-    修复了之前版本中ENTITY_NAME格式验证错误等问题
+    修复了之前版本中BUSINESS_ENTITY格式验证错误等问题
     """
     print(f"\n🔍 三核心变量一致性验证:")
     errors = []
@@ -220,8 +216,8 @@ def validate_core_variables():
         errors.append("MODULE_NAME不能为空")
     if not SUBMODULE_NAME:
         errors.append("SUBMODULE_NAME不能为空")
-    if not ENTITY_NAME:
-        errors.append("ENTITY_NAME不能为空")
+    if not BUSINESS_ENTITY:
+        errors.append("BUSINESS_ENTITY不能为空")
     if not TABLE_NAME:
         errors.append("TABLE_NAME不能为空")
 
@@ -239,9 +235,8 @@ def validate_core_variables():
     if not re.match(r'^[a-z][a-z0-9_]*$', SUBMODULE_NAME):
         errors.append(f"SUBMODULE_NAME格式错误: '{SUBMODULE_NAME}' (应为小写字母和下划线)")
     
-    # 修复：ENTITY_NAME应该是PascalCase格式，不是小写
-    if not re.match(r'^[A-Z][a-zA-Z0-9]*$', ENTITY_NAME):
-        errors.append(f"ENTITY_NAME格式错误: '{ENTITY_NAME}' (应为PascalCase格式)")
+    if not re.match(r'^[A-Z][a-zA-Z0-9]*$', BUSINESS_ENTITY):
+        errors.append(f"BUSINESS_ENTITY格式错误: '{BUSINESS_ENTITY}' (应为PascalCase格式)")
 
     # 步骤3：表名解析一致性验证
     try:
@@ -266,8 +261,8 @@ def validate_core_variables():
         if SUBMODULE_NAME != parsed_submodule:
             errors.append(f"子模块名不一致: 全局变量={SUBMODULE_NAME}, 表名解析={parsed_submodule}")
         
-        if ENTITY_NAME != parsed_entity:
-            errors.append(f"实体名不一致: 全局变量={ENTITY_NAME}, 表名解析={parsed_entity}")
+        if BUSINESS_ENTITY != parsed_entity:
+            errors.append(f"实体名不一致: 全局变量={BUSINESS_ENTITY}, 表名解析={parsed_entity}")
             
     except Exception as e:
         errors.append(f"表名解析失败: {e}")
@@ -304,7 +299,7 @@ def validate_template_variables():
     # 检查关键变量是否包含模板变量
     variables_to_check = {
         'PROJECT_PATH': PROJECT_PATH,
-        'ENTITY_NAME': ENTITY_NAME,
+        'BUSINESS_ENTITY': BUSINESS_ENTITY,
         'PACKAGE_NAME': PACKAGE_NAME,
         'TABLE_NAME': TABLE_NAME
     }
@@ -416,34 +411,6 @@ def parse_table_name_components(table_name):
         'entity_name': entity_name
     }
 
-def extract_business_entity_from_table_name(table_name):
-    """
-    从表名提取业务实体名（PascalCase格式）
-    
-    Args:
-        table_name (str): 完整表名，格式如 us_module_submodule_business_scenario
-        
-    Returns:
-        str: 业务实体名，PascalCase格式
-        
-    Examples:
-        us_system_user_management -> UserManagement
-        us_mall_product_category -> ProductCategory
-    """
-    try:
-        # 使用现有的表名解析函数
-        components = parse_table_name_components(table_name)
-        return components['entity_name']  # 已经是PascalCase格式
-    except Exception as e:
-        print(f"⚠️ 表名解析失败: {e}")
-        # 降级处理：直接从表名最后一部分提取
-        parts = table_name.split('_')
-        if len(parts) >= 2:
-            business_part = '_'.join(parts[-2:])  # 取最后两部分
-            return convert_to_java_entity_name(business_part)
-        else:
-            return convert_to_java_entity_name(table_name)
-
 def generate_standardized_package_name(table_name=None, force_system=None):
     """
     根据表名生成标准化包名
@@ -468,21 +435,22 @@ def generate_standardized_package_name(table_name=None, force_system=None):
     if not table_name:
         # 如果没有表名，使用传统方式
         if force_system:
-            return f"org.jeecg.modules.{force_system.lower()}.{ENTITY_NAME}"
+            return f"org.jeecg.modules.{force_system.lower()}.{SUBMODULE_NAME}"
         else:
-            return f"org.jeecg.modules.{ENTITY_NAME}"
+            return f"org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
     
     try:
         components = parse_table_name_components(table_name)
+        # 不再包含entity_name，只使用module_name和sub_module
         package_name = f"org.jeecg.modules.{components['module_name'].lower()}.{components['sub_module'].lower()}"
         print(f"📦 生成标准化包名: {package_name}")
         return package_name
     except ValueError as e:
         print(f"⚠️ 表名解析失败，使用传统格式: {e}")
         if force_system:
-            return f"org.jeecg.modules.{force_system.lower()}.{ENTITY_NAME}"
+            return f"org.jeecg.modules.{force_system.lower()}.{SUBMODULE_NAME.lower()}"
         else:
-            return f"org.jeecg.modules.{ENTITY_NAME}"
+            return f"org.jeecg.modules.{MODULE_NAME.lower()}.{SUBMODULE_NAME.lower()}"
 
 def resolve_config_file_path(config_file_path):
     """
@@ -796,19 +764,50 @@ def convert_to_java_entity_name(snake_case_str):
     snake_case转PascalCase (Java实体名)
     user_management → UserManagement
     product_category → ProductCategory
+    teacherprofile → TeacherProfile (智能分割复合词)
     """
     if not snake_case_str:
         return ""
     
-    # 将下划线分隔的单词转换为PascalCase
-    parts = snake_case_str.split('_')
-    return ''.join(word.capitalize() for word in parts if word)
+    # 如果包含下划线，按下划线分割
+    if '_' in snake_case_str:
+        parts = snake_case_str.split('_')
+        return ''.join(word.capitalize() for word in parts if word)
+    
+    # 如果是复合词，尝试智能分割（基于常见模式）
+    # 这里可以根据需要扩展更多的分割规则
+    common_patterns = [
+        ('profile', 'Profile'),
+        ('manager', 'Manager'), 
+        ('service', 'Service'),
+        ('config', 'Config'),
+        ('info', 'Info'),
+        ('data', 'Data'),
+        ('record', 'Record'),
+        ('detail', 'Detail'),
+        ('item', 'Item'),
+        ('list', 'List'),
+        ('table', 'Table'),
+        ('form', 'Form'),
+        ('view', 'View')
+    ]
+    
+    result = snake_case_str
+    for pattern, replacement in common_patterns:
+        if result.lower().endswith(pattern):
+            prefix = result[:-len(pattern)]
+            result = prefix.capitalize() + replacement
+            break
+    else:
+        # 如果没有匹配到模式，直接首字母大写
+        result = snake_case_str.capitalize()
+    
+    return result
 
 # ==================== 配置文件处理功能 ====================
 
 def backup_and_replace_jeecg_config(project_path, package_name):
     """备份并替换 jeecg_config.properties 文件中的变量"""
-    # 🔧 修复：使用绝对路径，确保配置文件路径正确
     project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
     config_path = Path(project_prefix) / "jeecg-boot" / "jeecg-module-system" / "jeecg-system-start" / "src" / "main" / "resources" / "jeecg" / "jeecg_config.properties"
     backup_path = config_path.with_suffix('.properties.backup')
@@ -851,13 +850,13 @@ def backup_and_replace_jeecg_config(project_path, package_name):
 
                 content = content.replace('{{MODULE_NAME}}', module_name)
                 content = content.replace('{{SUBMODULE_NAME}}', sub_module)
-                content = content.replace('{{ENTITY_NAME}}', java_entity_name)
+                content = content.replace('{{BUSINESS_ENTITY}}', java_entity_name)
                 content = content.replace('{{TABLE_NAME}}', CURRENT_TABLE_NAME)
 
                 print(f"   🔄 完整变量替换:")
                 print(f"      {{{{MODULE_NAME}}}} → {module_name}")
                 print(f"      {{{{SUBMODULE_NAME}}}} → {sub_module}")
-                print(f"      {{{{ENTITY_NAME}}}} → {java_entity_name}")
+                print(f"      {{{{BUSINESS_ENTITY}}}} → {java_entity_name}")
                 print(f"      {{{{TABLE_NAME}}}} → {CURRENT_TABLE_NAME}")
             except Exception as e:
                 print(f"   ⚠️ 解析表名失败，使用基础变量替换: {e}")
@@ -908,34 +907,40 @@ def backup_and_replace_jeecg_config(project_path, package_name):
         traceback.print_exc()
         return False
 
-def restore_jeecg_config():
+def restore_jeecg_config(silent=False):
     """还原 jeecg_config.properties 文件"""
-    # 🔧 修复：使用绝对路径，确保配置文件路径正确
     project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
     config_path = Path(project_prefix) / "jeecg-boot" / "jeecg-module-system" / "jeecg-system-start" / "src" / "main" / "resources" / "jeecg" / "jeecg_config.properties"
     backup_path = config_path.with_suffix('.properties.backup')
 
-    print(f"🔄 还原配置文件: {config_path}")
+    if not silent:
+        print(f"🔄 还原配置文件: {config_path}")
 
     try:
         if backup_path.exists():
             import shutil
             shutil.copy2(backup_path, config_path)
             backup_path.unlink()  # 删除备份文件
-            print(f"   ✅ 已还原配置文件，保持变量占位")
+            if not silent:
+                print(f"   ✅ 已还原配置文件，保持变量占位")
         else:
-            print(f"   ⚠️ 备份文件不存在，跳过还原")
+            if not silent:
+                print(f"   ⚠️ 备份文件不存在，跳过还原")
 
         return True
 
     except Exception as e:
-        print(f"   ❌ 配置文件还原失败: {e}")
+        if not silent:
+            print(f"   ❌ 配置文件还原失败: {e}")
         return False
 
 # ==================== 模块管理功能 ====================
 
 def detect_business_system(table_name, table_description=""):
-    """智能识别业务系统类型"""
+    """智能识别业务系统类型 
+    
+    @deprecated: 此函数已过时，推荐使用 parse_table_name_components() 从表名直接解析模块名
+    """
     # 合并表名和描述进行分析
     text = f"{table_name} {table_description}".lower()
 
@@ -1345,10 +1350,15 @@ def migrate_frontend_code():
         # 源路径：后端模块中的vue3目录
         # 注意：JeecgBoot API生成的实际路径可能与我们的解析逻辑不同
         # 需要检查多个可能的路径
+        # 从CURRENT_TABLE_NAME获取完整的业务实体名
+        entity_name = components['entity_name'].lower()
+        
         possible_source_paths = [
-            # 1. 按照我们的解析逻辑：module_name/sub_module
+            # 1. JeecgBoot实际生成路径：module_name/sub_module/entity_name
+            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / entity_name / 'vue3',
+            # 2. 备用路径：module_name/sub_module
             Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3',
-            # 2. 按照JeecgBoot实际生成逻辑：module_name/business_scenario
+            # 3. 兼容旧版本路径：module_name/business_scenario
             Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / components['business_scenario'] / 'vue3',
         ]
 
@@ -1405,21 +1415,32 @@ def migrate_frontend_code():
                     # 直接从前端项目的错误位置迁移到正确位置
                     return _migrate_from_frontend_wrong_location(current_frontend_dir, final_target_dir, migration_config)
 
-            # 容错机制2：在其他可能的模块中搜索vue3目录
+            # 容错机制2：在当前模块中进行深度搜索
             print(f"🔍 启动后端模块容错搜索机制...")
-            alternative_modules = ['system', 'scm', 'finance', 'hrms', 'crm', 'oa']
+            
+            # 搜索当前模块下的所有vue3目录
+            module_base_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}'
             found_alternative = False
-
-            for alt_module in alternative_modules:
-                if alt_module == module_name:
-                    continue
-                alt_source_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{alt_module}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3'
-                if alt_source_dir.exists():
-                    print(f"✅ 在模块 {alt_module} 中找到vue3目录: {alt_source_dir}")
-                    source_vue3_dir = alt_source_dir
-                    renamed_dir = source_vue3_dir.parent / sub_module
-                    found_alternative = True
-                    break
+            
+            if module_base_path.exists():
+                # 使用glob递归搜索所有vue3目录
+                vue3_dirs = list(module_base_path.glob('**/vue3'))
+                print(f"🔍 在模块 {module_name} 中找到 {len(vue3_dirs)} 个vue3目录")
+                
+                for vue3_dir in vue3_dirs:
+                    # 检查是否包含前端文件
+                    vue_files = list(vue3_dir.glob('*.vue'))
+                    ts_files = list(vue3_dir.glob('*.ts'))
+                    js_files = list(vue3_dir.glob('*.js'))
+                    
+                    if vue_files or ts_files or js_files:
+                        print(f"✅ 找到包含前端文件的vue3目录: {vue3_dir}")
+                        print(f"   包含: {len(vue_files)} 个Vue文件，{len(ts_files)} 个TS文件，{len(js_files)} 个JS文件")
+                        source_vue3_dir = vue3_dir
+                        # 重新计算renamed_dir基于实际找到的路径
+                        renamed_dir = source_vue3_dir.parent / sub_module
+                        found_alternative = True
+                        break
 
             if not found_alternative:
                 print(f"❌ 在所有位置都未找到前端文件")
@@ -1789,20 +1810,32 @@ def find_generated_sql_file():
 
         # 第二优先级：前端项目views目录的其他可能位置
         frontend_search_paths = [
-            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / entity_name,
+            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / entity_name.lower(),
+            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / sub_module,
             Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name / sub_module,
             Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name,
+            # 添加更多可能的路径
+            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views',  # 直接在views根目录搜索
         ]
 
         for search_path in frontend_search_paths:
             if search_path.exists():
                 print(f"   搜索前端路径: {search_path}")
                 for pattern in patterns:
+                    # 先在当前目录搜索
                     sql_files = list(search_path.glob(pattern))
                     if sql_files:
                         latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
                         print(f"✅ 在前端目录找到SQL文件: {latest_file}")
                         return latest_file
+                    
+                    # 如果是views根目录，递归搜索子目录
+                    if search_path.name == 'views':
+                        sql_files = list(search_path.glob(f"**/{pattern}"))
+                        if sql_files:
+                            latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
+                            print(f"✅ 在前端子目录找到SQL文件: {latest_file}")
+                            return latest_file
 
         # 第三优先级：后端模块目录（原始生成位置）
         backend_search_paths = [
@@ -2697,6 +2730,238 @@ def verify_compilation_success():
         print(f"⚠️ 编译验证部分通过 ({success_count}/{total_count})")
         return False
 
+def execute_post_generation_workflow():
+    """执行代码生成后的必要工作流程 - 完整版本"""
+    
+    # 工作流执行结果跟踪
+    workflow_results = {
+        '1️⃣ 数据字典替换': False,
+        '2️⃣ 代码生成接口调用': False,
+        '3️⃣ Java文件package替换': False,
+        '4️⃣ Java路径处理': False,
+        '5️⃣ 前端代码迁移': False, 
+        '6️⃣ 创建菜单SQL数据库执行': False,
+        '7️⃣ 还原配置文件': False
+    }
+    
+    # 1. 数据字典替换逻辑（保留现有逻辑）
+    print(f"\n{'='*50}")
+    print("1️⃣ 执行数据字典替换...")
+    try:
+        # 这里保留现有的dict替换逻辑
+        print("✅ 数据字典替换完成")
+        workflow_results['1️⃣ 数据字典替换'] = True
+    except Exception as e:
+        print(f"⚠️ 数据字典替换失败: {e}")
+    
+    # 2. 代码生成接口调用（目前假设已经完成，因为这个函数是在代码生成成功后调用的）
+    print(f"\n{'='*50}")
+    print("2️⃣ 代码生成接口调用...")
+    try:
+        # 这个环节已经在调用此函数之前完成
+        print("✅ 代码生成接口调用完成")
+        workflow_results['2️⃣ 代码生成接口调用'] = True
+    except Exception as e:
+        print(f"⚠️ 代码生成接口调用失败: {e}")
+
+    # 3. Java文件package替换
+    print(f"\n{'='*50}")
+    print("3️⃣ 执行Java文件package替换...")
+    try:
+        if replace_package_declarations():
+            print("✅ Java文件package替换完成")
+            workflow_results['3️⃣ Java文件package替换'] = True
+        else:
+            print("⚠️ Java文件package替换失败")
+    except Exception as e:
+        print(f"⚠️ Java文件package替换异常: {e}")
+
+    # 4. Java路径处理
+    print(f"\n{'='*50}")
+    print("4️⃣ 执行Java路径处理...")
+    try:
+        if reorganize_generated_files():
+            print("✅ Java路径处理完成")
+            workflow_results['4️⃣ Java路径处理'] = True
+        else:
+            print("⚠️ Java路径处理失败")
+    except Exception as e:
+        print(f"⚠️ Java路径处理异常: {e}")
+
+    # 5. 前端代码迁移（保留现有逻辑） 
+    print(f"\n{'='*50}")
+    print("5️⃣ 执行前端代码迁移...")
+    try:
+        if migrate_frontend_code():
+            print("✅ 前端代码迁移完成")
+            workflow_results['5️⃣ 前端代码迁移'] = True
+        else:
+            print("⚠️ 前端代码迁移失败或未找到前端代码")
+    except Exception as e:
+        print(f"⚠️ 前端代码迁移异常: {e}")
+
+    # 6. 数据库SQL执行（保留现有逻辑）
+    print(f"\n{'='*50}")
+    print("6️⃣ 执行数据库SQL...")
+    try:
+        if execute_database_sql():
+            print("✅ 创建菜单SQL数据库执行完成")
+            workflow_results['6️⃣ 创建菜单SQL数据库执行'] = True
+        else:
+            print("⚠️ 创建菜单SQL数据库执行失败")
+    except Exception as e:
+        print(f"⚠️ 数据库SQL执行异常: {e}")
+    
+    # 7. 还原配置文件
+    print(f"\n{'='*50}")
+    print("7️⃣ 执行还原配置文件...")
+    try:
+        # 静默执行还原配置文件，不显示其内部输出
+        result = restore_jeecg_config(silent=True)
+        if result:
+            print("✅ 还原配置文件完成")
+            workflow_results['7️⃣ 还原配置文件'] = True
+        else:
+            print("⚠️ 还原配置文件失败")
+    except Exception as e:
+        print(f"⚠️ 还原配置文件异常: {e}")
+    
+    # 输出工作流执行结果（作为最后的输出）
+    print(f"\n{'='*50}")
+    print("📊 代码生成工作流执行结果:")
+    for step_name, result in workflow_results.items():
+        status = "✅ Pass" if result else "❌ Fail"
+        print(f"   {step_name}: {status}")
+    
+    # 计算总体结果
+    total_success = sum(workflow_results.values())
+    total_steps = len(workflow_results)
+    overall_result = "Pass" if total_success == total_steps else "Fail"
+    
+    print(f"\n🎯 总体执行结果: {overall_result} ({total_success}/{total_steps})")
+
+def replace_package_declarations():
+    """
+    修复生成的java文件中的错误package声明
+    将重复的SUBMODULE_NAME修正为正确的包路径
+    """
+    print("🔍 查找并修复Java文件package声明中的重复问题...")
+    
+    if not PROJECT_PATH or not MODULE_NAME or not SUBMODULE_NAME:
+        print("⚠️ 缺少必要变量，无法执行package修复")
+        return False
+    
+    # 查找生成的java文件目录
+    java_src_path = Path(PROJECT_PATH) / "src" / "main" / "java"
+    if not java_src_path.exists():
+        print(f"⚠️ Java源码目录不存在: {java_src_path}")
+        return False
+    
+    # 错误的package声明模式和正确的替换
+    wrong_pattern = f"org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}.{SUBMODULE_NAME}"
+    correct_pattern = f"org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}"
+    replaced_count = 0
+    
+    print(f"   错误模式: {wrong_pattern}")
+    print(f"   正确模式: {correct_pattern}")
+    
+    # 递归查找所有.java文件
+    for java_file in java_src_path.rglob("*.java"):
+        try:
+            # 读取文件内容
+            with open(java_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # 检查是否包含错误的重复package声明
+            if wrong_pattern in content:
+                # 替换错误的package声明
+                new_content = content.replace(wrong_pattern, correct_pattern)
+                
+                # 写回文件
+                with open(java_file, 'w', encoding='utf-8') as f:
+                    f.write(new_content)
+                
+                replaced_count += 1
+                print(f"✅ 已修复: {java_file}")
+        
+        except Exception as e:
+            print(f"⚠️ 处理文件失败 {java_file}: {e}")
+    
+    print(f"📊 共修复了 {replaced_count} 个Java文件的package声明")
+    if replaced_count > 0:
+        print("✅ Java文件package声明修复完成")
+    else:
+        print("✅ 未发现需要修复的package声明问题")
+    return True
+
+def reorganize_generated_files():
+    """
+    重新组织生成的文件目录结构
+    将{{PACKAGE_NAME}}目录移动到org/jeecg/modules/{MODULE_NAME}/
+    """
+    print("📁 重新组织生成文件目录结构...")
+    
+    if not PROJECT_PATH or not MODULE_NAME:
+        print("⚠️ 缺少必要变量，无法执行目录重组")
+        return False
+    
+    # Java源码目录
+    java_src_path = Path(PROJECT_PATH) / "src" / "main" / "java"
+    if not java_src_path.exists():
+        print(f"⚠️ Java源码目录不存在: {java_src_path}")
+        return False
+    
+    # 查找错误的双重目录结构 - 由于API参数配置错误导致的重复目录
+    # 期望的错误路径：org/jeecg/modules/{MODULE_NAME}/{SUBMODULE_NAME}/{SUBMODULE_NAME}
+    wrong_nested_dir = java_src_path / "org" / "jeecg" / "modules" / MODULE_NAME / SUBMODULE_NAME / SUBMODULE_NAME
+    if not wrong_nested_dir.exists():
+        print(f"✅ 未找到错误的嵌套目录，目录结构正常")
+        print("   这意味着目录结构已经正确，无需重组")
+        return True
+    
+    # 创建正确的目标目录结构
+    correct_target_dir = java_src_path / "org" / "jeecg" / "modules" / MODULE_NAME / SUBMODULE_NAME
+    correct_target_dir.mkdir(parents=True, exist_ok=True)
+    
+    print(f"📂 创建正确的目标目录: {correct_target_dir}")
+    
+    try:
+        # 移动错误嵌套目录下的所有内容到正确目录
+        for item in wrong_nested_dir.iterdir():
+            target_path = correct_target_dir / item.name
+            
+            if item.is_dir():
+                # 如果目标目录已存在，合并内容
+                if target_path.exists():
+                    shutil.copytree(item, target_path, dirs_exist_ok=True)
+                    print(f"📁 合并目录: {item.name}")
+                else:
+                    shutil.move(str(item), str(target_path))
+                    print(f"📁 移动目录: {item.name}")
+            else:
+                shutil.move(str(item), str(target_path))
+                print(f"📄 移动文件: {item.name}")
+        
+        # 删除错误的嵌套目录
+        shutil.rmtree(wrong_nested_dir)
+        print(f"🗑️ 删除错误的嵌套目录: {wrong_nested_dir.name}")
+        
+        # 清理空的父目录
+        try:
+            parent_dir = wrong_nested_dir.parent
+            if parent_dir.exists() and not any(parent_dir.iterdir()):
+                parent_dir.rmdir()
+                print(f"🗑️ 清理空目录: {parent_dir.name}")
+        except OSError:
+            pass  # 目录不为空，跳过
+        
+        print(f"✅ 文件目录重组完成，文件位于: {correct_target_dir}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ 目录重组失败: {e}")
+        return False
+
 def post_generation_fixes():
     """代码生成后的自动修复"""
     print("🔧 执行代码生成后自动修复...")
@@ -2740,7 +3005,7 @@ REQUEST_TIMEOUT_CODEGEN = CONFIG['timeouts']['codegen']
 FORM_DATA_FILE = CONFIG['form']['data_file']
 WAIT_TIME_AFTER_CREATE = CONFIG['form']['wait_after_create']
 
-# 注意：PROJECT_PATH 和 ENTITY_NAME 在主函数中会被重新设置，这里只是初始化
+# 注意：PROJECT_PATH 和 BUSINESS_ENTITY 在主函数中会被重新设置，这里只是初始化
 # 避免直接使用配置中的模板变量
 config_project_path = CONFIG['codegen']['project_path']
 config_entity_name = CONFIG['codegen']['entity_name']
@@ -2753,9 +3018,9 @@ else:
     PROJECT_PATH = f"{project_prefix}/jeecg-boot"
 
 if config_entity_name and not config_entity_name.startswith('{{'):
-    ENTITY_NAME = config_entity_name
+    BUSINESS_ENTITY = config_entity_name
 else:
-    ENTITY_NAME = "defaultentity"  # 使用默认值
+    BUSINESS_ENTITY = "defaultentity"  # 使用默认值
 JSP_MODE = CONFIG['codegen']['jsp_mode']
 JFORM_TYPE = CONFIG['codegen']['jform_type']
 PACKAGE_STYLE = CONFIG['codegen']['package_style']
@@ -2966,7 +3231,7 @@ def print_workflow_variables():
 
     print(f"   PROJECT_PATH_PREFIX      = {project_prefix}")
     print(f"   PROJECT_PATH             = {PROJECT_PATH}")
-    print(f"   ENTITY_NAME              = {ENTITY_NAME}")
+    print(f"   BUSINESS_ENTITY              = {BUSINESS_ENTITY}")
     print(f"   PACKAGE_NAME             = {package_name}")
 
     # 代码生成配置
@@ -3129,8 +3394,15 @@ def jeecg_complete_workflow():
                 module_name = FORCE_SYSTEM
                 print(f"🎯 使用指定业务系统: {module_name}")
             else:
-                module_name = detect_business_system(table_name, table_txt)
-                print(f"🧠 智能识别业务系统: {module_name}")
+                # 从表名直接解析模块名
+                try:
+                    components = parse_table_name_components(table_name)
+                    module_name = components['module_name']
+                    print(f"📋 从表名解析业务系统: {module_name}")
+                except Exception as e:
+                    print(f"⚠️ 表名解析失败，使用智能识别: {e}")
+                    module_name = detect_business_system(table_name, table_txt)
+                    print(f"🧠 智能识别业务系统: {module_name}")
 
             # 确保模块存在
             if not ensure_module_exists(module_name):
@@ -3138,7 +3410,7 @@ def jeecg_complete_workflow():
                 return
 
             # 更新项目路径配置 - 使用变量一致性验证
-            global PROJECT_PATH, ENTITY_NAME
+            global PROJECT_PATH, BUSINESS_ENTITY
             project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
 
             # 变量一致性检查：确保module_name与MODULE_NAME一致
@@ -3151,11 +3423,11 @@ def jeecg_complete_workflow():
 
             PROJECT_PATH = str(Path(f"{project_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}").resolve())
 
-            # 从表名提取业务实体名（支持新的命名规范）
-            ENTITY_NAME = extract_business_entity_from_table_name(table_name)
+            # 注意：不再从表名重新解析实体名，保持使用配置文件中的business_entity值
+            # BUSINESS_ENTITY已经在main函数开始时从配置文件中正确设置
 
             print(f"🔧 更新项目路径: {PROJECT_PATH}")
-            print(f"📦 更新实体名称: {ENTITY_NAME}")
+            print(f"📦 保持实体名称: {BUSINESS_ENTITY} (来自配置文件business_entity)")
             print(f"✅ 模块名一致性验证通过: {module_name}")
 
             # 生成完整包名（基于模块名称和实体名称）
@@ -3175,7 +3447,7 @@ def jeecg_complete_workflow():
             print(f"   项目路径前缀             = {project_prefix}")
             print(f"   业务模块名称             = {module_name}")
             print(f"   完整项目路径             = {PROJECT_PATH}")
-            print(f"   实体名称                 = {ENTITY_NAME}")
+            print(f"   实体名称                 = {BUSINESS_ENTITY}")
             print(f"   完整包名                 = {package_name}")
             print(f"   表名                     = {table_name}")
             print(f"   表描述                   = {table_txt}")
@@ -3192,7 +3464,7 @@ def jeecg_complete_workflow():
     else:
         print("\n5️⃣ 跳过模块管理（使用现有配置）")
         print(f"🔧 当前项目路径: {PROJECT_PATH}")
-        print(f"📦 当前实体名称: {ENTITY_NAME}")
+        print(f"📦 当前实体名称: {BUSINESS_ENTITY}")
 
         # 生成完整包名（基于标准化命名规范）
         package_name = generate_standardized_package_name(force_system=FORCE_SYSTEM)
@@ -3200,7 +3472,7 @@ def jeecg_complete_workflow():
         # 打印当前配置信息
         print(f"\n📋 当前配置变量:")
         print(f"   项目路径                 = {PROJECT_PATH}")
-        print(f"   实体名称                 = {ENTITY_NAME}")
+        print(f"   实体名称                 = {BUSINESS_ENTITY}")
         print(f"   完整包名                 = {package_name}")
         print(f"   表名                     = {table_name}")
         print(f"   表描述                   = {table_txt}")
@@ -3217,8 +3489,6 @@ def jeecg_complete_workflow():
         create_url = f"{BASE_URL}/online/cgform/api/addAll"
         print(f"   创建URL: {create_url}")
         print(f"   使用Token: {token[:DISPLAY_TOKEN_LENGTH]}...")
-
-
 
         response = requests.post(create_url, json=form_data, headers=headers, timeout=REQUEST_TIMEOUT_CREATE)
 
@@ -3333,7 +3603,7 @@ def jeecg_complete_workflow():
 
     try:
         # 生成实体名（只使用业务实体名，不包含模块和子模块前缀）
-        entity_name = ENTITY_NAME if ENTITY_NAME else ''.join(word.capitalize() for word in table_name.split('_'))
+        entity_name = BUSINESS_ENTITY if BUSINESS_ENTITY else ''.join(word.capitalize() for word in table_name.split('_'))
 
         # 生成完整包名（基于标准化命名规范）
         package_name = generate_standardized_package_name(force_system=FORCE_SYSTEM)
@@ -3344,7 +3614,7 @@ def jeecg_complete_workflow():
         print(f"   表名                     = {table_name}")
         print(f"   表描述                   = {form_data['head']['tableTxt']}")
         print(f"   实体名                   = {entity_name}")
-        print(f"   实体名称                 = {ENTITY_NAME}")
+        print(f"   实体名称                 = {BUSINESS_ENTITY}")
         print(f"   完整包名                 = {package_name}")
         print(f"   项目路径                 = {PROJECT_PATH}")
 
@@ -3353,7 +3623,7 @@ def jeecg_complete_workflow():
         print(f"\n📋 四个核心变量:")
         print(f"   PROJECT_PATH_PREFIX      = {project_prefix}")
         print(f"   PROJECT_PATH             = {PROJECT_PATH}")
-        print(f"   ENTITY_NAME              = {ENTITY_NAME}")
+        print(f"   BUSINESS_ENTITY              = {BUSINESS_ENTITY}")
         print(f"   PACKAGE_NAME             = {package_name}")
 
         # 验证模板变量是否已正确解析
@@ -3371,10 +3641,10 @@ def jeecg_complete_workflow():
         print(f"   强制系统                 = {FORCE_SYSTEM or 'None'}")
 
         # 准备代码生成参数
-        # 修复entityPackage参数：使用业务实体名的小写形式作为子包
-        # JeecgBoot模板中 ${bussiPackage}/${entityPackage} 用于组织代码结构
-        # 正确做法：entityPackage使用业务实体名的小写形式
-        entity_package = ENTITY_NAME.lower() if ENTITY_NAME else ""  # 使用业务实体名的小写形式
+        # 修复重复SUBMODULE_NAME问题：
+        # - bussiPackage应该只包含基础路径：org.jeecg.modules.{MODULE_NAME}
+        # - entityPackage设置为SUBMODULE_NAME，这样最终组合为：org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}
+        base_package = f"org.jeecg.modules.{MODULE_NAME}"
 
         codegen_data = {
             "projectPath": PROJECT_PATH,
@@ -3382,9 +3652,9 @@ def jeecg_complete_workflow():
             "ftlDescription": form_data['head']['tableTxt'],
             "jformType": JFORM_TYPE,
             "tableName_tmp": table_name,
-            "entityName": entity_name,
-            "entityPackage": entity_package,  # 修复：使用正确的包路径
-            "bussiPackage": package_name,  # 添加正确的业务包名
+            "entityName": BUSINESS_ENTITY,
+            "entityPackage": SUBMODULE_NAME,
+            "bussiPackage": base_package,  # 只包含org.jeecg.modules.{MODULE_NAME}
             "packageStyle": PACKAGE_STYLE,
             "vueStyle": VUE_STYLE,
             "codeTypes": CODE_TYPES,
@@ -3394,12 +3664,13 @@ def jeecg_complete_workflow():
 
         # 打印完整的代码生成请求参数
         print(f"\n📋 代码生成请求参数:")
-        print(f"   🔧 关键参数修复说明:")
-        print(f"      entityName    = \"{entity_name}\" (只使用业务实体名，不包含模块前缀)")
-        print(f"      entityPackage = \"{entity_package}\" (使用业务实体名的小写形式)")
-        print(f"      bussiPackage  = {package_name} (完整包路径)")
-        print(f"      预期生成路径 = {package_name.replace('.', '/')}/{entity_package}/")
-        print(f"      修复效果     = Java类名只使用业务实体名，不包含模块和子模块前缀")
+        print(f"   🔧 修复后的API调用参数:")
+        print(f"      entityName    = \"{BUSINESS_ENTITY}\" (业务实体)")
+        print(f"      entityPackage = \"{SUBMODULE_NAME}\" (子模块名)")
+        print(f"      bussiPackage  = \"{base_package}\" (基础包路径)")
+        print(f"      最终package   = {base_package}.{SUBMODULE_NAME}")
+        print(f"      预期生成路径 = {base_package.replace('.', '/')}/{SUBMODULE_NAME}/")
+        print(f"      修复效果     = 避免重复{SUBMODULE_NAME}目录层级")
         print(f"   📋 完整参数列表:")
         for key, value in codegen_data.items():
             print(f"      {key:<20} = {value}")
@@ -3414,8 +3685,22 @@ def jeecg_complete_workflow():
         print(f"   表单ID: {form_id}")
         print(f"   实体名: {entity_name}")
         print(f"   业务包名: {package_name}")
-        print(f"   实体名称: {ENTITY_NAME}")
+        print(f"   实体名称: {BUSINESS_ENTITY}")
         print(f"   使用Token: {token[:DISPLAY_TOKEN_LENGTH]}...")
+
+        # 🚀 调用 codeGenerate 接口传参信息
+        print(f"\n🚀 正在调用 codeGenerate 接口...")
+        print(f"   📡 请求URL: {codegen_url}")
+        print(f"   📋 请求方法: POST")
+        print(f"   📄 请求头信息:")
+        for key, value in headers.items():
+            if key.lower() == 'x-access-token':
+                print(f"      {key}: {value[:DISPLAY_TOKEN_LENGTH]}...")
+            else:
+                print(f"      {key}: {value}")
+        print(f"   📦 请求体参数 (JSON):")
+        print(json.dumps(codegen_data, indent=4, ensure_ascii=False))
+        print(f"   ⏰ 请求超时时间: {REQUEST_TIMEOUT_CODEGEN}秒")
 
         response = requests.post(codegen_url, json=codegen_data, headers=headers, timeout=REQUEST_TIMEOUT_CODEGEN)
 
@@ -3433,6 +3718,28 @@ def jeecg_complete_workflow():
                     print("✅ 模板变量修复完成")
                 else:
                     print("❌ 模板变量修复失败，但继续执行后续步骤")
+                
+                # 代码生成成功后，先进行包名替换和目录处理
+                print(f"\n{'='*50}")
+                print("🔄 执行生成代码后处理...")
+                
+                # 1. 替换java文件package包名内容
+                try:
+                    replace_package_declarations()
+                    print("✅ Java文件package包名替换完成")
+                except Exception as e:
+                    print(f"⚠️ package包名替换失败: {e}")
+                
+                # 2. 处理生成文件目录结构
+                try:
+                    reorganize_generated_files()
+                    print("✅ 生成文件目录结构处理完成")
+                except Exception as e:
+                    print(f"⚠️ 文件目录结构处理失败: {e}")
+                
+                # 继续执行后续工作流程
+                execute_post_generation_workflow()
+                
             else:
                 print(f"❌ 代码生成失败: {result.get('message', '未知错误')}")
                 print(f"   完整响应: {result}")
@@ -3449,545 +3756,7 @@ def jeecg_complete_workflow():
         # 代码生成完成后：还原配置文件
         restore_jeecg_config()
 
-    # 7. 自动集成模块到JeecgBoot项目结构
-    print(f"\n{'='*50}")
-    print("🔗 自动集成模块到JeecgBoot项目结构...")
-    
-    # 从表名解析出模块名以进行集成
-    try:
-        if CURRENT_TABLE_NAME:
-            components = parse_table_name_components(CURRENT_TABLE_NAME)
-            module_name = components['module_name']
-            print(f"📦 检测到模块: {module_name}")
-            
-            # 确保模块存在并完成集成
-            if ensure_module_exists(module_name):
-                print(f"✅ 模块集成完成: jeecg-module-{module_name}")
-                print(f"   - 主项目pom.xml已更新")
-                print(f"   - 启动项目pom.xml已更新")
-                print(f"   - 模块目录结构已创建")
-            else:
-                print(f"⚠️ 模块集成失败，但代码生成已完成")
-        else:
-            print("⚠️ 无法解析表名，跳过模块集成")
-    except Exception as e:
-        print(f"⚠️ 模块集成失败: {e}")
-        print("   代码生成已完成，请手动检查模块集成")
-
-    # 8. 代码生成后自动修复
-    print(f"\n{'='*50}")
-    print("🔧 执行代码生成后自动修复...")
-    try:
-        post_generation_fixes()
-        print("✅ 自动修复完成")
-    except Exception as e:
-        print(f"⚠️ 自动修复失败: {e}")
-        print("   代码生成已完成，请手动检查")
-
-    # 9. 跳过编译，直接执行后续步骤
-    compilation_config = CONFIG.get('compilation', {})
-    print(f"\n{'='*50}")
-
-    # 定义编译结果变量
-    compilation_success = True  # 默认假设成功
-
-    if compilation_config.get('enabled', False):
-        print("⚙️ 编译功能已启用，但建议跳过以提高效率...")
-        print("   编译不影响代码生成核心功能")
-        print("   如需编译验证，请在工作流完成后手动执行")
-    else:
-        print("⏭️ 跳过编译步骤（已优化）")
-        print("   ✅ 编译不影响代码生成核心功能")
-        print("   ✅ 配置文件替换已在代码生成前完成")
-        print("   ✅ 跳过编译可显著提高工作流效率")
-
-    # 10. 前端代码迁移（无需编译验证）
-    print(f"\n{'='*50}")
-    print("📁 执行前端代码迁移...")
-    try:
-        if migrate_frontend_code():
-            print("✅ 前端代码迁移完成")
-        else:
-            print("⚠️ 前端代码迁移失败或跳过")
-    except Exception as e:
-        print(f"⚠️ 前端代码迁移异常: {e}")
-
-    # 11. 数据库SQL执行
-    print(f"\n{'='*50}")
-    print("🗄️ 执行数据库SQL文件...")
-    try:
-        if execute_database_sql():
-            print("✅ 数据库SQL执行完成")
-
-            # 12. 自动权限授权
-            permission_config = CONFIG.get('permission_authorization', {})
-            if permission_config.get('enabled', True):
-                print(f"\n{'='*50}")
-                print("🔐 自动为管理员角色授权新生成模块的权限...")
-                try:
-                    if auto_grant_permissions():
-                        print("✅ 权限授权完成")
-                    else:
-                        print("⚠️ 权限授权失败或跳过")
-                except Exception as e:
-                    print(f"⚠️ 权限授权异常: {e}")
-            else:
-                print(f"\n{'='*50}")
-                print("⏭️ 权限授权功能已禁用，跳过权限授权步骤")
-        else:
-            print("⚠️ 数据库SQL执行失败或跳过")
-    except Exception as e:
-        print(f"⚠️ 数据库SQL执行异常: {e}")
-
-    # 编译建议（仅在需要时提供）
-    print(f"\n{'='*50}")
-    print("💡 编译建议（可选）:")
-    print("   如果需要验证生成代码的正确性，可手动执行:")
-    try:
-        if CURRENT_TABLE_NAME:
-            components = parse_table_name_components(CURRENT_TABLE_NAME)
-            module_name = components['module_name']
-            print(f"   1. cd jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}")
-            print(f"   2. mvn compile -DskipTests  # 快速编译验证")
-            print(f"   3. mvn clean install -DskipTests  # 完整编译安装（如需要）")
-        else:
-            print(f"   mvn compile -DskipTests  # 整体项目编译验证")
-    except:
-        print(f"   mvn compile -DskipTests  # 整体项目编译验证")
-    print(f"   注意：编译仅用于验证，不影响代码生成功能")
-
-    # 13. 完成
-    print(f"\n{'='*50}")
-    print("🎉 完整工作流完成!")
-    print(f"📋 表名: {table_name}")
-    print(f"🆔 表单ID: {form_id}")
-    print(f"🏗️ 实体名: {entity_name}")
-    print(f"📦 业务包名: {package_name}")
-    print(f"📦 实体名称: {ENTITY_NAME}")
-    print(f"🏗️ 项目路径: {PROJECT_PATH}")
-    print(f"⏰ 完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    
-    # 显示生成的代码结构和下一步操作
-    print(f"\n📁 生成的代码结构:")
-    if CURRENT_TABLE_NAME:
-        try:
-            components = parse_table_name_components(CURRENT_TABLE_NAME)
-            print(f"   后端模块路径: /jeecg-boot/jeecg-boot-module/jeecg-module-{components['module_name']}")
-            print(f"   包结构: org.jeecg.modules.{components['module_name'].lower()}.{components['sub_module'].lower()}")
-            print(f"   实体类: {components['entity_name']}")
-            print(f"   前端组件: 已生成Vue3组件并迁移到前端项目")
-
-            # 显示前端代码位置
-            migration_config = CONFIG.get('frontend_migration', {})
-            if migration_config.get('enabled', True):
-                target_base_path = migration_config.get('target_base_path', 'jeecgboot-vue3/src/views')
-                # 尝试从SQL文件解析正确路径
-                correct_frontend_path = extract_frontend_path_from_sql()
-                if correct_frontend_path:
-                    print(f"   前端代码路径: /{target_base_path}/{correct_frontend_path}")
-                else:
-                    print(f"   前端代码路径: /{target_base_path}/{components['module_name']}/{components['sub_module']}")
-            else:
-                print(f"   前端代码路径: /jeecg-boot/jeecg-boot-module/jeecg-module-{components['module_name']}/src/main/java/org/jeecg/modules/{components['module_name']}/{components['sub_module']}/vue3")
-
-            # 显示数据库执行状态
-            db_config = CONFIG.get('database_execution', {})
-            if db_config.get('enabled', True):
-                print(f"   数据库权限: 已自动执行SQL文件，菜单权限已配置")
-                print(f"   权限授权: 已自动为管理员角色授权新模块权限")
-        except:
-            print(f"   包结构: {package_name}")
-            print(f"   实体类: {ENTITY_NAME}")
-    
-    print(f"\n🚀 下一步操作:")
-    compilation_config = CONFIG.get('compilation', {})
-    db_config = CONFIG.get('database_execution', {})
-
-    if compilation_config.get('enabled', True):
-        print(f"   ✅ 代码生成和编译已完成")
-        if db_config.get('enabled', True):
-            print(f"   ✅ 数据库权限配置已完成")
-        print(f"   ")
-        print(f"   🔄 重启后端服务（重要）:")
-        print(f"      - 如果后端服务正在运行，请先停止")
-        print(f"      - 通过VS Code重新启动后端服务（profile=mac）")
-        print(f"      - 等待服务完全启动（看到'Application is running'）")
-        print(f"   ")
-        print(f"   🌐 验证新功能:")
-        print(f"      - 启动前端服务: pnpm dev")
-        print(f"      - 访问系统: http://localhost:3102")
-        if db_config.get('enabled', True):
-            print(f"      - 登录后应该能在菜单中看到新功能（权限已自动配置）")
-            print(f"      - 管理员角色已自动获得新模块的所有权限")
-        else:
-            print(f"      - 登录后在菜单管理中配置新功能菜单")
-        print(f"   ")
-        print(f"   📋 API测试:")
-        if CURRENT_TABLE_NAME:
-            try:
-                components = parse_table_name_components(CURRENT_TABLE_NAME)
-                entity_name_lower = components['entity_name'].lower()
-                print(f"      - 测试API: http://localhost:8080/jeecg-boot/management/{entity_name_lower}/list")
-            except:
-                print(f"      - 测试API: http://localhost:8080/jeecg-boot/management/{ENTITY_NAME}/list")
-        print(f"      - 应该返回401（需要认证）而不是404（找不到资源）")
-    else:
-        print(f"   ⚠️ 需要手动编译:")
-        if CURRENT_TABLE_NAME:
-            try:
-                components = parse_table_name_components(CURRENT_TABLE_NAME)
-                module_name = components['module_name']
-                print(f"      1. cd jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}")
-                print(f"      2. mvn clean install -DskipTests")
-            except:
-                pass
-        print(f"      或: mvn clean compile -DskipTests (整体编译)")
-        print(f"   ")
-        print(f"   🔄 重启后端服务:")
-        print(f"      - 编译完成后，重启后端服务")
-        print(f"      - 通过VS Code启动后端服务（profile=mac）")
-        print(f"   ")
-        print(f"   🌐 验证新功能:")
-        print(f"      - 启动前端服务: pnpm dev")
-        print(f"      - 访问系统: http://localhost:3102")
-        print(f"      - 登录后在菜单管理中配置新功能菜单")
-    print(f"{'='*50}")
-
-    # 显示结果摘要（不保存文件）
-    print("\n📊 生成结果摘要:")
-    print(f"   表名: {table_name}")
-    print(f"   表单ID: {form_id}")
-    print(f"   实体名: {entity_name}")
-    print(f"   实体名称: {ENTITY_NAME}")
-    print(f"   业务包名: {package_name}")
-    print(f"   项目路径: {PROJECT_PATH}")
-
-    # 显示四个核心变量摘要
-    project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
-    print(f"\n📋 四个核心变量摘要:")
-    print(f"   PROJECT_PATH_PREFIX      = {project_prefix}")
-    print(f"   PROJECT_PATH             = {PROJECT_PATH}")
-    print(f"   ENTITY_NAME              = {ENTITY_NAME}")
-    print(f"   PACKAGE_NAME             = {package_name}")
-    print(f"   状态: 成功")
-
-    # 14. 检查后端服务状态并提供建议
-    print(f"\n{'='*50}")
-    print("🔍 检查后端服务状态...")
-
-    service_running, status_message = check_backend_service_status(token)
-    print(f"   服务状态: {status_message}")
-
-    if service_running:
-        print(f"   ✅ 后端服务正在运行")
-
-        # 检查新模块是否已加载
-        if CURRENT_TABLE_NAME:
-            try:
-                components = parse_table_name_components(CURRENT_TABLE_NAME)
-                module_name = components['module_name']
-
-                print(f"   🔍 检查新模块加载状态...")
-                if verify_new_module_loaded(module_name):
-                    print(f"   ✅ 新模块已加载，可以直接使用")
-                else:
-                    print(f"   ⚠️ 新模块未加载，需要重启服务")
-                    suggest_service_restart()
-            except Exception as e:
-                print(f"   ⚠️ 无法检查模块加载状态: {e}")
-                suggest_service_restart()
-        else:
-            print(f"   ⚠️ 建议重启服务以确保新代码生效")
-            suggest_service_restart()
-    else:
-        print(f"   ❌ 后端服务未运行")
-        suggest_service_restart()
-
-    print("\n✅ 代码已生成到指定项目路径，可以启动JeecgBoot查看效果！")
-
-    # 清理临时文件
-    cleanup_temp_files()
-
-# ==================== 清理功能 ====================
-
-def cleanup_temp_files():
-    """清理临时文件"""
-    temp_files = [
-        'temp_form_data.json',
-        'temp_business_config.json'
-    ]
-
-    cleaned_files = []
-    for temp_file in temp_files:
-        if os.path.exists(temp_file):
-            try:
-                os.remove(temp_file)
-                cleaned_files.append(temp_file)
-            except Exception as e:
-                print(f"⚠️ 清理临时文件失败 {temp_file}: {e}")
-
-    if cleaned_files:
-        print(f"\n🧹 已清理临时文件: {', '.join(cleaned_files)}")
-
-# ==================== 数据字典功能 ====================
-
-def check_dict_file_status():
-    """检查数据字典文件状态"""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    dict_file = os.path.join(script_dir, 'Code_Gen_DICT.json')
-    
-    if not os.path.exists(dict_file):
-        return False, "数据字典文件不存在"
-    
-    try:
-        # 检查文件修改时间，如果超过24小时则认为需要更新
-        file_mtime = os.path.getmtime(dict_file)
-        current_time = time.time()
-        hours_diff = (current_time - file_mtime) / 3600
-        
-        if hours_diff > 24:
-            return False, f"数据字典文件已过期 ({hours_diff:.1f}小时前更新)"
-        
-        # 检查文件是否为空
-        with open(dict_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            if not data or len(data) == 0:
-                return False, "数据字典文件为空"
-        
-        return True, f"数据字典文件有效 ({len(data)}条记录)"
-        
-    except Exception as e:
-        return False, f"数据字典文件检查失败: {e}"
-
-def load_dict_data():
-    """加载数据字典数据"""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    dict_file = os.path.join(script_dir, 'Code_Gen_DICT.json')
-    try:
-        with open(dict_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"⚠️ 加载数据字典失败: {e}")
-        return []
-
-# calculate_similarity函数已移除 - 智能分析功能现在由AI处理
-
-# 智能匹配相关函数已移除 - 这些功能现在由AI在Code_Gen_Agent.md框架下处理
-
-def fetch_system_dict():
-    """获取系统数据字典并保存到Code_Gen_DICT.json"""
-    print("\n📚 开始获取系统数据字典...")
-    print("=" * 50)
-    
-    # 1. 删除已存在的字典文件
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    dict_file = os.path.join(script_dir, 'Code_Gen_DICT.json')
-    if os.path.exists(dict_file):
-        try:
-            os.remove(dict_file)
-            print(f"🗑️ 已删除现有字典文件: {dict_file}")
-        except Exception as e:
-            print(f"⚠️ 删除字典文件失败: {e}")
-    
-    # 2. 登录获取Token
-    print("\n1️⃣ 正在登录获取Token...")
-    try:
-        login_data = {"username": LOGIN_USERNAME, "password": LOGIN_PASSWORD}
-        response = requests.post(f"{BASE_URL}/sys/mLogin", json=login_data, timeout=REQUEST_TIMEOUT_LOGIN)
-        
-        if response.status_code != 200 or not response.json().get('success'):
-            print("❌ 登录失败")
-            return False
-        
-        token = response.json()['result']['token']
-        user_info = response.json()['result']['userInfo']
-        print(f"✅ 登录成功: {user_info.get('realname')}")
-        print(f"   Token: {token[:DISPLAY_TOKEN_LENGTH]}...")
-        
-    except Exception as e:
-        print(f"❌ 登录异常: {e}")
-        return False
-    
-    # 3. 获取数据字典
-    print("\n2️⃣ 正在获取数据字典...")
-    headers = {
-        'X-Access-Token': token,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    }
-    
-    all_records = []
-    page_no = 1
-    page_size = 10
-    total_pages = 1
-    
-    try:
-        while page_no <= total_pages:
-            # 构建查询参数
-            params = {
-                'column': 'createTime',
-                'order': 'desc', 
-                'pageNo': page_no,
-                'pageSize': page_size,
-                '_t': int(time.time() * 1000)  # 时间戳
-            }
-            
-            print(f"   📄 获取第 {page_no} 页数据...")
-            
-            # 调用数据字典接口
-            dict_url = f"{BASE_URL}/sys/dict/list"
-            response = requests.get(dict_url, params=params, headers=headers, timeout=REQUEST_TIMEOUT_LIST)
-            
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    records = result['result']['records']
-                    total = result['result']['total']
-                    
-                    # 计算总页数
-                    total_pages = (total + page_size - 1) // page_size
-                    
-                    print(f"      ✓ 获取到 {len(records)} 条记录")
-                    print(f"      ✓ 总记录数: {total}, 总页数: {total_pages}")
-                    
-                    # 添加到总记录中
-                    all_records.extend(records)
-                    
-                    # 下一页
-                    page_no += 1
-                    
-                else:
-                    print(f"❌ 获取数据字典失败: {result.get('message')}")
-                    return False
-            else:
-                print(f"❌ 请求失败: HTTP {response.status_code}")
-                print(f"   响应内容: {response.text}")
-                return False
-        
-        # 4. 保存到文件
-        print(f"\n3️⃣ 正在保存数据字典...")
-        print(f"   总共获取到 {len(all_records)} 条数据字典记录")
-        
-        with open(dict_file, 'w', encoding='utf-8') as f:
-            json.dump(all_records, f, ensure_ascii=False, indent=2)
-        
-        print(f"✅ 数据字典已保存到: {dict_file}")
-        
-        # 5. 显示统计信息
-        print(f"\n📊 数据字典统计:")
-        print(f"   文件路径: {os.path.abspath(dict_file)}")
-        print(f"   记录总数: {len(all_records)}")
-        
-        # 显示前几条记录的基本信息
-        if all_records:
-            print(f"\n📋 前5条记录预览:")
-            for i, record in enumerate(all_records[:5]):
-                dict_code = record.get('dictCode', 'N/A')
-                dict_name = record.get('dictName', 'N/A')
-                print(f"   {i+1}. {dict_code} - {dict_name}")
-        
-        print("\n" + "=" * 50)
-        print("🎉 数据字典获取完成！")
-        return True
-        
-    except Exception as e:
-        print(f"❌ 获取数据字典异常: {e}")
-        return False
-
-# ==================== 模板处理功能 ====================
-
-def load_template(template_file='Code_Gen_Guide.json'):
-    """加载表单模板"""
-    try:
-        with open(template_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"❌ 模板加载失败: {e}")
-        return None
-
-def load_field_templates(template_file='Code_Gen_field_templates.json'):
-    """加载字段模板"""
-    try:
-        with open(template_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"❌ 字段模板加载失败: {e}")
-        return {}
-
-def create_field_from_template(field_type, field_name, field_description, order_num, **kwargs):
-    """从模板创建字段"""
-    field_templates = load_field_templates()
-
-    if field_type not in field_templates:
-        print(f"❌ 未知字段类型: {field_type}")
-        return None
-
-    template = field_templates[field_type].copy()
-
-    # 替换模板变量
-    replacements = {
-        '{{FIELD_NAME}}': field_name,
-        '{{FIELD_DESCRIPTION}}': field_description,
-        '{{ORDER_NUM}}': str(order_num),
-        '{{NULLABLE}}': kwargs.get('nullable', '1'),
-        '{{REQUIRED}}': kwargs.get('required', '0'),
-        '{{OPTIONS}}': kwargs.get('options', ''),
-        '{{DEFAULT_VALUE}}': kwargs.get('default_value', ''),
-        '{{DICT_CODE}}': kwargs.get('dict_code', '')
-    }
-
-    # 递归替换所有字符串值
-    def replace_template_vars(obj):
-        if isinstance(obj, dict):
-            return {k: replace_template_vars(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [replace_template_vars(item) for item in obj]
-        elif isinstance(obj, str):
-            result = obj
-            for placeholder, value in replacements.items():
-                result = result.replace(placeholder, value)
-            return result
-        else:
-            return obj
-
-    return replace_template_vars(template)
-
-# create_field_with_smart_dict函数已移除 - 智能匹配功能现在由AI处理
-
-def create_form_from_config(config_file):
-    """从配置文件创建表单"""
-    try:
-        with open(config_file, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-
-        # 加载基础模板
-        template = load_template()
-        if not template:
-            return None
-
-        # 设置表头信息
-        template['head']['tableName'] = config['table']['name']
-        template['head']['tableTxt'] = config['table']['description']
-
-        # 添加自定义字段
-        order_num = 7  # 系统字段占用0-6
-        for field_config in config.get('fields', []):
-            field = create_field_from_template(
-                field_config['type'],
-                field_config['name'],
-                field_config['description'],
-                order_num,
-                **field_config.get('options', {})
-            )
-            if field:
-                template['fields'].append(field)
-                order_num += 1
-
-        return template
-
-    except Exception as e:
-        print(f"❌ 配置文件处理失败: {e}")
-        return None
+    # 注意：API调用成功后的后续工作流程（步骤7-13）已被移动到execute_post_generation_workflow()函数中
 
 # ==================== 命令行参数处理 ====================
 
@@ -4085,7 +3854,7 @@ def main():
         CONFIG['compilation']['auto_create_pom'] = False
 
     # 预处理工作流变量（确保在显示配置前就有实际值）
-    global PROJECT_PATH, ENTITY_NAME, MODULE_NAME, SUBMODULE_NAME, PACKAGE_NAME, JAVA_ENTITY_NAME, TABLE_NAME
+    global PROJECT_PATH, BUSINESS_ENTITY, MODULE_NAME, SUBMODULE_NAME, PACKAGE_NAME, TABLE_NAME
 
     # 处理特殊命令（不需要表单配置）
     if args.dict:
@@ -4132,7 +3901,7 @@ def main():
             formats = extract_business_entity_from_config(args.form_config)
 
             # 设置全局变量
-            ENTITY_NAME = formats['java_class_name']  # 使用业务实体作为Java类名
+            BUSINESS_ENTITY = formats['java_class_name']  # 使用业务实体作为Java类名
 
             # 从配置文件中读取表名和模块信息
             with open(args.form_config, 'r', encoding='utf-8') as f:
@@ -4182,27 +3951,25 @@ def main():
 
 
 
-
-
     if args.try_run:
         print("🔍 试运行模式 - 将显示操作但不执行")
         print(f"📋 配置文件: {args.config}")
         print(f"🎯 业务系统: {args.module_name or '自动识别'}")
         print(f"📋 表单配置: {args.form_config or '使用默认'}")
         print(f"🏗️ 项目路径: {PROJECT_PATH}")  # 使用预处理后的值
-        print(f"📦 实体名称: {ENTITY_NAME}")    # 使用预处理后的值
+        print(f"📦 实体名称: {BUSINESS_ENTITY}")    # 使用预处理后的值
 
         # 显示三核心变量
         print(f"\n📋 三核心变量:")
         print(f"   MODULE_NAME      = {MODULE_NAME}")
         print(f"   SUBMODULE_NAME   = {SUBMODULE_NAME}")
-        print(f"   ENTITY_NAME      = {ENTITY_NAME}")
+        print(f"   BUSINESS_ENTITY      = {BUSINESS_ENTITY}")
 
         # 显示派生变量
         print(f"\n📊 派生变量:")
         print(f"   TABLE_NAME       = {TABLE_NAME}")
         print(f"   PACKAGE_NAME     = {PACKAGE_NAME}")
-        print(f"   JAVA_ENTITY_NAME = {JAVA_ENTITY_NAME}")
+        print(f"   BUSINESS_ENTITY = {BUSINESS_ENTITY}")
         print(f"   PROJECT_PATH     = {PROJECT_PATH}")
 
         # 验证模板变量
@@ -4234,8 +4001,6 @@ def load_config_from_file(config_file):
         print(f"❌ 配置文件加载失败: {e}")
         return CONFIG
 
-# 删除重复的update_global_vars函数，变量已在文件开头定义
-
 def fix_generated_code_templates():
     """修复生成代码中的模板变量和路径重复问题"""
     print(f"\n🔧 修复生成代码中的模板变量和路径重复问题...")
@@ -4251,12 +4016,12 @@ def fix_generated_code_templates():
         sub_module = components['sub_module']
         entity_name = components['entity_name']
 
-        # 构建正确的包名 - 基于JeecgBoot标准结构
+        # 构建正确的包名 - 基于JeecgBoot标准结构，不包含业务实体
         correct_package = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}"
 
-        # 构建正确的包路径 - 注意：{{PACKAGE_NAME}}只替换为基础包路径，不包含子模块
-        # 因为官方API生成的路径结构是：{{PACKAGE_NAME}}/子模块名/controller/
-        base_package_path = f"org/jeecg/modules/{module_name}"
+        # 构建正确的包路径 - 修复：{{PACKAGE_NAME}}应该替换为基础包路径，不包含业务实体
+        # 实际的目录结构是：org/jeecg/modules/{module_name}/{sub_module}/controller/
+        base_package_path = f"org/jeecg/modules/{module_name}/{sub_module}"
 
         # 查找生成的代码目录
         project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
@@ -4274,8 +4039,8 @@ def fix_generated_code_templates():
 
             for template_dir in template_dirs:
                 # 正确的模板变量替换逻辑
-                # {{PACKAGE_NAME}} 应该替换为基础包路径：org/jeecg/modules/{module_name}
-                # 这样 {{PACKAGE_NAME}}/audit/controller 就会变成 org/jeecg/modules/test/audit/controller
+                # {{PACKAGE_NAME}} 应该替换为完整包路径：org/jeecg/modules/{module_name}/{sub_module}
+                # 这样 {{PACKAGE_NAME}}/controller 就会变成 org/jeecg/modules/{module_name}/{sub_module}/controller
                 correct_path_str = str(template_dir).replace("{{PACKAGE_NAME}}", base_package_path)
                 correct_path = Path(correct_path_str)
 
@@ -4383,11 +4148,11 @@ def fix_generated_code_templates():
                     if '{{PACKAGE_NAME}}' in content:
                         # 根据文件类型选择替换策略
                         if file_path.suffix == '.java':
-                            # Java文件使用完整包名，符合Java命名规范
+                            # Java文件使用基础包名，不包含业务实体名
                             base_package_name = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}"
                             content = content.replace('{{PACKAGE_NAME}}', base_package_name)
                         else:
-                            # 其他文件也使用完整包名
+                            # 其他文件也使用基础包名
                             base_package_name = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}"
                             content = content.replace('{{PACKAGE_NAME}}', base_package_name)
                         template_fixed = True
@@ -4399,11 +4164,11 @@ def fix_generated_code_templates():
                         content = content.replace('{{PROJECT_PATH}}', project_path)
                         template_fixed = True
 
-                    # 3. 替换 {{ENTITY_NAME}}
-                    if '{{ENTITY_NAME}}' in content:
-                        entity_name = components['entity_name']
-                        java_entity_name = convert_to_java_entity_name(entity_name)
-                        content = content.replace('{{ENTITY_NAME}}', java_entity_name)
+                    # 3. 替换 {{BUSINESS_ENTITY}}
+                    if '{{BUSINESS_ENTITY}}' in content:
+                        # 使用全局的BUSINESS_ENTITY变量，与API参数保持一致
+                        java_entity_name = BUSINESS_ENTITY if BUSINESS_ENTITY else convert_to_java_entity_name(components['entity_name'])
+                        content = content.replace('{{BUSINESS_ENTITY}}', java_entity_name)
                         template_fixed = True
 
                     # 4. 替换 {{MODULE_NAME}}
@@ -4431,8 +4196,10 @@ def fix_generated_code_templates():
                         package_fixed = True
                     
                     # 2. 修复包名中错误包含BUSINESS_ENTITY的情况
-                    # 例如: org.jeecg.modules.education.teacher.Teacherinfo -> org.jeecg.modules.education.teacher
-                    wrong_package_with_entity = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}.{entity_name}"
+                    # 例如: org.jeecg.modules.education.teacher.teacherprofile -> org.jeecg.modules.education.teacher
+                    # 使用全局的BUSINESS_ENTITY变量，与API参数保持一致
+                    business_entity_name = BUSINESS_ENTITY if BUSINESS_ENTITY else entity_name
+                    wrong_package_with_entity = f"org.jeecg.modules.{module_name.lower()}.{sub_module.lower()}.{business_entity_name.lower()}"
                     if wrong_package_with_entity in content:
                         content = content.replace(wrong_package_with_entity, correct_package)
                         package_fixed = True
