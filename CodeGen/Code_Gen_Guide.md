@@ -124,8 +124,8 @@ Code_Gen_Guide.py 脚本已内置自动修正功能：
 
 - `tableType`和`scroll`必须是整数，不能是字符串
 - `dbIsPersist`是关键字段，不能缺失
-- 必须包含 7 个系统字段：id, create_by, create_time, update_by, update_time, sys_org_code, del_flag
-- 业务字段 orderNum 从 8 开始
+- 必须包含 7 个系统字段：id(0), create_by(1), create_time(2), update_by(3), update_time(4), sys_org_code(5), del_flag(6)
+- 业务字段 orderNum 从 7 开始，确保系统字段在前，业务字段在后
 
 ---
 
