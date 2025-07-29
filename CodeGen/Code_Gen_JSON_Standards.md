@@ -392,10 +392,7 @@ def aigc_self_check(config):
 ### **快速验证命令**
 
 ```bash
-# 使用高级验证器进行全面检查
-python3 Code_Gen_Advanced_Validator.py temp_config.json
-
-# 使用标准验证器检查格式
+# 使用标准验证器检查格式和连续性
 python3 Code_Gen_Validator.py temp_config.json
 
 # JSON Schema验证
