@@ -360,7 +360,6 @@ def parse_table_name_components(table_name):
    us_finance_invoice_management (财务-发票-管理)
 
 🔧 智能修复建议:
-   推荐表名: '{suggest_table_name_fix(table_name)}'
    或手动修改为: 'us_{{模块名}}_{{子模块名}}_{{业务场景}}'
 
 📚 详细文档: 请查看 Code_Gen_Guide.md 中的标准化命名规范
@@ -647,7 +646,7 @@ def generate_config_from_template(module_name, submodule_name, business_entity, 
         # 重新设置orderNum
         for i, field in enumerate(template['fields']):
             field['orderNum'] = i
-    
+
     return template
 
 def create_business_field_config(field_spec, order_num):
@@ -4256,6 +4255,85 @@ def main():
 
     # 执行工作流
     jeecg_complete_workflow()
+
+def create_form_from_config(config_file_path):
+    """
+    从配置文件生成完整的表单数据，确保表名符合us_前缀规范
+
+    Args:
+        config_file_path (str): 配置文件路径
+
+    Returns:
+        dict: 完整的表单数据，如果失败返回None
+    """
+    try:
+        print(f"📋 从配置文件生成表单数据: {config_file_path}")
+
+        # 读取配置文件
+        with open(config_file_path, 'r', encoding='utf-8') as f:
+            config_data = json.load(f)
+
+        # 检查是否是新格式配置文件（包含table和fields）
+        if 'table' in config_data and 'fields' in config_data:
+            print("🔄 检测到新格式配置文件，转换为标准表单格式")
+            # 这里可以添加新格式到标准格式的转换逻辑
+            # 目前直接返回None，让调用方使用旧格式处理
+            return None
+
+        # 检查表名格式
+        table_name = config_data.get('head', {}).get('tableName', '')
+        if not table_name:
+            print("❌ 配置文件中缺少表名")
+            return None
+
+        # 检查表名是否符合us_前缀规范
+        if not table_name.startswith('us_'):
+            print(f"⚠️ 表名格式不符合规范: {table_name}")
+
+            # 尝试从metadata中获取模块信息来修复表名
+            metadata = config_data.get('metadata', {}).get('generation_info', {})
+            module_name = metadata.get('module_name', '')
+            submodule_name = metadata.get('submodule_name', '')
+            business_entity = metadata.get('business_entity', '')
+
+            if module_name and submodule_name and business_entity:
+                # 生成正确的表名
+                formats = derive_all_formats_from_business_entity(business_entity)
+                business_scenario = formats['table_suffix']
+                correct_table_name = f"us_{module_name}_{submodule_name}_{business_scenario}"
+
+                print(f"🔧 自动修复表名: {table_name} -> {correct_table_name}")
+
+                # 更新配置数据中的表名
+                config_data['head']['tableName'] = correct_table_name
+
+                # 保存修复后的配置文件
+                backup_file = config_file_path + '.backup'
+                import shutil
+                shutil.copy2(config_file_path, backup_file)
+                print(f"📁 原配置文件已备份到: {backup_file}")
+
+                with open(config_file_path, 'w', encoding='utf-8') as f:
+                    json.dump(config_data, f, ensure_ascii=False, indent=2)
+                print(f"✅ 配置文件已更新")
+            else:
+                print(f"❌ 无法自动修复表名，缺少必要的metadata信息")
+                print(f"   需要: module_name, submodule_name, business_entity")
+                print(f"   实际: module_name={module_name}, submodule_name={submodule_name}, business_entity={business_entity}")
+                return None
+
+        print(f"✅ 表单数据生成成功，表名: {config_data['head']['tableName']}")
+        return config_data
+
+    except FileNotFoundError:
+        print(f"❌ 配置文件不存在: {config_file_path}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"❌ 配置文件JSON格式错误: {e}")
+        return None
+    except Exception as e:
+        print(f"❌ 生成表单数据失败: {e}")
+        return None
 
 def load_config_from_file(config_file):
     """从指定文件加载配置"""
