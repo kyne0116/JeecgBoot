@@ -2992,8 +2992,112 @@ def _output_workflow_results(workflow_results):
 
     print(f"\n🎯 总体执行结果: {overall_result} ({total_success}/{total_steps})")
 
+    # 如果工作流执行成功，显示生成文件的路径信息
+    if total_success == total_steps:
+        print_generated_file_paths()
+
     # 返回总体结果（True表示Pass，False表示Fail）
     return total_success == total_steps
+
+def print_generated_file_paths():
+    """打印生成文件的路径信息"""
+    print(f"\n{'='*50}")
+    print("📁 生成文件路径信息:")
+
+    try:
+        # 获取项目路径前缀
+        project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
+
+        # 如果有当前表名，解析模块信息
+        if CURRENT_TABLE_NAME:
+            try:
+                components = parse_table_name_components(CURRENT_TABLE_NAME)
+                module_name = components['module_name']
+                sub_module = components['sub_module']
+                entity_name = components['entity_name']
+
+                print(f"\n📋 模块信息:")
+                print(f"   模块名称: {module_name}")
+                print(f"   子模块名: {sub_module}")
+                print(f"   实体名称: {entity_name}")
+                print(f"   表名: {CURRENT_TABLE_NAME}")
+
+                # 后端代码路径
+                backend_module_path = f"{project_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
+                backend_java_path = f"{backend_module_path}/src/main/java/org/jeecg/modules/{module_name}/{sub_module}"
+
+                print(f"\n🔧 后端代码生成路径:")
+                print(f"   模块根目录: {backend_module_path}")
+                print(f"   Java源码目录: {backend_java_path}")
+                print(f"   Controller: {backend_java_path}/controller/{entity_name}Controller.java")
+                print(f"   Service: {backend_java_path}/service/I{entity_name}Service.java")
+                print(f"   ServiceImpl: {backend_java_path}/service/impl/{entity_name}ServiceImpl.java")
+                print(f"   Entity: {backend_java_path}/entity/{entity_name}.java")
+                print(f"   Mapper: {backend_java_path}/mapper/{entity_name}Mapper.java")
+                print(f"   Mapper XML: {backend_module_path}/src/main/resources/org/jeecg/modules/{module_name}/{sub_module}/mapper/{entity_name}Mapper.xml")
+
+                # 前端代码路径
+                frontend_base_path = f"{project_prefix}/jeecgboot-vue3/src/views"
+                frontend_module_path = f"{frontend_base_path}/{module_name}/{sub_module}"
+
+                print(f"\n🎨 前端代码生成路径:")
+                print(f"   前端模块目录: {frontend_module_path}")
+                print(f"   列表页面: {frontend_module_path}/{entity_name}List.vue")
+                print(f"   表单页面: {frontend_module_path}/modules/{entity_name}Form.vue")
+                print(f"   API接口: {frontend_module_path}/api/{entity_name}.ts")
+
+                # 数据库相关
+                print(f"\n🗄️ 数据库相关:")
+                print(f"   数据表: {CURRENT_TABLE_NAME}")
+                print(f"   菜单SQL: {backend_module_path}/src/main/resources/sql/menu_{module_name}_{sub_module}.sql")
+
+                # 检查实际生成的文件
+                print(f"\n🔍 文件生成状态检查:")
+
+                # 检查后端文件
+                backend_files = [
+                    f"{backend_java_path}/controller/{entity_name}Controller.java",
+                    f"{backend_java_path}/service/I{entity_name}Service.java",
+                    f"{backend_java_path}/service/impl/{entity_name}ServiceImpl.java",
+                    f"{backend_java_path}/entity/{entity_name}.java",
+                    f"{backend_java_path}/mapper/{entity_name}Mapper.java"
+                ]
+
+                for file_path in backend_files:
+                    if os.path.exists(file_path):
+                        print(f"   ✅ {os.path.basename(file_path)}")
+                    else:
+                        print(f"   ❌ {os.path.basename(file_path)} (未找到)")
+
+                # 检查前端文件
+                frontend_files = [
+                    f"{frontend_module_path}/{entity_name}List.vue",
+                    f"{frontend_module_path}/modules/{entity_name}Form.vue"
+                ]
+
+                for file_path in frontend_files:
+                    if os.path.exists(file_path):
+                        print(f"   ✅ {os.path.basename(file_path)}")
+                    else:
+                        print(f"   ❌ {os.path.basename(file_path)} (未找到)")
+
+            except Exception as e:
+                print(f"❌ 解析表名失败: {e}")
+                print(f"   表名: {CURRENT_TABLE_NAME}")
+        else:
+            print("⚠️ 无法获取表名信息，无法显示具体文件路径")
+
+        # 显示通用路径信息
+        if PROJECT_PATH:
+            print(f"\n📂 通用路径信息:")
+            print(f"   项目根路径: {project_prefix}")
+            print(f"   当前模块路径: {PROJECT_PATH}")
+            print(f"   前端项目路径: {project_prefix}/jeecgboot-vue3")
+
+    except Exception as e:
+        print(f"❌ 显示文件路径信息失败: {e}")
+        import traceback
+        traceback.print_exc()
 
 def _execute_failed_workflow(failed_step_name):
     """执行失败的工作流，显示在哪个环节失败"""
@@ -3307,6 +3411,63 @@ def validate_form_data(form_data):
             errors.append(f"缺少必需的系统字段: {required_field}")
 
     return errors
+
+def load_dict_data():
+    """
+    加载数据字典数据
+
+    Returns:
+        list: 数据字典列表
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    dict_file_path = os.path.join(script_dir, 'Code_Gen_DICT.json')
+
+    if not os.path.exists(dict_file_path):
+        return []
+
+    try:
+        with open(dict_file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        raise Exception(f"读取数据字典文件失败: {e}")
+
+
+def fetch_system_dict():
+    """
+    获取系统数据字典并保存到Code_Gen_DICT.json
+
+    注意：这是一个占位函数，实际实现需要连接到JeecgBoot系统的数据库
+    或通过API获取数据字典信息。当前版本使用现有的数据字典文件。
+    """
+    print("📚 获取系统数据字典...")
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    dict_file_path = os.path.join(script_dir, 'Code_Gen_DICT.json')
+
+    if os.path.exists(dict_file_path):
+        try:
+            dict_data = load_dict_data()
+            print(f"✅ 数据字典文件已存在: {len(dict_data)}条记录")
+            print(f"📁 文件路径: {dict_file_path}")
+
+            # 显示部分数据字典信息
+            if dict_data:
+                print("\n📋 数据字典示例:")
+                for i, item in enumerate(dict_data[:5]):  # 显示前5条
+                    print(f"   {i+1}. {item.get('dictName', 'N/A')} ({item.get('dictCode', 'N/A')})")
+                if len(dict_data) > 5:
+                    print(f"   ... 还有 {len(dict_data) - 5} 条记录")
+
+            return True
+        except Exception as e:
+            print(f"❌ 读取数据字典文件失败: {e}")
+            return False
+    else:
+        print("❌ 数据字典文件不存在")
+        print("💡 提示: 请确保Code_Gen_DICT.json文件存在于CodeGen目录中")
+        print("   或者从JeecgBoot系统数据库中导出数据字典信息")
+        return False
+
 
 def run_diagnostics():
     """运行完整诊断"""
