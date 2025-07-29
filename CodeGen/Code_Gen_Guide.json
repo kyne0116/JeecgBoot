@@ -105,7 +105,7 @@
       "dbIsKey": "0",
       "dbIsNull": "1",
       "dbIsPersist": "1",
-      "orderNum": 990
+      "orderNum": 1
     },
     {
       "dbFieldName": "create_time",
@@ -143,7 +143,7 @@
       "dbIsKey": "0",
       "dbIsNull": "1",
       "dbIsPersist": "1",
-      "orderNum": 991
+      "orderNum": 2
     },
     {
       "dbFieldName": "update_by",
@@ -181,7 +181,7 @@
       "dbIsKey": "0",
       "dbIsNull": "1",
       "dbIsPersist": "1",
-      "orderNum": 992
+      "orderNum": 3
     },
     {
       "dbFieldName": "update_time",
@@ -219,7 +219,7 @@
       "dbIsKey": "0",
       "dbIsNull": "1",
       "dbIsPersist": "1",
-      "orderNum": 993
+      "orderNum": 4
     },
     {
       "dbFieldName": "sys_org_code",
@@ -257,7 +257,7 @@
       "dbIsKey": "0",
       "dbIsNull": "1",
       "dbIsPersist": "1",
-      "orderNum": 994
+      "orderNum": 5
     },
     {
       "dbFieldName": "del_flag",
@@ -295,7 +295,7 @@
       "dbIsKey": "0",
       "dbIsNull": "1",
       "dbIsPersist": "1",
-      "orderNum": 995
+      "orderNum": 6
     },
     {
       "dbFieldName": "{{BUSINESS_FIELD}}",

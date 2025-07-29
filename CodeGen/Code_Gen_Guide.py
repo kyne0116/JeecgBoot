@@ -632,20 +632,21 @@ def generate_config_from_template(module_name, submodule_name, business_entity, 
     
     # 插入业务字段（如果提供）
     if business_fields:
-        # 在系统字段之前插入业务字段
-        system_fields = template['fields'][1:]  # 除了id字段的系统字段
+        # 业务字段应该在系统字段之后插入
+        # 当前模板已经包含：id(0) + 6个系统字段(1-6) + 1个业务字段模板(7)
+        # 我们需要移除业务字段模板，然后添加实际的业务字段
+
+        # 移除模板中的业务字段模板（最后一个字段）
+        system_fields = template['fields'][:-1]  # 保留id和系统字段，移除业务字段模板
         business_field_configs = []
-        
-        for i, field in enumerate(business_fields, 1):
-            field_config = create_business_field_config(field, i)
+
+        # 从orderNum 7开始为业务字段分配序号
+        for i, field in enumerate(business_fields):
+            field_config = create_business_field_config(field, 7 + i)
             business_field_configs.append(field_config)
-        
-        # 重新组织字段顺序：id + 业务字段 + 系统字段
-        template['fields'] = [template['fields'][0]] + business_field_configs + system_fields
-        
-        # 重新设置orderNum
-        for i, field in enumerate(template['fields']):
-            field['orderNum'] = i
+
+        # 重新组织字段顺序：系统字段(id + 6个系统字段) + 业务字段
+        template['fields'] = system_fields + business_field_configs
 
     return template
 
