@@ -2,7 +2,7 @@
 # 面向政府、企业等传统B/S架构业务系统的需求描述模板
 
 # ============================================================================
-# 🚨 需求实现方式说明
+# 需求实现方式说明
 # ============================================================================
 implementation_guide:
   simple_crud_requirements: |
@@ -47,6 +47,12 @@ requirement_core_info:
     contact: "{{CONTACT_INFO}}" # 联系方式
     proposed_date: "{{PROPOSED_DATE}}" # 需求提出时间
     expected_date: "{{EXPECTED_DATE}}" # 期望完成时间
+  
+  # JeecgBoot环境信息
+  jeecg_context:
+    base_version: "{{JEECG_VERSION}}" # JeecgBoot版本，默认3.8.1
+    target_module: "{{TARGET_MODULE}}" # 目标模块: system | custom | demo
+    status: "{{STATUS}}" # 状态: draft | approved | in_development | testing | completed
 
   # CodeGen核心变量（当complexity为simple时必填）
   codegen_variables:
@@ -81,6 +87,18 @@ requirement_scope:
     database_changes: {{DATABASE_CHANGES}} # true | false - 是否需要数据库变更
     api_changes: {{API_CHANGES}} # true | false - 是否需要API开发
 
+  # 关联模块提醒（避免遗漏相关实体）
+  related_modules_reminder: |
+    请检查是否需要以下关联模块的数据实体和接口：
+    - 用户管理模块（如涉及用户相关功能）
+    - 商品管理模块（如涉及商品相关功能）
+    - 订单管理模块（如涉及订单相关功能）
+    - 库存管理模块（如涉及库存相关功能）
+    - 支付管理模块（如涉及支付相关功能）
+    - 地址管理模块（如涉及地址相关功能）
+    
+    请在数据需求部分补充相关实体定义，在接口需求部分补充相关API。
+
 # ============================================================================
 # 第三章节：需求详细描述
 # ============================================================================
@@ -102,6 +120,16 @@ requirement_details:
       permissions: ["{{PERMISSION_1}}", "{{PERMISSION_2}}"] # 权限列表
     # 可继续添加角色
   
+  # 业务规则（明确复杂业务逻辑）
+  business_rules:
+    - rule_id: "BR-01"
+      rule_name: "{{RULE_NAME_1}}" # 规则名称
+      rule_description: "{{RULE_DESCRIPTION_1}}" # 规则描述
+      rule_condition: "{{RULE_CONDITION_1}}" # 触发条件
+      rule_action: "{{RULE_ACTION_1}}" # 执行动作
+      exception_handling: "{{RULE_EXCEPTION_1}}" # 异常处理
+    # 可继续添加业务规则
+  
   # 功能需求
   functional_requirements:
     # 基础功能需求
@@ -109,6 +137,10 @@ requirement_details:
       - id: "BF-01"
         description: "系统应当能够{{BASIC_FUNCTION_1}}"
         details: "{{BASIC_FUNCTION_DETAILS_1}}"
+        priority: "{{FUNCTION_PRIORITY_1}}" # high | medium | low
+        acceptance_criteria: # 验收标准
+          - criterion: "{{ACCEPTANCE_CRITERION_1_1}}"
+          - criterion: "{{ACCEPTANCE_CRITERION_1_2}}"
       # 可继续添加
     
     # 事件触发功能
@@ -117,6 +149,10 @@ requirement_details:
         trigger: "{{TRIGGER_CONDITION_1}}" # 触发条件
         action: "{{TRIGGER_ACTION_1}}" # 执行动作
         details: "{{TRIGGER_DETAILS_1}}"
+        priority: "{{TRIGGER_PRIORITY_1}}" # high | medium | low
+        acceptance_criteria: # 验收标准
+          - criterion: "{{TRIGGER_ACCEPTANCE_1_1}}"
+          - criterion: "{{TRIGGER_ACCEPTANCE_1_2}}"
       # 可继续添加
     
     # 异常处理要求
@@ -125,7 +161,25 @@ requirement_details:
         condition: "{{EXCEPTION_CONDITION_1}}" # 异常条件
         action: "{{EXCEPTION_ACTION_1}}" # 处理动作
         details: "{{EXCEPTION_DETAILS_1}}"
+        priority: "{{EXCEPTION_PRIORITY_1}}" # high | medium | low
+        recovery_time: "{{RECOVERY_TIME_1}}" # 恢复时间要求
       # 可继续添加
+  
+  # 性能要求
+  performance_requirements:
+    response_time: # 响应时间要求
+      - operation: "{{OPERATION_1}}" # 操作名称
+        max_response_time: "{{MAX_RESPONSE_TIME_1}}" # 最大响应时间
+        target_response_time: "{{TARGET_RESPONSE_TIME_1}}" # 目标响应时间
+    
+    throughput: # 吞吐量要求
+      - operation: "{{THROUGHPUT_OPERATION_1}}" # 操作名称
+        concurrent_users: {{CONCURRENT_USERS_1}} # 并发用户数
+        transactions_per_second: {{TPS_1}} # 每秒事务数
+    
+    availability: # 可用性要求
+      uptime_requirement: "{{UPTIME_REQUIREMENT}}" # 可用性要求，如99.9%
+      maintenance_window: "{{MAINTENANCE_WINDOW}}" # 维护窗口时间
   
   # 数据需求
   data_requirements:
@@ -136,15 +190,25 @@ requirement_details:
         description: "{{ENTITY_DESCRIPTION_1}}" # 实体描述
         key_fields: # 关键字段
           - name: "{{FIELD_NAME_1}}"
-            type: "{{FIELD_TYPE_1}}"
-            length: {{FIELD_LENGTH_1}}
+            type: "{{FIELD_TYPE_1}}" # 支持精确的类型定义
+            # 数字类型精度定义
+            precision: {{FIELD_PRECISION_1}} # 总位数（仅数字类型）
+            scale: {{FIELD_SCALE_1}} # 小数位数（仅decimal类型）
+            length: {{FIELD_LENGTH_1}} # 字符长度（仅字符类型）
             required: {{FIELD_REQUIRED_1}} # true | false
             description: "{{FIELD_DESC_1}}"
             dict_code: "{{DICT_CODE_1}}" # 关联字典编码（如有）
+            default_value: "{{DEFAULT_VALUE_1}}" # 默认值
+            validation_rule: "{{VALIDATION_RULE_1}}" # 验证规则
         relationships: # 实体关联关系
           - related_entity: "{{RELATED_ENTITY_1}}"
             relationship_type: "{{RELATION_TYPE_1}}" # one_to_one | one_to_many | many_to_many
             foreign_key: "{{FOREIGN_KEY_1}}"
+            cascade_delete: {{CASCADE_DELETE_1}} # true | false - 是否级联删除
+        # 数据一致性要求
+        consistency_requirements:
+          - requirement: "{{CONSISTENCY_REQUIREMENT_1}}"
+            implementation: "{{CONSISTENCY_IMPLEMENTATION_1}}"
       # 可继续添加实体
   
   # 界面需求
@@ -152,6 +216,7 @@ requirement_details:
     main_pages:
       - page_name: "{{PAGE_NAME_1}}" # 页面名称
         page_type: "{{PAGE_TYPE_1}}" # list | form | detail | dashboard
+        priority: "{{PAGE_PRIORITY_1}}" # 页面优先级
         layout_description: | # 页面布局描述
           {{PAGE_LAYOUT_DESCRIPTION_1}}
         key_components: # 页面关键组件
@@ -162,6 +227,11 @@ requirement_details:
                 value: "{{VALUE_1}}"
         interaction_requirements: | # 交互需求
           {{INTERACTION_REQUIREMENTS_1}}
+        # 响应式设计要求
+        responsive_design:
+          mobile_support: {{MOBILE_SUPPORT_1}} # true | false
+          tablet_support: {{TABLET_SUPPORT_1}} # true | false
+          breakpoints: ["{{BREAKPOINT_1}}", "{{BREAKPOINT_2}}"] # 响应式断点
       # 可继续添加页面
   
   # 接口需求
@@ -171,13 +241,24 @@ requirement_details:
         api_path: "{{API_PATH_1}}" # 接口路径
         http_method: "{{HTTP_METHOD_1}}" # GET | POST | PUT | DELETE
         description: "{{API_DESCRIPTION_1}}" # 接口描述
+        priority: "{{API_PRIORITY_1}}" # 接口优先级
+        # 性能要求
+        performance_requirements:
+          max_response_time: "{{API_MAX_RESPONSE_TIME_1}}" # 最大响应时间
+          rate_limit: {{API_RATE_LIMIT_1}} # 频率限制（次/分钟）
         request_params: # 请求参数
           - param_name: "{{PARAM_NAME_1}}"
             param_type: "{{PARAM_TYPE_1}}"
             required: {{PARAM_REQUIRED_1}} # true | false
             description: "{{PARAM_DESCRIPTION_1}}"
+            validation_rule: "{{PARAM_VALIDATION_1}}" # 参数验证规则
         response_format: | # 响应格式
           {{API_RESPONSE_FORMAT_1}}
+        # 错误码定义
+        error_codes:
+          - code: "{{ERROR_CODE_1}}"
+            message: "{{ERROR_MESSAGE_1}}"
+            description: "{{ERROR_DESCRIPTION_1}}"
       # 可继续添加接口
 
 # ============================================================================
@@ -194,6 +275,8 @@ extended_requirements:
             item_code: "{{DICT_ITEM_CODE_1}}"
             item_value: "{{DICT_ITEM_VALUE_1}}"
             description: "{{DICT_ITEM_DESC_1}}"
+            sort_order: {{DICT_ITEM_SORT_1}} # 排序顺序
+            is_active: {{DICT_ITEM_ACTIVE_1}} # 是否启用
       # 可继续添加字典分类
   
   # 工作流需求（当involves_workflow为true时填写）
@@ -207,6 +290,8 @@ extended_requirements:
           step_type: "{{STEP_TYPE_1}}" # approval | notification | automation
           assignee_role: "{{ASSIGNEE_ROLE_1}}" # 处理人角色
           step_description: "{{STEP_DESCRIPTION_1}}"
+          timeout_duration: "{{STEP_TIMEOUT_1}}" # 步骤超时时间
+          timeout_action: "{{TIMEOUT_ACTION_1}}" # 超时处理动作
       # 可继续添加工作流
   
   # 报表需求（当involves_report为true时填写）
@@ -214,6 +299,7 @@ extended_requirements:
     - report_name: "{{REPORT_NAME_1}}" # 报表名称
       report_type: "{{REPORT_TYPE_1}}" # statistical | export | dashboard | chart
       data_source: "{{DATA_SOURCE_1}}" # 数据来源
+      refresh_frequency: "{{REFRESH_FREQUENCY_1}}" # 刷新频率
       report_fields: # 报表字段
         - field_name: "{{REPORT_FIELD_1}}"
           field_type: "{{REPORT_FIELD_TYPE_1}}"
@@ -221,6 +307,10 @@ extended_requirements:
       export_formats: ["{{EXPORT_FORMAT_1}}"] # excel | pdf | csv
       report_description: | # 报表描述
         {{REPORT_DESCRIPTION_1}}
+      # 报表权限控制
+      access_control:
+        view_roles: ["{{VIEW_ROLE_1}}", "{{VIEW_ROLE_2}}"] # 可查看角色
+        export_roles: ["{{EXPORT_ROLE_1}}"] # 可导出角色
     # 可继续添加报表
   
   # 集成需求（当involves_integration为true时填写）
@@ -238,7 +328,44 @@ extended_requirements:
             transformation_rule: "{{TRANSFORMATION_RULE_1}}"
         integration_frequency: "{{INTEGRATION_FREQUENCY_1}}" # real_time | scheduled | manual
         error_handling: "{{ERROR_HANDLING_1}}" # 错误处理策略
+        # 集成监控要求
+        monitoring_requirements:
+          success_rate_threshold: {{SUCCESS_RATE_THRESHOLD_1}} # 成功率阈值
+          response_time_threshold: "{{RESPONSE_TIME_THRESHOLD_1}}" # 响应时间阈值
+          alert_contacts: ["{{ALERT_CONTACT_1}}"] # 告警联系人
       # 可继续添加外部系统
+
+# ============================================================================
+# 第五章节：测试需求
+# ============================================================================
+testing_requirements:
+  # 测试场景模板
+  test_scenarios:
+    - scenario_id: "TS-01"
+      scenario_name: "{{TEST_SCENARIO_NAME_1}}" # 测试场景名称
+      scenario_type: "{{TEST_SCENARIO_TYPE_1}}" # functional | performance | security | integration
+      test_steps: # 测试步骤
+        - step_order: 1
+          step_description: "{{TEST_STEP_DESCRIPTION_1_1}}"
+          expected_result: "{{EXPECTED_RESULT_1_1}}"
+        - step_order: 2
+          step_description: "{{TEST_STEP_DESCRIPTION_1_2}}"
+          expected_result: "{{EXPECTED_RESULT_1_2}}"
+      test_data_requirements: # 测试数据要求
+        - data_type: "{{TEST_DATA_TYPE_1}}"
+          data_description: "{{TEST_DATA_DESCRIPTION_1}}"
+    # 可继续添加测试场景
+  
+  # 性能测试要求
+  performance_testing:
+    load_testing: # 负载测试
+      concurrent_users: {{LOAD_TEST_USERS}} # 并发用户数
+      test_duration: "{{LOAD_TEST_DURATION}}" # 测试持续时间
+      expected_response_time: "{{LOAD_TEST_RESPONSE_TIME}}" # 期望响应时间
+    
+    stress_testing: # 压力测试
+      max_users: {{STRESS_TEST_MAX_USERS}} # 最大用户数
+      breaking_point_criteria: "{{BREAKING_POINT_CRITERIA}}" # 崩溃点标准
 
 # ============================================================================
 # 附加信息
@@ -250,6 +377,7 @@ additional_info:
       dependency_name: "{{DEPENDENCY_NAME_1}}"
       dependency_description: "{{DEPENDENCY_DESCRIPTION_1}}"
       impact_level: "{{IMPACT_LEVEL_1}}" # high | medium | low
+      mitigation_plan: "{{MITIGATION_PLAN_1}}" # 缓解计划
     # 可继续添加依赖
   
   # 约束条件
@@ -257,20 +385,38 @@ additional_info:
     - constraint_type: "{{CONSTRAINT_TYPE_1}}" # technical | business | time | resource | security
       constraint_description: "{{CONSTRAINT_DESCRIPTION_1}}"
       constraint_impact: "{{CONSTRAINT_IMPACT_1}}"
+      workaround: "{{CONSTRAINT_WORKAROUND_1}}" # 变通方案
     # 可继续添加约束
   
   # 风险识别
   risks:
     - risk_description: "{{RISK_DESCRIPTION_1}}" # 风险描述
       risk_level: "{{RISK_LEVEL_1}}" # high | medium | low
+      risk_probability: "{{RISK_PROBABILITY_1}}" # 发生概率: high | medium | low
       mitigation_strategy: "{{MITIGATION_STRATEGY_1}}" # 风险缓解策略
+      contingency_plan: "{{CONTINGENCY_PLAN_1}}" # 应急预案
     # 可继续添加风险
   
   # 假设条件
   assumptions:
     - assumption_description: "{{ASSUMPTION_DESCRIPTION_1}}"
       validation_method: "{{VALIDATION_METHOD_1}}" # 验证方法
+      impact_if_invalid: "{{ASSUMPTION_IMPACT_1}}" # 假设不成立时的影响
     # 可继续添加假设
+  
+  # 安全要求
+  security_requirements:
+    data_protection: # 数据保护要求
+      - requirement: "{{DATA_PROTECTION_REQ_1}}"
+        implementation: "{{DATA_PROTECTION_IMPL_1}}"
+    
+    access_control: # 访问控制要求
+      - requirement: "{{ACCESS_CONTROL_REQ_1}}"
+        implementation: "{{ACCESS_CONTROL_IMPL_1}}"
+    
+    compliance: # 合规性要求
+      - standard: "{{COMPLIANCE_STANDARD_1}}" # 如: ISO 27001, GDPR等
+        requirements: ["{{COMPLIANCE_REQ_1_1}}", "{{COMPLIANCE_REQ_1_2}}"]
   
   # 备注说明
   notes: | # 其他重要信息和备注

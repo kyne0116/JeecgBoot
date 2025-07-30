@@ -1,0 +1,423 @@
+# JeecgBoot 架构设计文档模板
+# 面向政府、企业等传统B/S架构业务系统的架构设计模板
+
+# ============================================================================
+# 架构设计说明
+# ============================================================================
+architecture_guide:
+  design_approach: |
+    本模板用于设计基于JeecgBoot 3.8.1的企业级业务系统架构。
+    
+    架构设计遵循以下原则：
+    - 分层架构：表现层、业务层、数据层清晰分离
+    - 模块化设计：高内聚、低耦合的模块划分
+    - 技术统一：基于JeecgBoot技术栈，保证技术一致性
+    - 可扩展性：支持业务增长和技术演进
+    - 安全优先：内置安全机制，符合企业安全要求
+    
+    适用场景：
+    - 政府信息化系统
+    - 企业管理系统
+    - 行业业务平台
+    - 数据管理平台
+
+# ============================================================================
+# 第一章节：架构概览
+# ============================================================================
+architecture_overview:
+  # 项目基本信息
+  project_info:
+    project_name: "{{PROJECT_NAME}}" # 项目名称
+    system_name: "{{SYSTEM_NAME}}" # 系统名称
+    architecture_version: "{{ARCH_VERSION}}" # 架构版本
+    design_date: "{{DESIGN_DATE}}" # 设计日期
+    architect: "{{ARCHITECT_NAME}}" # 架构师
+    
+  # 架构风格选择
+  architecture_style:
+    primary_style: "{{ARCH_STYLE}}" # layered | microservice | hybrid | monolithic
+    style_description: | # 架构风格描述
+      {{ARCH_STYLE_DESCRIPTION}}
+    selection_rationale: | # 选择理由
+      {{STYLE_SELECTION_RATIONALE}}
+    
+  # 关键架构决策
+  key_decisions:
+    - decision_id: "AD-01"
+      decision_title: "{{DECISION_TITLE_1}}" # 决策标题
+      decision_description: "{{DECISION_DESCRIPTION_1}}" # 决策描述
+      alternatives_considered: ["{{ALTERNATIVE_1_1}}", "{{ALTERNATIVE_1_2}}"] # 考虑的备选方案
+      decision_rationale: "{{DECISION_RATIONALE_1}}" # 决策理由
+      consequences: "{{DECISION_CONSEQUENCES_1}}" # 决策后果
+      status: "{{DECISION_STATUS_1}}" # proposed | accepted | superseded
+    # 可继续添加决策
+    
+  # 架构约束
+  constraints:
+    technical_constraints: # 技术约束
+      - constraint: "{{TECH_CONSTRAINT_1}}"
+        impact: "{{TECH_CONSTRAINT_IMPACT_1}}"
+        mitigation: "{{TECH_CONSTRAINT_MITIGATION_1}}"
+    
+    business_constraints: # 业务约束
+      - constraint: "{{BUSINESS_CONSTRAINT_1}}"
+        impact: "{{BUSINESS_CONSTRAINT_IMPACT_1}}"
+        mitigation: "{{BUSINESS_CONSTRAINT_MITIGATION_1}}"
+    
+    regulatory_constraints: # 法规约束
+      - constraint: "{{REGULATORY_CONSTRAINT_1}}"
+        compliance_requirement: "{{COMPLIANCE_REQUIREMENT_1}}"
+        implementation_approach: "{{COMPLIANCE_APPROACH_1}}"
+
+# ============================================================================
+# 第二章节：技术架构
+# ============================================================================
+technical_architecture:
+  # JeecgBoot技术栈确认
+  jeecgboot_stack:
+    version: "{{JEECGBOOT_VERSION}}" # JeecgBoot版本
+    deployment_mode: "{{DEPLOYMENT_MODE}}" # standalone | microservice
+    
+    frontend_stack: # 前端技术栈
+      framework: "Vue.js 3.x"
+      ui_library: "Ant Design Vue"
+      build_tool: "Vite"
+      package_manager: "pnpm"
+      additional_libraries: 
+        - name: "{{FRONTEND_LIB_1}}"
+          version: "{{FRONTEND_LIB_VERSION_1}}"
+          purpose: "{{FRONTEND_LIB_PURPOSE_1}}"
+    
+    backend_stack: # 后端技术栈
+      framework: "Spring Boot 2.7.18"
+      language: "Java 17"
+      orm: "MyBatis Plus"
+      security: "Spring Security + JWT + Apache Shiro"
+      additional_frameworks:
+        - name: "{{BACKEND_FRAMEWORK_1}}"
+          version: "{{BACKEND_FRAMEWORK_VERSION_1}}"
+          purpose: "{{BACKEND_FRAMEWORK_PURPOSE_1}}"
+  
+  # 中间件和基础设施
+  middleware_infrastructure:
+    database: # 数据库
+      primary_db: "{{PRIMARY_DATABASE}}" # MySQL | PostgreSQL | Oracle
+      db_version: "{{DB_VERSION}}"
+      connection_pool: "Druid"
+      
+    cache: # 缓存
+      cache_solution: "{{CACHE_SOLUTION}}" # Redis | Ehcache
+      cache_strategy: "{{CACHE_STRATEGY}}" # 缓存策略
+      
+    message_queue: # 消息队列（可选）
+      mq_solution: "{{MQ_SOLUTION}}" # RabbitMQ | RocketMQ | none
+      usage_scenarios: ["{{MQ_SCENARIO_1}}", "{{MQ_SCENARIO_2}}"]
+      
+    search_engine: # 搜索引擎（可选）
+      search_solution: "{{SEARCH_SOLUTION}}" # Elasticsearch | Solr | none
+      search_scenarios: ["{{SEARCH_SCENARIO_1}}"]
+      
+    file_storage: # 文件存储
+      storage_solution: "{{STORAGE_SOLUTION}}" # local | MinIO | OSS
+      storage_strategy: "{{STORAGE_STRATEGY}}"
+  
+  # 第三方服务集成
+  external_integrations:
+    - service_name: "{{EXTERNAL_SERVICE_1}}" # 服务名称
+      service_type: "{{SERVICE_TYPE_1}}" # payment | sms | email | auth
+      integration_method: "{{INTEGRATION_METHOD_1}}" # rest_api | soap | sdk
+      provider: "{{SERVICE_PROVIDER_1}}" # 服务提供商
+      purpose: "{{SERVICE_PURPOSE_1}}" # 服务用途
+    # 可继续添加服务
+  
+  # 技术架构图
+  architecture_diagrams:
+    system_context_diagram: "{{SYSTEM_CONTEXT_DIAGRAM_PATH}}" # 系统上下文图路径
+    technical_architecture_diagram: "{{TECH_ARCH_DIAGRAM_PATH}}" # 技术架构图路径
+    component_diagram: "{{COMPONENT_DIAGRAM_PATH}}" # 组件图路径
+
+# ============================================================================
+# 第三章节：业务架构
+# ============================================================================
+business_architecture:
+  # 业务模块划分
+  business_modules:
+    - module_name: "{{MODULE_NAME_1}}" # 模块名称
+      module_code: "{{MODULE_CODE_1}}" # 模块编码
+      module_description: "{{MODULE_DESCRIPTION_1}}" # 模块描述
+      business_capability: "{{BUSINESS_CAPABILITY_1}}" # 业务能力
+      module_owner: "{{MODULE_OWNER_1}}" # 模块负责人
+      sub_modules: # 子模块
+        - sub_module_name: "{{SUB_MODULE_1_1}}"
+          sub_module_description: "{{SUB_MODULE_DESC_1_1}}"
+      key_entities: ["{{KEY_ENTITY_1_1}}", "{{KEY_ENTITY_1_2}}"] # 关键实体
+      external_dependencies: ["{{DEPENDENCY_1_1}}"] # 外部依赖
+    # 可继续添加模块
+  
+  # 模块间关系
+  module_relationships:
+    - source_module: "{{SOURCE_MODULE_1}}" # 源模块
+      target_module: "{{TARGET_MODULE_1}}" # 目标模块
+      relationship_type: "{{RELATIONSHIP_TYPE_1}}" # depends_on | integrates_with | extends
+      interaction_method: "{{INTERACTION_METHOD_1}}" # api_call | event | shared_data
+      data_exchange: "{{DATA_EXCHANGE_1}}" # 数据交换内容
+      coupling_level: "{{COUPLING_LEVEL_1}}" # loose | tight
+    # 可继续添加关系
+  
+  # 业务流程架构
+  business_processes:
+    core_processes: # 核心业务流程
+      - process_name: "{{CORE_PROCESS_1}}" # 流程名称
+        process_description: "{{CORE_PROCESS_DESC_1}}" # 流程描述
+        involved_modules: ["{{INVOLVED_MODULE_1_1}}", "{{INVOLVED_MODULE_1_2}}"] # 涉及模块
+        process_steps: # 流程步骤
+          - step_order: 1
+            step_name: "{{STEP_NAME_1_1}}"
+            responsible_module: "{{RESPONSIBLE_MODULE_1_1}}"
+            step_description: "{{STEP_DESCRIPTION_1_1}}"
+        process_diagram: "{{PROCESS_DIAGRAM_PATH_1}}" # 流程图路径
+    
+    support_processes: # 支撑业务流程
+      - process_name: "{{SUPPORT_PROCESS_1}}"
+        process_description: "{{SUPPORT_PROCESS_DESC_1}}"
+        involved_modules: ["{{SUPPORT_MODULE_1_1}}"]
+
+# ============================================================================
+# 第四章节：数据架构
+# ============================================================================
+data_architecture:
+  # 数据库架构设计
+  database_design:
+    database_strategy: "{{DB_STRATEGY}}" # single_db | multi_db | sharding
+    database_instances: # 数据库实例
+      - instance_name: "{{DB_INSTANCE_1}}" # 实例名称
+        instance_purpose: "{{DB_PURPOSE_1}}" # 实例用途
+        database_list: ["{{DATABASE_1_1}}", "{{DATABASE_1_2}}"] # 数据库列表
+        estimated_size: "{{DB_SIZE_1}}" # 预计大小
+        backup_strategy: "{{BACKUP_STRATEGY_1}}" # 备份策略
+    
+    # 表设计策略
+    table_design_strategy:
+      naming_convention: "{{TABLE_NAMING_CONVENTION}}" # 表命名规范
+      partition_strategy: "{{PARTITION_STRATEGY}}" # 分区策略
+      index_strategy: "{{INDEX_STRATEGY}}" # 索引策略
+      
+    # 核心数据实体
+    core_entities:
+      - entity_name: "{{CORE_ENTITY_1}}" # 实体名称
+        table_name: "{{CORE_TABLE_1}}" # 对应表名
+        entity_description: "{{CORE_ENTITY_DESC_1}}" # 实体描述
+        data_volume_estimate: "{{DATA_VOLUME_1}}" # 数据量预估
+        growth_rate: "{{GROWTH_RATE_1}}" # 数据增长率
+        retention_policy: "{{RETENTION_POLICY_1}}" # 数据保留策略
+        related_entities: ["{{RELATED_ENTITY_1_1}}"] # 关联实体
+      # 可继续添加实体
+  
+  # 数据流设计
+  data_flow:
+    data_sources: # 数据源
+      - source_name: "{{DATA_SOURCE_1}}" # 数据源名称
+        source_type: "{{SOURCE_TYPE_1}}" # internal | external | batch | realtime
+        data_format: "{{DATA_FORMAT_1}}" # json | xml | csv | database
+        update_frequency: "{{UPDATE_FREQUENCY_1}}" # realtime | daily | weekly
+        
+    data_transformations: # 数据转换
+      - transformation_name: "{{TRANSFORMATION_1}}" # 转换名称
+        source_format: "{{SOURCE_FORMAT_1}}" # 源格式
+        target_format: "{{TARGET_FORMAT_1}}" # 目标格式
+        transformation_rules: "{{TRANSFORMATION_RULES_1}}" # 转换规则
+        
+    data_destinations: # 数据目的地
+      - destination_name: "{{DATA_DESTINATION_1}}" # 目的地名称
+        destination_type: "{{DESTINATION_TYPE_1}}" # database | file | api
+        usage_purpose: "{{USAGE_PURPOSE_1}}" # 使用目的
+  
+  # 缓存架构
+  cache_architecture:
+    cache_layers: # 缓存层次
+      - layer_name: "{{CACHE_LAYER_1}}" # 缓存层名称
+        cache_type: "{{CACHE_TYPE_1}}" # redis | local | distributed
+        cache_scope: "{{CACHE_SCOPE_1}}" # application | session | user
+        cache_strategy: "{{CACHE_STRATEGY_1}}" # write_through | write_behind | cache_aside
+        eviction_policy: "{{EVICTION_POLICY_1}}" # LRU | LFU | TTL
+        estimated_size: "{{CACHE_SIZE_1}}" # 预计大小
+    
+    cache_key_design: # 缓存键设计
+      naming_pattern: "{{CACHE_KEY_PATTERN}}" # 键命名模式
+      namespace_strategy: "{{NAMESPACE_STRATEGY}}" # 命名空间策略
+      ttl_strategy: "{{TTL_STRATEGY}}" # TTL策略
+
+# ============================================================================
+# 第五章节：部署架构
+# ============================================================================
+deployment_architecture:
+  # 环境规划
+  environment_planning:
+    environments:
+      - env_name: "{{ENV_NAME_1}}" # 环境名称
+        env_purpose: "{{ENV_PURPOSE_1}}" # 环境用途
+        server_specs: # 服务器规格
+          cpu: "{{SERVER_CPU_1}}" # CPU规格
+          memory: "{{SERVER_MEMORY_1}}" # 内存规格
+          storage: "{{SERVER_STORAGE_1}}" # 存储规格
+          network: "{{SERVER_NETWORK_1}}" # 网络配置
+        instance_count: {{INSTANCE_COUNT_1}} # 实例数量
+        load_balancer: "{{LOAD_BALANCER_1}}" # 负载均衡器
+      # 可继续添加环境
+  
+  # 服务部署策略
+  deployment_strategy:
+    deployment_model: "{{DEPLOYMENT_MODEL}}" # containerized | traditional | hybrid
+    container_platform: "{{CONTAINER_PLATFORM}}" # Docker | Kubernetes | none
+    
+    service_deployment: # 服务部署
+      - service_name: "{{SERVICE_NAME_1}}" # 服务名称
+        deployment_unit: "{{DEPLOYMENT_UNIT_1}}" # war | jar | container
+        resource_requirements: # 资源需求
+          min_cpu: "{{MIN_CPU_1}}"
+          min_memory: "{{MIN_MEMORY_1}}"
+          max_cpu: "{{MAX_CPU_1}}"
+          max_memory: "{{MAX_MEMORY_1}}"
+        scaling_strategy: "{{SCALING_STRATEGY_1}}" # manual | auto | scheduled
+        health_check: "{{HEALTH_CHECK_1}}" # 健康检查配置
+    
+  # 网络架构
+  network_architecture:
+    network_topology: "{{NETWORK_TOPOLOGY}}" # 网络拓扑
+    security_zones: # 安全区域
+      - zone_name: "{{SECURITY_ZONE_1}}" # 区域名称
+        zone_purpose: "{{ZONE_PURPOSE_1}}" # 区域用途
+        access_control: "{{ACCESS_CONTROL_1}}" # 访问控制
+        components: ["{{ZONE_COMPONENT_1_1}}"] # 区域组件
+    
+    network_security: # 网络安全
+      firewall_rules: "{{FIREWALL_RULES}}" # 防火墙规则
+      ssl_configuration: "{{SSL_CONFIG}}" # SSL配置
+      vpn_requirements: "{{VPN_REQUIREMENTS}}" # VPN需求
+
+# ============================================================================
+# 第六章节：质量属性设计
+# ============================================================================
+quality_attributes:
+  # 性能设计
+  performance_design:
+    performance_goals: # 性能目标
+      - metric: "{{PERFORMANCE_METRIC_1}}" # 性能指标
+        target_value: "{{TARGET_VALUE_1}}" # 目标值
+        measurement_method: "{{MEASUREMENT_METHOD_1}}" # 测量方法
+        
+    performance_strategies: # 性能策略
+      - strategy_name: "{{PERF_STRATEGY_1}}" # 策略名称
+        strategy_description: "{{PERF_STRATEGY_DESC_1}}" # 策略描述
+        implementation_approach: "{{PERF_IMPLEMENTATION_1}}" # 实现方法
+        expected_improvement: "{{EXPECTED_IMPROVEMENT_1}}" # 预期改善
+        
+    bottleneck_analysis: # 瓶颈分析
+      - potential_bottleneck: "{{BOTTLENECK_1}}" # 潜在瓶颈
+        impact_assessment: "{{BOTTLENECK_IMPACT_1}}" # 影响评估
+        mitigation_strategy: "{{BOTTLENECK_MITIGATION_1}}" # 缓解策略
+  
+  # 安全设计
+  security_design:
+    security_requirements: # 安全需求
+      - requirement_category: "{{SECURITY_CATEGORY_1}}" # authentication | authorization | data_protection
+        specific_requirements: ["{{SECURITY_REQ_1_1}}", "{{SECURITY_REQ_1_2}}"] # 具体需求
+        implementation_approach: "{{SECURITY_IMPLEMENTATION_1}}" # 实现方法
+        
+    threat_model: # 威胁模型
+      - threat_category: "{{THREAT_CATEGORY_1}}" # 威胁类别
+        threat_description: "{{THREAT_DESCRIPTION_1}}" # 威胁描述
+        likelihood: "{{THREAT_LIKELIHOOD_1}}" # high | medium | low
+        impact: "{{THREAT_IMPACT_1}}" # high | medium | low
+        mitigation_controls: ["{{MITIGATION_CONTROL_1_1}}"] # 缓解控制
+        
+    security_architecture: # 安全架构
+      authentication_mechanism: "{{AUTH_MECHANISM}}" # 认证机制
+      authorization_model: "{{AUTHZ_MODEL}}" # 授权模型
+      data_encryption: "{{DATA_ENCRYPTION}}" # 数据加密
+      audit_logging: "{{AUDIT_LOGGING}}" # 审计日志
+  
+  # 可用性和可扩展性设计
+  availability_scalability:
+    availability_requirements: # 可用性需求
+      target_uptime: "{{TARGET_UPTIME}}" # 目标运行时间
+      max_downtime: "{{MAX_DOWNTIME}}" # 最大停机时间
+      recovery_time_objective: "{{RTO}}" # 恢复时间目标
+      recovery_point_objective: "{{RPO}}" # 恢复点目标
+      
+    high_availability_design: # 高可用设计
+      redundancy_strategy: "{{REDUNDANCY_STRATEGY}}" # 冗余策略
+      failover_mechanism: "{{FAILOVER_MECHANISM}}" # 故障转移机制
+      disaster_recovery: "{{DISASTER_RECOVERY}}" # 灾难恢复
+      
+    scalability_design: # 可扩展性设计
+      scaling_dimensions: ["{{SCALING_DIMENSION_1}}", "{{SCALING_DIMENSION_2}}"] # vertical | horizontal | functional
+      scaling_triggers: "{{SCALING_TRIGGERS}}" # 扩展触发条件
+      scaling_constraints: "{{SCALING_CONSTRAINTS}}" # 扩展约束
+      capacity_planning: "{{CAPACITY_PLANNING}}" # 容量规划
+
+# ============================================================================
+# 第七章节：架构治理
+# ============================================================================
+architecture_governance:
+  # 架构原则
+  architectural_principles:
+    - principle_name: "{{PRINCIPLE_NAME_1}}" # 原则名称
+      principle_statement: "{{PRINCIPLE_STATEMENT_1}}" # 原则声明
+      rationale: "{{PRINCIPLE_RATIONALE_1}}" # 理由
+      implications: "{{PRINCIPLE_IMPLICATIONS_1}}" # 影响
+      
+  # 架构标准
+  architectural_standards:
+    coding_standards: "{{CODING_STANDARDS}}" # 编码标准
+    naming_conventions: "{{NAMING_CONVENTIONS}}" # 命名约定
+    documentation_standards: "{{DOC_STANDARDS}}" # 文档标准
+    review_processes: "{{REVIEW_PROCESSES}}" # 评审流程
+    
+  # 架构评估
+  architecture_evaluation:
+    evaluation_criteria: # 评估标准
+      - criterion: "{{EVAL_CRITERION_1}}" # 评估标准
+        weight: {{CRITERION_WEIGHT_1}} # 权重
+        measurement_method: "{{MEASUREMENT_METHOD_1}}" # 测量方法
+        
+    review_checkpoints: # 评审检查点
+      - checkpoint_name: "{{CHECKPOINT_1}}" # 检查点名称
+        checkpoint_timing: "{{CHECKPOINT_TIMING_1}}" # 检查时机
+        deliverables: ["{{DELIVERABLE_1_1}}"] # 交付物
+        reviewers: ["{{REVIEWER_1_1}}"] # 评审者
+
+# ============================================================================
+# 附加信息
+# ============================================================================
+additional_info:
+  # 架构决策记录
+  decision_log: # 决策日志
+    - decision_date: "{{DECISION_DATE_1}}" # 决策日期
+      decision_maker: "{{DECISION_MAKER_1}}" # 决策者
+      decision_summary: "{{DECISION_SUMMARY_1}}" # 决策摘要
+      impact_assessment: "{{IMPACT_ASSESSMENT_1}}" # 影响评估
+      
+  # 风险和假设
+  risks_assumptions:
+    architectural_risks: # 架构风险
+      - risk_description: "{{ARCH_RISK_1}}" # 风险描述
+        probability: "{{RISK_PROBABILITY_1}}" # high | medium | low
+        impact: "{{RISK_IMPACT_1}}" # high | medium | low
+        mitigation_plan: "{{RISK_MITIGATION_1}}" # 缓解计划
+        
+    architectural_assumptions: # 架构假设
+      - assumption: "{{ARCH_ASSUMPTION_1}}" # 假设
+        validation_method: "{{ASSUMPTION_VALIDATION_1}}" # 验证方法
+        impact_if_false: "{{ASSUMPTION_IMPACT_1}}" # 假设不成立时的影响
+  
+  # 参考资料
+  references:
+    - reference_type: "{{REF_TYPE_1}}" # standard | guideline | best_practice
+      reference_title: "{{REF_TITLE_1}}" # 参考标题
+      reference_url: "{{REF_URL_1}}" # 参考链接
+      relevance: "{{REF_RELEVANCE_1}}" # 相关性说明
+      
+  # 备注说明
+  notes: | # 其他重要信息和备注
+    {{ADDITIONAL_NOTES}}
