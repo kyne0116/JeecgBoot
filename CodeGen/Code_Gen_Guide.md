@@ -423,10 +423,10 @@ python3 Code_Gen_Guide.py --fix-table-name "biz_product_management"
 ## 📚 相关文档
 
 - **Code_Gen_Agent.md**: AI 推理规范和业务分析方法
-- **Code_Gen_Variables.md**: 核心变量定义和使用规范
+- **Code_Gen_JSON_Standards.md**: 统一标准规范 (核心变量定义+JSON 标准+验证规则)
 - **Code_Gen_Config.json**: 系统配置文件模板
-- **Code_Gen_Guide.json**: 标准 JSON 配置模板
-- **Code_Gen_Validator.py**: 完整的配置文件验证工具（包含基础验证、Schema 验证、orderNum 连续性验证等）
+- **Code_Gen_Guide.json**: 统一模板配置 (集成字段模板和系统常量)
+- **Code_Gen_Validator.py**: 高效验证工具 (核心验证：orderNum 连续性、系统字段、表名格式)
 
 ---
 

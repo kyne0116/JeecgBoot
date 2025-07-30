@@ -19,17 +19,19 @@ CodeGen/
 ├── README.md                      # 📖 本文档 - 系统概述和使用指南
 ├── Code_Gen_Guide.md               # 🔧 技术实现指南 - 脚本使用方法和配置文件结构
 ├── Code_Gen_Agent.md               # 🤖 AI代理规范 - AI行为边界和推理策略
-├── Code_Gen_Variables.md           # 📊 变量定义规范 - 三核心变量详解
 ├── Code_Gen_Guide.py               # ⚡ 核心执行引擎 - 代码生成主脚本
 ├── Code_Gen_Config.json            # ⚙️ 系统配置 - 服务器连接和路径配置
-├── Code_Gen_Guide.json             # 📋 模板配置 - 标准JSON模板
-├── Code_Gen_Schema.json            # 🔍 验证模式 - JSON Schema验证规则
-├── Code_Gen_Validator.py           # ✅ 配置验证器 - JSON格式和内容验证
-├── Code_Gen_Example.json           # 📝 示例配置 - 完整的参考示例
+├── Code_Gen_Guide.json             # 📋 统一模板配置 - 包含常量定义和字段模板
+├── Code_Gen_Schema.json            # 🔍 简化验证模式 - 核心结构验证规则
+├── Code_Gen_Validator.py           # ✅ 简化验证器 - 专注核心验证逻辑
 ├── Code_Gen_DICT.json              # 📚 数据字典 - 系统数据字典缓存
-├── Code_Gen_field_templates.json   # 🎨 字段模板 - 13种字段类型模板
-├── Code_Gen_JSON_Standards.md      # 🚨 JSON配置标准 - 技术规范和约束
+├── Code_Gen_JSON_Standards.md      # 🚨 统一标准规范 - 变量定义+JSON标准+验证规则
 └── temp_*_config.json              # 🚀 临时配置 - 运行时生成的配置文件
+
+# 系统优化说明：
+# - 变量定义统一管理在 Code_Gen_JSON_Standards.md
+# - 字段模板集成在 Code_Gen_Guide.json 的 constants 部分
+# - 验证器专注核心功能，提升执行效率
 ```
 
 ## 🔄 核心工作流程
@@ -48,10 +50,11 @@ graph TD
     H --> I[完整CRUD代码]
 
     B1[Code_Gen_Agent.md] --> B
-    C1[Code_Gen_Variables.md] --> C
+    C1[Code_Gen_JSON_Standards.md] --> C
     D1[Code_Gen_DICT.json] --> D
-    E1[Code_Gen_field_templates.json] --> E
+    E1[Code_Gen_Guide.json] --> E
     F1[Code_Gen_Schema.json] --> F
+    F2[Code_Gen_Validator.py] --> F
     G1[Code_Gen_Guide.py] --> G
     G2[Code_Gen_Config.json] --> G
 ```
@@ -67,19 +70,19 @@ graph TD
 2. **AI 需求分析** - 基于`Code_Gen_Agent.md`的推理策略
 
    - 语义理解和关键词提取
-   - 三核心变量智能推理
+   - 三核心变量智能推理 (参考`Code_Gen_JSON_Standards.md`)
    - 业务系统映射
 
-3. **配置文件生成** - 使用`Code_Gen_field_templates.json`模板
+3. **配置文件生成** - 使用`Code_Gen_Guide.json`统一模板
 
-   - 基于`Code_Gen_Guide.json`生成配置
+   - 基于统一模板生成配置 (集成字段模板和系统常量)
    - 数据字典智能匹配
    - 字段类型自动推断
 
 4. **配置验证** - 通过`Code_Gen_Schema.json`和`Code_Gen_Validator.py`
 
-   - JSON 格式验证
-   - 必需字段检查
+   - JSON 格式验证 (高效 Schema 验证)
+   - 核心验证：orderNum 连续性、系统字段、表名格式
    - API 兼容性验证
 
 5. **代码生成执行** - `Code_Gen_Guide.py`调用 JeecgBoot API
@@ -89,13 +92,13 @@ graph TD
 
 ## 📊 三核心变量系统
 
-### 变量定义 (详见 `Code_Gen_Variables.md`)
+### 变量定义 (详见 `Code_Gen_JSON_Standards.md`)
 
-| 变量层级 | 变量名称        | 定义               | 示例            |
-| -------- | --------------- | ------------------ | --------------- |
-| 第一层   | MODULE_NAME     | 模块名/系统名称    | finance         |
-| 第二层   | SUBMODULE_NAME  | 子模块名/系统模块  | invoice         |
-| 第三层   | BUSINESS_ENTITY | 业务实体语义标识符 | CustomerProfile |
+| 变量层级 | 变量名称        | 定义               | 示例           |
+| -------- | --------------- | ------------------ | -------------- |
+| 第一层   | MODULE_NAME     | 模块名/系统名称    | dictd, finance |
+| 第二层   | SUBMODULE_NAME  | 子模块名/系统模块  | datas, pages   |
+| 第三层   | BUSINESS_ENTITY | 业务实体语义标识符 | ExcelTemplate  |
 
 ### 派生变量
 
@@ -159,43 +162,42 @@ graph TD
 - **派生路径计算**：`PROJECT_PATH = {path_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{MODULE_NAME}`
 - **配置变更影响**：修改该字段会自动影响整个系统的路径计算
 
-### 模板配置 (`Code_Gen_Guide.json`)
+### 统一模板配置 (`Code_Gen_Guide.json`)
 
-包含完整的表单配置模板，包括 head 部分和 fields 数组的标准结构。
+包含完整的表单配置模板，集成以下功能：
 
-### 字段模板 (`Code_Gen_field_templates.json`)
+- **head 部分**: 标准表头配置
+- **metadata 部分**: 生成信息和派生格式
+- **constants 部分**: 系统字段列表和字段模板 (新增)
+- **fields 数组**: 标准字段结构
 
-提供 13 种字段类型的标准模板:
+**内置字段模板** (constants.field_templates):
 
-- `text_field` - 文本字段
-- `number_field` - 数值字段
-- `decimal_field` - 小数字段
-- `date_field` / `datetime_field` - 日期时间字段
-- `textarea_field` - 长文本字段
-- `dict_select_field` / `dict_radio_field` - 数据字典选择字段
-- `file_upload_field` / `image_upload_field` - 文件上传字段
-- `rich_text_field` - 富文本字段
-- `phone_field` / `email_field` - 联系方式字段
+- `text` - 文本字段
+- `textarea` - 长文本字段
+- `number` - 数值字段
+- `date` - 日期字段
+- `dict_select` - 数据字典选择字段
 
 ## 🔍 验证系统
 
 ### JSON Schema 验证 (`Code_Gen_Schema.json`)
 
-定义了严格的配置文件结构规范:
+定义了高效的配置文件结构规范:
 
-- head 部分必需字段验证
-- fields 数组结构和属性验证
-- 数据类型和格式约束
-- 表名命名规范验证
+- head 部分核心字段验证 (tableName, tableTxt, business_entity 等)
+- fields 数组基本结构验证 (dbFieldName, dbFieldTxt, dbType, orderNum)
+- 必需数组验证 (indexs, deleteFieldIds, deleteIndexIds)
+- metadata 节点结构验证
 
 ### 配置验证器 (`Code_Gen_Validator.py`)
 
-提供程序化的配置文件验证:
+专注核心验证逻辑，确保 API 兼容性:
 
-- JSON 格式正确性检查
-- 系统字段完整性验证
-- 业务字段配置合规性检查
-- API 兼容性验证
+- **orderNum 连续性验证** (防止 API 失败的关键验证)
+- **系统字段完整性验证** (前 7 个字段必须正确)
+- **表名格式验证** (us_module_submodule_entity 格式)
+- **JSON 格式正确性检查**
 
 ## 📚 数据字典系统
 
@@ -254,9 +256,9 @@ python3 Code_Gen_Guide.py --validate-table-name us_finance_invoice_management
 
 2. **系统字段配置标准化** (不可变更)
 
-   - 前 7 个字段必须与`Code_Gen_Example.json`完全一致
+   - 前 7 个字段必须与`Code_Gen_Guide.json`中的 constants.system_fields 完全一致
    - 严禁修改系统字段的任何属性值
-   - 直接复制标准模板，不做任何"优化"
+   - 直接使用统一模板，不做任何"优化"
 
 3. **表名格式 4 段式** (严格规范)
    - 必须符合`us_模块_子模块_实体`格式
@@ -265,8 +267,8 @@ python3 Code_Gen_Guide.py --validate-table-name us_finance_invoice_management
 
 ### 📋 AIGC 生成流程
 
-1. **生成前**：按照`Code_Gen_JSON_Standards.md`中的"AIGC 5 步快速检查流程"执行
-2. **生成时**：直接复制`Code_Gen_Example.json`的系统字段配置
+1. **生成前**：按照`Code_Gen_JSON_Standards.md`中的"5 步快速检查"执行
+2. **生成时**：使用`Code_Gen_Guide.json`统一模板和内置字段模板
 3. **生成后**：立即使用`Code_Gen_Validator.py`验证
 
 ### 🔍 必备验证工具
@@ -318,25 +320,26 @@ python3 Code_Gen_Validator.py temp_config.json
 
 ### 添加新的字段类型
 
-1. 在`Code_Gen_field_templates.json`中定义新模板
-2. 更新`Code_Gen_Schema.json`验证规则
+1. 在`Code_Gen_Guide.json`的 constants.field_templates 中定义新模板
+2. 更新`Code_Gen_Schema.json`验证规则 (如需要)
 3. 在 AI 推理策略中添加相应的匹配逻辑
 
 ### 自定义验证规则
 
-1. 扩展`Code_Gen_Validator.py`验证器
+1. 扩展`Code_Gen_Validator.py`验证器的核心验证方法
 2. 添加特定业务场景的验证逻辑
 3. 更新 Schema 文件以支持新的验证规则
 
 ## 📞 技术支持
 
 - **系统文档**: 参考各个`.md`文件的详细技术说明
-- **配置示例**: 查看`Code_Gen_Example.json`了解完整配置
-- **错误排查**: 使用验证工具诊断配置文件问题
+- **配置模板**: 查看`Code_Gen_Guide.json`了解统一模板结构
+- **标准规范**: 参考`Code_Gen_JSON_Standards.md`了解完整规范
+- **错误排查**: 使用`Code_Gen_Validator.py`诊断配置文件问题
 - **社区支持**: JeecgBoot 官方技术社区
 
 ---
 
-**版本**: 3.8.1  
-**更新日期**: 2025-07-20  
+**版本**: 3.8.1
+**更新日期**: 2025-07-30
 **维护团队**: JeecgBoot 开发团队
