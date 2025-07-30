@@ -1,0 +1,248 @@
+# JeecgBoot 需求文档模板 v3.0
+# 面向政府、企业等传统B/S架构业务系统的需求描述模板
+
+# ============================================================================
+# 第一章节：需求核心信息
+# ============================================================================
+requirement_core_info:
+  # 基本标识信息
+  basic_identity:
+    title: "${REQUIREMENT_TITLE}" # 需求标题
+    requirement_id: "${REQUIREMENT_ID}" # 需求编号
+    priority: "${PRIORITY}" # high | medium | low
+    complexity: "${COMPLEXITY}" # simple | medium | complex
+    requirement_type: "${REQUIREMENT_TYPE}" # new_feature | enhancement | bug_fix
+  
+  # 关键干系人信息
+  stakeholder_info:
+    proposer: "${PROPOSER_NAME}" # 需求提出人
+    organization: "${PROPOSER_ORGANIZATION}" # 提出人所属组织/部门
+    contact: "${CONTACT_INFO}" # 联系方式
+    proposed_date: "${PROPOSED_DATE}" # 需求提出时间
+    expected_date: "${EXPECTED_DATE}" # 期望完成时间
+  
+  # JeecgBoot环境信息
+  jeecg_context:
+    base_version: "${JEECG_VERSION}" # JeecgBoot版本，默认3.8.1
+    target_module: "${TARGET_MODULE}" # 目标模块: system | custom | demo
+    status: "${STATUS}" # 状态: draft | approved | in_development | testing | completed
+
+# ============================================================================
+# 第二章节：需求范围定义
+# ============================================================================
+requirement_scope:
+  # 业务领域分类
+  business_classification:
+    domain: "${BUSINESS_DOMAIN}" # e_commerce | government | enterprise | education
+    sub_domain: "${SUB_DOMAIN}" # 具体子领域
+    business_process: "${BUSINESS_PROCESS}" # crud | workflow | report | integration
+  
+  # JeecgBoot特性涉及
+  jeecg_features:
+    involves_permission: ${INVOLVES_PERMISSION} # true | false - 是否涉及权限管理
+    involves_dict: ${INVOLVES_DICT} # true | false - 是否涉及数据字典
+    involves_workflow: ${INVOLVES_WORKFLOW} # true | false - 是否涉及工作流
+    involves_report: ${INVOLVES_REPORT} # true | false - 是否涉及报表
+    involves_integration: ${INVOLVES_INTEGRATION} # true | false - 是否涉及三方集成
+  
+  # 技术实现范围
+  technical_scope:
+    frontend_changes: ${FRONTEND_CHANGES} # true | false - 是否需要前端开发
+    backend_changes: ${BACKEND_CHANGES} # true | false - 是否需要后端开发
+    database_changes: ${DATABASE_CHANGES} # true | false - 是否需要数据库变更
+    api_changes: ${API_CHANGES} # true | false - 是否需要API开发
+
+# ============================================================================
+# 第三章节：需求详细描述
+# ============================================================================
+requirement_details:
+  
+  # 业务背景与目标
+  business_objective:
+    current_situation: | # 当前业务现状
+      ${CURRENT_SITUATION_DESCRIPTION}
+    business_goal: | # 业务目标
+      ${BUSINESS_GOAL_DESCRIPTION}
+    expected_outcome: | # 期望结果
+      ${EXPECTED_OUTCOME_DESCRIPTION}
+  
+  # 用户角色与权限
+  user_roles:
+    - role_name: "${ROLE_NAME_1}" # 角色名称
+      role_code: "${ROLE_CODE_1}" # 角色编码
+      permissions: ["${PERMISSION_1}", "${PERMISSION_2}"] # 权限列表
+    # 可继续添加角色
+  
+  # 功能需求
+  functional_requirements:
+    # 基础功能需求
+    basic_functions:
+      - id: "BF-01"
+        description: "系统应当能够${BASIC_FUNCTION_1}"
+        details: "${BASIC_FUNCTION_DETAILS_1}"
+      # 可继续添加
+    
+    # 事件触发功能
+    trigger_functions:
+      - id: "TF-01"
+        trigger: "${TRIGGER_CONDITION_1}" # 触发条件
+        action: "${TRIGGER_ACTION_1}" # 执行动作
+        details: "${TRIGGER_DETAILS_1}"
+      # 可继续添加
+    
+    # 异常处理要求
+    exception_handling:
+      - id: "EH-01"
+        condition: "${EXCEPTION_CONDITION_1}" # 异常条件
+        action: "${EXCEPTION_ACTION_1}" # 处理动作
+        details: "${EXCEPTION_DETAILS_1}"
+      # 可继续添加
+  
+  # 数据需求
+  data_requirements:
+    # 数据实体定义
+    main_entities:
+      - entity_name: "${ENTITY_NAME_1}" # 实体名称
+        table_name: "${TABLE_NAME_1}" # 对应表名
+        description: "${ENTITY_DESCRIPTION_1}" # 实体描述
+        key_fields: # 关键字段
+          - name: "${FIELD_NAME_1}"
+            type: "${FIELD_TYPE_1}"
+            length: ${FIELD_LENGTH_1}
+            required: ${FIELD_REQUIRED_1} # true | false
+            description: "${FIELD_DESC_1}"
+            dict_code: "${DICT_CODE_1}" # 关联字典编码（如有）
+        relationships: # 实体关联关系
+          - related_entity: "${RELATED_ENTITY_1}"
+            relationship_type: "${RELATION_TYPE_1}" # one_to_one | one_to_many | many_to_many
+            foreign_key: "${FOREIGN_KEY_1}"
+      # 可继续添加实体
+  
+  # 界面需求
+  ui_requirements:
+    main_pages:
+      - page_name: "${PAGE_NAME_1}" # 页面名称
+        page_type: "${PAGE_TYPE_1}" # list | form | detail | dashboard
+        layout_description: | # 页面布局描述
+          ${PAGE_LAYOUT_DESCRIPTION_1}
+        key_components: # 页面关键组件
+          - component_name: "${COMPONENT_NAME_1}"
+            component_type: "${COMPONENT_TYPE_1}" # table | form | chart | button等
+            properties: # 组件属性
+              - property: "${PROPERTY_1}"
+                value: "${VALUE_1}"
+        interaction_requirements: | # 交互需求
+          ${INTERACTION_REQUIREMENTS_1}
+      # 可继续添加页面
+  
+  # 接口需求
+  api_requirements:
+    internal_apis: # 内部接口
+      - api_name: "${API_NAME_1}" # 接口名称
+        api_path: "${API_PATH_1}" # 接口路径
+        http_method: "${HTTP_METHOD_1}" # GET | POST | PUT | DELETE
+        description: "${API_DESCRIPTION_1}" # 接口描述
+        request_params: # 请求参数
+          - param_name: "${PARAM_NAME_1}"
+            param_type: "${PARAM_TYPE_1}"
+            required: ${PARAM_REQUIRED_1} # true | false
+            description: "${PARAM_DESCRIPTION_1}"
+        response_format: | # 响应格式
+          ${API_RESPONSE_FORMAT_1}
+      # 可继续添加接口
+
+# ============================================================================
+# 第四章节：扩展需求
+# ============================================================================
+extended_requirements:
+  # 数据字典需求（当involves_dict为true时填写）
+  dictionary_requirements:
+    dict_categories:
+      - category_name: "${DICT_CATEGORY_1}" # 字典分类名称
+        category_code: "${DICT_CATEGORY_CODE_1}" # 字典分类编码
+        dict_items: # 字典项
+          - item_name: "${DICT_ITEM_NAME_1}"
+            item_code: "${DICT_ITEM_CODE_1}"
+            item_value: "${DICT_ITEM_VALUE_1}"
+            description: "${DICT_ITEM_DESC_1}"
+      # 可继续添加字典分类
+  
+  # 工作流需求（当involves_workflow为true时填写）
+  workflow_requirements:
+    - workflow_name: "${WORKFLOW_NAME_1}" # 工作流名称
+      workflow_code: "${WORKFLOW_CODE_1}" # 工作流编码
+      workflow_description: "${WORKFLOW_DESCRIPTION_1}" # 工作流描述
+      workflow_steps: # 工作流步骤
+        - step_name: "${STEP_NAME_1}"
+          step_order: ${STEP_ORDER_1}
+          step_type: "${STEP_TYPE_1}" # approval | notification | automation
+          assignee_role: "${ASSIGNEE_ROLE_1}" # 处理人角色
+          step_description: "${STEP_DESCRIPTION_1}"
+      # 可继续添加工作流
+  
+  # 报表需求（当involves_report为true时填写）
+  report_requirements:
+    - report_name: "${REPORT_NAME_1}" # 报表名称
+      report_type: "${REPORT_TYPE_1}" # statistical | export | dashboard | chart
+      data_source: "${DATA_SOURCE_1}" # 数据来源
+      report_fields: # 报表字段
+        - field_name: "${REPORT_FIELD_1}"
+          field_type: "${REPORT_FIELD_TYPE_1}"
+          calculation_method: "${CALCULATION_METHOD_1}" # sum | count | avg | max | min
+      export_formats: ["${EXPORT_FORMAT_1}"] # excel | pdf | csv
+      report_description: | # 报表描述
+        ${REPORT_DESCRIPTION_1}
+    # 可继续添加报表
+  
+  # 集成需求（当involves_integration为true时填写）
+  integration_requirements:
+    external_systems:
+      - system_name: "${EXTERNAL_SYSTEM_1}" # 外部系统名称
+        integration_type: "${INTEGRATION_TYPE_1}" # api | database | file | message_queue
+        integration_method: "${INTEGRATION_METHOD_1}" # rest_api | soap | ftp | jdbc
+        data_format: "${DATA_FORMAT_1}" # json | xml | csv | fixed_width
+        authentication: "${AUTH_METHOD_1}" # api_key | oauth | basic_auth | certificate
+        endpoint: "${INTEGRATION_ENDPOINT_1}" # 集成端点
+        data_mapping: # 数据映射
+          - source_field: "${SOURCE_FIELD_1}"
+            target_field: "${TARGET_FIELD_1}"
+            transformation_rule: "${TRANSFORMATION_RULE_1}"
+        integration_frequency: "${INTEGRATION_FREQUENCY_1}" # real_time | scheduled | manual
+        error_handling: "${ERROR_HANDLING_1}" # 错误处理策略
+      # 可继续添加外部系统
+
+# ============================================================================
+# 附加信息
+# ============================================================================
+additional_info:
+  # 依赖关系
+  dependencies:
+    - dependency_type: "${DEPENDENCY_TYPE_1}" # requirement | system | data | service
+      dependency_name: "${DEPENDENCY_NAME_1}"
+      dependency_description: "${DEPENDENCY_DESCRIPTION_1}"
+      impact_level: "${IMPACT_LEVEL_1}" # high | medium | low
+    # 可继续添加依赖
+  
+  # 约束条件
+  constraints:
+    - constraint_type: "${CONSTRAINT_TYPE_1}" # technical | business | time | resource | security
+      constraint_description: "${CONSTRAINT_DESCRIPTION_1}"
+      constraint_impact: "${CONSTRAINT_IMPACT_1}"
+    # 可继续添加约束
+  
+  # 风险识别
+  risks:
+    - risk_description: "${RISK_DESCRIPTION_1}" # 风险描述
+      risk_level: "${RISK_LEVEL_1}" # high | medium | low
+      mitigation_strategy: "${MITIGATION_STRATEGY_1}" # 风险缓解策略
+    # 可继续添加风险
+  
+  # 假设条件
+  assumptions:
+    - assumption_description: "${ASSUMPTION_DESCRIPTION_1}"
+      validation_method: "${VALIDATION_METHOD_1}" # 验证方法
+    # 可继续添加假设
+  
+  # 备注说明
+  notes: | # 其他重要信息和备注
+    ${ADDITIONAL_NOTES}
