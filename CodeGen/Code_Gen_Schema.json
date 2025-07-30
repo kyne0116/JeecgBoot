@@ -1,104 +1,33 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "JeecgBoot在线表单配置Schema",
-  "description": "用于验证临时JSON配置文件的结构和内容，防止NullPointerException",
+  "title": "JeecgBoot配置Schema(简化版)",
+  "description": "验证JSON配置文件核心结构",
   "type": "object",
-  "required": ["head", "fields"],
+  "required": ["head", "fields", "indexs", "deleteFieldIds", "deleteIndexIds"],
   "properties": {
     "head": {
       "type": "object",
-      "required": [
-        "tableName",
-        "tableTxt",
-        "business_entity",
-        "tableType",
-        "formCategory",
-        "idType",
-        "isCheckbox",
-        "themeTemplate",
-        "formTemplate",
-        "scroll",
-        "isPage",
-        "isTree",
-        "extConfigJson",
-        "isDesForm",
-        "desFormCode"
-      ],
+      "required": ["tableName", "tableTxt", "business_entity", "tableType", "formCategory"],
       "properties": {
         "tableName": {
           "type": "string",
-          "pattern": "^us_[a-z]+_[a-z]+_[a-z]+$",
-          "description": "表名必须符合us_{模块}_{子模块}_{实体}格式，实体部分为全小写连续"
+          "pattern": "^us_[a-z]+_[a-z]+_[a-z]+$"
         },
         "tableTxt": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 50,
-          "description": "表描述不能为空"
+          "minLength": 1
         },
         "business_entity": {
           "type": "string",
-          "pattern": "^[A-Z][a-zA-Z]*$",
-          "minLength": 1,
-          "description": "业务实体名称，必须使用PascalCase格式"
+          "pattern": "^[A-Z][a-zA-Z]*$"
         },
         "tableType": {
           "type": "integer",
-          "enum": [1],
-          "description": "表类型固定为1"
+          "enum": [1]
         },
         "formCategory": {
           "type": "string",
-          "enum": ["temp", "main"],
-          "description": "表单类别"
-        },
-        "themeTemplate": {
-          "type": "string",
-          "enum": ["normal"],
-          "description": "主题模板"
-        },
-        "formTemplate": {
-          "type": "string",
-          "enum": ["1", "2"],
-          "description": "表单模板"
-        },
-        "scroll": {
-          "type": "integer",
-          "enum": [0, 1],
-          "description": "是否滚动"
-        },
-        "extConfigJson": {
-          "type": "string",
-          "description": "扩展配置JSON字符串"
-        },
-        "isDesForm": {
-          "type": "string",
-          "enum": ["Y", "N"],
-          "description": "是否设计表单"
-        },
-        "desFormCode": {
-          "type": "string",
-          "description": "设计表单代码"
-        },
-        "isCheckbox": {
-          "type": "string",
-          "enum": ["Y", "N"],
-          "description": "是否支持复选框"
-        },
-        "isPage": {
-          "type": "string", 
-          "enum": ["Y", "N"],
-          "description": "是否分页"
-        },
-        "isTree": {
-          "type": "string",
-          "enum": ["Y", "N"],
-          "description": "是否树形结构"
-        },
-        "idType": {
-          "type": "string",
-          "enum": ["UUID", "ASSIGN_ID", "AUTO"],
-          "description": "主键类型"
+          "enum": ["temp"]
         }
       },
       "additionalProperties": true
@@ -106,158 +35,54 @@
     "fields": {
       "type": "array",
       "minItems": 8,
-      "description": "字段数组必须至少包含7个系统字段+1个业务字段。⚠️ 关键约束：所有字段的orderNum必须从0开始严格连续递增，任何断裂都会导致JeecgBoot API调用失败！",
+      "description": "字段数组，orderNum必须从0开始连续递增",
       "items": {
         "type": "object",
-        "required": [
-          "dbFieldName",
-          "dbFieldTxt", 
-          "dbType",
-          "dbLength",
-          "dbIsKey",
-          "dbIsNull",
-          "dbIsPersist",
-          "orderNum",
-          "queryShowType",
-          "fieldShowType",
-          "isShowForm",
-          "isShowList",
-          "isQuery"
-        ],
+        "required": ["dbFieldName", "dbFieldTxt", "dbType", "orderNum"],
         "properties": {
           "dbFieldName": {
             "type": "string",
-            "minLength": 1,
-            "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
-            "description": "字段名必须以字母开头"
+            "minLength": 1
           },
           "dbFieldTxt": {
-            "type": "string", 
-            "minLength": 1,
-            "description": "字段描述不能为空"
+            "type": "string",
+            "minLength": 1
           },
           "dbType": {
             "type": "string",
-            "enum": [
-              "VARCHAR", "string", "int", "BigDecimal", 
-              "Date", "Datetime", "text", "LONGTEXT"
-            ],
-            "description": "数据库字段类型"
-          },
-          "dbLength": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "字段长度"
-          },
-          "dbIsKey": {
-            "type": "string",
-            "enum": ["0", "1"],
-            "description": "是否主键"
-          },
-          "dbIsNull": {
-            "type": "string", 
-            "enum": ["0", "1"],
-            "description": "是否允许为空"
-          },
-          "dbIsPersist": {
-            "type": "string",
-            "enum": ["0", "1"],
-            "description": "是否持久化"
+            "enum": ["string", "int", "BigDecimal", "Date", "Datetime", "text"]
           },
           "orderNum": {
             "type": "integer",
             "minimum": 0,
-            "description": "字段排序号。⚠️ 致命约束：必须从0开始严格连续递增！系统字段orderNum必须是0,1,2,3,4,5,6，业务字段从7开始继续递增。任何断裂都会导致JeecgBoot API调用失败！"
-          },
-          "fieldShowType": {
-            "type": "string",
-            "description": "字段显示类型"
-          },
-          "isShowForm": {
-            "type": "string",
-            "enum": ["0", "1"],
-            "description": "是否在表单中显示"
-          },
-          "isShowList": {
-            "type": "string", 
-            "enum": ["0", "1"],
-            "description": "是否在列表中显示"
-          },
-          "isQuery": {
-            "type": "string",
-            "enum": ["0", "1"], 
-            "description": "是否可查询"
-          },
-          "queryShowType": {
-            "type": "string",
-            "description": "查询显示类型"
+            "description": "必须从0开始严格连续递增"
           }
         },
         "additionalProperties": true
       }
     },
     "indexs": {
-      "type": "array",
-      "description": "索引数组"
+      "type": "array"
     },
     "deleteFieldIds": {
-      "type": "array",
-      "description": "删除字段ID数组"
+      "type": "array"
     },
     "deleteIndexIds": {
-      "type": "array",
-      "description": "删除索引ID数组"
+      "type": "array"
     },
     "metadata": {
       "type": "object",
-      "description": "元数据信息（可选）",
       "properties": {
         "generation_info": {
           "type": "object",
-          "description": "生成信息",
-          "properties": {
-            "module_name": {
-              "type": "string",
-              "description": "模块名称"
-            },
-            "submodule_name": {
-              "type": "string",
-              "description": "子模块名称"
-            },
-            "business_entity": {
-              "type": "string",
-              "description": "业务实体名称"
-            },
-            "inference_strategy": {
-              "type": "string",
-              "description": "推理策略说明"
-            },
-            "semantic_analysis": {
-              "type": "string",
-              "description": "语义分析结果"
-            }
-          }
+          "required": ["module_name", "submodule_name", "business_entity"]
         },
         "derived_formats": {
           "type": "object",
-          "description": "派生格式",
-          "properties": {
-            "table_suffix": {
-              "type": "string",
-              "description": "表名后缀"
-            },
-            "url_path": {
-              "type": "string",
-              "description": "URL路径"
-            },
-            "frontend_path": {
-              "type": "string",
-              "description": "前端路径"
-            }
-          }
+          "required": ["table_suffix", "url_path", "frontend_path"]
         }
       }
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

@@ -20,7 +20,7 @@ import argparse
 import re
 import subprocess
 import platform
-import xml.etree.ElementTree as ET
+
 import shutil
 import os
 import random
@@ -156,7 +156,7 @@ def set_core_variables_from_table_name(table_name):
         bool: 设置是否成功
     """
     global MODULE_NAME, SUBMODULE_NAME, BUSINESS_ENTITY
-    global TABLE_NAME, PACKAGE_NAME, PROJECT_PATH
+    global TABLE_NAME, PACKAGE_NAME, PROJECT_PATH, CURRENT_TABLE_NAME
 
     try:
         components = parse_table_name_components(table_name)
@@ -168,6 +168,7 @@ def set_core_variables_from_table_name(table_name):
 
         # 计算派生变量
         TABLE_NAME = table_name
+        CURRENT_TABLE_NAME = table_name  # 设置当前表名
         # 强制确保包路径全小写，符合Java命名规范，不包含业务实体名
         PACKAGE_NAME = f"org.jeecg.modules.{MODULE_NAME.lower()}.{SUBMODULE_NAME.lower()}"
 
@@ -627,7 +628,7 @@ def generate_config_from_template(module_name, submodule_name, business_entity, 
     template['metadata']['derived_formats'] = {
         "table_suffix": business_scenario,
         "url_path": f"/{module_name}/{submodule_name}/{formats['url_path']}",
-        "frontend_path": f"{module_name}/{submodule_name}"
+        "frontend_path": submodule_name
     }
     
     # 插入业务字段（如果提供）
@@ -770,6 +771,301 @@ def validate_and_fix_field_lengths(field_config):
             print(f"   {warning}")
 
     return fixed_config
+
+def convert_legacy_config_format(config_file_path):
+    """
+    转换旧格式配置文件为JeecgBoot API兼容格式
+    修复布尔值字段和字段名称不匹配问题
+
+    Args:
+        config_file_path (str): 配置文件路径
+
+    Returns:
+        bool: 转换是否成功
+    """
+    print(f"🔄 转换配置文件格式: {config_file_path}")
+
+    try:
+        # 读取配置文件
+        with open(config_file_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+
+        # 检查是否需要转换
+        needs_conversion = False
+
+        # 检查head部分是否需要转换
+        head = config.get('head', {})
+        if 'tableDescription' in head or 'entityName' in head:
+            needs_conversion = True
+            print("   检测到旧格式head部分，需要转换")
+
+        # 检查fields部分是否需要转换
+        fields = config.get('fields', [])
+        if fields and isinstance(fields, list) and len(fields) > 0:
+            first_field = fields[0]
+            if 'fieldName' in first_field or 'fieldDescription' in first_field:
+                needs_conversion = True
+                print("   检测到旧格式fields部分，需要转换")
+
+        if not needs_conversion:
+            print("   配置文件格式正确，无需转换")
+            return True
+
+        # 转换head部分
+        if 'tableDescription' in head:
+            head['tableTxt'] = head.pop('tableDescription')
+
+        # 移除不需要的字段
+        fields_to_remove = ['entityName', 'packageName', 'moduleName', 'subModuleName',
+                           'businessName', 'className', 'businessDescription', 'author', 'email']
+        for field in fields_to_remove:
+            head.pop(field, None)
+
+        # 添加必需的head字段
+        if 'tableType' not in head:
+            head['tableType'] = 1
+        if 'formCategory' not in head:
+            head['formCategory'] = "temp"
+        if 'idType' not in head:
+            head['idType'] = "UUID"
+        if 'isCheckbox' not in head:
+            head['isCheckbox'] = "Y"
+        if 'themeTemplate' not in head:
+            head['themeTemplate'] = "normal"
+        if 'formTemplate' not in head:
+            head['formTemplate'] = "1"
+        if 'scroll' not in head:
+            head['scroll'] = 1
+        if 'isPage' not in head:
+            head['isPage'] = "Y"
+        if 'isTree' not in head:
+            head['isTree'] = "N"
+        if 'extConfigJson' not in head:
+            head['extConfigJson'] = '{"reportPrintShow":0,"reportPrintUrl":"","joinQuery":0,"modelFullscreen":0,"modalMinWidth":"","commentStatus":0,"tableFixedAction":1,"tableFixedActionType":"right","formLabelLengthShow":0,"formLabelLength":null,"enableExternalLink":0,"externalLinkActions":"add,edit,detail"}'
+        if 'isDesForm' not in head:
+            head['isDesForm'] = "N"
+        if 'desFormCode' not in head:
+            head['desFormCode'] = ""
+
+        # 转换fields部分
+        converted_fields = []
+        for i, field in enumerate(fields):
+            converted_field = convert_legacy_field_format(field, i)
+            if converted_field:
+                converted_fields.append(converted_field)
+
+        config['fields'] = converted_fields
+
+        # 添加必需的数组
+        if 'indexs' not in config:
+            config['indexs'] = []
+        if 'deleteFieldIds' not in config:
+            config['deleteFieldIds'] = []
+        if 'deleteIndexIds' not in config:
+            config['deleteIndexIds'] = []
+
+        # 添加metadata（如果不存在）
+        if 'metadata' not in config:
+            business_entity = head.get('business_entity', 'Unknown')
+            table_name = head.get('tableName', '')
+
+            # 尝试从表名解析模块信息
+            try:
+                components = parse_table_name_components(table_name)
+                module_name = components['module_name']
+                submodule_name = components['sub_module']
+                table_suffix = components['business_scenario']
+            except:
+                module_name = "unknown"
+                submodule_name = "unknown"
+                table_suffix = "unknown"
+
+            config['metadata'] = {
+                "generation_info": {
+                    "module_name": module_name,
+                    "submodule_name": submodule_name,
+                    "business_entity": business_entity,
+                    "inference_strategy": "基于JeecgBoot标准模板生成",
+                    "semantic_analysis": head.get('tableTxt', '自动转换的配置文件')
+                },
+                "derived_formats": {
+                    "table_suffix": table_suffix,
+                    "url_path": f"{module_name}/{submodule_name}/{table_suffix.replace('_', '-')}",
+                    "frontend_path": submodule_name
+                }
+            }
+
+        # 写回文件
+        with open(config_file_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+
+        print(f"✅ 配置文件格式转换完成")
+        print(f"   转换字段数量: {len(converted_fields)}")
+        return True
+
+    except Exception as e:
+        print(f"❌ 配置文件格式转换失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def convert_legacy_field_format(legacy_field, order_num):
+    """
+    转换旧格式字段为JeecgBoot API兼容格式
+
+    Args:
+        legacy_field (dict): 旧格式字段配置
+        order_num (int): 字段顺序号
+
+    Returns:
+        dict: 转换后的字段配置
+    """
+    try:
+        # 字段名映射
+        field_name_mapping = {
+            'fieldName': 'dbFieldName',
+            'fieldDescription': 'dbFieldTxt',
+            'fieldType': 'dbType',
+            'databaseType': 'dbType',
+            'fieldLength': 'dbLength'
+        }
+
+        # 布尔值转换映射
+        boolean_fields = ['isKey', 'isNull', 'isInsert', 'isEdit', 'isList', 'isQuery']
+
+        # 创建新格式字段
+        converted_field = {
+            "dbFieldName": "",
+            "dbFieldTxt": "",
+            "queryShowType": "text",
+            "queryDictTable": "",
+            "queryDictField": "",
+            "queryDictText": "",
+            "queryDefVal": "",
+            "queryConfigFlag": "0",
+            "mainTable": "",
+            "mainField": "",
+            "fieldHref": "",
+            "fieldValidType": "",
+            "fieldMustInput": "0",
+            "dictTable": "",
+            "dictField": "",
+            "dictText": "",
+            "isShowForm": "1",
+            "isShowList": "1",
+            "sortFlag": "0",
+            "isReadOnly": "0",
+            "fieldShowType": "text",
+            "fieldLength": 120,
+            "isQuery": "0",
+            "queryMode": "single",
+            "fieldDefaultValue": "",
+            "converter": "",
+            "fieldExtendJson": "",
+            "fieldConfig": "",
+            "dbLength": 100,
+            "dbPointLength": 0,
+            "dbDefaultVal": "",
+            "dbType": "string",
+            "dbIsKey": "0",
+            "dbIsNull": "0",
+            "dbIsPersist": "1",
+            "orderNum": order_num
+        }
+
+        # 转换基本字段
+        for old_key, new_key in field_name_mapping.items():
+            if old_key in legacy_field:
+                converted_field[new_key] = legacy_field[old_key]
+
+        # 处理布尔值字段转换
+        for bool_field in boolean_fields:
+            if bool_field in legacy_field:
+                value = legacy_field[bool_field]
+                if isinstance(value, bool):
+                    # 布尔值转换为字符串
+                    str_value = "1" if value else "0"
+                else:
+                    # 已经是字符串，保持原样
+                    str_value = str(value)
+
+                # 映射到正确的字段名
+                if bool_field == 'isKey':
+                    converted_field['dbIsKey'] = str_value
+                elif bool_field == 'isNull':
+                    converted_field['dbIsNull'] = str_value
+                elif bool_field == 'isInsert':
+                    converted_field['isShowForm'] = str_value
+                elif bool_field == 'isEdit':
+                    converted_field['isShowForm'] = str_value
+                elif bool_field == 'isList':
+                    converted_field['isShowList'] = str_value
+                elif bool_field == 'isQuery':
+                    converted_field['isQuery'] = str_value
+                    converted_field['queryConfigFlag'] = str_value
+
+        # 处理数据类型转换
+        if 'fieldType' in legacy_field:
+            java_type = legacy_field['fieldType']
+            if 'String' in java_type:
+                converted_field['dbType'] = 'string'
+            elif 'Integer' in java_type:
+                converted_field['dbType'] = 'int'
+            elif 'Date' in java_type:
+                converted_field['dbType'] = 'Datetime'
+                converted_field['fieldShowType'] = 'datetime'
+                converted_field['queryShowType'] = 'date'
+            elif 'BigDecimal' in java_type:
+                converted_field['dbType'] = 'BigDecimal'
+                converted_field['fieldShowType'] = 'number'
+
+        # 处理字典字段
+        if 'dictCode' in legacy_field:
+            converted_field['dictField'] = legacy_field['dictCode']
+            converted_field['fieldShowType'] = 'list'
+            converted_field['queryShowType'] = 'list'
+
+        # 处理默认值
+        if 'defaultValue' in legacy_field:
+            converted_field['fieldDefaultValue'] = str(legacy_field['defaultValue'])
+            converted_field['dbDefaultVal'] = str(legacy_field['defaultValue'])
+
+        # 处理字段长度
+        if 'fieldLength' in legacy_field:
+            converted_field['dbLength'] = legacy_field['fieldLength']
+
+        # 特殊处理主键字段
+        if converted_field['dbIsKey'] == "1":
+            converted_field['isShowForm'] = "0"
+            converted_field['isShowList'] = "0"
+            converted_field['isReadOnly'] = "1"
+            converted_field['isQuery'] = "0"
+            converted_field['queryConfigFlag'] = "0"
+
+        # 特殊处理系统字段
+        system_fields = ['create_by', 'create_time', 'update_by', 'update_time', 'sys_org_code', 'del_flag']
+        if converted_field['dbFieldName'] in system_fields:
+            if converted_field['dbFieldName'] in ['create_by', 'update_by', 'sys_org_code', 'del_flag']:
+                converted_field['isShowForm'] = "0"
+                converted_field['isShowList'] = "0"
+                converted_field['isQuery'] = "0"
+                converted_field['queryConfigFlag'] = "0"
+            elif converted_field['dbFieldName'] in ['create_time', 'update_time']:
+                converted_field['isShowForm'] = "0"
+                converted_field['isShowList'] = "1"
+                if converted_field['dbFieldName'] == 'create_time':
+                    converted_field['isQuery'] = "1"
+                    converted_field['queryConfigFlag'] = "1"
+                    converted_field['queryMode'] = "group"
+                else:
+                    converted_field['isQuery'] = "0"
+                    converted_field['queryConfigFlag'] = "0"
+
+        return converted_field
+
+    except Exception as e:
+        print(f"❌ 字段格式转换失败: {e}")
+        return None
 
 def derive_all_formats_from_business_entity(business_entity):
     """
@@ -1451,20 +1747,18 @@ def migrate_frontend_code():
             # 如果都不存在，使用第一个作为默认值（用于后续的容错搜索）
             source_vue3_dir = possible_source_paths[0]
 
-        # 3. 首先查找并解析SQL文件以获取正确的前端路径
+        # 3. 确定正确的前端迁移路径 - 优先级顺序：SQL文件 > 配置文件 > 默认逻辑
+        target_base_path = migration_config.get('target_base_path', 'jeecgboot-vue3/src/views')
+        target_views_base = Path(project_prefix) / target_base_path
+
+        # 唯一路径决策：从SQL文件解析前端路径
         correct_frontend_path = extract_frontend_path_from_sql()
-        if correct_frontend_path:
-            print(f"📄 从SQL文件解析到正确的前端路径: {correct_frontend_path}")
-            # 使用SQL文件中指定的路径
-            target_base_path = migration_config.get('target_base_path', 'jeecgboot-vue3/src/views')
-            target_views_base = Path(project_prefix) / target_base_path
-            final_target_dir = target_views_base / correct_frontend_path
-        else:
-            print("⚠️ 未能从SQL文件解析到前端路径，使用默认路径")
-            # 使用默认路径：module_name/sub_module
-            target_base_path = migration_config.get('target_base_path', 'jeecgboot-vue3/src/views')
-            target_views_base = Path(project_prefix) / target_base_path
-            final_target_dir = target_views_base / module_name / sub_module
+        if not correct_frontend_path:
+            print("❌ 无法从SQL文件解析到前端路径，前端迁移失败")
+            return False
+
+        print(f"📄 从SQL文件解析到正确的前端路径: {correct_frontend_path}")
+        final_target_dir = target_views_base / correct_frontend_path
 
         # 重命名后的路径：将vue3重命名为子模块名
         renamed_dir = source_vue3_dir.parent / sub_module
@@ -1479,18 +1773,29 @@ def migrate_frontend_code():
             print(f"❌ 源vue3目录不存在: {source_vue3_dir}")
 
             # 容错机制1：检查前端项目中是否已有文件（可能之前已迁移但路径错误）
-            current_frontend_dir = Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name
-            if current_frontend_dir.exists():
-                vue_files = list(current_frontend_dir.glob('*.vue'))
-                ts_files = list(current_frontend_dir.glob('*.ts'))
-                js_files = list(current_frontend_dir.glob('*.js'))
+            # 修正：检查多个可能的错误位置，包括module_name目录和其他可能的错误路径
+            possible_wrong_locations = [
+                Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name,
+                Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / 'pages',  # 检查pages目录
+                Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / f"{module_name}_{sub_module}",
+            ]
 
-                if vue_files or ts_files or js_files:
-                    print(f"✅ 在前端项目中找到已迁移的文件: {current_frontend_dir}")
-                    print(f"   找到 {len(vue_files)} 个Vue文件，{len(ts_files)} 个TS文件，{len(js_files)} 个JS文件")
+            current_frontend_dir = None
+            for possible_dir in possible_wrong_locations:
+                if possible_dir.exists():
+                    vue_files = list(possible_dir.glob('*.vue'))
+                    ts_files = list(possible_dir.glob('*.ts'))
+                    js_files = list(possible_dir.glob('*.js'))
 
-                    # 直接从前端项目的错误位置迁移到正确位置
-                    return _migrate_from_frontend_wrong_location(current_frontend_dir, final_target_dir, migration_config)
+                    if vue_files or ts_files or js_files:
+                        current_frontend_dir = possible_dir
+                        print(f"✅ 在前端项目中找到已迁移的文件: {current_frontend_dir}")
+                        print(f"   找到 {len(vue_files)} 个Vue文件，{len(ts_files)} 个TS文件，{len(js_files)} 个JS文件")
+                        break
+
+            if current_frontend_dir:
+                # 直接从前端项目的错误位置迁移到正确位置
+                return _migrate_from_frontend_wrong_location(current_frontend_dir, final_target_dir, migration_config)
 
             # 容错机制2：在当前模块中进行深度搜索
             print(f"🔍 启动后端模块容错搜索机制...")
@@ -1587,6 +1892,60 @@ def extract_frontend_path_from_sql():
         print(f"❌ 解析SQL文件前端路径失败: {e}")
         return None
 
+def extract_frontend_path_from_config():
+    """从当前配置文件中读取frontend_path"""
+    try:
+        # 优先使用全局变量 FORM_DATA_FILE（命令行指定的配置文件）
+        config_file_path = None
+
+        # 第一优先级：使用全局变量 FORM_DATA_FILE
+        if FORM_DATA_FILE and os.path.exists(FORM_DATA_FILE):
+            config_file_path = FORM_DATA_FILE
+            print(f"📋 使用命令行指定的配置文件: {config_file_path}")
+        else:
+            # 第二优先级：根据表名推断配置文件（向后兼容）
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+
+            if CURRENT_TABLE_NAME:
+                components = parse_table_name_components(CURRENT_TABLE_NAME)
+                entity_name = components['entity_name'].lower()
+
+                # 尝试多个可能的配置文件名
+                possible_config_files = [
+                    f"{entity_name}_config.json",
+                    f"{components['business_scenario']}_config.json",
+                    f"{components['sub_module']}_config.json"
+                ]
+
+                for config_name in possible_config_files:
+                    config_path = os.path.join(script_dir, config_name)
+                    if os.path.exists(config_path):
+                        config_file_path = config_path
+                        print(f"📋 根据表名推断的配置文件: {config_file_path}")
+                        break
+
+        if not config_file_path:
+            print("⚠️ 无法找到当前配置文件，无法读取frontend_path")
+            return None
+
+        # 读取配置文件
+        with open(config_file_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+
+        # 提取frontend_path
+        frontend_path = config.get('metadata', {}).get('derived_formats', {}).get('frontend_path')
+
+        if frontend_path:
+            print(f"✅ 从配置文件读取到frontend_path: {frontend_path}")
+            return frontend_path
+        else:
+            print("⚠️ 配置文件中未找到metadata.derived_formats.frontend_path")
+            return None
+
+    except Exception as e:
+        print(f"❌ 从配置文件读取frontend_path失败: {e}")
+        return None
+
 def _migrate_from_frontend_wrong_location(source_dir, target_dir, migration_config):
     """从前端项目的错误位置迁移到正确位置"""
     print(f"\n🔄 从前端项目错误位置迁移到正确位置...")
@@ -1597,7 +1956,7 @@ def _migrate_from_frontend_wrong_location(source_dir, target_dir, migration_conf
         # 检查是否是移动到子目录的情况（避免移动目录到自身）
         if target_dir.is_relative_to(source_dir):
             print(f"⚠️ 检测到目标目录是源目录的子目录，使用特殊处理方式")
-            return _migrate_to_subdirectory(source_dir, target_dir, migration_config)
+            return _migrate_to_subdirectory(source_dir, target_dir)
 
         # 确保目标目录的父目录存在
         target_dir.parent.mkdir(parents=True, exist_ok=True)
@@ -1647,7 +2006,7 @@ def _migrate_from_frontend_wrong_location(source_dir, target_dir, migration_conf
         traceback.print_exc()
         return False
 
-def _migrate_to_subdirectory(source_dir, target_dir, migration_config):
+def _migrate_to_subdirectory(source_dir, target_dir):
     """将目录内容迁移到其子目录"""
     print(f"\n🔄 将目录内容迁移到子目录...")
 
@@ -1770,7 +2129,7 @@ def _execute_rename_and_move(source_vue3_dir, renamed_dir, final_target_dir, tar
                 shutil.rmtree(final_target_dir)
             else:
                 print(f"🔄 目标目录已存在，执行智能合并...")
-                return _merge_frontend_files(renamed_dir, final_target_dir, migration_config)
+                return _merge_frontend_files(renamed_dir, final_target_dir)
 
         # 步骤3：移动整个目录到views下
         print(f"\n3️⃣ 移动目录到前端项目...")
@@ -1813,7 +2172,7 @@ def _execute_rename_and_move(source_vue3_dir, renamed_dir, final_target_dir, tar
         traceback.print_exc()
         return False
 
-def _merge_frontend_files(source_dir, target_dir, migration_config):
+def _merge_frontend_files(source_dir, target_dir):
     """智能合并前端文件到已存在的目标目录"""
     print(f"\n🔄 开始智能合并前端文件...")
     print(f"   源目录: {source_dir}")
@@ -1898,7 +2257,7 @@ def execute_database_sql():
         return False
 
 def find_generated_sql_file():
-    """查找生成的SQL文件 - 优先在前端迁移后的位置搜索"""
+    """精准查找生成的SQL文件 - 基于entityName匹配，按日期和序号倒排"""
     try:
         if not CURRENT_TABLE_NAME:
             print("❌ 无法获取当前表名，无法定位SQL文件")
@@ -1906,95 +2265,81 @@ def find_generated_sql_file():
 
         # 解析表名获取模块信息
         components = parse_table_name_components(CURRENT_TABLE_NAME)
-        module_name = components['module_name']
-        sub_module = components['sub_module']
-        business_scenario = components['business_scenario']
         entity_name = components['entity_name']
 
-        # 构建可能的SQL文件路径
+        # 构建搜索路径
         project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
 
-        # SQL文件命名模式
-        today = datetime.now().strftime("%Y%m%d")
-        patterns = [
-            f"V{today}_*__menu_insert_*{entity_name}*.sql",
-            f"V{today}_*__menu_insert*.sql",
-            f"*{entity_name}*.sql",
-            f"*menu_insert*.sql"
-        ]
-
-        print(f"🔍 搜索SQL文件...")
-        print(f"   模块名: {module_name}")
+        print(f"🔍 精准搜索SQL文件...")
         print(f"   实体名: {entity_name}")
-        print(f"   日期: {today}")
+        print(f"   搜索模式: *{entity_name}.sql")
 
-        # 第一优先级：前端迁移后的位置（根据SQL文件内容解析的正确路径）
-        frontend_path = extract_frontend_path_from_sql_in_backend()
-        if frontend_path:
-            frontend_sql_path = Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / frontend_path
-            if frontend_sql_path.exists():
-                print(f"   🎯 优先搜索前端迁移位置: {frontend_sql_path}")
-                for pattern in patterns:
-                    sql_files = list(frontend_sql_path.glob(pattern))
-                    if sql_files:
-                        latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
-                        print(f"✅ 在前端目录找到SQL文件: {latest_file}")
-                        return latest_file
-
-        # 第二优先级：前端项目views目录的其他可能位置
-        frontend_search_paths = [
-            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / entity_name.lower(),
-            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / sub_module,
-            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name / sub_module,
-            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views' / module_name,
-            # 添加更多可能的路径
-            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views',  # 直接在views根目录搜索
+        # 搜索SQL文件的路径列表（按优先级排序）
+        search_paths = [
+            # 第一优先级：前端项目views目录
+            Path(project_prefix) / 'jeecgboot-vue3' / 'src' / 'views',
+            # 第二优先级：后端模块目录
+            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{components["module_name"]}',
         ]
 
-        for search_path in frontend_search_paths:
-            if search_path.exists():
-                print(f"   搜索前端路径: {search_path}")
-                for pattern in patterns:
-                    # 先在当前目录搜索
-                    sql_files = list(search_path.glob(pattern))
-                    if sql_files:
-                        latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
-                        print(f"✅ 在前端目录找到SQL文件: {latest_file}")
-                        return latest_file
-                    
-                    # 如果是views根目录，递归搜索子目录
-                    if search_path.name == 'views':
-                        sql_files = list(search_path.glob(f"**/{pattern}"))
-                        if sql_files:
-                            latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
-                            print(f"✅ 在前端子目录找到SQL文件: {latest_file}")
-                            return latest_file
+        sql_files = []
 
-        # 第三优先级：后端模块目录（原始生成位置）
-        backend_search_paths = [
-            # 后端模块目录中的vue3目录（按business_scenario路径 - JeecgBoot实际生成路径）
-            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / business_scenario / 'vue3',
-            # 后端模块目录中的vue3目录（按sub_module路径）
-            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3',
-            # 后端模块目录
-            Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}',
-            # 项目根目录
-            Path(project_prefix),
-        ]
+        # 在所有搜索路径中查找SQL文件
+        for search_path in search_paths:
+            if not search_path.exists():
+                print(f"   跳过不存在的路径: {search_path}")
+                continue
 
-        for search_path in backend_search_paths:
-            if search_path.exists():
-                print(f"   搜索后端路径: {search_path}")
-                for pattern in patterns:
-                    sql_files = list(search_path.glob(pattern))
-                    if sql_files:
-                        latest_file = max(sql_files, key=lambda f: f.stat().st_mtime)
-                        print(f"✅ 在后端目录找到SQL文件: {latest_file}")
-                        return latest_file
+            print(f"   搜索路径: {search_path}")
 
-        print("❌ 未找到匹配的SQL文件")
-        return None
+            # 搜索所有以entityName.sql结尾的SQL文件（不区分大小写）
+            sql_pattern = f"*{entity_name}.sql"
+            print(f"   搜索模式: {sql_pattern}")
 
+            # 先搜索精确匹配
+            for sql_file in search_path.rglob(sql_pattern):
+                sql_files.append(sql_file)
+                print(f"   找到SQL文件: {sql_file}")
+
+            # 如果没找到，尝试不区分大小写搜索
+            if not sql_files:
+                print(f"   精确匹配未找到，尝试不区分大小写搜索...")
+                for sql_file in search_path.rglob("*.sql"):
+                    if sql_file.name.lower().endswith(f"{entity_name.lower()}.sql"):
+                        sql_files.append(sql_file)
+                        print(f"   找到SQL文件（不区分大小写）: {sql_file}")
+
+            # 如果在当前路径找到了文件，就不再搜索其他路径
+            if sql_files:
+                break
+
+        if not sql_files:
+            print(f"❌ 未找到匹配的SQL文件: {sql_pattern}")
+            return None
+
+        # 按照文件名中的日期和序号倒排，取最新的文件
+        # 文件名格式：V20250730_1__menu_insert_Exceltemplate.sql
+        import re
+
+        def extract_date_and_seq(file_path):
+            """从文件名中提取日期和序号用于排序"""
+            filename = file_path.name
+            # 匹配格式：V20250730_1__menu_insert_Exceltemplate.sql
+            match = re.match(r'V(\d{8})_(\d+)__', filename)
+            if match:
+                date_str = match.group(1)  # 20250730
+                seq_str = match.group(2)   # 1
+                return (date_str, int(seq_str))
+            else:
+                # 如果不匹配标准格式，使用文件修改时间
+                return ('00000000', 0)
+
+        # 按日期倒排、相同日期按序号倒排
+        sql_files.sort(key=extract_date_and_seq, reverse=True)
+        latest_file = sql_files[0]
+
+        print(f"✅ 精准定位到最新SQL文件: {latest_file}")
+        return latest_file
     except Exception as e:
         print(f"❌ 搜索SQL文件失败: {e}")
         return None
@@ -2114,7 +2459,7 @@ def parse_database_config():
         master_lines = [lines[0]]  # 包含 "master:" 行
 
         # 从第二行开始，收集属于master块的行
-        for i, line in enumerate(lines[1:], 1):
+        for line in lines[1:]:
             # 如果是空行或注释行，跳过
             if not line.strip() or line.strip().startswith('#'):
                 continue
@@ -2978,6 +3323,15 @@ def execute_post_generation_workflow():
 
 def _output_workflow_results(workflow_results):
     """统一输出工作流执行结果"""
+    # 计算总体结果
+    total_success = sum(workflow_results.values())
+    total_steps = len(workflow_results)
+    overall_result = "Pass" if total_success == total_steps else "Fail"
+
+    # 如果工作流执行成功，先显示生成文件的路径信息
+    if total_success == total_steps:
+        print_generated_file_paths()
+
     # 输出工作流执行结果（作为最后的输出）
     print(f"\n{'='*50}")
     print("📊 代码生成工作流执行结果:")
@@ -2985,16 +3339,7 @@ def _output_workflow_results(workflow_results):
         status = "✅ Pass" if result else "❌ Fail"
         print(f"   {step_name}: {status}")
 
-    # 计算总体结果
-    total_success = sum(workflow_results.values())
-    total_steps = len(workflow_results)
-    overall_result = "Pass" if total_success == total_steps else "Fail"
-
     print(f"\n🎯 总体执行结果: {overall_result} ({total_success}/{total_steps})")
-
-    # 如果工作流执行成功，显示生成文件的路径信息
-    if total_success == total_steps:
-        print_generated_file_paths()
 
     # 返回总体结果（True表示Pass，False表示Fail）
     return total_success == total_steps
@@ -3036,15 +3381,17 @@ def print_generated_file_paths():
                 print(f"   Mapper: {backend_java_path}/mapper/{entity_name}Mapper.java")
                 print(f"   Mapper XML: {backend_module_path}/src/main/resources/org/jeecg/modules/{module_name}/{sub_module}/mapper/{entity_name}Mapper.xml")
 
-                # 前端代码路径
+                # 前端代码路径 - 修正：直接使用子模块名作为路径，而不是模块名/子模块名
                 frontend_base_path = f"{project_prefix}/jeecgboot-vue3/src/views"
-                frontend_module_path = f"{frontend_base_path}/{module_name}/{sub_module}"
+                frontend_module_path = f"{frontend_base_path}/{sub_module}"
 
                 print(f"\n🎨 前端代码生成路径:")
                 print(f"   前端模块目录: {frontend_module_path}")
                 print(f"   列表页面: {frontend_module_path}/{entity_name}List.vue")
-                print(f"   表单页面: {frontend_module_path}/modules/{entity_name}Form.vue")
-                print(f"   API接口: {frontend_module_path}/api/{entity_name}.ts")
+                print(f"   表单组件: {frontend_module_path}/components/{entity_name}Form.vue")
+                print(f"   弹窗组件: {frontend_module_path}/components/{entity_name}Modal.vue")
+                print(f"   API接口: {frontend_module_path}/{entity_name}.api.ts")
+                print(f"   数据配置: {frontend_module_path}/{entity_name}.data.ts")
 
                 # 数据库相关
                 print(f"\n🗄️ 数据库相关:")
@@ -3072,7 +3419,8 @@ def print_generated_file_paths():
                 # 检查前端文件
                 frontend_files = [
                     f"{frontend_module_path}/{entity_name}List.vue",
-                    f"{frontend_module_path}/modules/{entity_name}Form.vue"
+                    f"{frontend_module_path}/components/{entity_name}Form.vue",
+                    f"{frontend_module_path}/components/{entity_name}Modal.vue"
                 ]
 
                 for file_path in frontend_files:
@@ -4068,12 +4416,12 @@ def jeecg_complete_workflow():
                 print("✅ 代码生成成功")
                 print(f"   响应消息: {result.get('message', 'N/A')}")
 
-                # 立即修复生成代码中的模板变量问题
-                print("\n🔧 修复生成代码中的模板变量问题...")
-                if fix_generated_code_templates():
-                    print("✅ 模板变量修复完成")
+                # 立即处理生成代码中的模板变量替换
+                print("\n🔧 处理生成代码中的模板变量替换...")
+                if process_generated_code_templates():
+                    print("✅ 模板变量处理完成")
                 else:
-                    print("❌ 模板变量修复失败，但继续执行后续步骤")
+                    print("❌ 模板变量处理失败，但继续执行后续步骤")
                 
                 # 代码生成成功后，先进行包名替换和目录处理
                 print(f"\n{'='*50}")
@@ -4254,7 +4602,7 @@ def main():
     # 注：表名验证和修复命令已移除，现在使用business_entity机制
 
     # 加载配置
-    global CONFIG, FORM_DATA_FILE
+    global CONFIG, FORM_DATA_FILE, CURRENT_TABLE_NAME, MODULE_NAME, SUBMODULE_NAME, BUSINESS_ENTITY
     if args.config != 'Code_Gen_Config.json':
         CONFIG = load_config_from_file(args.config)
 
@@ -4431,6 +4779,11 @@ def create_form_from_config(config_file_path):
     try:
         print(f"📋 从配置文件生成表单数据: {config_file_path}")
 
+        # 首先尝试转换配置文件格式（如果需要）
+        if not convert_legacy_config_format(config_file_path):
+            print("❌ 配置文件格式转换失败")
+            return None
+
         # 读取配置文件
         with open(config_file_path, 'r', encoding='utf-8') as f:
             config_data = json.load(f)
@@ -4506,14 +4859,14 @@ def load_config_from_file(config_file):
         print(f"❌ 配置文件加载失败: {e}")
         return CONFIG
 
-def fix_generated_code_templates():
-    """修复生成代码中的模板变量和路径重复问题"""
-    print(f"\n🔧 修复生成代码中的模板变量和路径重复问题...")
+def process_generated_code_templates():
+    """处理生成代码中的模板变量替换和路径标准化"""
+    print(f"\n🔧 处理生成代码中的模板变量替换和路径标准化...")
 
     try:
         # 获取当前表名信息
         if not CURRENT_TABLE_NAME:
-            print("❌ 当前表名为空，无法修复代码")
+            print("❌ 当前表名为空，无法处理代码")
             return False
 
         components = parse_table_name_components(CURRENT_TABLE_NAME)
@@ -4544,15 +4897,37 @@ def fix_generated_code_templates():
 
             for template_dir in template_dirs:
                 # 正确的模板变量替换逻辑
-                # {{PACKAGE_NAME}} 应该替换为完整包路径：org/jeecg/modules/{module_name}/{sub_module}
-                # 这样 {{PACKAGE_NAME}}/controller 就会变成 org/jeecg/modules/{module_name}/{sub_module}/controller
-                correct_path_str = str(template_dir).replace("{{PACKAGE_NAME}}", base_package_path)
+                # 检查模板路径是否已经包含子模块名，避免重复
+                template_path_str = str(template_dir)
+
+                # 检查这个模板目录下是否有子模块目录
+                has_submodule_dir = False
+                if template_dir.exists() and template_dir.is_dir():
+                    submodule_dir = template_dir / sub_module
+                    has_submodule_dir = submodule_dir.exists()
+
+
+
+                # 如果模板目录下有子模块目录，则只替换为基础包路径（不包含子模块）
+                if has_submodule_dir:
+                    # 模板目录如：{{PACKAGE_NAME}} 下有 datas 目录
+                    # 替换为：org/jeecg/modules/dictd（不包含datas，避免重复）
+                    base_package_without_submodule = f"org/jeecg/modules/{module_name}"
+                    correct_path_str = template_path_str.replace("{{PACKAGE_NAME}}", base_package_without_submodule)
+                else:
+                    # 模板目录如：{{PACKAGE_NAME}} 下没有子模块目录
+                    # 替换为：org/jeecg/modules/dictd/datas
+                    correct_path_str = template_path_str.replace("{{PACKAGE_NAME}}", base_package_path)
+
                 correct_path = Path(correct_path_str)
 
                 print(f"   📁 重命名目录:")
                 print(f"      从: {template_dir}")
                 print(f"      到: {correct_path}")
-                print(f"      替换逻辑: {{{{PACKAGE_NAME}}}} → {base_package_path}")
+                if has_submodule_dir:
+                    print(f"      替换逻辑: {{{{PACKAGE_NAME}}}} → org/jeecg/modules/{module_name} (避免重复{sub_module})")
+                else:
+                    print(f"      替换逻辑: {{{{PACKAGE_NAME}}}} → {base_package_path}")
 
                 # 确保父目录存在
                 correct_path.parent.mkdir(parents=True, exist_ok=True)
@@ -4595,9 +4970,6 @@ def fix_generated_code_templates():
         module_name = components['module_name']
         sub_module = components['sub_module']
 
-        duplicate_pattern = f"org/jeecg/modules/{module_name}/{sub_module}/{module_name}/{sub_module}"
-        correct_pattern = f"org/jeecg/modules/{module_name}/{sub_module}"
-
         duplicate_dirs = list(module_path.rglob(f"*/{module_name}/{sub_module}/{module_name}/{sub_module}"))
         if duplicate_dirs:
             print(f"   🔍 发现 {len(duplicate_dirs)} 个重复路径目录")
@@ -4633,9 +5005,9 @@ def fix_generated_code_templates():
                         # 直接移动整个目录
                         shutil.move(str(duplicate_dir), str(correct_path))
 
-                    print(f"   ✅ 重复路径修复成功")
+                    print(f"   ✅ 重复路径处理成功")
 
-        # 3. 修复文件内容中的模板变量和包名问题
+        # 3. 处理文件内容中的模板变量和包名问题
         all_files = list(module_path.rglob("*"))
         fixed_files = 0
 
@@ -4647,7 +5019,6 @@ def fix_generated_code_templates():
 
                     # 检查是否包含模板变量
                     template_fixed = False
-                    original_content = content
 
                     # 1. 替换 {{PACKAGE_NAME}}
                     if '{{PACKAGE_NAME}}' in content:
@@ -4721,32 +5092,62 @@ def fix_generated_code_templates():
                         with open(file_path, 'w', encoding='utf-8') as f:
                             f.write(content)
 
-                        fix_type = []
+                        process_type = []
                         if template_fixed:
-                            fix_type.append("模板变量")
+                            process_type.append("模板变量")
                         if package_fixed:
-                            fix_type.append("包名规范")
+                            process_type.append("包名规范")
 
-                        print(f"   ✅ 修复文件 ({'/'.join(fix_type)}): {file_path.relative_to(module_path)}")
+                        print(f"   ✅ 处理文件 ({'/'.join(process_type)}): {file_path.relative_to(module_path)}")
                         fixed_files += 1
 
                 except Exception as e:
-                    print(f"   ❌ 修复文件失败 {file_path}: {e}")
+                    print(f"   ❌ 处理文件失败 {file_path}: {e}")
 
-        print(f"   📊 修复统计:")
-        print(f"      模板目录修复: {len(template_dirs)} 个")
-        print(f"      重复路径修复: {len(duplicate_dirs) if 'duplicate_dirs' in locals() else 0} 个")
-        print(f"      文件内容修复: {fixed_files} 个")
+        # 4. 清理处理完成后留下的空{{PACKAGE_NAME}}目录
+        empty_template_dirs_cleaned = 0
+        remaining_template_dirs = list(module_path.rglob("*{{PACKAGE_NAME}}*"))
+        if remaining_template_dirs:
+            print(f"   🧹 清理剩余的空{{PACKAGE_NAME}}目录...")
+            for template_dir in remaining_template_dirs:
+                try:
+                    if template_dir.exists() and template_dir.is_dir():
+                        # 检查目录是否为空
+                        if not any(template_dir.iterdir()):
+                            template_dir.rmdir()
+                            print(f"   🗑️ 删除空目录: {template_dir.relative_to(module_path)}")
+                            empty_template_dirs_cleaned += 1
+                        else:
+                            # 如果目录不为空，递归检查是否只包含空的子目录
+                            all_empty = True
+                            for item in template_dir.rglob("*"):
+                                if item.is_file():
+                                    all_empty = False
+                                    break
+                            
+                            if all_empty:
+                                # 目录中只有空的子目录，可以安全删除
+                                shutil.rmtree(template_dir)
+                                print(f"   🗑️ 删除空目录树: {template_dir.relative_to(module_path)}")
+                                empty_template_dirs_cleaned += 1
+                except Exception as e:
+                    print(f"   ⚠️ 清理目录失败 {template_dir}: {e}")
 
-        if len(template_dirs) > 0 or (duplicate_dirs and len(duplicate_dirs) > 0) or fixed_files > 0:
-            print(f"   ✅ 代码修复完成")
+        print(f"   📊 处理统计:")
+        print(f"      模板目录处理: {len(template_dirs)} 个")
+        print(f"      重复路径处理: {len(duplicate_dirs) if 'duplicate_dirs' in locals() else 0} 个")
+        print(f"      文件内容处理: {fixed_files} 个")
+        print(f"      空目录清理: {empty_template_dirs_cleaned} 个")
+
+        if len(template_dirs) > 0 or (duplicate_dirs and len(duplicate_dirs) > 0) or fixed_files > 0 or empty_template_dirs_cleaned > 0:
+            print(f"   ✅ 代码处理完成")
             return True
         else:
-            print(f"   ℹ️ 未发现需要修复的问题")
+            print(f"   ℹ️ 未发现需要处理的问题")
             return True
 
     except Exception as e:
-        print(f"   ❌ 代码修复失败: {e}")
+        print(f"   ❌ 代码处理失败: {e}")
         import traceback
         traceback.print_exc()
         return False

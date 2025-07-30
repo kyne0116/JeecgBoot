@@ -30,6 +30,52 @@
       "frontend_path": "{{FRONTEND_PATH}}"
     }
   },
+  "constants": {
+    "system_fields": ["id", "create_by", "create_time", "update_by", "update_time", "sys_org_code", "del_flag"],
+    "required_arrays": ["indexs", "deleteFieldIds", "deleteIndexIds"],
+    "field_templates": {
+      "text": {
+        "fieldShowType": "text",
+        "dbType": "string",
+        "dbLength": 100,
+        "isShowForm": "1",
+        "isShowList": "1",
+        "isQuery": "1"
+      },
+      "textarea": {
+        "fieldShowType": "textarea",
+        "dbType": "string",
+        "dbLength": 500,
+        "isShowForm": "1",
+        "isShowList": "0",
+        "isQuery": "0"
+      },
+      "number": {
+        "fieldShowType": "number",
+        "dbType": "int",
+        "dbLength": 0,
+        "isShowForm": "1",
+        "isShowList": "1",
+        "isQuery": "1"
+      },
+      "date": {
+        "fieldShowType": "date",
+        "dbType": "Date",
+        "dbLength": 0,
+        "isShowForm": "1",
+        "isShowList": "1",
+        "isQuery": "1"
+      },
+      "dict_select": {
+        "fieldShowType": "text",
+        "dbType": "string",
+        "dbLength": 32,
+        "isShowForm": "1",
+        "isShowList": "1",
+        "isQuery": "1"
+      }
+    }
+  },
   "fields": [
     {
       "dbFieldName": "id",
