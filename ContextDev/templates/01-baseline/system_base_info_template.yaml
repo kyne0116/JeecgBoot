@@ -1,3 +1,5 @@
+# JeecgBoot系统基础信息模板（第二轮评估反馈优化）
+# 支持需求导向文件结构和共享组件管理
 system_overview:
   system_name: "${SYSTEM_NAME}" # 系统名称
   description: "${SYSTEM_DESCRIPTION}" # 系统的简短描述

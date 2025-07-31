@@ -1,5 +1,12 @@
 # JeecgBoot AI Agent协作架构设计模板
 # 基于BDD/EARS需求追溯的结构化架构设计，专为Agent-B（架构设计师）设计
+#
+# 📁 文件组织建议（第二轮评估反馈优化）：
+# 建议保存路径：/ContextDev/example/REQ-SUITE-XXX-需求名称/architecture-design.yaml
+# 文件命名规范：architecture-design.yaml (固定命名，便于统一管理)
+# 输入依赖：同目录下的 requirements-analysis.yaml
+# 共享组件设计：设计涉及跨需求共享的组件时，需考虑 ../SHARED-COMPONENTS/ 管理
+# 依赖架构决策：基于需求依赖关系做出相应的架构设计决策
 
 # ============================================================================
 # Agent协作协议声明
@@ -16,12 +23,35 @@ agent_collaboration_protocol:
 # 设计输入解析 (从Agent-A需求文档解析)
 # ============================================================================
 design_input_parsing:
+  # 基线和系统关联信息
+  baseline_and_system_reference:
+    # 需求基线引用
+    baseline_reference:
+      baseline_id: "{{BASELINE_ID}}" # 来自需求基线模板
+      baseline_version: "{{BASELINE_VERSION}}" # 基线版本
+      requirement_suite_id: "{{REQUIREMENT_SUITE_ID}}" # 本需求在基线中的套件ID
+      baseline_doc_path: "{{BASELINE_DOC_PATH}}" # 基线文档路径
+      
+    # 系统基础信息引用  
+    system_reference:
+      system_id: "{{SYSTEM_ID}}" # 来自系统基础模板
+      system_name: "{{SYSTEM_NAME}}" # 系统名称
+      system_base_doc_path: "{{SYSTEM_BASE_DOC_PATH}}" # 系统基础文档路径
+      jeecg_version: "{{JEECG_VERSION}}" # 继承的JeecgBoot版本
+      tech_stack_reference: "{{TECH_STACK_REFERENCE}}" # 技术栈约束
+      
   # 需求文档引用
   requirement_document_reference:
     source_requirement_doc_id: "{{SOURCE_REQ_DOC_ID}}" # 来自Agent-A的文档ID
+    source_requirement_doc_path: "{{SOURCE_REQ_DOC_PATH}}" # Agent-A文档路径
     requirement_doc_version: "{{REQ_DOC_VERSION}}"
     parsing_timestamp: "{{PARSING_TIMESTAMP}}"
     agent_b_version: "Agent-B v{{VERSION}}"
+    
+    # 追溯链延续
+    inherited_traceability:
+      baseline_traceability_id: "{{BASELINE_TRACEABILITY_ID}}" # 来自Agent-A
+      system_traceability_id: "{{SYSTEM_TRACEABILITY_ID}}" # 来自Agent-A
     
   # 输入解析验证
   input_parsing_validation:

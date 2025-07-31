@@ -1,5 +1,12 @@
 # JeecgBoot AI Agent协作需求分析模板
 # 基于BDD/EARS技术的结构化需求收集，专为Agent-A（需求分析师）设计
+#
+# 📁 文件组织建议（第二轮评估反馈优化）：
+# 建议保存路径：/ContextDev/example/REQ-SUITE-XXX-需求名称/requirements-analysis.yaml
+# 文件命名规范：requirements-analysis.yaml (固定命名，便于统一管理)
+# 版本管理建议：支持需求套件级别版本管理，如 REQ-SUITE-001-产品管理功能-v1.0/ 
+# 共享组件引用：通过 ../SHARED-COMPONENTS/ 路径引用跨需求共享组件
+# 依赖关系管理：明确标注本需求对其他需求套件的依赖关系
 
 # ============================================================================
 # Agent协作协议声明
@@ -22,12 +29,36 @@ requirement_metadata:
     agent_version: "Agent-A v{{VERSION}}"
     processing_duration: "{{SECONDS}}s"
     
+  # 基线和系统关联信息
+  baseline_and_system_reference:
+    # 需求基线引用
+    baseline_reference:
+      baseline_id: "{{BASELINE_ID}}" # 来自需求基线模板
+      baseline_version: "{{BASELINE_VERSION}}" # 基线版本
+      requirement_suite_id: "{{REQUIREMENT_SUITE_ID}}" # 本需求在基线中的套件ID
+      baseline_doc_path: "{{BASELINE_DOC_PATH}}" # 基线文档路径
+      
+    # 系统基础信息引用  
+    system_reference:
+      system_id: "{{SYSTEM_ID}}" # 来自系统基础模板
+      system_name: "{{SYSTEM_NAME}}" # 系统名称
+      system_base_doc_path: "{{SYSTEM_BASE_DOC_PATH}}" # 系统基础文档路径
+      jeecg_version: "{{JEECG_VERSION}}" # 继承的JeecgBoot版本
+      
+    # 追溯链起点
+    traceability_chain_origin:
+      business_requirement_source: "{{BUSINESS_REQUIREMENT_SOURCE}}" # 原始业务需求来源
+      system_level_traceability_id: "{{SYSTEM_TRACEABILITY_ID}}" # 系统级追溯ID
+      baseline_level_traceability_id: "{{BASELINE_TRACEABILITY_ID}}" # 基线级追溯ID
+      
   # 源输入信息
   source_input_info:
     original_business_input: |
       {{ORIGINAL_BUSINESS_REQUIREMENT_INPUT}}
     input_complexity: "{{COMPLEXITY}}" # simple | medium | complex
     input_language: "{{LANGUAGE}}" # zh-CN | en-US
+    business_domain: "{{BUSINESS_DOMAIN}}" # 继承自基线的业务领域
+    requirement_priority: "{{REQUIREMENT_PRIORITY}}" # 继承自基线的需求优先级
     
   # JeecgBoot环境上下文
   jeecg_context:
@@ -227,6 +258,9 @@ bdd_scenario_analysis:
       but_exceptions: # 异常情况
         - condition: "{{BUT_CONDITION_1_1}}"
           expected_behavior: "{{BUT_BEHAVIOR_1_1}}"
+          error_code: "{{ERROR_CODE_1_1}}"
+          recovery_strategy: "{{RECOVERY_STRATEGY_1_1}}"
+          user_guidance: "{{USER_GUIDANCE_1_1}}"
           
       # 验收标准
       acceptance_criteria:
@@ -564,6 +598,24 @@ agent_handoff_information:
     complex_requirements_needing_attention: {{COMPLEX_REQ_COUNT}}
     codegen_applicable_percentage: {{CODEGEN_PERCENTAGE}}%
     custom_development_percentage: {{CUSTOM_DEV_PERCENTAGE}}%
+    
+  # Agent间质量反馈机制
+  agent_feedback_mechanism:
+    upstream_quality_assessment:
+      baseline_quality_score: "{{BASELINE_QUALITY_SCORE}}" # 1-10
+      system_config_completeness: "{{SYSTEM_CONFIG_COMPLETENESS}}" # 1-10
+      improvement_suggestions: [{{BASELINE_IMPROVEMENT_SUGGESTIONS}}]
+    
+    downstream_requirements:
+      for_agent_b_architecture:
+        - "{{ARCHITECTURE_REQUIREMENT_1}}"
+        - "{{ARCHITECTURE_REQUIREMENT_2}}"
+      for_agent_c_development:
+        - "{{DEVELOPMENT_REQUIREMENT_1}}"
+        - "{{DEVELOPMENT_REQUIREMENT_2}}"
+      for_agent_d_testing:
+        - "{{TESTING_REQUIREMENT_1}}"
+        - "{{TESTING_REQUIREMENT_2}}"
     
   # 关键设计输入
   key_design_inputs:
