@@ -1,6 +1,27 @@
 # JeecgBoot需求基线跟踪管理模板
 # 系统基础信息与多需求关联管理的核心桥梁
 # 支持一个系统的多个需求全生命周期跟踪
+# 
+# ============================================================================
+# 📁 新文件命名规范 (重要更新)
+# ============================================================================
+# 需求编号格式: 系统功能模块-子功能模块-年月日时分秒
+# 示例: ECOM-PROD-20250731143000 (电商-产品管理-2025年7月31日14:30:00)
+#
+# 各环节文档命名:
+# - REQ环节: ECOM-PROD-20250731143000-REQ-产品管理功能.yaml
+# - ARCH环节: ECOM-PROD-20250731143000-ARCH-产品管理功能.yaml  
+# - DEV环节: ECOM-PROD-20250731143000-DEV-产品管理功能.yaml
+# - TEST环节: ECOM-PROD-20250731143000-TEST-产品管理功能.yaml
+#
+# 目录结构: ECOM-PROD-20250731143000-产品管理功能/
+#
+# 命名说明:
+# - 系统功能模块: ECOM(电商) | CRM(客户管理) | ERP(企业资源) | OA(办公自动化)
+# - 子功能模块: PROD(产品) | ORDER(订单) | USER(用户) | PAY(支付) 等
+# - 年月日时分秒: 20250731143000 (2025年7月31日14:30:00)
+# - 环节代码: REQ(需求) | ARCH(架构) | DEV(开发) | TEST(测试)
+# ============================================================================
 
 # ============================================================================
 # 基线标识与元数据信息
@@ -86,7 +107,7 @@ shared_components_management:
       dependency_strength: "{{DEPENDENCY_STRENGTH_1}}" # strong | medium | weak
 
 # ============================================================================
-# 需求套件注册管理 (基于第二轮评估反馈优化)
+# 需求套件注册管理
 # ============================================================================
 requirement_registry:
   # 需求注册摘要
@@ -99,8 +120,8 @@ requirement_registry:
     
   # 需求套件列表
   requirement_suites:
-    - requirement_suite_id: "REQ-SUITE-001"
-      business_requirement_title: "{{BUSINESS_REQUIREMENT_TITLE_1}}" # 如：用户管理功能
+    - requirement_suite_id: "{{REQ_ID_1}}" # 如：ECOM-PROD-20250731143000
+      business_requirement_title: "{{BUSINESS_REQUIREMENT_TITLE_1}}" # 如：产品管理功能
       business_requirement_description: "{{BUSINESS_REQUIREMENT_DESCRIPTION_1}}"
       
       # 需求基本信息
@@ -125,36 +146,36 @@ requirement_registry:
         estimated_completion_date: "{{ESTIMATED_COMPLETION_DATE_1}}" # YYYY-MM-DD
         target_sprint: "{{TARGET_SPRINT_1}}" # 如：Sprint-2025-Q1-S3
         
-      # 文档关联路径 (核心关联机制)
+      # 文档关联路径 (核心关联机制) - 新命名规范
       document_references:
         # Agent-A需求分析文档
         requirement_analysis_doc:
-          doc_path: "{{REQ_DOC_PATH_1}}" # 如：/ContextDev/example/REQ-SUITE-001-产品管理功能/requirements-analysis.yaml
-          doc_id: "{{REQ_DOC_ID_1}}" # 文档内标识ID
+          doc_path: "{{REQ_DOC_PATH_1}}" # 如：/ContextDev/example/ECOM-PROD-20250731143000-产品管理功能/ECOM-PROD-20250731143000-REQ-产品管理功能.yaml
+          doc_id: "{{REQ_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-REQ
           doc_status: "{{REQ_DOC_STATUS_1}}" # draft | review | approved | outdated
           doc_version: "{{REQ_DOC_VERSION_1}}" # v1.0
           last_modified: "{{REQ_DOC_LAST_MODIFIED_1}}" # YYYY-MM-DD HH:MM:SS
           
         # Agent-B架构设计文档
         architecture_design_doc:
-          doc_path: "{{DESIGN_DOC_PATH_1}}" # 如：/ContextDev/example/REQ-SUITE-001-产品管理功能/architecture-design.yaml
-          doc_id: "{{DESIGN_DOC_ID_1}}"
+          doc_path: "{{DESIGN_DOC_PATH_1}}" # 如：ECOM-PROD-20250731143000-ARCH-产品管理功能.yaml
+          doc_id: "{{DESIGN_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-ARCH
           doc_status: "{{DESIGN_DOC_STATUS_1}}"
           doc_version: "{{DESIGN_DOC_VERSION_1}}"
           last_modified: "{{DESIGN_DOC_LAST_MODIFIED_1}}"
           
         # Agent-C开发任务文档
         development_task_doc:
-          doc_path: "{{DEV_DOC_PATH_1}}" # 如：/ContextDev/example/REQ-SUITE-001-产品管理功能/development-tasks.yaml
-          doc_id: "{{DEV_DOC_ID_1}}"
+          doc_path: "{{DEV_DOC_PATH_1}}" # 如：ECOM-PROD-20250731143000-DEV-产品管理功能.yaml
+          doc_id: "{{DEV_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-DEV
           doc_status: "{{DEV_DOC_STATUS_1}}"
           doc_version: "{{DEV_DOC_VERSION_1}}"
           last_modified: "{{DEV_DOC_LAST_MODIFIED_1}}"
           
         # Agent-D测试设计文档
         testing_design_doc:
-          doc_path: "{{TEST_DOC_PATH_1}}" # 如：/ContextDev/example/REQ-SUITE-001-产品管理功能/testing-design.yaml
-          doc_id: "{{TEST_DOC_ID_1}}"
+          doc_path: "{{TEST_DOC_PATH_1}}" # 如：ECOM-PROD-20250731143000-TEST-产品管理功能.yaml
+          doc_id: "{{TEST_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-TEST
           doc_status: "{{TEST_DOC_STATUS_1}}"
           doc_version: "{{TEST_DOC_VERSION_1}}"
           last_modified: "{{TEST_DOC_LAST_MODIFIED_1}}"
@@ -550,7 +571,7 @@ quality_assurance_and_monitoring:
       
     # 季度审查
     quarterly_reviews:
-      review_scope: [{{QUARTERLY_REVIEW_SCOPE}}] # 战略对齐、基线架构审查、流程改进
+      review_scope: [{{QUARTERLY_REVIEW_SCOPE}}] # 战略对齐、基线架构审查、流程管理
       review_participants: [{{QUARTERLY_REVIEW_PARTICIPANTS}}]
       review_deliverables: [{{QUARTERLY_REVIEW_DELIVERABLES}}]
 
@@ -604,7 +625,7 @@ reporting_and_dashboard:
     baseline_health_report:
       report_frequency: "{{REPORT_FREQUENCY_2}}"
       report_recipients: [{{REPORT_RECIPIENTS_2}}]
-      report_sections: [{{REPORT_SECTIONS_2}}] # 质量指标、追溯完整性、文档状态、改进建议
+      report_sections: [{{REPORT_SECTIONS_2}}] # 质量指标、追溯完整性、文档状态、管理建议
       
   # 可视化仪表板
   visualization_dashboard:
@@ -639,12 +660,12 @@ additional_information:
     
   # 使用指南
   usage_guidelines: |
-    1. 基线创建后，首先完善系统基础信息关联
+    1. 基线创建后，首先建立系统基础信息关联
     2. 逐个注册需求套件，确保文档路径正确
     3. 建立需求间依赖关系，识别并解决冲突
     4. 定期更新需求状态和文档版本信息
     5. 监控质量指标，及时处理告警和风险
-    6. 定期审查基线健康度，持续改进流程
+    6. 定期审查基线健康度，维护管理流程
     
   # 维护说明
   maintenance_notes: |

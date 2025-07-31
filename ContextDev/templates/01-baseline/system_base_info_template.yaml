@@ -1,4 +1,4 @@
-# JeecgBoot系统基础信息模板（第二轮评估反馈优化）
+# JeecgBoot系统基础信息模板
 # 支持需求导向文件结构和共享组件管理
 system_overview:
   system_name: "${SYSTEM_NAME}" # 系统名称
@@ -135,7 +135,7 @@ system_overview:
           description: "阿里巴巴微服务套件"
         - name: "MyBatis Plus"
           version: "3.5.3.2"
-          description: "增强版MyBatis ORM框架"
+          description: "MyBatis-Plus ORM框架"
         - name: "Druid"
           version: "1.2.24"
           description: "数据库连接池"
