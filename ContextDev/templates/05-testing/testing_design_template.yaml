@@ -1,0 +1,1306 @@
+# JeecgBoot AI Agent协作测试设计模板
+# 基于BTDTP (BDD-Traceability-Driven Test Planning)协议
+# 专为Agent-D（测试工程师）设计
+#
+# 📁 文件组织建议（第二轮评估反馈优化）：
+# 建议保存路径：/ContextDev/example/REQ-SUITE-XXX-需求名称/testing-design.yaml
+# 文件命名规范：testing-design.yaml (固定命名，便于统一管理)
+# 输入依赖：同目录下的 requirements-analysis.yaml, architecture-design.yaml, development-tasks.yaml
+# 集成测试策略：针对共享组件和需求依赖关系设计专门的集成测试
+# 并行测试执行：支持按需求套件独立执行测试，提高测试效率
+
+# ============================================================================
+# Agent协作协议声明
+# ============================================================================
+agent_collaboration_protocol:
+  source_agent: "Agent-D (测试工程师)"
+  input_agents: ["Agent-A (需求分析师)", "Agent-B (架构设计师)", "Agent-C (开发工程师)"]
+  output_target: "QA团队执行 | 自动化测试平台 | 质量报告系统"
+  communication_standard: "BTDTP结构化测试设计协议"
+  quality_target: "测试覆盖率100%, 追溯完整性100%, 自动化率>80%"
+  processing_time_target: "<90秒/测试群组"
+
+# ============================================================================
+# 输出元数据规范 (Agent-D必须填写)
+# ============================================================================
+test_design_metadata:
+  # 文档标识
+  document_identity:
+    test_doc_id: "TEST-DOC-{{YYYYMMDD}}-{{SEQUENCE}}" # 如：TEST-DOC-20250731-001
+    created_timestamp: "{{YYYY-MM-DD HH:MM:SS}}"
+    agent_version: "Agent-D v{{VERSION}}"
+    processing_duration: "{{SECONDS}}s"
+    
+  # 基线和系统关联信息
+  baseline_and_system_reference:
+    # 需求基线引用
+    baseline_reference:
+      baseline_id: "{{BASELINE_ID}}" # 来自需求基线模板
+      baseline_version: "{{BASELINE_VERSION}}" # 基线版本
+      requirement_suite_id: "{{REQUIREMENT_SUITE_ID}}" # 本需求在基线中的套件ID
+      baseline_doc_path: "{{BASELINE_DOC_PATH}}" # 基线文档路径
+      
+    # 系统基础信息引用  
+    system_reference:
+      system_id: "{{SYSTEM_ID}}" # 来自系统基础模板
+      system_name: "{{SYSTEM_NAME}}" # 系统名称
+      system_base_doc_path: "{{SYSTEM_BASE_DOC_PATH}}" # 系统基础文档路径
+      jeecg_version: "{{JEECG_VERSION}}" # 继承的JeecgBoot版本
+      test_environments: [{{INHERITED_TEST_ENVIRONMENTS}}] # 继承的测试环境
+      
+  # 多源输入信息
+  multi_source_input_info:
+    requirement_doc_id: "{{REQ_DOC_ID}}" # 来自Agent-A
+    requirement_doc_path: "{{REQ_DOC_PATH}}" # Agent-A文档路径
+    design_doc_id: "{{DESIGN_DOC_ID}}" # 来自Agent-B
+    design_doc_path: "{{DESIGN_DOC_PATH}}" # Agent-B文档路径
+    wbs_doc_id: "{{WBS_DOC_ID}}" # 来自Agent-C
+    wbs_doc_path: "{{WBS_DOC_PATH}}" # Agent-C文档路径
+    
+    # 输入统计
+    input_requirements_count: {{INPUT_REQ_COUNT}}
+    input_scenarios_count: {{INPUT_SCENARIO_COUNT}}
+    input_design_decisions_count: {{INPUT_DESIGN_COUNT}}
+    input_tasks_count: {{INPUT_TASKS_COUNT}}
+    
+    # 完整追溯链
+    complete_traceability_chain:
+      baseline_traceability_id: "{{BASELINE_TRACEABILITY_ID}}" # 来自基线
+      system_traceability_id: "{{SYSTEM_TRACEABILITY_ID}}" # 来自系统
+      requirement_traceability_id: "{{REQUIREMENT_TRACEABILITY_ID}}" # 来自Agent-A
+      design_traceability_id: "{{DESIGN_TRACEABILITY_ID}}" # 来自Agent-B
+      development_traceability_id: "{{DEVELOPMENT_TRACEABILITY_ID}}" # 来自Agent-C
+    
+  # JeecgBoot测试环境上下文
+  testing_context:
+    framework_version: "{{JEECG_VERSION}}" # 默认3.8.1
+    test_framework_stack: [{{TEST_FRAMEWORK_STACK}}] # junit5, testng, cucumber, selenium, postman
+    test_environment: "{{TEST_ENVIRONMENT}}" # local | dev | test | staging | prod
+    test_data_strategy: "{{TEST_DATA_STRATEGY}}" # synthetic | production_subset | mock
+    test_automation_platform: "{{TEST_AUTOMATION_PLATFORM}}" # jenkins | gitlab_ci | github_actions
+
+# ============================================================================
+# 多源输入解析与融合 (Agent-A/B/C输出理解)
+# ============================================================================
+multi_source_input_parsing:
+  # Agent-A需求文档解析
+  requirements_parsing:
+    ears_requirements_analysis:
+      # EARS五种类型解析
+      ubiquitous_requirements:
+        - requirement_id: "{{PARSED_REQ_U_ID_1}}" # 来自Agent-A
+          ears_statement: "{{PARSED_EARS_STATEMENT_1}}"
+          acceptance_criteria: [{{PARSED_ACCEPTANCE_CRITERIA_1}}]
+          test_implications: "{{TEST_IMPLICATIONS_1}}" # Agent-D的测试理解
+          testability_score: {{TESTABILITY_SCORE_1}} # 1-10，可测试性评分
+          
+      event_driven_requirements:
+        - requirement_id: "{{PARSED_REQ_E_ID_1}}"
+          ears_statement: "{{PARSED_EARS_STATEMENT_E_1}}"
+          event_trigger: "{{PARSED_EVENT_TRIGGER_1}}"
+          expected_response: "{{PARSED_EXPECTED_RESPONSE_1}}"
+          test_implications: "{{TEST_IMPLICATIONS_E_1}}"
+          testability_score: {{TESTABILITY_SCORE_E_1}}
+          
+      unwanted_behavior_requirements:
+        - requirement_id: "{{PARSED_REQ_UB_ID_1}}"
+          ears_statement: "{{PARSED_EARS_STATEMENT_UB_1}}"
+          unwanted_scenario: "{{PARSED_UNWANTED_SCENARIO_1}}"
+          prevention_mechanism: "{{PARSED_PREVENTION_MECHANISM_1}}"
+          test_implications: "{{TEST_IMPLICATIONS_UB_1}}"
+          testability_score: {{TESTABILITY_SCORE_UB_1}}
+          
+      state_driven_requirements:
+        - requirement_id: "{{PARSED_REQ_S_ID_1}}"
+          ears_statement: "{{PARSED_EARS_STATEMENT_S_1}}"
+          state_transitions: [{{PARSED_STATE_TRANSITIONS_1}}]
+          test_implications: "{{TEST_IMPLICATIONS_S_1}}"
+          testability_score: {{TESTABILITY_SCORE_S_1}}
+          
+      optional_requirements:
+        - requirement_id: "{{PARSED_REQ_O_ID_1}}"
+          ears_statement: "{{PARSED_EARS_STATEMENT_O_1}}"
+          optional_conditions: [{{PARSED_OPTIONAL_CONDITIONS_1}}]
+          test_implications: "{{TEST_IMPLICATIONS_O_1}}"
+          testability_score: {{TESTABILITY_SCORE_O_1}}
+          
+    bdd_scenarios_analysis:
+      # BDD四种场景解析
+      functional_scenarios:
+        - scenario_id: "{{PARSED_BDD_F_ID_1}}" # 来自Agent-A
+          scenario_title: "{{PARSED_BDD_F_TITLE_1}}"
+          given: "{{PARSED_GIVEN_1}}"
+          when: "{{PARSED_WHEN_1}}"
+          then: "{{PARSED_THEN_1}}"
+          and_conditions: [{{PARSED_AND_CONDITIONS_1}}]
+          but_exceptions: [{{PARSED_BUT_EXCEPTIONS_1}}]
+          test_case_generation_potential: "{{TEST_GENERATION_POTENTIAL_1}}" # high | medium | low
+          automation_feasibility: "{{AUTOMATION_FEASIBILITY_1}}" # high | medium | low
+          
+      exception_scenarios:
+        - scenario_id: "{{PARSED_BDD_E_ID_1}}"
+          scenario_title: "{{PARSED_BDD_E_TITLE_1}}"
+          exception_type: "{{PARSED_EXCEPTION_TYPE_1}}"
+          given: "{{PARSED_GIVEN_E_1}}"
+          when: "{{PARSED_WHEN_E_1}}"
+          then: "{{PARSED_THEN_E_1}}"
+          test_case_generation_potential: "{{TEST_GENERATION_POTENTIAL_E_1}}"
+          automation_feasibility: "{{AUTOMATION_FEASIBILITY_E_1}}"
+          
+      boundary_scenarios:
+        - scenario_id: "{{PARSED_BDD_B_ID_1}}"
+          scenario_title: "{{PARSED_BDD_B_TITLE_1}}"
+          boundary_type: "{{PARSED_BOUNDARY_TYPE_1}}"
+          boundary_value: "{{PARSED_BOUNDARY_VALUE_1}}"
+          given: "{{PARSED_GIVEN_B_1}}"
+          when: "{{PARSED_WHEN_B_1}}"
+          then: "{{PARSED_THEN_B_1}}"
+          test_case_generation_potential: "{{TEST_GENERATION_POTENTIAL_B_1}}"
+          automation_feasibility: "{{AUTOMATION_FEASIBILITY_B_1}}"
+          
+      integration_scenarios:
+        - scenario_id: "{{PARSED_BDD_I_ID_1}}"
+          scenario_title: "{{PARSED_BDD_I_TITLE_1}}"
+          integration_type: "{{PARSED_INTEGRATION_TYPE_1}}"
+          external_system: "{{PARSED_EXTERNAL_SYSTEM_1}}"
+          given: "{{PARSED_GIVEN_I_1}}"
+          when: "{{PARSED_WHEN_I_1}}"
+          then: "{{PARSED_THEN_I_1}}"
+          test_case_generation_potential: "{{TEST_GENERATION_POTENTIAL_I_1}}"
+          automation_feasibility: "{{AUTOMATION_FEASIBILITY_I_1}}"
+          
+  # Agent-B设计文档解析
+  design_parsing:
+    architectural_decisions_analysis:
+      - design_decision_id: "{{PARSED_DESIGN_ID_1}}" # 来自Agent-B
+        source_requirement_ids: [{{PARSED_SOURCE_REQ_IDS_1}}]
+        design_pattern: "{{PARSED_DESIGN_PATTERN_1}}"
+        implementation_approach: "{{PARSED_IMPLEMENTATION_APPROACH_1}}"
+        test_strategy_suggestion: "{{PARSED_TEST_STRATEGY_1}}" # Agent-B的测试策略建议
+        testing_challenges: [{{PARSED_TESTING_CHALLENGES_1}}] # Agent-D识别的测试挑战
+        test_design_implications: "{{TEST_DESIGN_IMPLICATIONS_1}}"
+        
+    codegen_configuration_analysis:
+      - codegen_config_id: "{{PARSED_CODEGEN_ID_1}}"
+        module_name: "{{PARSED_MODULE_NAME_1}}"
+        business_entity: "{{PARSED_BUSINESS_ENTITY_1}}"
+        generated_components: [{{PARSED_GENERATED_COMPONENTS_1}}]
+        test_generation_opportunity: "{{TEST_GENERATION_OPPORTUNITY_1}}" # standard_tests | enhanced_tests | custom_tests_needed
+        standard_test_applicability: {{STANDARD_TEST_APPLICABILITY_1}}% # 0-100
+        
+  # Agent-C任务分解解析
+  task_breakdown_parsing:
+    task_groups_analysis:
+      - task_group_id: "{{PARSED_TASK_GROUP_ID_1}}" # 来自Agent-C
+        gwt_task_mapping:
+          given_tasks: [{{PARSED_GIVEN_TASKS_1}}]
+          when_tasks: [{{PARSED_WHEN_TASKS_1}}]
+          then_tasks: [{{PARSED_THEN_TASKS_1}}]
+          but_tasks: [{{PARSED_BUT_TASKS_1}}]
+        test_task_identification: # Agent-D识别的测试相关任务
+          identified_test_tasks: [{{IDENTIFIED_TEST_TASKS_1}}]
+          missing_test_coverage: [{{MISSING_TEST_COVERAGE_1}}]
+          test_task_dependencies: [{{TEST_TASK_DEPENDENCIES_1}}]
+          
+    codegen_vs_manual_analysis:
+      codegen_tasks:
+        - task_id: "{{CODEGEN_TASK_ID_1}}"
+          codegen_coverage: {{CODEGEN_COVERAGE_1}}%
+          standard_test_applicability: "{{STANDARD_TEST_APPLICABILITY_1}}"
+          test_template_usage: "{{TEST_TEMPLATE_USAGE_1}}"
+          
+      manual_tasks:
+        - task_id: "{{MANUAL_TASK_ID_1}}"
+          complexity_reason: "{{COMPLEXITY_REASON_1}}"
+          custom_test_requirements: [{{CUSTOM_TEST_REQUIREMENTS_1}}]
+          test_design_complexity: "{{TEST_DESIGN_COMPLEXITY_1}}" # simple | medium | complex
+
+# ============================================================================
+# BTDTP测试规划 (四维测试空间映射)
+# ============================================================================
+btdtp_test_planning:
+  # 测试规划摘要
+  test_planning_summary:
+    total_test_scenarios_planned: {{TOTAL_TEST_SCENARIOS}}
+    total_test_cases_planned: {{TOTAL_TEST_CASES}}
+    automation_coverage_target: {{AUTOMATION_COVERAGE_TARGET}}%
+    manual_testing_percentage: {{MANUAL_TESTING_PERCENTAGE}}%
+    estimated_test_execution_time: {{ESTIMATED_EXECUTION_TIME}} # hours
+    test_environment_requirements: [{{TEST_ENV_REQUIREMENTS}}]
+    
+  # 四维测试映射矩阵
+  four_dimensional_test_mapping:
+    # 维度映射说明
+    mapping_dimensions:
+      dimension_1: "EARS需求类型" # 5种
+      dimension_2: "BDD场景类型" # 4种
+      dimension_3: "开发任务类型" # 4种Given-When-Then-But
+      dimension_4: "测试层次" # 4种Unit-Integration-System-Acceptance
+      
+    # 核心测试类型映射 (从320种组合优化为关键测试类型)
+    core_test_type_mappings:
+      - mapping_id: "BTM-001"
+        ears_type: "ubiquitous"
+        bdd_scenario_type: "functional"
+        task_type: "when_task"
+        test_level: "unit"
+        test_type_description: "通用功能单元测试"
+        test_approach: "标准CRUD测试模板"
+        automation_priority: "high"
+        codegen_applicable: true
+        
+      - mapping_id: "BTM-002"
+        ears_type: "event_driven"
+        bdd_scenario_type: "functional"
+        task_type: "when_task"
+        test_level: "integration"
+        test_type_description: "事件驱动集成测试"
+        test_approach: "事件触发-响应验证"
+        automation_priority: "high"
+        codegen_applicable: false
+        
+      - mapping_id: "BTM-003"
+        ears_type: "unwanted_behavior"
+        bdd_scenario_type: "exception"
+        task_type: "but_task"
+        test_level: "system"
+        test_type_description: "异常行为系统测试"
+        test_approach: "负面测试和边界测试"
+        automation_priority: "medium"
+        codegen_applicable: false
+        
+      - mapping_id: "BTM-004"
+        ears_type: "state_driven"
+        bdd_scenario_type: "functional"
+        task_type: "given_task"
+        test_level: "system"
+        test_type_description: "状态驱动系统测试"
+        test_approach: "状态机转换测试"
+        automation_priority: "medium"
+        codegen_applicable: false
+        
+      - mapping_id: "BTM-005"
+        ears_type: "optional"
+        bdd_scenario_type: "boundary"
+        task_type: "then_task"
+        test_level: "acceptance"
+        test_type_description: "可选功能验收测试"
+        test_approach: "条件化验收测试"
+        automation_priority: "low"
+        codegen_applicable: false
+        # 继续添加核心映射...
+        
+  # 测试策略定义
+  test_strategy_definitions:
+    # 单元测试策略
+    unit_test_strategy:
+      applicable_scenarios: [{{UNIT_TEST_SCENARIOS}}]
+      test_framework: "{{UNIT_TEST_FRAMEWORK}}" # junit5 | testng
+      mock_strategy: "{{MOCK_STRATEGY}}" # mockito | powermock | manual_mock
+      coverage_target: {{UNIT_COVERAGE_TARGET}}% # 目标代码覆盖率
+      execution_approach: "automated"
+      
+    # 集成测试策略
+    integration_test_strategy:
+      applicable_scenarios: [{{INTEGRATION_TEST_SCENARIOS}}]
+      integration_levels: [{{INTEGRATION_LEVELS}}] # component | service | system
+      test_framework: "{{INTEGRATION_TEST_FRAMEWORK}}" # spring_boot_test | testcontainers
+      database_strategy: "{{DATABASE_STRATEGY}}" # h2_memory | testcontainers | dedicated_db
+      external_service_strategy: "{{EXTERNAL_SERVICE_STRATEGY}}" # mock | wiremock | real_service
+      execution_approach: "automated"
+      
+    # 系统测试策略
+    system_test_strategy:
+      applicable_scenarios: [{{SYSTEM_TEST_SCENARIOS}}]
+      test_types: [{{SYSTEM_TEST_TYPES}}] # functional | performance | security | usability
+      test_environment: "{{SYSTEM_TEST_ENVIRONMENT}}" # dedicated_test_env | staging_env
+      data_strategy: "{{SYSTEM_DATA_STRATEGY}}" # synthetic | production_subset
+      execution_approach: "automated_with_manual_validation"
+      
+    # 验收测试策略
+    acceptance_test_strategy:
+      applicable_scenarios: [{{ACCEPTANCE_TEST_SCENARIOS}}]
+      test_approach: "bdd_cucumber" # bdd_cucumber | manual_checklist | automated_e2e
+      stakeholder_involvement: [{{STAKEHOLDER_ROLES}}] # business_analyst | product_owner | end_user
+      test_environment: "{{ACCEPTANCE_TEST_ENVIRONMENT}}" # staging | production_like
+      execution_approach: "mixed_automated_manual"
+
+# ============================================================================
+# 测试用例生成 (可执行测试用例规范)
+# ============================================================================
+test_case_generation:
+  # 测试用例生成摘要
+  generation_summary:
+    total_generated_test_cases: {{TOTAL_GENERATED_TEST_CASES}}
+    automated_test_cases: {{AUTOMATED_TEST_CASES}}
+    manual_test_cases: {{MANUAL_TEST_CASES}}
+    generated_test_data_sets: {{GENERATED_TEST_DATA_SETS}}
+    
+  # BDD Gherkin格式测试用例
+  bdd_gherkin_test_cases:
+    - test_case_id: "BDD-TC-001"
+      test_case_name: "{{BDD_TEST_CASE_NAME_1}}"
+      
+      # 完整追溯链
+      traceability_chain:
+        source_requirement_id: "{{SOURCE_REQ_ID_1}}" # 追溯到Agent-A
+        source_scenario_id: "{{SOURCE_SCENARIO_ID_1}}" # 追溯到Agent-A
+        source_design_id: "{{SOURCE_DESIGN_ID_1}}" # 追溯到Agent-B
+        source_task_id: "{{SOURCE_TASK_ID_1}}" # 追溯到Agent-C
+        
+      # Gherkin结构
+      gherkin_structure:
+        feature: "{{FEATURE_DESCRIPTION_1}}"
+        background: "{{BACKGROUND_SETUP_1}}" # 可选
+        scenario: "{{SCENARIO_DESCRIPTION_1}}"
+        given: "{{GHERKIN_GIVEN_1}}"
+        when: "{{GHERKIN_WHEN_1}}"
+        then: "{{GHERKIN_THEN_1}}"
+        and_steps: [{{GHERKIN_AND_STEPS_1}}]
+        but_steps: [{{GHERKIN_BUT_STEPS_1}}]
+        
+      # 执行规范
+      execution_specification:
+        test_level: "{{TEST_LEVEL_1}}" # unit | integration | system | acceptance
+        automation_type: "{{AUTOMATION_TYPE_1}}" # fully_automated | semi_automated | manual
+        test_framework: "{{TEST_FRAMEWORK_1}}" # cucumber_java | cucumber_js
+        execution_priority: "{{EXECUTION_PRIORITY_1}}" # high | medium | low
+        execution_environment: "{{EXECUTION_ENVIRONMENT_1}}"
+        
+      # 测试数据要求
+      test_data_requirements:
+        input_data: "{{INPUT_DATA_1}}"
+        expected_output: "{{EXPECTED_OUTPUT_1}}"
+        test_data_setup: "{{TEST_DATA_SETUP_1}}"
+        test_data_cleanup: "{{TEST_DATA_CLEANUP_1}}"
+        
+      # 验证点
+      validation_points:
+        functional_validations: [{{FUNCTIONAL_VALIDATIONS_1}}]
+        data_validations: [{{DATA_VALIDATIONS_1}}]
+        ui_validations: [{{UI_VALIDATIONS_1}}] # 如果适用
+        api_validations: [{{API_VALIDATIONS_1}}] # 如果适用
+        
+    - test_case_id: "BDD-TC-002"
+      test_case_name: "{{BDD_TEST_CASE_NAME_2}}"
+      traceability_chain:
+        source_requirement_id: "{{SOURCE_REQ_ID_2}}"
+        source_scenario_id: "{{SOURCE_SCENARIO_ID_2}}"
+        source_design_id: "{{SOURCE_DESIGN_ID_2}}"
+        source_task_id: "{{SOURCE_TASK_ID_2}}"
+      gherkin_structure:
+        feature: "{{FEATURE_DESCRIPTION_2}}"
+        background: "{{BACKGROUND_SETUP_2}}"
+        scenario: "{{SCENARIO_DESCRIPTION_2}}"
+        given: "{{GHERKIN_GIVEN_2}}"
+        when: "{{GHERKIN_WHEN_2}}"
+        then: "{{GHERKIN_THEN_2}}"
+        and_steps: [{{GHERKIN_AND_STEPS_2}}]
+        but_steps: [{{GHERKIN_BUT_STEPS_2}}]
+      execution_specification:
+        test_level: "{{TEST_LEVEL_2}}"
+        automation_type: "{{AUTOMATION_TYPE_2}}"
+        test_framework: "{{TEST_FRAMEWORK_2}}"
+        execution_priority: "{{EXECUTION_PRIORITY_2}}"
+        execution_environment: "{{EXECUTION_ENVIRONMENT_2}}"
+      test_data_requirements:
+        input_data: "{{INPUT_DATA_2}}"
+        expected_output: "{{EXPECTED_OUTPUT_2}}"
+        test_data_setup: "{{TEST_DATA_SETUP_2}}"
+        test_data_cleanup: "{{TEST_DATA_CLEANUP_2}}"
+      validation_points:
+        functional_validations: [{{FUNCTIONAL_VALIDATIONS_2}}]
+        data_validations: [{{DATA_VALIDATIONS_2}}]
+        ui_validations: [{{UI_VALIDATIONS_2}}]
+        api_validations: [{{API_VALIDATIONS_2}}]
+      # 继续添加BDD测试用例...
+      
+  # JUnit/TestNG单元测试规范
+  unit_test_specifications:
+    - test_class_id: "UNIT-TC-001"
+      test_class_name: "{{TEST_CLASS_NAME_1}}" # 如：ProductServiceTest
+      
+      # 追溯信息
+      traceability_info:
+        tested_component: "{{TESTED_COMPONENT_1}}" # 如：ProductService
+        source_requirement_ids: [{{UNIT_SOURCE_REQ_IDS_1}}]
+        source_task_ids: [{{UNIT_SOURCE_TASK_IDS_1}}]
+        
+      # 测试类结构
+      test_class_structure:
+        test_framework: "{{UNIT_TEST_FRAMEWORK_1}}" # junit5 | testng
+        mock_framework: "{{MOCK_FRAMEWORK_1}}" # mockito | powermock
+        test_annotations: [{{TEST_ANNOTATIONS_1}}] # @ExtendWith, @MockBean等
+        setup_methods: [{{SETUP_METHODS_1}}] # @BeforeEach methods
+        teardown_methods: [{{TEARDOWN_METHODS_1}}] # @AfterEach methods
+        
+      # 测试方法规范
+      test_methods:
+        - test_method_id: "UNIT-TM-001"
+          test_method_name: "{{TEST_METHOD_NAME_1}}" # 如：testCreateProduct_ValidInput_ReturnsSuccess
+          test_description: "{{TEST_METHOD_DESCRIPTION_1}}"
+          
+          # Given-When-Then映射到测试代码
+          test_structure:
+            given_setup: "{{GIVEN_SETUP_CODE_1}}" # 测试数据准备代码
+            when_execution: "{{WHEN_EXECUTION_CODE_1}}" # 被测试方法调用
+            then_verification: "{{THEN_VERIFICATION_CODE_1}}" # 断言验证代码
+            
+          # 测试覆盖点
+          coverage_points:
+            method_coverage: [{{METHOD_COVERAGE_1}}] # 覆盖的方法
+            branch_coverage: [{{BRANCH_COVERAGE_1}}] # 覆盖的分支
+            exception_coverage: [{{EXCEPTION_COVERAGE_1}}] # 异常处理覆盖
+            
+          # 依赖和Mock
+          dependencies_and_mocks:
+            mocked_dependencies: [{{MOCKED_DEPENDENCIES_1}}]
+            mock_behaviors: [{{MOCK_BEHAVIORS_1}}]
+            
+        - test_method_id: "UNIT-TM-002"
+          test_method_name: "{{TEST_METHOD_NAME_2}}"
+          test_description: "{{TEST_METHOD_DESCRIPTION_2}}"
+          test_structure:
+            given_setup: "{{GIVEN_SETUP_CODE_2}}"
+            when_execution: "{{WHEN_EXECUTION_CODE_2}}"
+            then_verification: "{{THEN_VERIFICATION_CODE_2}}"
+          coverage_points:
+            method_coverage: [{{METHOD_COVERAGE_2}}]
+            branch_coverage: [{{BRANCH_COVERAGE_2}}]
+            exception_coverage: [{{EXCEPTION_COVERAGE_2}}]
+          dependencies_and_mocks:
+            mocked_dependencies: [{{MOCKED_DEPENDENCIES_2}}]
+            mock_behaviors: [{{MOCK_BEHAVIORS_2}}]
+          # 继续添加测试方法...
+          
+    - test_class_id: "UNIT-TC-002"
+      test_class_name: "{{TEST_CLASS_NAME_2}}"
+      traceability_info:
+        tested_component: "{{TESTED_COMPONENT_2}}"
+        source_requirement_ids: [{{UNIT_SOURCE_REQ_IDS_2}}]
+        source_task_ids: [{{UNIT_SOURCE_TASK_IDS_2}}]
+      test_class_structure:
+        test_framework: "{{UNIT_TEST_FRAMEWORK_2}}"
+        mock_framework: "{{MOCK_FRAMEWORK_2}}"
+        test_annotations: [{{TEST_ANNOTATIONS_2}}]
+        setup_methods: [{{SETUP_METHODS_2}}]
+        teardown_methods: [{{TEARDOWN_METHODS_2}}]
+      test_methods: [{{UNIT_TEST_METHODS_2}}] # 简化表示
+      # 继续添加单元测试类...
+      
+  # API接口测试规范
+  api_test_specifications:
+    - api_test_suite_id: "API-TS-001"
+      api_test_suite_name: "{{API_TEST_SUITE_NAME_1}}" # 如：ProductControllerAPITest
+      
+      # 追溯信息
+      traceability_info:
+        tested_api_controller: "{{TESTED_API_CONTROLLER_1}}" # 如：ProductController
+        source_requirement_ids: [{{API_SOURCE_REQ_IDS_1}}]
+        source_design_ids: [{{API_SOURCE_DESIGN_IDS_1}}]
+        
+      # API测试配置
+      api_test_configuration:
+        test_framework: "{{API_TEST_FRAMEWORK_1}}" # restassured | mockmvc | postman
+        base_url: "{{API_BASE_URL_1}}"
+        authentication_method: "{{API_AUTH_METHOD_1}}" # none | jwt | basic | oauth
+        test_environment: "{{API_TEST_ENVIRONMENT_1}}"
+        
+      # API测试用例
+      api_test_cases:
+        - api_test_case_id: "API-TC-001"
+          api_test_case_name: "{{API_TEST_CASE_NAME_1}}" # 如：testCreateProduct_ValidPayload_Returns201
+          
+          # HTTP请求规范
+          http_request_specification:
+            http_method: "{{HTTP_METHOD_1}}" # GET | POST | PUT | DELETE
+            endpoint_path: "{{ENDPOINT_PATH_1}}" # 如：/api/products
+            request_headers: [{{REQUEST_HEADERS_1}}]
+            request_body: "{{REQUEST_BODY_1}}" # JSON格式
+            query_parameters: [{{QUERY_PARAMETERS_1}}]
+            path_parameters: [{{PATH_PARAMETERS_1}}]
+            
+          # HTTP响应验证
+          http_response_validation:
+            expected_status_code: {{EXPECTED_STATUS_CODE_1}} # 如：201
+            expected_headers: [{{EXPECTED_HEADERS_1}}]
+            expected_response_body: "{{EXPECTED_RESPONSE_BODY_1}}"
+            response_time_threshold: {{RESPONSE_TIME_THRESHOLD_1}} # ms
+            
+          # 数据验证
+          data_validation:
+            database_validations: [{{DATABASE_VALIDATIONS_1}}] # 验证数据库状态
+            business_rule_validations: [{{BUSINESS_RULE_VALIDATIONS_1}}]
+            
+        - api_test_case_id: "API-TC-002"
+          api_test_case_name: "{{API_TEST_CASE_NAME_2}}"
+          http_request_specification:
+            http_method: "{{HTTP_METHOD_2}}"
+            endpoint_path: "{{ENDPOINT_PATH_2}}"
+            request_headers: [{{REQUEST_HEADERS_2}}]
+            request_body: "{{REQUEST_BODY_2}}"
+            query_parameters: [{{QUERY_PARAMETERS_2}}]
+            path_parameters: [{{PATH_PARAMETERS_2}}]
+          http_response_validation:
+            expected_status_code: {{EXPECTED_STATUS_CODE_2}}
+            expected_headers: [{{EXPECTED_HEADERS_2}}]
+            expected_response_body: "{{EXPECTED_RESPONSE_BODY_2}}"
+            response_time_threshold: {{RESPONSE_TIME_THRESHOLD_2}}
+          data_validation:
+            database_validations: [{{DATABASE_VALIDATIONS_2}}]
+            business_rule_validations: [{{BUSINESS_RULE_VALIDATIONS_2}}]
+          # 继续添加API测试用例...
+          
+    - api_test_suite_id: "API-TS-002"
+      api_test_suite_name: "{{API_TEST_SUITE_NAME_2}}"
+      traceability_info:
+        tested_api_controller: "{{TESTED_API_CONTROLLER_2}}"
+        source_requirement_ids: [{{API_SOURCE_REQ_IDS_2}}]
+        source_design_ids: [{{API_SOURCE_DESIGN_IDS_2}}]
+      api_test_configuration:
+        test_framework: "{{API_TEST_FRAMEWORK_2}}"
+        base_url: "{{API_BASE_URL_2}}"
+        authentication_method: "{{API_AUTH_METHOD_2}}"
+        test_environment: "{{API_TEST_ENVIRONMENT_2}}"
+      api_test_cases: [{{API_TEST_CASES_2}}] # 简化表示
+      # 继续添加API测试套件...
+      
+  # UI自动化测试规范 (如果适用)
+  ui_automation_specifications:
+    - ui_test_suite_id: "UI-TS-001"
+      ui_test_suite_name: "{{UI_TEST_SUITE_NAME_1}}" # 如：ProductManagementUITest
+      
+      # 追溯信息
+      traceability_info:
+        tested_ui_component: "{{TESTED_UI_COMPONENT_1}}" # 如：ProductManagementPage
+        source_requirement_ids: [{{UI_SOURCE_REQ_IDS_1}}]
+        source_scenario_ids: [{{UI_SOURCE_SCENARIO_IDS_1}}]
+        
+      # UI测试配置
+      ui_test_configuration:
+        automation_framework: "{{UI_AUTOMATION_FRAMEWORK_1}}" # selenium | playwright | cypress
+        browser_support: [{{BROWSER_SUPPORT_1}}] # chrome | firefox | safari | edge
+        resolution_support: [{{RESOLUTION_SUPPORT_1}}] # desktop | tablet | mobile
+        test_environment_url: "{{UI_TEST_ENVIRONMENT_URL_1}}"
+        
+      # UI测试用例
+      ui_test_cases:
+        - ui_test_case_id: "UI-TC-001"
+          ui_test_case_name: "{{UI_TEST_CASE_NAME_1}}" # 如：testCreateProduct_ValidForm_DisplaysSuccessMessage
+          
+          # UI测试步骤
+          ui_test_steps:
+            - step_id: "UI-STEP-001"
+              step_description: "{{UI_STEP_DESCRIPTION_1}}" # 如：导航到产品创建页面
+              step_action: "{{UI_STEP_ACTION_1}}" # navigate | click | input | select | wait
+              target_element: "{{UI_TARGET_ELEMENT_1}}" # CSS selector或XPath
+              input_data: "{{UI_INPUT_DATA_1}}" # 如果需要输入
+              expected_result: "{{UI_EXPECTED_RESULT_1}}"
+              
+            - step_id: "UI-STEP-002"
+              step_description: "{{UI_STEP_DESCRIPTION_2}}"
+              step_action: "{{UI_STEP_ACTION_2}}"
+              target_element: "{{UI_TARGET_ELEMENT_2}}"
+              input_data: "{{UI_INPUT_DATA_2}}"
+              expected_result: "{{UI_EXPECTED_RESULT_2}}"
+              # 继续添加UI测试步骤...
+              
+          # UI验证点
+          ui_validations:
+            element_visibility: [{{UI_ELEMENT_VISIBILITY_1}}]
+            text_validations: [{{UI_TEXT_VALIDATIONS_1}}]
+            form_validations: [{{UI_FORM_VALIDATIONS_1}}]
+            navigation_validations: [{{UI_NAVIGATION_VALIDATIONS_1}}]
+            
+        - ui_test_case_id: "UI-TC-002"
+          ui_test_case_name: "{{UI_TEST_CASE_NAME_2}}"
+          ui_test_steps: [{{UI_TEST_STEPS_2}}] # 简化表示
+          ui_validations: [{{UI_VALIDATIONS_2}}] # 简化表示
+          # 继续添加UI测试用例...
+          
+    - ui_test_suite_id: "UI-TS-002"
+      ui_test_suite_name: "{{UI_TEST_SUITE_NAME_2}}"
+      traceability_info:
+        tested_ui_component: "{{TESTED_UI_COMPONENT_2}}"
+        source_requirement_ids: [{{UI_SOURCE_REQ_IDS_2}}]
+        source_scenario_ids: [{{UI_SOURCE_SCENARIO_IDS_2}}]
+      ui_test_configuration:
+        automation_framework: "{{UI_AUTOMATION_FRAMEWORK_2}}"
+        browser_support: [{{BROWSER_SUPPORT_2}}]
+        resolution_support: [{{RESOLUTION_SUPPORT_2}}]
+        test_environment_url: "{{UI_TEST_ENVIRONMENT_URL_2}}"
+      ui_test_cases: [{{UI_TEST_CASES_2}}] # 简化表示
+      # 继续添加UI测试套件...
+
+# ============================================================================
+# JeecgBoot特性集成测试 (CodeGen和框架特性)
+# ============================================================================
+jeecg_integration_testing:
+  # CodeGen生成代码测试
+  codegen_generated_code_testing:
+    # 标准CRUD测试模板
+    standard_crud_test_templates:
+      - template_id: "CRUD-TEMPLATE-001"
+        business_entity: "{{BUSINESS_ENTITY_1}}" # 如：Product
+        
+        # CRUD操作测试覆盖
+        crud_operations_coverage:
+          create_operation_tests:
+            - test_name: "testCreate{{BUSINESS_ENTITY_1}}_ValidInput_ReturnsSuccess"
+              test_type: "positive_test"
+              validation_points: [{{CREATE_VALIDATION_POINTS_1}}]
+              
+          read_operation_tests:
+            - test_name: "testGet{{BUSINESS_ENTITY_1}}_ValidId_ReturnsEntity"
+              test_type: "positive_test"
+              validation_points: [{{READ_VALIDATION_POINTS_1}}]
+              
+          update_operation_tests:
+            - test_name: "testUpdate{{BUSINESS_ENTITY_1}}_ValidInput_ReturnsSuccess"
+              test_type: "positive_test"
+              validation_points: [{{UPDATE_VALIDATION_POINTS_1}}]
+              
+          delete_operation_tests:
+            - test_name: "testDelete{{BUSINESS_ENTITY_1}}_ValidId_ReturnsSuccess"
+              test_type: "positive_test"
+              validation_points: [{{DELETE_VALIDATION_POINTS_1}}]
+              
+          query_operation_tests:
+            - test_name: "testQuery{{BUSINESS_ENTITY_1}}_ValidCriteria_ReturnsResults"
+              test_type: "positive_test"
+              validation_points: [{{QUERY_VALIDATION_POINTS_1}}]
+              
+        # 数据字典验证测试
+        dictionary_validation_tests:
+          used_dictionaries: [{{USED_DICTIONARIES_1}}] # 来自Code_Gen_DICT.json
+          dictionary_tests:
+            - dictionary_name: "{{DICTIONARY_NAME_1}}" # 如：sex
+              dictionary_values: [{{DICTIONARY_VALUES_1}}] # 如：["M", "F"]
+              validation_test_cases:
+                - test_case: "test{{BUSINESS_ENTITY_1}}_ValidDictionaryValue_AcceptsValue"
+                  test_input: "{{VALID_DICTIONARY_VALUE_1}}"
+                  expected_result: "success"
+                - test_case: "test{{BUSINESS_ENTITY_1}}_InvalidDictionaryValue_RejectsValue"
+                  test_input: "{{INVALID_DICTIONARY_VALUE_1}}"
+                  expected_result: "validation_error"
+                  
+    # 自定义业务逻辑测试
+    custom_business_logic_testing:
+      - custom_logic_id: "CUSTOM-LOGIC-001"
+        logic_description: "{{CUSTOM_LOGIC_DESCRIPTION_1}}"
+        complexity_level: "{{COMPLEXITY_LEVEL_1}}" # simple | medium | complex
+        
+        # 自定义测试策略
+        custom_test_strategy:
+          test_approach: "{{CUSTOM_TEST_APPROACH_1}}" # white_box | black_box | grey_box
+          test_techniques: [{{CUSTOM_TEST_TECHNIQUES_1}}] # equivalence_partitioning | boundary_value_analysis | decision_table
+          test_coverage_requirements: [{{CUSTOM_COVERAGE_REQUIREMENTS_1}}]
+          
+        # 自定义测试用例
+        custom_test_cases:
+          - custom_test_case_id: "CUSTOM-TC-001"
+            test_case_description: "{{CUSTOM_TEST_CASE_DESCRIPTION_1}}"
+            test_complexity: "{{CUSTOM_TEST_COMPLEXITY_1}}"
+            test_data_requirements: "{{CUSTOM_TEST_DATA_REQUIREMENTS_1}}"
+            expected_challenges: [{{CUSTOM_TEST_CHALLENGES_1}}]
+            
+  # JeecgBoot框架特性测试
+  jeecg_framework_features_testing:
+    # 权限控制测试
+    permission_control_testing:
+      - permission_test_suite_id: "PERM-TS-001"
+        tested_permissions: [{{TESTED_PERMISSIONS_1}}] # 来自Agent-B的权限设计
+        
+        permission_test_cases:
+          - permission_test_case_id: "PERM-TC-001"
+            test_scenario: "有权限用户访问受保护资源"
+            user_role: "{{USER_ROLE_1}}"
+            required_permission: "{{REQUIRED_PERMISSION_1}}"
+            test_action: "{{TEST_ACTION_1}}"
+            expected_result: "access_granted"
+            
+          - permission_test_case_id: "PERM-TC-002"
+            test_scenario: "无权限用户访问受保护资源"
+            user_role: "{{USER_ROLE_2}}"
+            required_permission: "{{REQUIRED_PERMISSION_2}}"
+            test_action: "{{TEST_ACTION_2}}"
+            expected_result: "access_denied"
+            
+    # 工作流引擎测试 (如果使用)
+    workflow_engine_testing:
+      - workflow_test_suite_id: "WF-TS-001"
+        tested_workflow: "{{TESTED_WORKFLOW_1}}"
+        
+        workflow_test_cases:
+          - workflow_test_case_id: "WF-TC-001"
+            test_scenario: "正常工作流执行"
+            workflow_input: "{{WORKFLOW_INPUT_1}}"
+            expected_workflow_states: [{{EXPECTED_WF_STATES_1}}]
+            expected_final_state: "{{EXPECTED_FINAL_STATE_1}}"
+            
+    # 系统集成测试
+    system_integration_testing:
+      - integration_test_suite_id: "INTEG-TS-001"
+        integration_type: "{{INTEGRATION_TYPE_1}}" # database | external_service | message_queue
+        
+        integration_test_cases:
+          - integration_test_case_id: "INTEG-TC-001"
+            test_scenario: "{{INTEGRATION_TEST_SCENARIO_1}}"
+            integration_setup: "{{INTEGRATION_SETUP_1}}"
+            test_execution: "{{INTEGRATION_TEST_EXECUTION_1}}"
+            expected_integration_result: "{{EXPECTED_INTEGRATION_RESULT_1}}"
+            error_handling_validation: "{{ERROR_HANDLING_VALIDATION_1}}"
+
+# ============================================================================
+# 测试数据设计与管理
+# ============================================================================
+test_data_design_and_management:
+  # 测试数据设计摘要
+  test_data_summary:
+    total_test_data_sets: {{TOTAL_TEST_DATA_SETS}}
+    synthetic_data_sets: {{SYNTHETIC_DATA_SETS}}
+    production_subset_data_sets: {{PRODUCTION_SUBSET_DATA_SETS}}
+    mock_data_sets: {{MOCK_DATA_SETS}}
+    test_data_volume_estimation: "{{TEST_DATA_VOLUME_ESTIMATION}}" # small | medium | large
+    
+  # 测试数据分类设计
+  test_data_category_design:
+    # 正向测试数据 (Happy Path)
+    positive_test_data:
+      - data_set_id: "POS-DATA-001"
+        data_set_name: "{{POSITIVE_DATA_SET_NAME_1}}" # 如：ValidProductData
+        data_purpose: "{{POSITIVE_DATA_PURPOSE_1}}" # 支持正向业务流程测试
+        
+        # 数据结构设计
+        data_structure:
+          business_entity: "{{DATA_BUSINESS_ENTITY_1}}" # 如：Product
+          required_fields: [{{REQUIRED_FIELDS_1}}]
+          optional_fields: [{{OPTIONAL_FIELDS_1}}]
+          data_relationships: [{{DATA_RELATIONSHIPS_1}}] # 关联的其他实体
+          
+        # 数据生成策略
+        data_generation_strategy:
+          generation_method: "{{GENERATION_METHOD_1}}" # manual | faker_library | template_based
+          data_volume: {{DATA_VOLUME_1}} # 数据条数
+          data_variation: "{{DATA_VARIATION_1}}" # 数据变化程度
+          
+        # 数据样本
+        data_samples:
+          - sample_id: "POS-SAMPLE-001"
+            sample_data: "{{SAMPLE_DATA_1}}" # JSON或YAML格式的示例数据
+            usage_scenarios: [{{USAGE_SCENARIOS_1}}] # 适用的测试场景
+            
+    # 负向测试数据 (Negative Path)
+    negative_test_data:
+      - data_set_id: "NEG-DATA-001"
+        data_set_name: "{{NEGATIVE_DATA_SET_NAME_1}}" # 如：InvalidProductData
+        data_purpose: "{{NEGATIVE_DATA_PURPOSE_1}}" # 验证异常处理和边界条件
+        
+        # 异常数据类型
+        negative_data_types:
+          invalid_format_data: [{{INVALID_FORMAT_DATA_1}}] # 格式错误的数据
+          boundary_violation_data: [{{BOUNDARY_VIOLATION_DATA_1}}] # 边界值违规数据
+          business_rule_violation_data: [{{BUSINESS_RULE_VIOLATION_DATA_1}}] # 业务规则违规
+          security_attack_data: [{{SECURITY_ATTACK_DATA_1}}] # 安全攻击测试数据
+          
+        # 预期异常结果
+        expected_error_responses:
+          - error_type: "{{ERROR_TYPE_1}}" # validation_error | business_error | system_error
+            error_message_pattern: "{{ERROR_MESSAGE_PATTERN_1}}"
+            error_code: "{{ERROR_CODE_1}}"
+            
+    # 边界测试数据 (Boundary Data)
+    boundary_test_data:
+      - data_set_id: "BOUND-DATA-001"
+        data_set_name: "{{BOUNDARY_DATA_SET_NAME_1}}" # 如：ProductBoundaryData
+        data_purpose: "{{BOUNDARY_DATA_PURPOSE_1}}" # 验证边界条件处理
+        
+        # 边界值定义
+        boundary_definitions:
+          - field_name: "{{BOUNDARY_FIELD_NAME_1}}" # 如：productPrice
+            data_type: "{{BOUNDARY_DATA_TYPE_1}}" # numeric | string | date
+            min_boundary_value: "{{MIN_BOUNDARY_VALUE_1}}"
+            max_boundary_value: "{{MAX_BOUNDARY_VALUE_1}}"
+            boundary_test_values: [{{BOUNDARY_TEST_VALUES_1}}] # 包括边界值、边界值±1等
+            
+    # 集成测试数据 (Integration Data)
+    integration_test_data:
+      - data_set_id: "INTEG-DATA-001"
+        data_set_name: "{{INTEGRATION_DATA_SET_NAME_1}}" # 如：OrderProductIntegrationData
+        data_purpose: "{{INTEGRATION_DATA_PURPOSE_1}}" # 支持系统间集成测试
+        
+        # 集成数据关系
+        integration_relationships:
+          - relationship_type: "{{RELATIONSHIP_TYPE_1}}" # one_to_one | one_to_many | many_to_many
+            source_entity: "{{SOURCE_ENTITY_1}}"
+            target_entity: "{{TARGET_ENTITY_1}}"
+            relationship_data: "{{RELATIONSHIP_DATA_1}}"
+            
+        # 外部系统模拟数据
+        external_system_mock_data:
+          - external_system: "{{EXTERNAL_SYSTEM_1}}" # 如：PaymentService
+            mock_response_data: "{{MOCK_RESPONSE_DATA_1}}"
+            mock_scenarios: [{{MOCK_SCENARIOS_1}}] # success | timeout | error
+            
+  # 测试数据管理策略
+  test_data_management_strategy:
+    # 数据生命周期管理
+    data_lifecycle_management:
+      data_creation_strategy: "{{DATA_CREATION_STRATEGY}}" # on_demand | pre_created | hybrid
+      data_refresh_strategy: "{{DATA_REFRESH_STRATEGY}}" # per_test | per_suite | per_run
+      data_cleanup_strategy: "{{DATA_CLEANUP_STRATEGY}}" # immediate | deferred | manual
+      data_isolation_strategy: "{{DATA_ISOLATION_STRATEGY}}" # separate_db | separate_schema | data_partitioning
+      
+    # 数据隐私和安全
+    data_privacy_and_security:
+      sensitive_data_handling: "{{SENSITIVE_DATA_HANDLING}}" # anonymization | masking | synthetic_replacement
+      data_access_control: [{{DATA_ACCESS_CONTROL}}] # 数据访问权限控制
+      data_retention_policy: "{{DATA_RETENTION_POLICY}}" # 数据保留策略
+      
+    # 数据同步和版本控制
+    data_sync_and_versioning:
+      data_version_control: "{{DATA_VERSION_CONTROL}}" # git_based | database_versioning | file_versioning
+      data_environment_sync: "{{DATA_ENVIRONMENT_SYNC}}" # 不同环境间的数据同步策略
+      data_backup_strategy: "{{DATA_BACKUP_STRATEGY}}" # 测试数据备份策略
+
+# ============================================================================
+# 测试执行策略与调度
+# ============================================================================
+test_execution_strategy_and_scheduling:
+  # 测试执行摘要
+  execution_summary:
+    total_execution_time_estimate: {{TOTAL_EXECUTION_TIME}} # hours
+    parallel_execution_opportunities: {{PARALLEL_EXECUTION_COUNT}}
+    sequential_execution_requirements: {{SEQUENTIAL_EXECUTION_COUNT}}
+    resource_requirements: [{{RESOURCE_REQUIREMENTS}}]
+    
+  # 测试执行层次设计
+  test_execution_hierarchy:
+    # L1: 单元测试执行
+    unit_test_execution:
+      execution_priority: "highest"
+      execution_trigger: "code_commit" # code_commit | manual | scheduled
+      execution_frequency: "every_commit"
+      execution_environment: "developer_machine | ci_server"
+      execution_timeout: {{UNIT_TEST_TIMEOUT}} # minutes
+      failure_handling: "fail_fast" # fail_fast | continue_on_failure
+      
+      # 并行执行策略
+      parallel_execution_config:
+        parallel_test_classes: {{PARALLEL_TEST_CLASSES}} # true | false
+        parallel_test_methods: {{PARALLEL_TEST_METHODS}} # true | false
+        thread_pool_size: {{THREAD_POOL_SIZE}}
+        
+    # L2: 集成测试执行
+    integration_test_execution:
+      execution_priority: "high"
+      execution_trigger: "unit_tests_passed" # unit_tests_passed | manual | scheduled
+      execution_frequency: "daily"
+      execution_environment: "integration_test_server"
+      execution_timeout: {{INTEGRATION_TEST_TIMEOUT}} # minutes
+      failure_handling: "continue_on_failure"
+      
+      # 依赖管理
+      dependency_management:
+        database_setup: "{{DATABASE_SETUP}}" # fresh_db | existing_db | in_memory_db
+        external_service_setup: [{{EXTERNAL_SERVICE_SETUP}}] # mock | real | wiremock
+        test_data_preparation: "{{TEST_DATA_PREPARATION}}" # automatic | manual
+        
+    # L3: 系统测试执行
+    system_test_execution:
+      execution_priority: "medium"
+      execution_trigger: "integration_tests_passed" # integration_tests_passed | manual | scheduled
+      execution_frequency: "weekly"
+      execution_environment: "system_test_environment"
+      execution_timeout: {{SYSTEM_TEST_TIMEOUT}} # hours
+      failure_handling: "stop_on_critical_failure"
+      
+      # 环境准备
+      environment_preparation:
+        environment_provisioning: "{{ENVIRONMENT_PROVISIONING}}" # automatic | manual
+        application_deployment: "{{APPLICATION_DEPLOYMENT}}" # automatic | manual
+        test_data_loading: "{{TEST_DATA_LOADING}}" # automatic | manual
+        
+    # L4: 验收测试执行
+    acceptance_test_execution:
+      execution_priority: "medium"
+      execution_trigger: "system_tests_passed" # system_tests_passed | manual | scheduled
+      execution_frequency: "release_candidate"
+      execution_environment: "staging_environment"
+      execution_timeout: {{ACCEPTANCE_TEST_TIMEOUT}} # hours
+      failure_handling: "manual_review_required"
+      
+      # 利益相关者参与
+      stakeholder_involvement:
+        business_analyst_review: {{BA_REVIEW_REQUIRED}} # true | false
+        product_owner_signoff: {{PO_SIGNOFF_REQUIRED}} # true | false
+        user_acceptance_testing: {{UAT_REQUIRED}} # true | false
+        
+  # 测试执行依赖图
+  test_execution_dependency_graph:
+    # 测试执行节点
+    execution_nodes:
+      - node_id: "EXEC-NODE-001"
+        node_name: "{{EXECUTION_NODE_NAME_1}}" # 如：UnitTestExecution
+        node_type: "{{EXECUTION_NODE_TYPE_1}}" # unit | integration | system | acceptance
+        execution_criteria: "{{EXECUTION_CRITERIA_1}}" # 执行条件
+        success_criteria: "{{SUCCESS_CRITERIA_1}}" # 成功标准
+        failure_criteria: "{{FAILURE_CRITERIA_1}}" # 失败标准
+        
+    # 依赖关系
+    execution_dependencies:
+      - dependency_id: "EXEC-DEP-001"
+        source_node_id: "{{SOURCE_NODE_ID_1}}"
+        target_node_id: "{{TARGET_NODE_ID_1}}"
+        dependency_type: "{{DEPENDENCY_TYPE_1}}" # prerequisite | parallel | conditional
+        dependency_condition: "{{DEPENDENCY_CONDITION_1}}"
+        
+  # 测试结果处理策略
+  test_result_processing_strategy:
+    # 结果收集
+    result_collection:
+      result_format: [{{RESULT_FORMAT}}] # junit_xml | testng_xml | cucumber_json | custom
+      result_storage: "{{RESULT_STORAGE}}" # file_system | database | cloud_storage
+      result_retention: "{{RESULT_RETENTION}}" # 结果保留时间
+      
+    # 结果分析
+    result_analysis:
+      trend_analysis: {{TREND_ANALYSIS_ENABLED}} # true | false
+      failure_pattern_analysis: {{FAILURE_PATTERN_ANALYSIS}} # true | false
+      coverage_analysis: {{COVERAGE_ANALYSIS_ENABLED}} # true | false
+      performance_analysis: {{PERFORMANCE_ANALYSIS_ENABLED}} # true | false
+      
+    # 结果通知
+    result_notification:
+      notification_channels: [{{NOTIFICATION_CHANNELS}}] # email | slack | teams | webhook
+      notification_recipients: [{{NOTIFICATION_RECIPIENTS}}]
+      notification_triggers: [{{NOTIFICATION_TRIGGERS}}] # failure | success | always
+      
+  # 测试环境管理
+  test_environment_management:
+    # 环境配置
+    environment_configurations:
+      - environment_id: "TEST-ENV-001"
+        environment_name: "{{TEST_ENVIRONMENT_NAME_1}}" # 如：unit_test_env
+        environment_type: "{{TEST_ENVIRONMENT_TYPE_1}}" # local | ci | staging | production_like
+        environment_resources: [{{TEST_ENVIRONMENT_RESOURCES_1}}]
+        environment_setup_time: {{ENVIRONMENT_SETUP_TIME_1}} # minutes
+        environment_teardown_time: {{ENVIRONMENT_TEARDOWN_TIME_1}} # minutes
+        
+    # 环境调度
+    environment_scheduling:
+      environment_availability: "{{ENVIRONMENT_AVAILABILITY}}" # 24x7 | business_hours | on_demand
+      environment_booking_system: {{ENVIRONMENT_BOOKING_REQUIRED}} # true | false
+      environment_conflict_resolution: "{{ENVIRONMENT_CONFLICT_RESOLUTION}}" # queue | priority | abort
+      
+    # 环境监控
+    environment_monitoring:
+      resource_monitoring: [{{RESOURCE_MONITORING}}] # cpu | memory | disk | network
+      application_health_monitoring: [{{APP_HEALTH_MONITORING}}]
+      test_execution_monitoring: [{{TEST_EXECUTION_MONITORING}}]
+
+# ============================================================================
+# 质量保证检查点 (Agent-D自检要求)
+# ============================================================================
+quality_assurance_checkpoints:
+  # 测试设计完整性检查
+  test_design_completeness_check:
+    traceability_validation:
+      - check_item: "所有测试用例都有完整的追溯链"
+        validation_result: "{{TRACEABILITY_COMPLETE}}" # pass | fail
+        missing_traceability: [{{MISSING_TRACEABILITY}}]
+        traceability_coverage_percentage: {{TRACEABILITY_COVERAGE}}%
+        
+    test_coverage_validation:
+      - check_item: "需求覆盖完整性检查"
+        validation_result: "{{REQUIREMENT_COVERAGE_COMPLETE}}" # pass | fail
+        uncovered_requirements: [{{UNCOVERED_REQUIREMENTS}}]
+        requirement_coverage_percentage: {{REQUIREMENT_COVERAGE}}%
+        
+    scenario_coverage_validation:
+      - check_item: "BDD场景覆盖完整性检查"
+        validation_result: "{{SCENARIO_COVERAGE_COMPLETE}}" # pass | fail
+        uncovered_scenarios: [{{UNCOVERED_SCENARIOS}}]
+        scenario_coverage_percentage: {{SCENARIO_COVERAGE}}%
+        
+    test_type_coverage_validation:
+      - check_item: "测试类型覆盖完整性检查"
+        validation_result: "{{TEST_TYPE_COVERAGE_COMPLETE}}" # pass | fail
+        missing_test_types: [{{MISSING_TEST_TYPES}}]
+        functional_test_coverage: {{FUNCTIONAL_TEST_COVERAGE}}%
+        non_functional_test_coverage: {{NON_FUNCTIONAL_TEST_COVERAGE}}%
+        
+  # 测试可执行性检查
+  test_executability_validation:
+    automation_feasibility_check:
+      total_test_cases: {{TOTAL_TEST_CASES}}
+      automatable_test_cases: {{AUTOMATABLE_TEST_CASES}}
+      automation_feasibility_percentage: {{AUTOMATION_FEASIBILITY}}%
+      manual_test_cases: {{MANUAL_TEST_CASES}}
+      automation_challenges: [{{AUTOMATION_CHALLENGES}}]
+      
+    test_environment_dependency_check:
+      environment_requirements_defined: {{ENV_REQUIREMENTS_DEFINED}} # true | false
+      environment_availability_confirmed: {{ENV_AVAILABILITY_CONFIRMED}} # true | false
+      environment_setup_documented: {{ENV_SETUP_DOCUMENTED}} # true | false
+      environment_conflicts_identified: [{{ENV_CONFLICTS}}]
+      
+    test_data_dependency_check:
+      test_data_requirements_defined: {{TEST_DATA_REQUIREMENTS_DEFINED}} # true | false
+      test_data_generation_strategy_defined: {{TEST_DATA_STRATEGY_DEFINED}} # true | false
+      test_data_privacy_compliance: {{TEST_DATA_PRIVACY_COMPLIANCE}} # compliant | non_compliant | needs_review
+      test_data_volume_feasibility: {{TEST_DATA_VOLUME_FEASIBLE}} # feasible | challenging | infeasible
+      
+  # 测试逻辑一致性检查
+  test_logic_consistency_validation:
+    test_case_logic_validation:
+      logical_errors_detected: [{{LOGICAL_ERRORS}}]
+      contradictory_test_cases: [{{CONTRADICTORY_TEST_CASES}}]
+      incomplete_test_scenarios: [{{INCOMPLETE_TEST_SCENARIOS}}]
+      
+    test_data_consistency_validation:
+      data_inconsistencies_detected: [{{DATA_INCONSISTENCIES}}]
+      invalid_test_data_samples: [{{INVALID_TEST_DATA_SAMPLES}}]
+      missing_test_data_relationships: [{{MISSING_DATA_RELATIONSHIPS}}]
+      
+    expected_result_validation:
+      unrealistic_expected_results: [{{UNREALISTIC_EXPECTED_RESULTS}}]
+      undefined_expected_results: [{{UNDEFINED_EXPECTED_RESULTS}}]
+      ambiguous_validation_criteria: [{{AMBIGUOUS_VALIDATION_CRITERIA}}]
+      
+  # 测试策略合理性检查
+  test_strategy_rationality_validation:
+    test_approach_appropriateness:
+      over_engineered_test_approaches: [{{OVER_ENGINEERED_APPROACHES}}]
+      under_engineered_test_approaches: [{{UNDER_ENGINEERED_APPROACHES}}]
+      inappropriate_test_techniques: [{{INAPPROPRIATE_TECHNIQUES}}]
+      
+    resource_requirement_realism:
+      unrealistic_resource_requirements: [{{UNREALISTIC_RESOURCES}}]
+      resource_conflicts_identified: [{{RESOURCE_CONFLICTS}}]
+      budget_constraint_violations: [{{BUDGET_VIOLATIONS}}]
+      
+    timeline_feasibility:
+      unrealistic_execution_timelines: [{{UNREALISTIC_TIMELINES}}]
+      timeline_conflicts_identified: [{{TIMELINE_CONFLICTS}}]
+      critical_path_bottlenecks: [{{CRITICAL_PATH_BOTTLENECKS}}]
+
+# ============================================================================
+# 测试报告规范 (标准化输出)
+# ============================================================================
+test_reporting_specifications:
+  # 测试报告摘要
+  reporting_summary:
+    total_report_types: {{TOTAL_REPORT_TYPES}}
+    automated_report_generation: {{AUTOMATED_REPORT_COUNT}}
+    manual_report_compilation: {{MANUAL_REPORT_COUNT}}
+    real_time_reporting_capability: {{REAL_TIME_REPORTING}} # true | false
+    
+  # 测试计划报告
+  test_plan_reporting:
+    test_plan_document:
+      document_id: "TEST-PLAN-{{YYYYMMDD}}-{{SEQUENCE}}"
+      document_version: "{{TEST_PLAN_VERSION}}"
+      
+      # 执行摘要
+      executive_summary:
+        testing_objectives: [{{TESTING_OBJECTIVES}}]
+        testing_scope: "{{TESTING_SCOPE}}"
+        testing_approach: "{{TESTING_APPROACH}}"
+        key_deliverables: [{{KEY_DELIVERABLES}}]
+        success_criteria: [{{SUCCESS_CRITERIA}}]
+        
+      # 测试策略概述
+      test_strategy_overview:
+        test_levels: [{{TEST_LEVELS}}] # unit | integration | system | acceptance
+        test_types: [{{TEST_TYPES}}] # functional | performance | security | usability
+        test_techniques: [{{TEST_TECHNIQUES}}] # manual | automated | exploratory
+        test_environment_strategy: "{{TEST_ENVIRONMENT_STRATEGY}}"
+        test_data_strategy: "{{TEST_DATA_STRATEGY}}"
+        
+      # 资源规划
+      resource_planning:
+        human_resources: [{{HUMAN_RESOURCES}}]
+        infrastructure_resources: [{{INFRASTRUCTURE_RESOURCES}}]
+        tool_requirements: [{{TOOL_REQUIREMENTS}}]
+        budget_estimation: "{{BUDGET_ESTIMATION}}"
+        
+      # 风险评估
+      risk_assessment:
+        identified_risks: [{{IDENTIFIED_RISKS}}]
+        risk_mitigation_strategies: [{{RISK_MITIGATION_STRATEGIES}}]
+        contingency_plans: [{{CONTINGENCY_PLANS}}]
+        
+  # 测试执行报告
+  test_execution_reporting:
+    # 实时执行仪表板
+    real_time_execution_dashboard:
+      current_execution_status: "{{CURRENT_EXECUTION_STATUS}}" # running | completed | failed | paused
+      tests_executed: {{TESTS_EXECUTED}}
+      tests_passed: {{TESTS_PASSED}}
+      tests_failed: {{TESTS_FAILED}}
+      tests_skipped: {{TESTS_SKIPPED}}
+      execution_progress_percentage: {{EXECUTION_PROGRESS}}%
+      estimated_completion_time: "{{ESTIMATED_COMPLETION_TIME}}"
+      
+    # 详细执行日志
+    detailed_execution_logs:
+      - log_entry_id: "LOG-{{TIMESTAMP}}-{{SEQUENCE}}"
+        timestamp: "{{YYYY-MM-DD HH:MM:SS}}"
+        test_case_id: "{{TEST_CASE_ID}}"
+        execution_status: "{{EXECUTION_STATUS}}" # passed | failed | skipped | error
+        execution_duration: {{EXECUTION_DURATION}} # seconds
+        failure_reason: "{{FAILURE_REASON}}" # if failed
+        stack_trace: "{{STACK_TRACE}}" # if error
+        screenshots: [{{SCREENSHOTS}}] # for UI tests
+        
+  # 测试结果分析报告
+  test_result_analysis_reporting:
+    # 覆盖率分析
+    coverage_analysis:
+      requirement_coverage:
+        total_requirements: {{TOTAL_REQUIREMENTS}}
+        covered_requirements: {{COVERED_REQUIREMENTS}}
+        coverage_percentage: {{REQUIREMENT_COVERAGE_PERCENTAGE}}%
+        uncovered_requirements: [{{UNCOVERED_REQUIREMENTS}}]
+        
+      code_coverage: # 如果适用
+        line_coverage: {{LINE_COVERAGE}}%
+        branch_coverage: {{BRANCH_COVERAGE}}%
+        method_coverage: {{METHOD_COVERAGE}}%
+        class_coverage: {{CLASS_COVERAGE}}%
+        
+    # 缺陷分析
+    defect_analysis:
+      total_defects_found: {{TOTAL_DEFECTS}}
+      defects_by_severity:
+        critical_defects: {{CRITICAL_DEFECTS}}
+        high_defects: {{HIGH_DEFECTS}}
+        medium_defects: {{MEDIUM_DEFECTS}}
+        low_defects: {{LOW_DEFECTS}}
+        
+      defects_by_category:
+        functional_defects: {{FUNCTIONAL_DEFECTS}}
+        performance_defects: {{PERFORMANCE_DEFECTS}}
+        security_defects: {{SECURITY_DEFECTS}}
+        usability_defects: {{USABILITY_DEFECTS}}
+        
+      defect_trend_analysis:
+        defect_discovery_rate: "{{DEFECT_DISCOVERY_RATE}}" # per day/week
+        defect_resolution_rate: "{{DEFECT_RESOLUTION_RATE}}" # per day/week
+        open_defect_aging: [{{OPEN_DEFECT_AGING}}]
+        
+    # 质量指标
+    quality_metrics:
+      test_effectiveness_metrics:
+        defect_detection_percentage: {{DEFECT_DETECTION_PERCENTAGE}}%
+        test_case_pass_rate: {{TEST_CASE_PASS_RATE}}%
+        test_automation_percentage: {{TEST_AUTOMATION_PERCENTAGE}}%
+        
+      efficiency_metrics:
+        average_test_execution_time: {{AVERAGE_EXECUTION_TIME}} # minutes
+        test_environment_utilization: {{TEST_ENV_UTILIZATION}}%
+        automation_maintenance_overhead: {{AUTOMATION_MAINTENANCE_OVERHEAD}}%
+        
+  # 追溯性报告
+  traceability_reporting:
+    # 需求-测试追溯矩阵
+    requirement_test_traceability_matrix:
+      - requirement_id: "{{REQ_ID_1}}"
+        requirement_description: "{{REQ_DESCRIPTION_1}}"
+        associated_test_cases: [{{ASSOCIATED_TEST_CASES_1}}]
+        test_coverage_status: "{{TEST_COVERAGE_STATUS_1}}" # covered | partially_covered | not_covered
+        verification_status: "{{VERIFICATION_STATUS_1}}" # verified | failed | pending
+        
+    # 设计-测试追溯矩阵
+    design_test_traceability_matrix:
+      - design_decision_id: "{{DESIGN_ID_1}}"
+        design_description: "{{DESIGN_DESCRIPTION_1}}"
+        associated_test_cases: [{{ASSOCIATED_TEST_CASES_DESIGN_1}}]
+        design_verification_status: "{{DESIGN_VERIFICATION_STATUS_1}}"
+        
+    # 任务-测试追溯矩阵
+    task_test_traceability_matrix:
+      - task_id: "{{TASK_ID_1}}"
+        task_description: "{{TASK_DESCRIPTION_1}}"
+        associated_test_cases: [{{ASSOCIATED_TEST_CASES_TASK_1}}]
+        task_verification_status: "{{TASK_VERIFICATION_STATUS_1}}"
+        
+  # 建议和改进报告
+  recommendations_and_improvements:
+    # 测试过程改进建议
+    test_process_improvements:
+      identified_inefficiencies: [{{IDENTIFIED_INEFFICIENCIES}}]
+      process_optimization_suggestions: [{{PROCESS_OPTIMIZATION_SUGGESTIONS}}]
+      tool_enhancement_recommendations: [{{TOOL_ENHANCEMENT_RECOMMENDATIONS}}]
+      
+    # 测试自动化改进
+    test_automation_improvements:
+      automation_gap_analysis: [{{AUTOMATION_GAP_ANALYSIS}}]
+      automation_opportunity_identification: [{{AUTOMATION_OPPORTUNITIES}}]
+      automation_roi_analysis: "{{AUTOMATION_ROI_ANALYSIS}}"
+      
+    # 质量改进建议
+    quality_improvements:
+      quality_gate_enhancement: [{{QUALITY_GATE_ENHANCEMENTS}}]
+      defect_prevention_strategies: [{{DEFECT_PREVENTION_STRATEGIES}}]
+      testing_best_practice_recommendations: [{{TESTING_BEST_PRACTICES}}]
+
+# ============================================================================
+# Agent移交信息 (向QA团队和项目管理移交)
+# ============================================================================
+handoff_information:
+  # 移交摘要
+  handoff_summary:
+    total_test_cases_for_execution: {{TOTAL_TEST_CASES_FOR_EXECUTION}}
+    automated_test_cases_ready: {{AUTOMATED_TEST_CASES_READY}}
+    manual_test_cases_ready: {{MANUAL_TEST_CASES_READY}}
+    test_environment_requirements: [{{TEST_ENV_REQUIREMENTS_HANDOFF}}]
+    estimated_testing_effort: "{{ESTIMATED_TESTING_EFFORT}}" # person-days
+    testing_timeline_estimate: "{{TESTING_TIMELINE_ESTIMATE}}" # weeks
+    
+  # QA团队执行指导
+  qa_team_execution_guidance:
+    test_execution_sequence: [{{TEST_EXECUTION_SEQUENCE}}]
+    critical_test_scenarios: [{{CRITICAL_TEST_SCENARIOS}}]
+    high_risk_areas: [{{HIGH_RISK_AREAS}}]
+    test_data_preparation_guide: "{{TEST_DATA_PREPARATION_GUIDE}}"
+    environment_setup_instructions: [{{ENVIRONMENT_SETUP_INSTRUCTIONS}}]
+    
+  # 自动化测试部署
+  automation_deployment_instructions:
+    automation_framework_setup: [{{AUTOMATION_FRAMEWORK_SETUP}}]
+    ci_cd_integration_requirements: [{{CI_CD_INTEGRATION_REQUIREMENTS}}]
+    test_result_reporting_setup: [{{TEST_RESULT_REPORTING_SETUP}}]
+    maintenance_and_support_guidelines: [{{MAINTENANCE_GUIDELINES}}]
+    
+  # 质量监控建议
+  quality_monitoring_recommendations:
+    key_quality_metrics_to_track: [{{KEY_QUALITY_METRICS}}]
+    quality_gates_and_checkpoints: [{{QUALITY_GATES}}]
+    escalation_procedures: [{{ESCALATION_PROCEDURES}}]
+    continuous_improvement_process: [{{CONTINUOUS_IMPROVEMENT_PROCESS}}]
+
+# ============================================================================
+# 附加信息
+# ============================================================================
+additional_information:
+  # 重要假设条件
+  key_assumptions: |
+    {{KEY_ASSUMPTIONS}}
+    
+  # 测试范围外事项
+  testing_out_of_scope: |
+    {{TESTING_OUT_OF_SCOPE}}
+    
+  # 测试约束条件
+  testing_constraints: |
+    {{TESTING_CONSTRAINTS}}
+    
+  # 后续工作
+  next_steps: |
+    1. QA团队基于此测试设计开始测试执行
+    2. 自动化团队部署和配置自动化测试框架
+    3. 项目管理团队跟踪测试进度和质量指标
+    4. 根据测试结果反馈，迭代改进测试设计
+    5. 建立持续测试和质量改进流程
