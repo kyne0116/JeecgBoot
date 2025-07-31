@@ -1,164 +1,120 @@
-# ContextDev v4.1 - JeecgBoot智能开发系统
+# JeecgBoot AI Agent协作开发模板
 
-> **需求工程驱动的5专家AI开发链路** • **扁平化模板架构** • **AIGC错误恢复系统**  
-> **版本**: v4.1.0 | **技术标准**: IEEE 830 + CMMI Level 3 + JeecgBoot深度集成
+基于JeecgBoot 3.5.0+框架的AI Agent协作开发模板系统，支持需求驱动的软件开发流程。
+
+## 📋 核心功能
+
+### 🤖 四Agent协作体系
+- **Agent-A (需求分析师)**: EARS结构化需求分析 + BDD场景设计
+- **Agent-B (架构设计师)**: 技术架构设计 + CodeGen配置
+- **Agent-C (开发工程师)**: TBDWBS任务分解 + 工作量估算
+- **Agent-D (测试工程师)**: BTDTP测试设计 + 质量保证
+
+### 📐 四大协议标准
+- **EARS协议**: 五种需求类型的结构化表达
+- **BDD协议**: 四种场景类型的行为驱动描述
+- **TBDWBS协议**: Given-When-Then-But任务分解
+- **BTDTP协议**: 四维测试空间映射
+
+### 🗂️ 模板结构
+
+```
+templates/
+├── 01-baseline/                    # 基线管理
+│   ├── requirement_baseline_template.yaml
+│   └── system_base_info_template.yaml
+├── 02-requirements/                # 需求分析
+│   └── requirement_template.yaml
+├── 03-architecture/                # 架构设计
+│   └── architecture_design_template.yaml
+├── 04-development/                 # 开发任务
+│   └── development_task_template.yaml
+├── 05-testing/                     # 测试设计
+│   └── testing_design_template.yaml
+└── 文件命名规范指导v3.0.md           # 命名规范
+```
+
+### 📁 文件命名规范
+
+**格式**: `系统功能模块-子功能模块-年月日时分秒-环节代码-需求标题`
+
+**示例**:
+- `ECOM-PROD-20250731143000-REQ-产品管理功能.yaml`
+- `ECOM-PROD-20250731143000-ARCH-产品管理功能.yaml`
+- `ECOM-PROD-20250731143000-DEV-产品管理功能.yaml`
+- `ECOM-PROD-20250731143000-TEST-产品管理功能.yaml`
+
+### 🎯 目录组织
+
+每个需求形成独立目录，包含完整的四环节文档：
+```
+example/
+├── L0-system-base/
+│   └── system_base_info.yaml
+├── ECOM-PROD-20250731143000-产品管理功能/
+│   ├── ECOM-PROD-20250731143000-REQ-产品管理功能.yaml
+│   ├── ECOM-PROD-20250731143000-ARCH-产品管理功能.yaml
+│   ├── ECOM-PROD-20250731143000-DEV-产品管理功能.yaml
+│   └── ECOM-PROD-20250731143000-TEST-产品管理功能.yaml
+└── SHARED-COMPONENTS/
+    ├── common-entities.yaml
+    └── shared-services.yaml
+```
+
+## 🚀 使用流程
+
+### 1. 系统基础信息设置
+使用 `system_base_info_template.yaml` 配置系统基础信息和技术栈。
+
+### 2. 需求基线管理
+使用 `requirement_baseline_template.yaml` 建立需求基线和套件管理。
+
+### 3. Agent协作流程
+1. **Agent-A**: 使用需求模板进行EARS需求分析和BDD场景设计
+2. **Agent-B**: 基于需求输出进行架构设计和CodeGen配置
+3. **Agent-C**: 基于需求和设计进行任务分解和工作量估算
+4. **Agent-D**: 基于前三环节输出进行测试设计和质量规划
+
+### 4. 代码生成集成
+- 支持JeecgBoot标准CodeGen功能
+- 自动生成CRUD操作和页面
+- 集成数据字典和权限控制
+- 支持自定义业务逻辑扩展
+
+## 📖 技术特性
+
+### JeecgBoot集成
+- **前端**: Vue 3 + Ant Design Vue + TypeScript
+- **后端**: Spring Boot + MyBatis Plus + Java 17
+- **代码生成**: 基于模板的自动化代码生成
+- **权限管理**: Spring Security + JWT + Apache Shiro
+
+### 质量保证
+- 100%需求追溯性
+- 完整的四层测试覆盖
+- 自动化测试支持
+- 持续集成友好
+
+### 协作特性
+- 需求驱动的文件组织
+- 支持并行开发
+- 版本化管理
+- 跨需求依赖管理
+
+## 📋 快速开始
+
+1. 根据项目需求修改系统基础信息模板
+2. 建立需求基线和套件结构
+3. 使用Agent协作流程开发具体需求
+4. 集成JeecgBoot CodeGen生成基础代码
+5. 基于测试设计进行质量验证
+
+## 📚 相关文档
+
+详细的文件命名规范和使用指导请参考 `文件命名规范指导v3.0.md`。
 
 ---
 
-## 🚀 核心能力
-
-**5专家协作链路**: `需求分析` → `基线管理` → `架构设计` → `代码开发` → `质量测试`
-
-- **开发效率**: 传统人工 → AI专家处理 (2-5倍提升)
-- **质量标准**: IEEE 830 + CMMI Level 3工业级质量管理
-- **框架集成**: JeecgBoot深度集成，最大化CodeGen系统利用
-- **智能恢复**: 8种错误类型自动识别恢复，目标成功率≥80%
-
----
-
-## 👥 5专家技术链路
-
-| 专家 | 核心能力 | 典型场景 |
-|------|----------|----------|
-| `@requirements_analyst` | 业务需求分析、EARS语法规格化 | 需求挖掘、利益相关方分析 |
-| `@baseline_manager` | 需求基线管理、变更控制 | 基线建立、追溯管理 |
-| `@system_architect` | 系统架构设计、4+1视图 | 架构设计、数据库设计 |
-| `@code_developer` | 全栈代码实现、CodeGen应用 | 功能开发、技术集成 |
-| `@quality_tester` | 全面质量测试、验收评估 | 功能测试、性能验证 |
-
-**工作流程**: 业务需求 → 需求分析 → 基线管理 → 架构设计 → 代码开发 → 质量测试 → 交付物
-
----
-
-## 📁 项目结构
-
-```
-ContextDev/
-├── README.md                    # 本文档
-├── CLAUDE.md                    # 系统配置规范
-├── experts/                     # 5专家定义文件
-├── templates/                   # 扁平化模板架构
-│   ├── shared/config.yaml      # 统一配置 (简化引用关系)
-│   ├── requirements/           # 需求分析模板
-│   ├── baseline/               # 基线管理模板  
-│   ├── architecture/           # 系统架构模板
-│   ├── development/            # 代码开发模板
-│   └── testing/                # 质量测试模板
-├── aigc/                       # AIGC错误恢复系统
-│   ├── error_recovery_system.py
-│   ├── test_error_recovery.py
-│   └── AIGC_ERROR_RECOVERY_GUIDE.md
-└── scripts/                    # 验证工具
-    ├── check_template_references.sh
-    └── validate_references.py
-```
-
-**架构优势**: 统一配置`config.yaml`，简化引用为`config_reference: "../shared/config.yaml"`
-
----
-
-## 🎯 快速开始
-
-### 环境要求
-```yaml
-JeecgBoot: 3.8.1+ | JDK: 17 | Maven: 3.9+ | MySQL: 8.0+ | Redis: 7.x
-技术栈: Spring Boot 3.x + Vue 3 + TypeScript + 单体分层架构
-```
-
-### 3步使用流程
-
-**Step 1**: 选择专家
-```bash
-@requirements_analyst  # 需求分析
-@system_architect     # 架构设计  
-@code_developer       # 代码开发
-```
-
-**Step 2**: 查看模板格式
-```bash
-cat templates/{expert}/input.yaml   # 输入模板
-cat templates/shared/config.yaml    # 共享配置
-```
-
-**Step 3**: 专家处理
-调用`@专家名称`进行任务处理，自动基于模板进行标准化输入输出。
-
----
-
-## 🔧 核心功能
-
-### AIGC错误恢复系统
-- **8种错误类型**: 占位符、类型转换、格式验证、缺失字段等自动识别
-- **恢复策略**: 针对性自动恢复 + 指数退避重试机制
-- **测试套件**: `python3 aigc/test_error_recovery.py`
-
-### 模板验证工具
-```bash
-bash scripts/check_template_references.sh    # 检查引用路径
-python3 scripts/validate_references.py      # 验证引用有效性
-```
-
----
-
-## 📋 文件管理
-
-### Git文件分类
-
-**✅ 提交源文件** (框架核心19个文件)
-```
-README.md, CLAUDE.md, experts/*.md, templates/, aigc/, scripts/
-```
-
-**❌ 不提交生成文件**
-```
-stage_*_*.yaml, business_requirement.md, src/, database/, *.tmp, *.log
-```
-
-**推荐.gitignore**:
-```gitignore
-stage_*_*.yaml
-business_requirement.md  
-src/
-database/
-target/
-node_modules/
-dist/
-*.tmp
-*.log
-```
-
----
-
-## 💡 适用场景
-
-### ✅ 完美适配
-- 企业内部管理系统
-- 标准业务流程系统
-- 基于JeecgBoot的项目
-- Spring Boot 3.x + Vue 3技术栈
-
-### ❌ 不适用场景
-- 微服务架构项目
-- 非JeecgBoot技术栈
-- 纯前端或移动端项目
-
----
-
-## 🎉 立即开始
-
-```bash
-# 验证系统完整性
-python3 scripts/validate_references.py
-
-# 查看系统配置
-cat CLAUDE.md
-
-# 选择专家开始工作
-@requirements_analyst  # 从需求分析开始
-```
-
----
-
-**专注需求工程，用AI专家能力驱动高质量交付！**
-
-*版本: v4.1.0 | 更新: 2025-07-27 | 维护: ContextDev架构团队*
+**版本**: v3.0  
+**更新日期**: 2025-07-31  
+**兼容框架**: JeecgBoot 3.5.0+

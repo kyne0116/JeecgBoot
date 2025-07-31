@@ -2,12 +2,24 @@
 # 基于BTDTP (BDD-Traceability-Driven Test Planning)协议
 # 专为Agent-D（测试工程师）设计
 #
-# 📁 文件组织建议（第二轮评估反馈优化）：
-# 建议保存路径：/ContextDev/example/REQ-SUITE-XXX-需求名称/testing-design.yaml
-# 文件命名规范：testing-design.yaml (固定命名，便于统一管理)
-# 输入依赖：同目录下的 requirements-analysis.yaml, architecture-design.yaml, development-tasks.yaml
-# 集成测试策略：针对共享组件和需求依赖关系设计专门的集成测试
-# 并行测试执行：支持按需求套件独立执行测试，提高测试效率
+# ============================================================================
+# 📁 新文件命名规范 (重要更新)
+# ============================================================================
+# 需求编号格式: 系统功能模块-子功能模块-年月日时分秒
+# 示例: ECOM-PROD-20250731143000 (电商-产品管理-2025年7月31日14:30:00)
+#
+# 此文档命名: ECOM-PROD-20250731143000-TEST-产品管理功能.yaml
+# 建议保存路径: /ContextDev/example/ECOM-PROD-20250731143000-产品管理功能/ECOM-PROD-20250731143000-TEST-产品管理功能.yaml
+# 输入依赖: 同目录下的前三个环节文档
+#   - ECOM-PROD-20250731143000-REQ-产品管理功能.yaml
+#   - ECOM-PROD-20250731143000-ARCH-产品管理功能.yaml
+#   - ECOM-PROD-20250731143000-DEV-产品管理功能.yaml
+#
+# 命名说明:
+# - TEST: 标识这是测试设计环节的文档
+# - 集成测试策略：针对共享组件和需求依赖关系设计专门的集成测试
+# - 并行测试执行：支持按需求套件独立执行测试，提高测试效率
+# ============================================================================
 
 # ============================================================================
 # Agent协作协议声明
@@ -237,7 +249,7 @@ btdtp_test_planning:
       dimension_3: "开发任务类型" # 4种Given-When-Then-But
       dimension_4: "测试层次" # 4种Unit-Integration-System-Acceptance
       
-    # 核心测试类型映射 (从320种组合优化为关键测试类型)
+    # 核心测试类型映射 (从320种组合筛选为关键测试类型)
     core_test_type_mappings:
       - mapping_id: "BTM-001"
         ears_type: "ubiquitous"
@@ -1226,23 +1238,23 @@ test_reporting_specifications:
         associated_test_cases: [{{ASSOCIATED_TEST_CASES_TASK_1}}]
         task_verification_status: "{{TASK_VERIFICATION_STATUS_1}}"
         
-  # 建议和改进报告
-  recommendations_and_improvements:
-    # 测试过程改进建议
-    test_process_improvements:
-      identified_inefficiencies: [{{IDENTIFIED_INEFFICIENCIES}}]
-      process_optimization_suggestions: [{{PROCESS_OPTIMIZATION_SUGGESTIONS}}]
-      tool_enhancement_recommendations: [{{TOOL_ENHANCEMENT_RECOMMENDATIONS}}]
+  # 建议和管理报告
+  recommendations_and_management:
+    # 测试过程管理建议
+    test_process_management:
+      identified_issues: [{{IDENTIFIED_ISSUES}}]
+      process_management_suggestions: [{{PROCESS_MANAGEMENT_SUGGESTIONS}}]
+      tool_management_recommendations: [{{TOOL_MANAGEMENT_RECOMMENDATIONS}}]
       
-    # 测试自动化改进
-    test_automation_improvements:
+    # 测试自动化管理
+    test_automation_management:
       automation_gap_analysis: [{{AUTOMATION_GAP_ANALYSIS}}]
       automation_opportunity_identification: [{{AUTOMATION_OPPORTUNITIES}}]
       automation_roi_analysis: "{{AUTOMATION_ROI_ANALYSIS}}"
       
-    # 质量改进建议
-    quality_improvements:
-      quality_gate_enhancement: [{{QUALITY_GATE_ENHANCEMENTS}}]
+    # 质量管理建议
+    quality_management:
+      quality_gate_management: [{{QUALITY_GATE_MANAGEMENT}}]
       defect_prevention_strategies: [{{DEFECT_PREVENTION_STRATEGIES}}]
       testing_best_practice_recommendations: [{{TESTING_BEST_PRACTICES}}]
 
@@ -1302,5 +1314,5 @@ additional_information:
     1. QA团队基于此测试设计开始测试执行
     2. 自动化团队部署和配置自动化测试框架
     3. 项目管理团队跟踪测试进度和质量指标
-    4. 根据测试结果反馈，迭代改进测试设计
-    5. 建立持续测试和质量改进流程
+    4. 根据测试结果反馈，迭代调整测试设计
+    5. 建立持续测试和质量管理流程

@@ -1,12 +1,22 @@
 # JeecgBoot AI Agent协作需求分析模板
 # 基于BDD/EARS技术的结构化需求收集，专为Agent-A（需求分析师）设计
 #
-# 📁 文件组织建议（第二轮评估反馈优化）：
-# 建议保存路径：/ContextDev/example/REQ-SUITE-XXX-需求名称/requirements-analysis.yaml
-# 文件命名规范：requirements-analysis.yaml (固定命名，便于统一管理)
-# 版本管理建议：支持需求套件级别版本管理，如 REQ-SUITE-001-产品管理功能-v1.0/ 
-# 共享组件引用：通过 ../SHARED-COMPONENTS/ 路径引用跨需求共享组件
-# 依赖关系管理：明确标注本需求对其他需求套件的依赖关系
+# ============================================================================
+# 📁 新文件命名规范 (重要更新)
+# ============================================================================
+# 需求编号格式: 系统功能模块-子功能模块-年月日时分秒
+# 示例: ECOM-PROD-20250731143000 (电商-产品管理-2025年7月31日14:30:00)
+#
+# 此文档命名: ECOM-PROD-20250731143000-REQ-产品管理功能.yaml
+# 建议保存路径: /ContextDev/example/ECOM-PROD-20250731143000-产品管理功能/ECOM-PROD-20250731143000-REQ-产品管理功能.yaml
+#
+# 命名说明:
+# - 系统功能模块: ECOM(电商) | CRM(客户管理) | ERP(企业资源) | OA(办公自动化)
+# - 子功能模块: PROD(产品) | ORDER(订单) | USER(用户) | PAY(支付) 等
+# - 年月日时分秒: 20250731143000 (2025年7月31日14:30:00)
+# - REQ: 标识这是需求分析环节的文档
+# - 需求标题: 产品管理功能 (业务功能描述)
+# ============================================================================
 
 # ============================================================================
 # Agent协作协议声明
@@ -24,7 +34,7 @@ agent_collaboration_protocol:
 requirement_metadata:
   # 文档标识
   document_identity:
-    requirement_doc_id: "REQ-DOC-{{YYYYMMDD}}-{{SEQUENCE}}" # 如：REQ-DOC-20250731-001
+    requirement_doc_id: "{{SYSTEM_MODULE}}-{{SUB_MODULE}}-{{YYYYMMDDHHMMSS}}-REQ" # 如：ECOM-PROD-20250731143000-REQ
     created_timestamp: "{{YYYY-MM-DD HH:MM:SS}}"
     agent_version: "Agent-A v{{VERSION}}"
     processing_duration: "{{SECONDS}}s"
