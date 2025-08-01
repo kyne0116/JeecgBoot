@@ -75,6 +75,10 @@
     <logback.version>1.2.13</logback.version>
     <!-- BDD 测试驱动 -->
     <cucumber.version>7.18.0</cucumber.version>
+    <!-- APIJSON -->
+    <apijson.version>8.0.2</apijson.version>
+    <!-- jolt -->
+    <jolt.version>0.1.8</jolt.version>
   </properties>
   <modules>
     <module>jeecg-boot-base-core</module>
@@ -82,6 +86,22 @@
     <module>jeecg-boot-module</module>
   </modules>
   <repositories>
+    <repository>
+      <id>releases</id>
+      <url>http://10.87.57.26:8082/nexus/repository/releases/</url>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+      </releases>
+    </repository>
+    <repository>
+      <id>maven-thirdparty</id>
+      <url>http://10.87.57.26:8082/nexus/repository/maven-thirdparty/</url>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+      </releases>
+    </repository>
     <repository>
       <id>aliyun</id>
       <name>aliyun Repository</name>
@@ -138,6 +158,17 @@
       <groupId>org.commonmark</groupId>
       <artifactId>commonmark</artifactId>
       <version>${commonmark.version}</version>
+    </dependency>
+
+    <!-- jolt -->
+    <dependency>
+      <groupId>com.bazaarvoice.jolt</groupId>
+      <artifactId>jolt-core</artifactId>
+    </dependency>
+    <!-- APIJSON -->
+    <dependency>
+      <groupId>com.github.Tencent</groupId>
+      <artifactId>APIJSON</artifactId>
     </dependency>
   </dependencies>
   <dependencyManagement>
@@ -468,6 +499,18 @@
         <groupId>io.cucumber</groupId>
         <artifactId>cucumber-spring</artifactId>
         <version>${cucumber.version}</version>
+      </dependency>
+      <!-- APIJSON -->
+      <dependency>
+        <groupId>com.github.Tencent</groupId>
+        <artifactId>APIJSON</artifactId>
+        <version>${apijson.version}</version>
+      </dependency>
+      <!-- jolt -->
+      <dependency>
+        <groupId>com.bazaarvoice.jolt</groupId>
+        <artifactId>jolt-core</artifactId>
+        <version>${jolt.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
