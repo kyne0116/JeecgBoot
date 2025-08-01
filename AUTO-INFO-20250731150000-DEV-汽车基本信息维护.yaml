@@ -1,0 +1,562 @@
+# JeecgBoot AI Agent协作开发任务分解模板
+# 基于TBDWBS (Traceability-Based Development Work Breakdown Structure)协议
+# 汽车4S店无纸化办公系统 - 汽车基本信息维护功能开发任务
+
+# ============================================================================
+# Agent协作协议声明
+# ============================================================================
+agent_collaboration_protocol:
+  source_agent: "Agent-C (开发工程师)"
+  input_agents: ["Agent-A (需求分析师)", "Agent-B (架构设计师)"]
+  output_target: "开发团队执行 | 项目管理跟踪"
+  communication_standard: "TBDWBS结构化任务分解协议"
+  quality_target: "任务完整性100%, 可执行性>95%, 追溯性100%"
+  processing_time_target: "<60秒/需求群组"
+
+# ============================================================================
+# 输出元数据规范 (Agent-C必须填写)
+# ============================================================================
+task_breakdown_metadata:
+  # 文档标识
+  document_identity:
+    wbs_doc_id: "WBS-DOC-20250731-001"
+    created_timestamp: "2025-07-31 15:45:00"
+    agent_version: "Agent-C v1.0"
+    processing_duration: "55s"
+    
+  # 基线和系统关联信息
+  baseline_and_system_reference:
+    baseline_reference:
+      baseline_id: "REQ-BASELINE-20250731-001"
+      baseline_version: "v1.0"
+      requirement_suite_id: "AUTO-INFO-20250731150000"
+      baseline_doc_path: "/Users/admin/Work/Github/JeecgBoot/AUTO-INFO-20250731150000-requirement_baseline.yaml"
+      
+    system_reference:
+      system_id: "AUTO-4S-SYSTEM"
+      system_name: "汽车4S店无纸化办公系统"
+      system_base_doc_path: "/Users/admin/Work/Github/JeecgBoot/AUTO-INFO-20250731150000-system_base_info.yaml"
+      jeecg_version: "3.8.1"
+      base_working_directory: "/Users/admin/Work/Github/JeecgBoot"
+      
+  # 输入源信息
+  source_input_info:
+    requirement_doc_id: "AUTO-INFO-20250731150000-REQ"
+    requirement_doc_path: "/Users/admin/Work/Github/JeecgBoot/AUTO-INFO-20250731150000-REQ-汽车基本信息维护.yaml"
+    design_doc_id: "AUTO-INFO-20250731150000-ARCH"
+    design_doc_path: "/Users/admin/Work/Github/JeecgBoot/AUTO-INFO-20250731150000-ARCH-汽车基本信息维护.yaml"
+    input_requirements_count: 12
+    input_design_decisions_count: 8
+    input_scenarios_count: 16
+    
+    inherited_traceability:
+      baseline_traceability_id: "TRACE-REQ-BASELINE-20250731-001-AUTO-INFO-20250731150000"
+      system_traceability_id: "TRACE-AUTO-4S-SYSTEM"
+    
+  # JeecgBoot开发环境上下文
+  development_context:
+    framework_version: "3.8.1"
+    codegen_version: "3.8.1"
+    development_mode: "dev"
+    target_sprint: "Sprint-2025-Q3-S1"
+    team_size: 3
+
+# ============================================================================
+# TBDWBS任务分解结果 (完整工作分解结构)
+# ============================================================================
+tbdwbs_task_breakdown:
+  # 分解统计摘要
+  breakdown_summary:
+    total_task_groups: 3
+    total_individual_tasks: 15
+    codegen_tasks_count: 8
+    manual_development_tasks_count: 7
+    testing_tasks_count: 5
+    integration_tasks_count: 2
+    estimated_total_story_points: 34
+    estimated_total_hours: 136
+    
+  # 任务组分解 (基于需求和设计的组合)
+  task_groups:
+    - task_group_id: "TG-001"
+      task_group_name: "汽车基本信息CRUD功能实现"
+      task_group_type: "feature_implementation"
+      
+      # 完整追溯链
+      traceability_chain:
+        source_requirement_id: "REQ-U-001"
+        source_requirement_type: "ubiquitous"
+        source_scenario_id: "BDD-F-001"
+        source_design_decision_id: "DES-U-001"
+        source_design_pattern: "enhanced_crud"
+        traceability_validation: "pass"
+        
+      # 业务上下文信息
+      business_context:
+        business_capability: "汽车基本信息管理"
+        user_story: "作为库管人员，我需要录入、查询、修改和删除汽车基本信息，以便管理车辆档案"
+        acceptance_criteria: "能够完成汽车信息的完整生命周期管理"
+        business_priority: "high"
+        business_value_score: 9
+        
+      # TBDWBS分解 - Given-When-Then任务映射
+      gwt_task_mapping:
+        # Given Tasks - 前置条件任务 (环境准备、数据初始化)
+        given_tasks:
+          - task_id: "TASK-GIVEN-001"
+            task_name: "数据库表结构设计"
+            task_description: "建立汽车基本信息表结构和索引"
+            work_type: "data_preparation"
+            
+            task_specifications:
+              acceptance_criteria: "表结构符合实体设计要求，索引优化查询性能"
+              definition_of_done: "表创建脚本执行成功，通过数据库设计评审"
+              testing_requirement: "验证表结构完整性和约束条件"
+              
+            codegen_analysis:
+              codegen_applicable: false
+              codegen_coverage_percentage: 0
+              codegen_configuration: "手工设计"
+              manual_work_required: "DDL脚本编写和优化"
+              
+            effort_estimation:
+              story_points: 3
+              estimated_hours: 8
+              complexity_level: 3
+              risk_level: "low"
+              
+            task_dependencies:
+              prerequisite_tasks: []
+              parallel_tasks: []
+              dependent_tasks: ["TASK-WHEN-001", "TASK-WHEN-002"]
+              
+            technical_details:
+              technology_stack: ["MySQL 8.0"]
+              framework_components: ["MyBatis Plus"]
+              database_tables: ["auto_car_info", "auto_car_brand"]
+              api_endpoints: []
+              
+            priority: "high"
+            assigned_developer: "数据库设计师"
+            
+          - task_id: "TASK-GIVEN-002"
+            task_name: "数据字典配置"
+            task_description: "配置汽车品牌和状态数据字典"
+            work_type: "data_preparation"
+            task_specifications:
+              acceptance_criteria: "数据字典配置完整，支持前端下拉选择"
+              definition_of_done: "字典数据导入成功，前端可正常调用"
+              testing_requirement: "验证字典数据完整性和API可用性"
+            codegen_analysis:
+              codegen_applicable: true
+              codegen_coverage_percentage: 70
+              codegen_configuration: "JeecgBoot字典管理"
+              manual_work_required: "字典数据准备和配置"
+            effort_estimation:
+              story_points: 2
+              estimated_hours: 4
+              complexity_level: 2
+              risk_level: "low"
+            task_dependencies:
+              prerequisite_tasks: ["TASK-GIVEN-001"]
+              parallel_tasks: []
+              dependent_tasks: ["TASK-WHEN-001"]
+            technical_details:
+              technology_stack: ["JeecgBoot"]
+              framework_components: ["数据字典管理"]
+              database_tables: ["sys_dict", "sys_dict_item"]
+              api_endpoints: ["/sys/dict/getDictItems"]
+            priority: "high"
+            assigned_developer: "后端开发工程师"
+            
+        # When Tasks - 核心实现任务 (业务逻辑、接口、界面)
+        when_tasks:
+          - task_id: "TASK-WHEN-001"
+            task_name: "汽车信息实体类和基础CRUD"
+            task_description: "使用CodeGen生成CarInfo实体类和基础CRUD功能"
+            work_type: "business_logic"
+            
+            task_specifications:
+              acceptance_criteria: "生成完整的实体类、Controller、Service、Mapper"
+              definition_of_done: "代码生成成功，基础CRUD接口可用"
+              testing_requirement: "单元测试通过，接口可正常调用"
+              
+            codegen_analysis:
+              codegen_applicable: true
+              codegen_coverage_percentage: 90
+              codegen_configuration: "auto.info.CarInfo标准CRUD"
+              manual_work_required: "代码生成配置和后续调优"
+              custom_logic_complexity: "简单"
+              
+            effort_estimation:
+              story_points: 5
+              estimated_hours: 12
+              complexity_level: 2
+              risk_level: "low"
+              
+            task_dependencies:
+              prerequisite_tasks: ["TASK-GIVEN-001", "TASK-GIVEN-002"]
+              parallel_tasks: []
+              dependent_tasks: ["TASK-WHEN-002", "TASK-THEN-001"]
+              
+            technical_details:
+              technology_stack: ["JeecgBoot", "MyBatis Plus", "Spring Boot"]
+              framework_components: ["CodeGen", "JeecgController", "IService"]
+              database_operations: ["create", "read", "update", "delete", "query"]
+              api_design: "RESTful API设计"
+              business_rules: ["VIN码唯一性", "必填字段验证"]
+              validation_rules: ["@NotNull", "@Length", "@Pattern"]
+              
+            jeecg_configuration:
+              module_name: "auto"
+              submodule_name: "info"
+              business_entity: "CarInfo"
+              dict_usage: ["car_brand", "car_status"]
+              permission_codes: ["auto:info:add", "auto:info:edit", "auto:info:delete", "auto:info:list"]
+              
+            priority: "high"
+            assigned_developer: "后端开发工程师"
+            
+          - task_id: "TASK-WHEN-002"
+            task_name: "VIN码验证逻辑实现"
+            task_description: "实现VIN码格式验证和唯一性检查"
+            work_type: "business_logic"
+            task_specifications:
+              acceptance_criteria: "VIN码格式验证正确，重复VIN码能被检测"
+              definition_of_done: "验证逻辑完整，异常处理合理"
+              testing_requirement: "验证各种VIN码格式，测试重复检查"
+            codegen_analysis:
+              codegen_applicable: false
+              codegen_coverage_percentage: 0
+              codegen_configuration: "不适用"
+              manual_work_required: "完全自定义开发"
+              custom_logic_complexity: "中等"
+            effort_estimation:
+              story_points: 8
+              estimated_hours: 16
+              complexity_level: 4
+              risk_level: "medium"
+            task_dependencies:
+              prerequisite_tasks: ["TASK-WHEN-001"]
+              parallel_tasks: []
+              dependent_tasks: ["TASK-THEN-002"]
+            technical_details:
+              technology_stack: ["Java", "Spring Boot"]
+              framework_components: ["Validation", "AOP"]
+              database_operations: ["query"]
+              business_rules: ["17位VIN码格式", "全局唯一性"]
+              validation_rules: ["自定义VIN码验证器"]
+            jeecg_configuration:
+              module_name: "auto"
+              submodule_name: "info"
+              business_entity: "CarInfo"
+              dict_usage: []
+              permission_codes: []
+            priority: "high"
+            assigned_developer: "后端开发工程师"
+            
+          - task_id: "TASK-WHEN-003"
+            task_name: "前端页面开发"
+            task_description: "开发汽车信息管理的列表页和表单页"
+            work_type: "user_interface"
+            task_specifications:
+              acceptance_criteria: "页面功能完整，交互友好"
+              definition_of_done: "页面开发完成，与后端接口联调成功"
+              testing_requirement: "页面功能测试和兼容性测试"
+            codegen_analysis:
+              codegen_applicable: true
+              codegen_coverage_percentage: 80
+              codegen_configuration: "Vue3页面生成"
+              manual_work_required: "页面样式调整和交互优化"
+              custom_logic_complexity: "简单"
+            effort_estimation:
+              story_points: 8
+              estimated_hours: 20
+              complexity_level: 3
+              risk_level: "low"
+            task_dependencies:
+              prerequisite_tasks: ["TASK-WHEN-001"]
+              parallel_tasks: ["TASK-WHEN-002"]
+              dependent_tasks: ["TASK-THEN-003"]
+            technical_details:
+              technology_stack: ["Vue3", "Ant Design Vue", "TypeScript"]
+              framework_components: ["VXE Table", "Form组件"]
+              api_design: "调用后端RESTful API"
+              business_rules: ["表单验证", "权限控制"]
+              validation_rules: ["前端表单验证"]
+            jeecg_configuration:
+              module_name: "auto"
+              submodule_name: "info"
+              business_entity: "CarInfo"
+              dict_usage: ["car_brand", "car_status"]
+              permission_codes: ["auto:info:add", "auto:info:edit", "auto:info:delete"]
+            priority: "high"
+            assigned_developer: "前端开发工程师"
+            
+        # Then Tasks - 验证任务 (测试、确认、验收)
+        then_tasks:
+          - task_id: "TASK-THEN-001"
+            task_name: "单元测试开发"
+            task_description: "编写CarInfoService的单元测试"
+            work_type: "unit_testing"
+            
+            task_specifications:
+              acceptance_criteria: "测试覆盖率达到80%以上"
+              definition_of_done: "所有测试用例通过，代码质量达标"
+              testing_approach: "automated"
+              
+            testing_details:
+              test_types: ["unit"]
+              test_data_requirements: "模拟汽车信息数据"
+              test_environment: "开发环境"
+              test_automation_level: 100
+              
+            codegen_analysis:
+              test_generation_applicable: false
+              test_template_usage: "JUnit5模板"
+              manual_test_effort: "完全手工编写"
+              
+            effort_estimation:
+              story_points: 3
+              estimated_hours: 8
+              complexity_level: 2
+              risk_level: "low"
+              
+            task_dependencies:
+              prerequisite_tasks: ["TASK-WHEN-001", "TASK-WHEN-002"]
+              parallel_tasks: []
+              dependent_tasks: []
+              
+            validation_criteria:
+              functional_validation: "所有业务方法测试通过"
+              performance_validation: "单个测试方法执行时间<1秒"
+              security_validation: "权限验证测试通过"
+              usability_validation: "不适用"
+              
+            priority: "medium"
+            assigned_tester: "后端开发工程师"
+            
+          - task_id: "TASK-THEN-002"
+            task_name: "集成测试"
+            task_description: "测试前后端集成和数据库操作"
+            work_type: "integration_testing"
+            task_specifications:
+              acceptance_criteria: "前后端数据交互正常，数据库操作正确"
+              definition_of_done: "集成测试用例全部通过"
+              testing_approach: "automated"
+            testing_details:
+              test_types: ["integration"]
+              test_data_requirements: "完整的测试数据集"
+              test_environment: "测试环境"
+              test_automation_level: 80
+            codegen_analysis:
+              test_generation_applicable: false
+              test_template_usage: "Spring Boot Test"
+              manual_test_effort: "中等"
+            effort_estimation:
+              story_points: 5
+              estimated_hours: 12
+              complexity_level: 3
+              risk_level: "medium"
+            task_dependencies:
+              prerequisite_tasks: ["TASK-WHEN-001", "TASK-WHEN-002", "TASK-WHEN-003"]
+              parallel_tasks: []
+              dependent_tasks: []
+            validation_criteria:
+              functional_validation: "所有接口功能正常"
+              performance_validation: "响应时间<2秒"
+              security_validation: "权限控制有效"
+              usability_validation: "页面交互友好"
+            priority: "high"
+            assigned_tester: "测试工程师"
+            
+      # 任务组级别汇总
+      task_group_summary:
+        total_tasks_in_group: 7
+        total_story_points: 34
+        total_estimated_hours: 80
+        codegen_coverage_percentage: 60
+        risk_assessment: "中等风险，主要风险在VIN码验证逻辑"
+        recommended_sprint_allocation: "Sprint-2025-Q3-S1"
+
+# ============================================================================
+# CodeGen配置分析 (JeecgBoot代码生成配置)
+# ============================================================================
+codegen_configuration_analysis:
+  # CodeGen适用任务统计
+  codegen_applicability_summary:
+    total_codegen_suitable_tasks: 4
+    total_partial_codegen_tasks: 2
+    total_manual_development_tasks: 1
+    overall_codegen_coverage: 60
+    
+  # 标准CodeGen配置
+  standard_codegen_configurations:
+    - config_id: "CODEGEN-001"
+      related_tasks: ["TASK-WHEN-001", "TASK-WHEN-003"]
+      module_name: "auto"
+      submodule_name: "info"
+      business_entity: "CarInfo"
+      
+      # 代码生成覆盖范围
+      generation_scope:
+        backend_entity: true
+        backend_controller: true
+        backend_service: true
+        backend_mapper: true
+        frontend_list: true
+        frontend_form: true
+        sql_scripts: true
+        
+      # 数据字典使用
+      dictionary_usage:
+        used_dictionaries: ["car_brand", "car_status"]
+        custom_dictionaries: []
+        
+      # 自定义配置需求
+      custom_configurations:
+        validation_rules: ["VIN码格式验证", "唯一性检查"]
+        business_rules: ["状态变更日志", "操作权限控制"]
+        permission_controls: ["auto:info:add", "auto:info:edit", "auto:info:delete", "auto:info:list"]
+        ui_customizations: ["VIN码输入格式化", "品牌级联选择"]
+        
+  # 复杂业务逻辑分析 (需要手工开发)
+  custom_development_analysis:
+    - analysis_id: "CUSTOM-001"
+      related_tasks: ["TASK-WHEN-002"]
+      complexity_reason: "complex_algorithm"
+      development_approach: "自定义验证器和业务逻辑"
+      integration_with_codegen: "after_codegen"
+      technical_challenges: ["VIN码格式规则复杂", "性能优化需求"]
+      estimated_effort: "medium"
+
+# ============================================================================
+# 任务依赖关系映射 (跨任务组的依赖管理)
+# ============================================================================
+cross_task_dependencies:
+  # 任务间依赖关系
+  task_dependencies:
+    - dependency_id: "DEP-TASK-001"
+      source_task_id: "TASK-GIVEN-001"
+      target_task_id: "TASK-WHEN-001"
+      dependency_type: "prerequisite"
+      dependency_description: "数据库表结构必须先创建才能生成代码"
+      impact_if_delayed: "阻塞所有后续开发任务"
+      mitigation_strategy: "优先完成数据库设计"
+      
+    - dependency_id: "DEP-TASK-002"
+      source_task_id: "TASK-WHEN-001"
+      target_task_id: "TASK-WHEN-002"
+      dependency_type: "prerequisite"
+      dependency_description: "基础CRUD完成后才能添加验证逻辑"
+      impact_if_delayed: "延迟验证功能开发"
+      mitigation_strategy: "并行开发基础框架代码"
+      
+  # 关键路径分析
+  critical_path_analysis:
+    critical_path_tasks: ["TASK-GIVEN-001", "TASK-WHEN-001", "TASK-WHEN-002", "TASK-THEN-002"]
+    critical_path_duration: 44 # 以小时为单位
+    bottleneck_tasks: ["TASK-WHEN-002"]
+    risk_mitigation_tasks: ["TASK-THEN-001", "TASK-THEN-002"]
+
+# ============================================================================
+# 项目管理集成信息 (Sprint规划支持)
+# ============================================================================
+project_management_integration:
+  # Sprint分配建议
+  sprint_allocation_recommendations:
+    - sprint_number: 1
+      sprint_capacity: 30
+      recommended_tasks: ["TASK-GIVEN-001", "TASK-GIVEN-002", "TASK-WHEN-001", "TASK-WHEN-003"]
+      sprint_total_points: 18
+      sprint_theme: "基础CRUD功能实现"
+      sprint_goals: ["完成数据库设计", "实现基础CRUD", "完成前端页面"]
+      sprint_risks: ["CodeGen配置复杂度"]
+      
+    - sprint_number: 2
+      sprint_capacity: 20
+      recommended_tasks: ["TASK-WHEN-002", "TASK-THEN-001", "TASK-THEN-002"]
+      sprint_total_points: 16
+      sprint_theme: "业务逻辑和测试"
+      sprint_goals: ["完成VIN码验证", "完成单元测试", "完成集成测试"]
+      sprint_risks: ["VIN码验证逻辑复杂"]
+      
+  # 团队资源分配
+  team_resource_allocation:
+    - role: "backend_developer"
+      team_member_count: 1
+      allocated_tasks: ["TASK-GIVEN-001", "TASK-WHEN-001", "TASK-WHEN-002", "TASK-THEN-001"]
+      workload_points: 19
+      capacity_utilization: 95
+      
+    - role: "frontend_developer"
+      team_member_count: 1
+      allocated_tasks: ["TASK-WHEN-003"]
+      workload_points: 8
+      capacity_utilization: 80
+      
+    - role: "qa_tester"
+      team_member_count: 1
+      allocated_tasks: ["TASK-THEN-002"]
+      workload_points: 5
+      capacity_utilization: 75
+
+# ============================================================================
+# Agent移交信息 (向项目管理团队或开发团队移交)
+# ============================================================================
+handoff_information:
+  # 移交摘要
+  handoff_summary:
+    total_tasks_for_execution: 7
+    high_priority_tasks: 5
+    complex_tasks_needing_attention: 2
+    codegen_tasks_percentage: 57
+    manual_development_percentage: 43
+    estimated_project_duration: "2周"
+    
+  # 关键执行信息
+  key_execution_information:
+    critical_success_factors: ["数据库设计质量", "VIN码验证准确性", "CodeGen配置正确性"]
+    key_technical_decisions: ["使用JeecgBoot CodeGen", "自定义VIN码验证", "前后端分离架构"]
+    important_constraints: ["VIN码全局唯一", "支持多品牌汽车", "响应时间<2秒"]
+    quality_gates: ["单元测试覆盖率80%", "集成测试通过", "代码评审通过"]
+    
+  # 开发团队指导
+  development_team_guidance:
+    recommended_development_sequence: ["数据库设计", "代码生成", "验证逻辑", "前端页面", "测试验证"]
+    parallel_development_opportunities: ["前端页面与验证逻辑可并行", "单元测试与集成测试可并行"]
+    integration_points: ["前后端API对接", "数据字典配置", "权限配置"]
+    testing_strategy: "单元测试优先，集成测试覆盖端到端流程"
+
+# ============================================================================
+# 附加信息
+# ============================================================================
+additional_information:
+  # 重要假设条件
+  key_assumptions: |
+    1. 开发团队熟悉JeecgBoot框架和CodeGen工具
+    2. 数据库环境已准备就绪
+    3. VIN码验证规则明确且稳定
+    4. 前端UI设计已确定
+    
+  # 范围外事项
+  out_of_scope_items: |
+    1. 车辆图片上传功能
+    2. 第三方API集成
+    3. 高级报表功能
+    4. 移动端适配
+    
+  # 开发约束条件
+  development_constraints: |
+    技术约束：必须使用JeecgBoot 3.8.1框架
+    时间约束：必须在2周内完成开发
+    质量约束：代码覆盖率不低于80%
+    性能约束：页面响应时间不超过2秒
+    
+  # 后续工作
+  next_steps: |
+    1. 项目管理团队基于此WBS进行Sprint规划
+    2. 开发团队根据任务分解开始开发工作
+    3. 定期跟踪任务进度和风险指标
+    4. 根据实际执行情况调整任务估算和依赖关系
+    5. 持续监控CodeGen配置的有效性和调整机会
