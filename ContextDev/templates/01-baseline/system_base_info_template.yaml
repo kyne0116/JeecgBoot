@@ -3,9 +3,12 @@
 system_overview:
   system_name: "${SYSTEM_NAME}" # 系统名称
   description: "${SYSTEM_DESCRIPTION}" # 系统的简短描述
-  base_working_directory: "${BASE_WORKING_DIRECTORY}" # 整个项目的根工作目录
-  backend_working_directory: "${BACKEND_WORKING_DIRECTORY}" # 后端服务的具体工作目录
-  frontend_working_directory: "${FRONTEND_WORKING_DIRECTORY}" # 前端服务的具体工作目录
+  base_working_directory: "${BASE_WORKING_DIRECTORY}" # 整个项目的根工作目录，如：/Users/admin/Work/Github/JeecgBoot
+  aigc_working_directory: "${base_working_directory}/AIGC" # AIGC 项目需求文档根目录
+  codegen_working_directory: "${base_working_directory}/CodeGen" # CodeGen系统代码生成源码
+  contextdev_working_directory: "${base_working_directory}/ContextDev" # ContextDev上下文编程源码
+  backend_working_directory: "${base_working_directory}/jeecg-boot" # 后端服务根路径
+  frontend_working_directory: "${base_working_directory}/jeecgboot-vue3" # 前端服务根路径
 
   contains_jeecgboot_module: # 本系统包含的JeecgBoot主要模块
     - code: "${MODULE_1_CODE}"

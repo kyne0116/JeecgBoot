@@ -1,0 +1,213 @@
+# JeecgBoot汽车4S店无纸化办公系统基础信息
+# 基于system_base_info_template.yaml创建
+# 版本: 1.0
+# 创建时间: 2025-07-31
+# 系统代码: AUTO4S
+
+system_overview:
+  system_name: "汽车4S店无纸化办公系统" # 系统名称
+  description: "基于JeecgBoot框架的现代化汽车4S店管理系统，提供销售、服务、配件、信息反馈四位一体的综合管理功能，实现4S店业务全流程数字化管理" # 系统的简短描述
+  base_working_directory: "/Users/admin/Work/Github/JeecgBoot" # 整个项目的根工作目录
+  aigc_working_directory: "/Users/admin/Work/Github/JeecgBoot/AIGC" # AIGC 项目需求文档根目录
+  codegen_working_directory: "/Users/admin/Work/Github/JeecgBoot/CodeGen" # CodeGen系统代码生成源码
+  contextdev_working_directory: "/Users/admin/Work/Github/JeecgBoot/ContextDev" # ContextDev上下文编程源码
+  backend_working_directory: "/Users/admin/Work/Github/JeecgBoot/jeecg-boot" # 后端服务根路径
+  frontend_working_directory: "/Users/admin/Work/Github/JeecgBoot/jeecgboot-vue3" # 前端服务根路径
+
+  contains_jeecgboot_module: # 本系统包含的JeecgBoot主要模块
+    - code: "VEHICLE"
+      description: "车辆信息管理模块"
+    - code: "SALES"
+      description: "销售管理模块"
+    - code: "SERVICE"
+      description: "售后服务管理模块"
+    - code: "PARTS"
+      description: "配件管理模块"
+    - code: "CUSTOMER"
+      description: "客户关系管理模块"
+    - code: "FINANCE"
+      description: "财务管理模块"
+
+  contains_jeecgboot_submodule: # 本系统包含的JeecgBoot具体子模块
+    - code: "VEHICLE_INFO"
+      description: "汽车基本信息维护子模块"
+    - code: "VEHICLE_INVENTORY"
+      description: "车辆库存管理子模块"
+    - code: "SALES_ORDER"
+      description: "销售订单管理子模块"
+    - code: "MAINTENANCE"
+      description: "维修保养管理子模块"
+    - code: "PARTS_STOCK"
+      description: "配件库存管理子模块"
+    - code: "CUSTOMER_SERVICE"
+      description: "客户服务管理子模块"
+
+  contains_jeecgboot_submodule_views: # 本系统包含的JeecgBoot子模块相关的前端Vue 3视图或页面
+    - path: "/views/vehicle/VehicleInfoList.vue"
+      description: "汽车信息列表页面"
+    - path: "/views/vehicle/VehicleInfoForm.vue"
+      description: "汽车信息编辑表单页面"
+    - path: "/views/vehicle/VehicleInventory.vue"
+      description: "车辆库存管理页面"
+    - path: "/views/sales/SalesOrderList.vue"
+      description: "销售订单列表页面"
+    - path: "/views/service/MaintenanceList.vue"
+      description: "维修保养记录页面"
+    - path: "/views/parts/PartsStockList.vue"
+      description: "配件库存列表页面"
+
+  environments: # 系统部署的环境信息，可包含多个
+    - id: "dev" # 开发环境的唯一标识
+      name: "开发环境"
+      backend_url: "http://localhost:8080"
+      frontend_url: "http://localhost:3000"
+      database:
+        connection_url: "jdbc:mysql://localhost:3306/auto4s_dev?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8"
+        driver: "com.mysql.cj.jdbc.Driver"
+        username: "auto4s_dev"
+        password: "dev123456"
+      redis:
+        ip: "localhost"
+        port: "6379"
+        password: ""
+      storage: "minIO" # 可选值: "local", "minIO", "oss"
+      notes: "供开发人员本地测试和联调使用"
+    - id: "test" # 测试环境的唯一标识
+      name: "测试环境"
+      backend_url: "http://test-auto4s.company.com:8080"
+      frontend_url: "http://test-auto4s.company.com"
+      database:
+        connection_url: "jdbc:mysql://test-db:3306/auto4s_test?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8"
+        driver: "com.mysql.cj.jdbc.Driver"
+        username: "auto4s_test"
+        password: "test123456"
+      redis:
+        ip: "test-redis"
+        port: "6379"
+        password: "redis_test_pwd"
+      storage: "minIO"
+      notes: "供测试团队进行功能和性能测试"
+    - id: "uat" # 用户验收测试环境的唯一标识
+      name: "用户验收测试环境"
+      backend_url: "http://uat-auto4s.company.com:8080"
+      frontend_url: "http://uat-auto4s.company.com"
+      database:
+        connection_url: "jdbc:mysql://uat-db:3306/auto4s_uat?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8"
+        driver: "com.mysql.cj.jdbc.Driver"
+        username: "auto4s_uat"
+        password: "uat123456"
+      redis:
+        ip: "uat-redis"
+        port: "6379"
+        password: "redis_uat_pwd"
+      storage: "oss"
+      notes: "供业务用户进行验收测试，验证系统功能是否满足业务需求"
+    - id: "prod" # 生产环境的唯一标识
+      name: "生产环境"
+      backend_url: "https://auto4s.company.com:8080"
+      frontend_url: "https://auto4s.company.com"
+      database:
+        connection_url: "jdbc:mysql://prod-db-cluster:3306/auto4s_prod?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8"
+        driver: "com.mysql.cj.jdbc.Driver"
+        username: "auto4s_prod"
+        password: "prod_secure_password"
+      redis:
+        ip: "prod-redis-cluster"
+        port: "6379"
+        password: "redis_prod_secure_pwd"
+      storage: "oss"
+      notes: "正式对外服务，高可用和高性能要求"
+
+  tech_stack:
+    base_platform: "JeecgBoot" # 基础开发平台
+    base_version: "3.8.1" # JeecgBoot版本
+    frontend: # 前端技术栈 - 基于JeecgBoot-Vue3
+      framework: "Vue.js" # 基于Vue 3的现代前端框架
+      version: "3.5.13" # Vue版本
+      ui_library: "Ant Design Vue" # UI组件库
+      build_tool: "Vite" # 前端构建工具
+      language: "TypeScript" # 开发语言
+      package_manager: "pnpm" # 包管理器
+      jeecg_frontend_version: "3.8.1" # JeecgBoot前端版本
+      additional_libraries: # 其他主要依赖
+        - name: "Vue Router"
+          version: "4.5.0"
+          description: "前端路由管理"
+        - name: "Pinia"
+          version: "2.1.7"
+          description: "状态管理"
+        - name: "Axios"
+          version: "1.7.9"
+          description: "HTTP客户端"
+        - name: "VXE Table"
+          version: "4.13.31"
+          description: "高性能表格组件"
+        - name: "ECharts"
+          version: "5.6.0"
+          description: "数据可视化图表库"
+    backend: # 后端技术栈 - 基于JeecgBoot后端框架
+      framework: "Spring Boot" # 基于Spring Boot的企业级Java框架
+      language: "Java" # 开发语言
+      version: "17" # Java版本(支持JDK 17和1.8)
+      spring_boot_version: "2.7.18" # Spring Boot版本
+      jeecg_backend_version: "3.8.1" # JeecgBoot后端版本
+      orm_library: "MyBatis Plus" # ORM框架
+      api_protocol: "RESTful API" # API协议
+      security_framework: "Spring Security + JWT + Apache Shiro" # 安全框架
+      additional_frameworks: # 其他主要框架和组件
+        - name: "Spring Cloud"
+          version: "2021.0.8"
+          description: "微服务框架(可选)"
+        - name: "Spring Cloud Alibaba"
+          version: "2021.0.6.2"
+          description: "阿里巴巴微服务套件"
+        - name: "MyBatis Plus"
+          version: "3.5.3.2"
+          description: "MyBatis-Plus ORM框架"
+        - name: "Druid"
+          version: "1.2.24"
+          description: "数据库连接池"
+        - name: "Apache Shiro"
+          version: "1.13.0"
+          description: "权限管理框架"
+        - name: "Nacos"
+          version: "2.0.4"
+          description: "服务注册与配置中心"
+        - name: "XXL-Job"
+          version: "2.4.1"
+          description: "分布式任务调度"
+        - name: "Knife4j"
+          version: "4.4.0"
+          description: "API文档生成工具"
+        - name: "Hutool"
+          version: "5.8.25"
+          description: "Java工具类库"
+        - name: "APIJSON"
+          version: "5.2.0"
+          description: "腾讯开源的JSON动态API框架，支持零代码实时生成文档和自动化测试"
+          repository: "https://github.com/Tencent/APIJSON"
+
+  git_repository:
+    repo_url: "https://github.com/company/auto4s-system.git" # 项目的主要Git仓库地址
+    branch_strategy: "Git Flow"
+    cicd_pipeline_tool: "Jenkins"
+
+  additional_notes: |
+    # 汽车4S店系统特殊说明
+    本系统专为汽车4S店业务设计，包含以下特殊业务特性：
+    1. 车辆管理：支持新车入库、车辆信息维护、库存管理等核心功能
+    2. 销售管理：涵盖客户接待、试驾安排、销售合同、交车流程等
+    3. 售后服务：包括维修预约、配件管理、保养提醒、质保管理等
+    4. 客户管理：客户档案、购车历史、服务记录、满意度调查等
+    5. 财务管理：销售收款、成本核算、佣金计算、财务报表等
+    
+    系统集成要求：
+    - 与汽车厂商DMS系统对接，实现车辆信息同步
+    - 与银行金融系统集成，支持分期付款业务
+    - 与保险公司系统对接，实现保险业务自动化
+    - 支持与第三方物流系统集成
+    
+    合规要求：
+    - 符合汽车销售行业相关法规要求
+    - 支持国家汽车召回制度相关功能
+    - 满足消费者权益保护相关要求
