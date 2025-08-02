@@ -1,0 +1,368 @@
+# JeecgBoot需求基线跟踪管理 - 汽车4S店基础信息管理模块
+# Layer 2 - 模块层基线文档
+# 系统代码: AUTO | 模块代码: INFO
+# 创建时间: 2025-08-01
+
+# ============================================================================
+# 基线标识与元数据信息
+# ============================================================================
+baseline_identity:
+  # 基线文档标识
+  baseline_id: "REQ-BASELINE-AUTO-INFO-20250801-001" # 汽车4S店基础信息模块基线
+  baseline_name: "汽车4S店基础信息管理模块需求基线V1.0" 
+  baseline_version: "v1.0"
+  created_timestamp: "2025-08-01 10:00:00"
+  last_updated: "2025-08-01 10:00:00"
+  baseline_status: "active" # active | archived | deprecated
+  
+  # 基线负责人信息
+  baseline_owner: "系统架构师" # 需求基线负责人
+  baseline_team: ["产品经理", "业务分析师", "技术负责人"] # 相关团队成员
+  review_board: ["CTO", "产品总监", "4S店业务专家"] # 评审委员会成员
+
+# ============================================================================
+# 系统基础信息关联
+# ============================================================================
+system_base_reference:
+  # 系统基础文档引用
+  system_base_doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/system_base_info_AUTO.yaml"
+  system_id: "AUTO"
+  system_name: "汽车4S店无纸化办公系统"
+  
+  # 继承的系统配置
+  inherited_system_config:
+    jeecg_version: "3.8.1"
+    base_working_directory: "/Users/admin/Work/Github/JeecgBoot"
+    tech_stack_reference: "JeecgBoot 3.8.1 + Vue3 + Spring Boot"
+    environment_matrix: ["dev", "test", "uat", "prod"]
+    
+  # 系统约束条件
+  system_constraints:
+    architectural_constraints: ["基于JeecgBoot框架", "前后端分离架构", "微服务可选"]
+    technical_constraints: ["Java 17+", "MySQL 8.0+", "Redis 6.0+"]
+    business_constraints: ["符合汽车行业规范", "支持多门店管理", "VIN码唯一性"]
+    compliance_requirements: ["数据安全合规", "用户隐私保护", "审计日志完整"]
+
+# ============================================================================
+# 需求套件注册管理 - 基础信息管理模块
+# ============================================================================
+requirement_registry:
+  # 需求注册摘要
+  registry_summary:
+    total_requirements: 3 # 总需求数量
+    active_requirements: 3 # 活跃需求数量  
+    completed_requirements: 0 # 已完成需求数量
+    blocked_requirements: 0 # 阻塞需求数量
+    high_priority_requirements: 2 # 高优先级需求数量
+    
+  # 需求套件列表
+  requirement_suites:
+    - requirement_suite_id: "AUTO-INFO-20250801100000"
+      business_requirement_title: "汽车基本信息维护"
+      business_requirement_description: "车辆基本信息的录入、修改、查询、删除等CRUD操作，包括VIN码管理、品牌型号管理、车辆状态管理等核心功能"
+      
+      # 需求基本信息
+      requirement_basic_info:
+        requirement_category: "core_function" # 核心功能
+        business_domain: "基础数据管理"
+        stakeholders: ["销售顾问", "库存管理员", "系统管理员"]
+        business_value_score: 9 # 1-10，业务价值评分
+        
+      # 需求优先级和状态
+      requirement_priority_status:
+        priority: "high" # 高优先级
+        status: "planned" # 计划中
+        urgency: "urgent" # 紧急
+        complexity: "medium" # 中等复杂度
+        
+      # 时间规划
+      timeline_planning:
+        planned_start_date: "2025-08-05"
+        planned_end_date: "2025-08-12"
+        actual_start_date: "" # 尚未开始
+        estimated_completion_date: "2025-08-12"
+        target_sprint: "Sprint-2025-Q3-S1"
+        
+      # 文档关联路径 - 4-Agent协作文档链
+      document_references:
+        # Agent-A需求分析文档
+        requirement_analysis_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801100000-REQ-汽车基本信息维护.yaml"
+          doc_id: "AUTO-INFO-20250801100000-REQ"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+        # Agent-B架构设计文档
+        architecture_design_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801100000-ARCH-汽车基本信息维护.yaml"
+          doc_id: "AUTO-INFO-20250801100000-ARCH"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+        # Agent-C开发任务文档
+        development_task_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801100000-DEV-汽车基本信息维护.yaml"
+          doc_id: "AUTO-INFO-20250801100000-DEV"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+        # Agent-D测试设计文档
+        testing_design_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801100000-TEST-汽车基本信息维护.yaml"
+          doc_id: "AUTO-INFO-20250801100000-TEST"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+      # 完整追溯链标识
+      traceability_chain:
+        baseline_traceability_id: "TRACE-AUTO-INFO-001"
+        system_reference: "AUTO"
+        baseline_reference: "REQ-BASELINE-AUTO-INFO-20250801-001"
+        requirement_suite_reference: "AUTO-INFO-20250801100000"
+        
+      # 工作量估算
+      effort_estimation:
+        estimated_story_points: 13 # 总故事点
+        estimated_person_hours: 80 # 总人时
+        estimated_person_days: 10 # 总人天
+        complexity_factor: 1.2 # 复杂度系数
+        
+      # 资源需求
+      resource_requirements:
+        required_skills: ["JeecgBoot开发", "Vue3前端", "汽车行业业务", "数据库设计"]
+        team_composition: ["1名需求分析师", "1名架构师", "2名开发工程师", "1名测试工程师"]
+        external_dependencies: ["汽车品牌数据字典", "VIN码验证服务"]
+        infrastructure_needs: ["开发环境", "测试环境", "数据库实例"]
+
+    - requirement_suite_id: "AUTO-INFO-20250801110000"
+      business_requirement_title: "VIN码管理功能"
+      business_requirement_description: "17位VIN码的格式验证、唯一性检查、解析和管理功能，确保车辆识别码的准确性和唯一性"
+      
+      requirement_basic_info:
+        requirement_category: "core_function"
+        business_domain: "数据质量管理"
+        stakeholders: ["销售顾问", "库存管理员", "质量管理员"]
+        business_value_score: 8
+        
+      requirement_priority_status:
+        priority: "high"
+        status: "planned"
+        urgency: "normal"
+        complexity: "complex" # VIN码规则复杂
+        
+      timeline_planning:
+        planned_start_date: "2025-08-13"
+        planned_end_date: "2025-08-20"
+        actual_start_date: ""
+        estimated_completion_date: "2025-08-20"
+        target_sprint: "Sprint-2025-Q3-S2"
+        
+      document_references:
+        requirement_analysis_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801110000-REQ-VIN码管理功能.yaml"
+          doc_id: "AUTO-INFO-20250801110000-REQ"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+        architecture_design_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801110000-ARCH-VIN码管理功能.yaml"
+          doc_id: "AUTO-INFO-20250801110000-ARCH"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+        development_task_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801110000-DEV-VIN码管理功能.yaml"
+          doc_id: "AUTO-INFO-20250801110000-DEV"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+        testing_design_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801110000-TEST-VIN码管理功能.yaml"
+          doc_id: "AUTO-INFO-20250801110000-TEST"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+      traceability_chain:
+        baseline_traceability_id: "TRACE-AUTO-INFO-002"
+        system_reference: "AUTO"
+        baseline_reference: "REQ-BASELINE-AUTO-INFO-20250801-001"
+        requirement_suite_reference: "AUTO-INFO-20250801110000"
+        
+      effort_estimation:
+        estimated_story_points: 21 # VIN码功能复杂度高
+        estimated_person_hours: 120
+        estimated_person_days: 15
+        complexity_factor: 1.5
+        
+      resource_requirements:
+        required_skills: ["VIN码规则", "正则表达式", "数据验证", "JeecgBoot开发"]
+        team_composition: ["1名业务分析师", "1名架构师", "2名开发工程师", "1名测试工程师"]
+        external_dependencies: ["VIN码数据库", "汽车制造商编码规则"]
+        infrastructure_needs: ["VIN码验证服务", "第三方数据接口"]
+
+    - requirement_suite_id: "AUTO-INFO-20250801120000"
+      business_requirement_title: "汽车品牌型号管理"
+      business_requirement_description: "汽车品牌、系列、型号的层级管理，支持品牌字典维护、型号规格管理、价格体系等功能"
+      
+      requirement_basic_info:
+        requirement_category: "core_function"
+        business_domain: "基础数据管理"
+        stakeholders: ["产品经理", "销售经理", "系统管理员"]
+        business_value_score: 7
+        
+      requirement_priority_status:
+        priority: "medium"
+        status: "planned"
+        urgency: "normal"
+        complexity: "medium"
+        
+      timeline_planning:
+        planned_start_date: "2025-08-21"
+        planned_end_date: "2025-08-28"
+        actual_start_date: ""
+        estimated_completion_date: "2025-08-28"
+        target_sprint: "Sprint-2025-Q3-S3"
+        
+      document_references:
+        requirement_analysis_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801120000-REQ-汽车品牌型号管理.yaml"
+          doc_id: "AUTO-INFO-20250801120000-REQ"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+        architecture_design_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801120000-ARCH-汽车品牌型号管理.yaml"
+          doc_id: "AUTO-INFO-20250801120000-ARCH"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+        development_task_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801120000-DEV-汽车品牌型号管理.yaml"
+          doc_id: "AUTO-INFO-20250801120000-DEV"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+        testing_design_doc:
+          doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250801120000-TEST-汽车品牌型号管理.yaml"
+          doc_id: "AUTO-INFO-20250801120000-TEST"
+          doc_status: "draft"
+          doc_version: "v1.0"
+          last_modified: ""
+          
+      traceability_chain:
+        baseline_traceability_id: "TRACE-AUTO-INFO-003"
+        system_reference: "AUTO"
+        baseline_reference: "REQ-BASELINE-AUTO-INFO-20250801-001"
+        requirement_suite_reference: "AUTO-INFO-20250801120000"
+        
+      effort_estimation:
+        estimated_story_points: 8
+        estimated_person_hours: 50
+        estimated_person_days: 6
+        complexity_factor: 1.0
+        
+      resource_requirements:
+        required_skills: ["数据字典设计", "层级数据管理", "JeecgBoot开发"]
+        team_composition: ["1名产品经理", "1名开发工程师", "1名测试工程师"]
+        external_dependencies: ["汽车品牌官方数据", "型号规格参数"]
+        infrastructure_needs: ["基础开发环境"]
+
+# ============================================================================
+# 需求间关系管理
+# ============================================================================
+requirement_relationship_management:
+  # 需求依赖关系
+  requirement_dependencies:
+    - dependency_id: "REQ-DEP-AUTO-INFO-001"
+      source_requirement_suite_id: "AUTO-INFO-20250801110000" # VIN码管理
+      target_requirement_suite_id: "AUTO-INFO-20250801100000" # 基本信息维护
+      dependency_type: "functional_dependency" # 功能依赖
+      dependency_description: "VIN码管理功能为汽车基本信息提供唯一标识验证"
+      dependency_strength: "mandatory" # 强制依赖
+      impact_if_delayed: "high"
+      mitigation_strategy: "优先开发VIN码核心验证功能"
+      
+    - dependency_id: "REQ-DEP-AUTO-INFO-002"
+      source_requirement_suite_id: "AUTO-INFO-20250801120000" # 品牌型号管理
+      target_requirement_suite_id: "AUTO-INFO-20250801100000" # 基本信息维护
+      dependency_type: "data_dependency" # 数据依赖
+      dependency_description: "品牌型号管理为基本信息提供标准化的品牌型号数据"
+      dependency_strength: "preferred" # 优先依赖
+      impact_if_delayed: "medium"
+      mitigation_strategy: "提供临时品牌数据字典"
+
+# ============================================================================
+# 变更管理与追溯
+# ============================================================================
+change_management_and_traceability:
+  # 变更追踪机制
+  change_tracking:
+    requirement_changes: [] # 暂无变更记录
+    
+  # 完整追溯矩阵
+  complete_traceability_matrix:
+    - traceability_entry_id: "TRACE-ENTRY-AUTO-INFO-001"
+      business_requirement: "4S店需要管理车辆基本信息以支持销售和服务业务"
+      system_reference: "AUTO"
+      baseline_reference: "REQ-BASELINE-AUTO-INFO-20250801-001"
+      requirement_suite_reference: "AUTO-INFO-20250801100000"
+      
+      # 完整文档链
+      document_chain:
+        requirement_doc_reference: "AUTO-INFO-20250801100000-REQ"
+        design_doc_reference: "AUTO-INFO-20250801100000-ARCH"
+        development_doc_reference: "AUTO-INFO-20250801100000-DEV"
+        testing_doc_reference: "AUTO-INFO-20250801100000-TEST"
+
+# ============================================================================
+# 质量保证与监控
+# ============================================================================
+quality_assurance_and_monitoring:
+  # 基线质量指标
+  baseline_quality_metrics:
+    requirement_coverage_metrics:
+      business_requirements_covered: 100 # 业务需求覆盖率
+      functional_requirements_covered: 90 # 功能需求覆盖率 
+      document_completeness_rate: 25 # 文档完成率(刚开始)
+      traceability_completeness_rate: 100 # 追溯完整率
+      
+    project_health_metrics:
+      requirements_on_schedule: 100 # 需求按计划进行
+      stakeholder_satisfaction_score: 8 # 干系人满意度
+      team_velocity_consistency: "stable" # 团队速度稳定
+
+# ============================================================================
+# 附加信息
+# ============================================================================
+additional_information:
+  # 重要假设条件
+  key_assumptions: |
+    1. VIN码规则遵循ISO 3779标准
+    2. 汽车品牌数据可从公开渠道获取
+    3. 开发团队具备JeecgBoot框架经验
+    4. 4S店业务流程相对标准化
+    
+  # 基线范围外事项  
+  out_of_baseline_scope: |
+    1. 车辆图片和多媒体管理(后续版本)
+    2. 车辆历史记录和维修档案(SERVICE模块负责)
+    3. 价格管理和金融计算(FINANCE模块负责)
+    4. 复杂的报表统计(REPORT模块负责)
+    
+  # 风险提示
+  risk_alerts: |
+    1. VIN码验证规则的复杂性可能影响开发进度
+    2. 汽车品牌数据的准确性和实时性需要关注
+    3. 与其他模块的数据接口需要提前设计
+    4. 4S店个性化需求可能超出标准功能范围

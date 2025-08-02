@@ -1,5 +1,23 @@
-# JeecgBoot AI Agent协作架构设计模板
+# JeecgBoot AI Agent协作架构设计模板 v4.0
 # 基于BDD/EARS需求追溯的结构化架构设计，专为Agent-B（架构设计师）设计
+# 支持三层架构的Layer 3 - 需求层 (Requirement Level)
+
+# ============================================================================
+# 📁 v4.0 三层架构存储规范 (重要更新)
+# ============================================================================
+# 本模板属于: Layer 3 - 需求层 (Requirement Level)
+# 命名格式: [SYSTEM]-[MODULE]-[TIMESTAMP]-ARCH-[TITLE].yaml
+# 存储位置: ${base_working_directory}/AIGC/[SYSTEM]_[MODULE]/[SYSTEM]-[MODULE]-[TIMESTAMP]-ARCH-[TITLE].yaml
+# 
+# 示例路径:
+# - 汽车4S店-基础信息: /Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250731150000-ARCH-汽车基本信息维护.yaml
+# - 汽车4S店-销售信息: /Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_SALE/AUTO-SALE-20250731160000-ARCH-汽车销售信息维护.yaml
+#
+# Agent-B协作链位置:
+# - 输入: AUTO-INFO-20250731150000-REQ-汽车基本信息维护.yaml (Agent-A产出)
+# - 输出: AUTO-INFO-20250731150000-ARCH-汽车基本信息维护.yaml (Agent-B产出)
+# - 下游: AUTO-INFO-20250731150000-DEV-汽车基本信息维护.yaml (传递给Agent-C)
+# ============================================================================
 #
 # ============================================================================
 # 📁 新文件命名规范 (重要更新)

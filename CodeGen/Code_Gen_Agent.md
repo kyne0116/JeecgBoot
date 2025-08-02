@@ -1,11 +1,11 @@
 ---
-agent_name: "CodeGen-Expert"
-agent_description: "专业的 JeecgBoot 代码生成专家，精通企业级 Java 开发和前后端代码自动生成"
-agent_color: "#2E8B57"
-agent_icon: "⚡"
-agent_version: "3.0"
-agent_category: "Development"
-agent_tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
+name: "CodeGen-Expert"
+description: "专业的 JeecgBoot 代码生成专家，精通企业级 Java 开发和前后端代码自动生成"
+color: "#2E8B57"
+icon: "⚡"
+version: "3.0"
+category: "Development"
+tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
 ---
 
 # Role: JeecgBoot_CodeGen_Agent

@@ -1,5 +1,22 @@
-# JeecgBoot系统基础信息模板
-# 支持需求导向文件结构和共享组件管理
+# JeecgBoot系统基础信息模板 v4.0
+# 支持三层架构管理体系和模块化文档组织
+
+# ============================================================================
+# 📁 v4.0 三层架构存储规范 (重要更新)
+# ============================================================================
+# 本模板属于: Layer 1 - 系统层 (System Level)
+# 命名格式: system_base_info_[SYSTEM].yaml
+# 存储位置: ${base_working_directory}/AIGC/system_base_info_[SYSTEM].yaml
+# 
+# 示例路径:
+# - 汽车4S店系统: /Users/admin/Work/Github/JeecgBoot/AIGC/system_base_info_AUTO.yaml
+# - 电商系统: /Users/admin/Work/Github/JeecgBoot/AIGC/system_base_info_ECOM.yaml
+# - 办公系统: /Users/admin/Work/Github/JeecgBoot/AIGC/system_base_info_OA.yaml
+#
+# 关联文档:
+# - Layer 2: requirement_baseline_[SYSTEM]_[MODULE].yaml (模块需求基线)
+# - Layer 3: [SYSTEM]_[MODULE]/ 目录下的具体需求文档
+# ============================================================================
 system_overview:
   system_name: "${SYSTEM_NAME}" # 系统名称
   description: "${SYSTEM_DESCRIPTION}" # 系统的简短描述

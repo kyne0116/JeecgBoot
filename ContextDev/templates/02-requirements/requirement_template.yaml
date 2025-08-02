@@ -1,5 +1,24 @@
-# JeecgBoot AI Agent协作需求分析模板
+# JeecgBoot AI Agent协作需求分析模板 v4.0
 # 基于BDD/EARS技术的结构化需求收集，专为Agent-A（需求分析师）设计
+# 支持三层架构的Layer 3 - 需求层 (Requirement Level)
+
+# ============================================================================
+# 📁 v4.0 三层架构存储规范 (重要更新)
+# ============================================================================
+# 本模板属于: Layer 3 - 需求层 (Requirement Level)
+# 命名格式: [SYSTEM]-[MODULE]-[TIMESTAMP]-REQ-[TITLE].yaml
+# 存储位置: ${base_working_directory}/AIGC/[SYSTEM]_[MODULE]/[SYSTEM]-[MODULE]-[TIMESTAMP]-REQ-[TITLE].yaml
+# 
+# 示例路径:
+# - 汽车4S店-基础信息: /Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250731150000-REQ-汽车基本信息维护.yaml
+# - 汽车4S店-销售信息: /Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_SALE/AUTO-SALE-20250731160000-REQ-汽车销售信息维护.yaml
+#
+# 4-Agent协作文档链:
+# - REQ: [SYSTEM]-[MODULE]-[TIMESTAMP]-REQ-[TITLE].yaml (需求分析 - Agent-A)
+# - ARCH: [SYSTEM]-[MODULE]-[TIMESTAMP]-ARCH-[TITLE].yaml (架构设计 - Agent-B)
+# - DEV: [SYSTEM]-[MODULE]-[TIMESTAMP]-DEV-[TITLE].yaml (开发任务 - Agent-C)
+# - TEST: [SYSTEM]-[MODULE]-[TIMESTAMP]-TEST-[TITLE].yaml (测试设计 - Agent-D)
+# ============================================================================
 #
 # ============================================================================
 # 📁 新文件命名规范 (重要更新)
