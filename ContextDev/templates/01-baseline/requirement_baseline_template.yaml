@@ -1,6 +1,28 @@
-# JeecgBoot需求基线跟踪管理模板
-# 系统基础信息与多需求关联管理的核心桥梁
-# 支持一个系统的多个需求全生命周期跟踪
+# JeecgBoot需求基线跟踪管理模板 v4.0
+# 支持三层架构的模块化需求基线管理
+# 专为 Layer 2 - 模块层 (Module Level) 设计
+
+# ============================================================================
+# 📁 v4.0 三层架构存储规范 (重要更新)
+# ============================================================================
+# 本模板属于: Layer 2 - 模块层 (Module Level)
+# 命名格式: requirement_baseline_[SYSTEM]_[MODULE].yaml
+# 存储位置: ${base_working_directory}/AIGC/requirement_baseline_[SYSTEM]_[MODULE].yaml
+# 
+# 示例路径:
+# - 汽车4S店-基础信息: /Users/admin/Work/Github/JeecgBoot/AIGC/requirement_baseline_AUTO_INFO.yaml
+# - 汽车4S店-销售信息: /Users/admin/Work/Github/JeecgBoot/AIGC/requirement_baseline_AUTO_SALE.yaml
+# - 电商系统-产品管理: /Users/admin/Work/Github/JeecgBoot/AIGC/requirement_baseline_ECOM_PROD.yaml
+#
+# 关联文档:
+# - Layer 1: system_base_info_[SYSTEM].yaml (系统基础配置)
+# - Layer 3: [SYSTEM]_[MODULE]/ 目录下的具体需求文档
+#
+# 模块独立性原则:
+# - 每个模块拥有独立的需求基线文件
+# - 模块间依赖通过cross_module_dependencies管理
+# - 支持模块级别的独立版本控制和变更管理
+# ============================================================================
 # 
 # ============================================================================
 # 📁 新文件命名规范 (重要更新)
