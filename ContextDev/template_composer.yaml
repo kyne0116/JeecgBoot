@@ -1,15 +1,15 @@
-# JeecgBoot AI Agent协作模板组合器 v5.0
-# 智能模板选择和组合系统，优化4-Agent协作效率
+# JeecgBoot AI Agent协作模板组合器 v6.0
+# 智能模板选择和组合系统，优化6-Agent协作效率
 
 # ============================================================================
 # 组合器配置
 # ============================================================================
 composer_config:
-  version: "v5.0"
+  version: "v6.0"
   ai_optimization: true
-  max_processing_time: 30 # 秒
+  max_processing_time: 45 # 秒
   target_success_rate: 95 # 百分比
-  collaboration_mode: "4-agent-chain"
+  collaboration_mode: "6-agent-chain"
 
 # ============================================================================
 # 模板库管理
@@ -19,13 +19,15 @@ template_library:
   baseline_templates:
     system_base: "templates/01-baseline/system_base_info_template.yaml"
     requirement_baseline: "templates/01-baseline/requirement_baseline_template.yaml"
-    
+
   # 协作链模板
   collaboration_templates:
-    agent_a: "templates/02-requirements/requirement_template.yaml"
-    agent_b: "templates/03-architecture/architecture_template.yaml"
-    agent_c: "templates/04-development/development_template.yaml"
-    agent_d: "templates/05-testing/testing_template.yaml"
+    agent_1: "templates/01-baseline/system_base_info_template.yaml"
+    agent_2: "templates/02-requirements/requirement_template.yaml"
+    agent_3: "templates/03-prototype/prototype_template.yaml"
+    agent_4: "templates/04-architecture/architecture_template.yaml"
+    agent_5: "templates/05-development/development_template.yaml"
+    agent_6: "templates/06-testing/testing_design_template.yaml"
 
 # ============================================================================
 # 智能组合策略
@@ -33,37 +35,51 @@ template_library:
 composition_strategies:
   # 策略1：标准协作链 (推荐)
   standard_collaboration:
-    description: "标准4-Agent协作链，适用于大部分业务场景"
+    description: "标准6-Agent协作链，适用于大部分业务场景"
     complexity: "simple|medium"
-    estimated_time: "2-4小时"
+    estimated_time: "3-6小时"
     success_rate: "95%+"
-    
+
     workflow:
       step_1:
-        agent: "Agent-A"
+        agent: "agent-1"
+        template: "system_base_info_template.yaml"
+        input: "系统信息和业务领域"
+        output: "系统基线和模块基线文档"
+        target_time: "25分钟"
+
+      step_2:
+        agent: "agent-2"
         template: "requirement_template.yaml"
-        input: "业务需求描述"
+        input: "agent-1基线文档"
         output: "标准化需求文档"
         target_time: "30分钟"
-        
-      step_2:
-        agent: "Agent-B"
+
+      step_3:
+        agent: "agent-3"
+        template: "prototype_template.yaml"
+        input: "agent-2需求文档"
+        output: "可视化原型文档"
+        target_time: "35分钟"
+
+      step_4:
+        agent: "agent-4"
         template: "architecture_template.yaml"
-        input: "Agent-A需求文档"
+        input: "agent-3原型文档"
         output: "标准化架构文档"
         target_time: "45分钟"
-        
-      step_3:
-        agent: "Agent-C"
+
+      step_5:
+        agent: "agent-5"
         template: "development_template.yaml"
-        input: "Agent-B架构文档"
+        input: "agent-4架构文档"
         output: "标准化开发文档"
         target_time: "40分钟"
-        
-      step_4:
-        agent: "Agent-D"
-        template: "testing_template.yaml"
-        input: "Agent-C开发文档"
+
+      step_6:
+        agent: "agent-6"
+        template: "testing_design_template.yaml"
+        input: "agent-5开发文档"
         output: "标准化测试文档"
         target_time: "35分钟"
 
@@ -73,20 +89,20 @@ composition_strategies:
     complexity: "simple"
     estimated_time: "1-2小时"
     success_rate: "90%+"
-    
+
     workflow:
       step_1:
         agent: "Agent-A"
         template: "requirement_template.yaml"
         focus: "核心功能需求"
         target_time: "20分钟"
-        
+
       step_2:
         agent: "Agent-B"
         template: "architecture_template.yaml"
         focus: "基础架构设计"
         target_time: "25分钟"
-        
+
       step_3:
         agent: "Agent-C"
         template: "development_template.yaml"
@@ -99,18 +115,18 @@ composition_strategies:
     complexity: "complex"
     estimated_time: "4-8小时"
     success_rate: "90%+"
-    
+
     phases:
       phase_1:
         name: "核心功能分析"
         agents: ["Agent-A", "Agent-B"]
         focus: "核心业务需求和架构"
-        
+
       phase_2:
         name: "详细设计开发"
         agents: ["Agent-B", "Agent-C"]
         focus: "详细设计和开发计划"
-        
+
       phase_3:
         name: "质量保证规划"
         agents: ["Agent-C", "Agent-D"]
@@ -126,14 +142,14 @@ ai_optimization:
     context_window: 4000 # AI上下文窗口
     parallel_processing: false # 串行处理保证一致性
     error_recovery: true # 错误恢复机制
-    
+
   # 质量优化
   quality_optimization:
     template_validation: true # 模板验证
     output_standardization: true # 输出标准化
     consistency_check: true # 一致性检查
     completeness_verification: true # 完整性验证
-    
+
   # 协作优化
   collaboration_optimization:
     handoff_validation: true # 交接验证
@@ -151,21 +167,21 @@ use_cases:
     recommended_strategy: "standard_collaboration"
     required_inputs: ["业务需求", "技术约束", "团队配置"]
     expected_outputs: ["完整的4-Agent协作文档链"]
-    
+
   # 功能扩展
   feature_extension:
     scenario: "现有系统的功能扩展"
     recommended_strategy: "standard_collaboration"
     required_inputs: ["扩展需求", "现有架构", "集成约束"]
     expected_outputs: ["增量开发文档"]
-    
+
   # 快速验证
   quick_validation:
     scenario: "概念验证和技术可行性验证"
     recommended_strategy: "rapid_prototype"
     required_inputs: ["核心概念", "技术约束"]
     expected_outputs: ["原型开发指导"]
-    
+
   # 复杂集成
   complex_integration:
     scenario: "复杂系统集成和大型项目"
@@ -182,14 +198,14 @@ quality_assurance:
     business_requirement_check: "业务需求完整性检查"
     technical_constraint_check: "技术约束合理性检查"
     stakeholder_clarity_check: "利益相关者明确性检查"
-    
+
   # 输出质量检查
   output_validation:
     document_completeness: "文档完整性≥95%"
     format_consistency: "格式一致性≥98%"
     technical_feasibility: "技术可行性≥95%"
     business_alignment: "业务对齐度≥90%"
-    
+
   # 协作质量检查
   collaboration_validation:
     handoff_completeness: "交接完整性100%"
@@ -207,14 +223,14 @@ monitoring_metrics:
     total_collaboration_time: "总协作时间"
     error_rate: "错误率"
     retry_count: "重试次数"
-    
+
   # 质量指标
   quality_metrics:
     output_quality_score: "输出质量评分"
     consistency_score: "一致性评分"
     completeness_score: "完整性评分"
     usability_score: "可用性评分"
-    
+
   # 协作指标
   collaboration_metrics:
     handoff_success_rate: "交接成功率"
@@ -232,7 +248,7 @@ usage_guide:
     step_2: "准备必要的输入信息"
     step_3: "按顺序执行Agent协作"
     step_4: "验证输出质量和完整性"
-    
+
   # 最佳实践
   best_practices:
     - "优先使用标准协作链策略"
@@ -240,7 +256,7 @@ usage_guide:
     - "验证Agent间的数据传递"
     - "监控协作过程的质量指标"
     - "及时处理错误和异常情况"
-    
+
   # 故障排除
   troubleshooting:
     processing_timeout: "增加处理时间限制或简化输入"

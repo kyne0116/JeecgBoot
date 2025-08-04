@@ -1,0 +1,247 @@
+# JeecgBoot原型设计模板 v1.0
+# 专注核心设计流程：需求可视化 + 交互设计 + 原型生成
+
+# ============================================================================
+# 文档标识
+# ============================================================================
+document_info:
+  id: "{{SYSTEM}}-{{MODULE}}-{{TIMESTAMP}}-PROTO"
+  title: "{{BUSINESS_TITLE}}"
+  agent: "Agent-P"
+  version: "1.0"
+  created_date: "{{CREATED_DATE}}"
+  req_document_ref: "{{REQ_DOCUMENT_ID}}"
+
+# ============================================================================
+# 需求理解 - 基于REQ文档的设计理解
+# ============================================================================
+requirement_analysis:
+  business_domain: "{{BUSINESS_DOMAIN}}"
+  core_functions: [{{CORE_FUNCTIONS}}]
+  user_roles: [{{USER_ROLES}}]
+  key_scenarios: [{{KEY_SCENARIOS}}]
+  design_constraints: [{{DESIGN_CONSTRAINTS}}]
+
+# ============================================================================
+# 用户体验设计 - 用户角色和使用场景
+# ============================================================================
+ux_design:
+  # 用户角色建模
+  user_personas:
+    - role: "{{USER_ROLE_1}}"
+      description: "{{USER_DESCRIPTION_1}}"
+      goals: [{{USER_GOALS_1}}]
+      pain_points: [{{USER_PAIN_POINTS_1}}]
+      
+    - role: "{{USER_ROLE_2}}"
+      description: "{{USER_DESCRIPTION_2}}"
+      goals: [{{USER_GOALS_2}}]
+      pain_points: [{{USER_PAIN_POINTS_2}}]
+
+  # 用户旅程映射
+  user_journeys:
+    - journey: "{{JOURNEY_NAME_1}}"
+      steps: [{{JOURNEY_STEPS_1}}]
+      touchpoints: [{{TOUCHPOINTS_1}}]
+      emotions: [{{EMOTIONS_1}}]
+
+# ============================================================================
+# 信息架构 - 内容组织和导航结构
+# ============================================================================
+information_architecture:
+  # 功能模块组织
+  functional_modules:
+    - module: "{{MODULE_NAME_1}}"
+      description: "{{MODULE_DESC_1}}"
+      sub_functions: [{{SUB_FUNCTIONS_1}}]
+      priority: "{{PRIORITY_1}}" # high|medium|low
+      
+    - module: "{{MODULE_NAME_2}}"
+      description: "{{MODULE_DESC_2}}"
+      sub_functions: [{{SUB_FUNCTIONS_2}}]
+      priority: "{{PRIORITY_2}}"
+
+  # 导航结构设计
+  navigation_structure:
+    primary_nav: [{{PRIMARY_NAV}}]
+    secondary_nav: [{{SECONDARY_NAV}}]
+    breadcrumb_pattern: "{{BREADCRUMB_PATTERN}}"
+    
+  # 内容层级
+  content_hierarchy:
+    - level: 1
+      content_type: "{{CONTENT_TYPE_L1}}"
+      elements: [{{ELEMENTS_L1}}]
+    - level: 2
+      content_type: "{{CONTENT_TYPE_L2}}"
+      elements: [{{ELEMENTS_L2}}]
+
+# ============================================================================
+# 交互设计 - 用户交互流程和界面行为
+# ============================================================================
+interaction_design:
+  # 主要交互流程
+  interaction_flows:
+    - flow_name: "{{FLOW_NAME_1}}"
+      trigger: "{{FLOW_TRIGGER_1}}"
+      steps:
+        - step: 1
+          action: "{{STEP_ACTION_1}}"
+          interface: "{{STEP_INTERFACE_1}}"
+          feedback: "{{STEP_FEEDBACK_1}}"
+        - step: 2
+          action: "{{STEP_ACTION_2}}"
+          interface: "{{STEP_INTERFACE_2}}"
+          feedback: "{{STEP_FEEDBACK_2}}"
+
+  # 界面状态设计
+  interface_states:
+    - state: "loading"
+      description: "{{LOADING_DESC}}"
+      visual_feedback: "{{LOADING_VISUAL}}"
+    - state: "error"
+      description: "{{ERROR_DESC}}"
+      visual_feedback: "{{ERROR_VISUAL}}"
+    - state: "success"
+      description: "{{SUCCESS_DESC}}"
+      visual_feedback: "{{SUCCESS_VISUAL}}"
+
+# ============================================================================
+# 界面原型 - 具体界面设计和布局
+# ============================================================================
+interface_prototypes:
+  # 页面原型设计
+  page_prototypes:
+    - page_name: "{{PAGE_NAME_1}}"
+      page_type: "{{PAGE_TYPE_1}}" # list|detail|form|dashboard
+      layout_type: "{{LAYOUT_TYPE_1}}" # single|master-detail|grid
+      components: [{{PAGE_COMPONENTS_1}}]
+      wireframe_file: "{{WIREFRAME_FILE_1}}"
+      mockup_file: "{{MOCKUP_FILE_1}}"
+      
+    - page_name: "{{PAGE_NAME_2}}"
+      page_type: "{{PAGE_TYPE_2}}"
+      layout_type: "{{LAYOUT_TYPE_2}}"
+      components: [{{PAGE_COMPONENTS_2}}]
+      wireframe_file: "{{WIREFRAME_FILE_2}}"
+      mockup_file: "{{MOCKUP_FILE_2}}"
+
+  # 组件原型设计
+  component_prototypes:
+    - component_name: "{{COMPONENT_NAME_1}}"
+      component_type: "{{COMPONENT_TYPE_1}}" # form|table|card|modal
+      jeecg_mapping: "{{JEECG_COMPONENT_1}}"
+      properties: [{{COMPONENT_PROPS_1}}]
+      interactions: [{{COMPONENT_INTERACTIONS_1}}]
+
+# ============================================================================
+# JeecgBoot适配 - 框架组件和技术约束
+# ============================================================================
+jeecg_adaptation:
+  # 前端组件映射
+  component_mapping:
+    - prototype_component: "{{PROTO_COMP_1}}"
+      jeecg_component: "{{JEECG_COMP_1}}"
+      ant_design_component: "{{ANT_COMP_1}}"
+      customization_needed: "{{CUSTOM_NEEDED_1}}" # true|false
+      
+  # 布局适配
+  layout_adaptation:
+    responsive_breakpoints: [{{BREAKPOINTS}}]
+    mobile_adaptations: [{{MOBILE_ADAPTATIONS}}]
+    tablet_adaptations: [{{TABLET_ADAPTATIONS}}]
+    
+  # 主题适配
+  theme_adaptation:
+    color_scheme: "{{COLOR_SCHEME}}"
+    typography_scale: "{{TYPOGRAPHY_SCALE}}"
+    spacing_system: "{{SPACING_SYSTEM}}"
+
+# ============================================================================
+# 原型文件 - 生成的原型文件清单
+# ============================================================================
+prototype_deliverables:
+  # 线框图文件
+  wireframes:
+    - file_name: "{{WIREFRAME_FILE_1}}"
+      file_type: "html"
+      description: "{{WIREFRAME_DESC_1}}"
+      
+  # 高保真原型
+  mockups:
+    - file_name: "{{MOCKUP_FILE_1}}"
+      file_type: "html"
+      description: "{{MOCKUP_DESC_1}}"
+      
+  # 交互原型
+  interactive_prototypes:
+    - file_name: "{{INTERACTIVE_FILE_1}}"
+      file_type: "html"
+      description: "{{INTERACTIVE_DESC_1}}"
+      
+  # 设计资源
+  design_assets:
+    - asset_name: "{{ASSET_NAME_1}}"
+      asset_type: "{{ASSET_TYPE_1}}" # icon|image|style
+      file_path: "{{ASSET_PATH_1}}"
+
+# ============================================================================
+# 验证标准 - 原型质量和验证标准
+# ============================================================================
+validation_criteria:
+  # 功能完整性
+  functional_completeness:
+    requirements_coverage: "{{REQ_COVERAGE}}%" # ≥95%
+    user_scenarios_covered: "{{SCENARIO_COVERAGE}}%" # ≥90%
+    
+  # 用户体验质量
+  ux_quality:
+    usability_score: "{{USABILITY_SCORE}}" # 1-10
+    accessibility_compliance: "{{A11Y_COMPLIANCE}}" # WCAG 2.1 AA
+    
+  # 技术可行性
+  technical_feasibility:
+    jeecg_compatibility: "{{JEECG_COMPATIBILITY}}%" # ≥95%
+    implementation_complexity: "{{IMPL_COMPLEXITY}}" # low|medium|high
+
+# ============================================================================
+# 架构设计输入 - 为Agent-B提供的设计输入
+# ============================================================================
+architecture_design_input:
+  # 界面架构要求
+  interface_architecture:
+    page_structure: [{{PAGE_STRUCTURE}}]
+    component_hierarchy: [{{COMPONENT_HIERARCHY}}]
+    data_flow_requirements: [{{DATA_FLOW_REQ}}]
+    
+  # 性能要求
+  performance_requirements:
+    page_load_time: "{{PAGE_LOAD_TIME}}"
+    interaction_response_time: "{{INTERACTION_TIME}}"
+    mobile_performance: "{{MOBILE_PERFORMANCE}}"
+    
+  # 技术约束
+  technical_constraints:
+    browser_support: [{{BROWSER_SUPPORT}}]
+    device_support: [{{DEVICE_SUPPORT}}]
+    framework_limitations: [{{FRAMEWORK_LIMITS}}]
+
+# ============================================================================
+# 协作信息 - Agent协作和文档传递
+# ============================================================================
+collaboration_info:
+  input_documents: ["{{REQ_DOCUMENT_ID}}"]
+  output_for_next_agent: "architecture_design_input"
+  next_agent: "Agent-B (System Architect)"
+  collaboration_notes: "{{COLLABORATION_NOTES}}"
+  
+# ============================================================================
+# 元数据 - 文档管理和追溯信息
+# ============================================================================
+metadata:
+  creation_timestamp: "{{TIMESTAMP}}"
+  agent_version: "1.0"
+  template_version: "1.0"
+  quality_score: "{{QUALITY_SCORE}}"
+  review_status: "{{REVIEW_STATUS}}" # draft|reviewed|approved
+  last_modified: "{{LAST_MODIFIED}}"
