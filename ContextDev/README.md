@@ -1,15 +1,17 @@
 # JeecgBoot AI Agent 协作开发系统
 
-高效的 AI Agent 协作开发系统，专为 JeecgBoot 3.8.1+框架优化，实现标准化的 4-Agent 协作流程。
+高效的 AI Agent 协作开发系统，专为 JeecgBoot 3.8.1+框架优化，实现标准化的 6-Agent 协作流程。
 
 ## 🎯 系统特性
 
-### 🤖 4-Agent 协作链
+### 🤖 6-Agent 协作链
 
-- **Agent-A (需求分析师)**: EARS 需求分析 + BDD 场景设计
-- **Agent-B (架构设计师)**: 技术架构设计 + 数据模型设计
-- **Agent-C (开发工程师)**: 任务分解 + 代码生成配置
-- **Agent-D (测试工程师)**: 测试设计 + 质量验证
+- **agent-1 (基线管理师)**: 系统基线建立 + 模块基线管理 + 变更控制
+- **agent-2 (需求分析师)**: EARS 需求分析 + BDD 场景设计
+- **agent-3 (原型设计师)**: 需求可视化 + 交互设计 + 原型生成
+- **agent-4 (系统架构师)**: 技术架构设计 + 数据模型设计
+- **agent-5 (开发工程师)**: 任务分解 + 代码生成配置
+- **agent-6 (质量测试师)**: 测试设计 + 质量验证
 
 ### 📐 标准化协议
 
@@ -23,26 +25,29 @@
 ```
 ContextDev/
 ├── agents/                         # AI Agent定义
-│   ├── requirements_analyst.md     # Agent-A
-│   ├── system_architect.md         # Agent-B
-│   ├── code_developer.md           # Agent-C
-│   └── quality_tester.md           # Agent-D
+│   ├── baseline-manager.md         # agent-1
+│   ├── requirements-analyst.md     # agent-2
+│   ├── prototype-designer.md       # agent-3
+│   ├── system-architect.md         # agent-4
+│   ├── code-developer.md           # agent-5
+│   └── quality-tester.md           # agent-6
 ├── templates/                      # 标准化模板
 │   ├── 01-baseline/               # 系统基线
 │   ├── 02-requirements/           # 需求分析
-│   ├── 03-architecture/           # 架构设计
-│   ├── 04-development/            # 开发任务
-│   └── 05-testing/                # 测试设计
+│   ├── 03-prototype/              # 原型设计
+│   ├── 04-architecture/           # 架构设计
+│   ├── 05-development/            # 开发任务
+│   └── 06-testing/                # 测试设计
 └── README.md                      # 系统说明
 ```
 
 ### 📁 协作流程
 
-**4-Agent 标准协作链**:
+**6-Agent 标准协作链**:
 
 ```
-Agent-A → Agent-B → Agent-C → Agent-D
-需求分析 → 架构设计 → 开发任务 → 测试设计
+agent-1 → agent-2 → agent-3 → agent-4 → agent-5 → agent-6
+基线管理 → 需求分析 → 原型设计 → 架构设计 → 开发任务 → 测试设计
 ```
 
 **文件命名格式**: `[SYSTEM]-[MODULE]-[TIMESTAMP]-[AGENT]-[TITLE].yaml`
@@ -50,6 +55,7 @@ Agent-A → Agent-B → Agent-C → Agent-D
 **示例**:
 
 - `HAIR-CUSTOMER-20250804143000-REQ-客户信息管理.yaml`
+- `HAIR-CUSTOMER-20250804143000-PROTO-客户信息管理.yaml`
 - `HAIR-CUSTOMER-20250804143000-ARCH-客户信息管理.yaml`
 - `HAIR-CUSTOMER-20250804143000-DEV-客户信息管理.yaml`
 - `HAIR-CUSTOMER-20250804143000-TEST-客户信息管理.yaml`
@@ -62,6 +68,7 @@ AIGC/
 ├── requirement_baseline_[SYSTEM]_[MODULE].yaml
 └── [SYSTEM]_[MODULE]/
     ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-REQ-[TITLE].yaml
+    ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-PROTO-[TITLE].yaml
     ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-ARCH-[TITLE].yaml
     ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-DEV-[TITLE].yaml
     └── [SYSTEM]-[MODULE]-[TIMESTAMP]-TEST-[TITLE].yaml
@@ -82,20 +89,26 @@ cp templates/01-baseline/system_base_info_template.yaml AIGC/system_base_info_[S
 cp templates/01-baseline/requirement_baseline_template.yaml AIGC/requirement_baseline_[SYSTEM]_[MODULE].yaml
 ```
 
-### 2. 4-Agent 协作流程
+### 2. 6-Agent 协作流程
 
 ```bash
-# Step 1: Agent-A 需求分析
+# Step 1: agent-1 基线管理
+使用 templates/01-baseline/system_base_info_template.yaml
+
+# Step 2: agent-2 需求分析
 使用 templates/02-requirements/requirement_template.yaml
 
-# Step 2: Agent-B 架构设计
-使用 templates/03-architecture/architecture_template.yaml
+# Step 3: agent-3 原型设计
+使用 templates/03-prototype/prototype_template.yaml
 
-# Step 3: Agent-C 开发任务
-使用 templates/04-development/development_template.yaml
+# Step 4: agent-4 架构设计
+使用 templates/04-architecture/architecture_template.yaml
 
-# Step 4: Agent-D 测试设计
-使用 templates/05-testing/testing_template.yaml
+# Step 5: agent-5 开发任务
+使用 templates/05-development/development_template.yaml
+
+# Step 6: agent-6 测试设计
+使用 templates/06-testing/testing_design_template.yaml
 ```
 
 ### 3. JeecgBoot 集成
