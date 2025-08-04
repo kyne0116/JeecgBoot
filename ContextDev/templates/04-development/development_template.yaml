@@ -1,0 +1,124 @@
+# JeecgBoot开发实施模板 v5.1
+# 专注核心技术流程：开发实施 + 代码实现
+
+# ============================================================================
+# 文档标识
+# ============================================================================
+document_info:
+  id: "{{SYSTEM}}-{{MODULE}}-{{TIMESTAMP}}-DEV"
+  title: "{{BUSINESS_TITLE}}"
+  agent: "Agent-C"
+
+# ============================================================================
+# 架构解析 - 来自Agent-B的架构设计
+# ============================================================================
+architecture_analysis:
+  source_architecture: "{{SOURCE_ARCH_DOC_ID}}"
+  development_components:
+    entities: [{ { ENTITIES } }]
+    services: [{ { SERVICES } }]
+    apis: [{ { APIS } }]
+    pages: [{ { PAGES } }]
+
+# ============================================================================
+# 开发实施 - 技术组件开发任务
+# ============================================================================
+development_implementation:
+  # 后端开发任务
+  backend_development:
+    # 数据层实现
+    data_layer:
+      - task: "{{DATA_TASK_1}}"
+        component: "{{DATA_COMPONENT_1}}"
+        implementation: "{{DATA_IMPLEMENTATION_1}}"
+
+      - task: "{{DATA_TASK_2}}"
+        component: "{{DATA_COMPONENT_2}}"
+        implementation: "{{DATA_IMPLEMENTATION_2}}"
+
+    # 业务层实现
+    business_layer:
+      - task: "{{BUSINESS_TASK_1}}"
+        component: "{{BUSINESS_COMPONENT_1}}"
+        implementation: "{{BUSINESS_IMPLEMENTATION_1}}"
+
+      - task: "{{BUSINESS_TASK_2}}"
+        component: "{{BUSINESS_COMPONENT_2}}"
+        implementation: "{{BUSINESS_IMPLEMENTATION_2}}"
+
+    # 控制层实现
+    controller_layer:
+      - task: "{{CONTROLLER_TASK_1}}"
+        component: "{{CONTROLLER_COMPONENT_1}}"
+        implementation: "{{CONTROLLER_IMPLEMENTATION_1}}"
+
+  # 前端开发任务
+  frontend_development:
+    # 页面实现
+    page_implementation:
+      - task: "{{PAGE_TASK_1}}"
+        component: "{{PAGE_COMPONENT_1}}"
+        implementation: "{{PAGE_IMPLEMENTATION_1}}"
+
+      - task: "{{PAGE_TASK_2}}"
+        component: "{{PAGE_COMPONENT_2}}"
+        implementation: "{{PAGE_IMPLEMENTATION_2}}"
+
+    # 组件实现
+    component_implementation:
+      - task: "{{COMP_TASK_1}}"
+        component: "{{COMP_COMPONENT_1}}"
+        implementation: "{{COMP_IMPLEMENTATION_1}}"
+
+# ============================================================================
+# 代码实现 - JeecgBoot代码生成和定制
+# ============================================================================
+code_implementation:
+  # CodeGen代码生成
+  codegen_tasks:
+    - entity: "{{CODEGEN_ENTITY_1}}"
+      table: "{{CODEGEN_TABLE_1}}"
+      generation_type: "{{CODEGEN_TYPE_1}}" # crud|tree|one_to_many
+
+    - entity: "{{CODEGEN_ENTITY_2}}"
+      table: "{{CODEGEN_TABLE_2}}"
+      generation_type: "{{CODEGEN_TYPE_2}}"
+
+  # 定制化开发
+  customization_tasks:
+    - task: "{{CUSTOM_TASK_1}}"
+      type: "{{CUSTOM_TYPE_1}}" # business_logic|ui_enhancement|integration
+      implementation: "{{CUSTOM_IMPLEMENTATION_1}}"
+
+    - task: "{{CUSTOM_TASK_2}}"
+      type: "{{CUSTOM_TYPE_2}}"
+      implementation: "{{CUSTOM_IMPLEMENTATION_2}}"
+
+  # 集成实现
+  integration_tasks:
+    - task: "{{INTEGRATION_TASK_1}}"
+      type: "{{INTEGRATION_TYPE_1}}" # database|api|service
+      implementation: "{{INTEGRATION_IMPLEMENTATION_1}}"
+
+# ============================================================================
+# 技术传递接口 - 传递给Agent-D
+# ============================================================================
+technical_handoff:
+  # 测试对象
+  test_targets:
+    backend_components: [{ { BACKEND_COMPONENTS } }]
+    frontend_components: [{ { FRONTEND_COMPONENTS } }]
+    api_endpoints: [{ { API_ENDPOINTS } }]
+    database_tables: [{ { DATABASE_TABLES } }]
+
+  # 质量要求
+  quality_requirements:
+    functional_requirements: [{ { FUNCTIONAL_REQS } }]
+    performance_requirements: [{ { PERFORMANCE_REQS } }]
+    security_requirements: [{ { SECURITY_REQS } }]
+
+  # 技术规范
+  technical_specifications:
+    testing_frameworks: [{ { TESTING_FRAMEWORKS } }]
+    testing_environments: [{ { TESTING_ENVIRONMENTS } }]
+    testing_data: [{ { TESTING_DATA } }]

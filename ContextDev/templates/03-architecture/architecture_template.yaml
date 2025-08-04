@@ -1,0 +1,159 @@
+# JeecgBoot架构设计模板 v5.1
+# 专注核心技术流程：架构设计 + 技术决策
+
+# ============================================================================
+# 文档标识
+# ============================================================================
+document_info:
+  id: "{{SYSTEM}}-{{MODULE}}-{{TIMESTAMP}}-ARCH"
+  title: "{{BUSINESS_TITLE}}"
+  agent: "Agent-B"
+
+# ============================================================================
+# 需求解析 - 来自Agent-A的需求理解
+# ============================================================================
+requirement_analysis:
+  source_requirement: "{{SOURCE_REQ_DOC_ID}}"
+  core_entities: [{{CORE_ENTITIES}}]
+  key_processes: [{{KEY_PROCESSES}}]
+  business_rules: [{{BUSINESS_RULES}}]
+
+# ============================================================================
+# 架构设计 - JeecgBoot四层架构设计
+# ============================================================================
+architecture_design:
+  # 表现层设计
+  presentation_layer:
+    pages:
+      - name: "{{PAGE_NAME_1}}"
+        type: "{{PAGE_TYPE_1}}" # list|form|detail
+        components: [{{PAGE_COMPONENTS_1}}]
+        
+      - name: "{{PAGE_NAME_2}}"
+        type: "{{PAGE_TYPE_2}}"
+        components: [{{PAGE_COMPONENTS_2}}]
+    
+    components:
+      - name: "{{COMPONENT_NAME_1}}"
+        type: "{{COMPONENT_TYPE_1}}" # table|form|modal
+        
+      - name: "{{COMPONENT_NAME_2}}"
+        type: "{{COMPONENT_TYPE_2}}"
+
+  # 业务层设计
+  business_layer:
+    services:
+      - name: "{{SERVICE_NAME_1}}"
+        methods: [{{SERVICE_METHODS_1}}]
+        
+      - name: "{{SERVICE_NAME_2}}"
+        methods: [{{SERVICE_METHODS_2}}]
+    
+    business_logic:
+      - name: "{{LOGIC_NAME_1}}"
+        implementation: "{{LOGIC_IMPLEMENTATION_1}}"
+        
+      - name: "{{LOGIC_NAME_2}}"
+        implementation: "{{LOGIC_IMPLEMENTATION_2}}"
+
+  # 数据访问层设计
+  data_access_layer:
+    entities:
+      - name: "{{ENTITY_NAME_1}}"
+        table: "{{TABLE_NAME_1}}"
+        fields: [{{ENTITY_FIELDS_1}}]
+        
+      - name: "{{ENTITY_NAME_2}}"
+        table: "{{TABLE_NAME_2}}"
+        fields: [{{ENTITY_FIELDS_2}}]
+    
+    repositories:
+      - name: "{{REPOSITORY_NAME_1}}"
+        entity: "{{REPOSITORY_ENTITY_1}}"
+        methods: [{{REPOSITORY_METHODS_1}}]
+
+# ============================================================================
+# 数据模型设计 - MySQL数据库设计
+# ============================================================================
+data_model:
+  tables:
+    - name: "{{TABLE_NAME_1}}"
+      fields:
+        - name: "id"
+          type: "varchar(32)"
+          primary_key: true
+        - name: "{{FIELD_NAME_1_1}}"
+          type: "{{FIELD_TYPE_1_1}}"
+          nullable: "{{FIELD_NULLABLE_1_1}}"
+      indexes: [{{TABLE_INDEXES_1}}]
+      
+    - name: "{{TABLE_NAME_2}}"
+      fields:
+        - name: "id"
+          type: "varchar(32)"
+          primary_key: true
+        - name: "{{FIELD_NAME_2_1}}"
+          type: "{{FIELD_TYPE_2_1}}"
+          nullable: "{{FIELD_NULLABLE_2_1}}"
+      indexes: [{{TABLE_INDEXES_2}}]
+
+  relationships:
+    - type: "{{RELATIONSHIP_TYPE_1}}" # one_to_one|one_to_many|many_to_many
+      from_table: "{{FROM_TABLE_1}}"
+      to_table: "{{TO_TABLE_1}}"
+      foreign_key: "{{FOREIGN_KEY_1}}"
+
+# ============================================================================
+# API接口设计 - RESTful API规范
+# ============================================================================
+api_design:
+  rest_apis:
+    - path: "{{API_PATH_1}}"
+      method: "{{API_METHOD_1}}" # GET|POST|PUT|DELETE
+      description: "{{API_DESCRIPTION_1}}"
+      
+    - path: "{{API_PATH_2}}"
+      method: "{{API_METHOD_2}}"
+      description: "{{API_DESCRIPTION_2}}"
+
+  dto_design:
+    - name: "{{DTO_NAME_1}}"
+      fields: [{{DTO_FIELDS_1}}]
+      
+    - name: "{{DTO_NAME_2}}"
+      fields: [{{DTO_FIELDS_2}}]
+
+# ============================================================================
+# 技术决策 - 架构决策和技术选型
+# ============================================================================
+technical_decisions:
+  architecture_decisions:
+    - decision: "{{ARCH_DECISION_1}}"
+      rationale: "{{ARCH_RATIONALE_1}}"
+      
+    - decision: "{{ARCH_DECISION_2}}"
+      rationale: "{{ARCH_RATIONALE_2}}"
+
+  technology_choices:
+    - component: "{{TECH_COMPONENT_1}}"
+      choice: "{{TECH_CHOICE_1}}"
+      
+    - component: "{{TECH_COMPONENT_2}}"
+      choice: "{{TECH_CHOICE_2}}"
+
+# ============================================================================
+# 技术传递接口 - 传递给Agent-C
+# ============================================================================
+technical_handoff:
+  # 开发组件
+  development_components:
+    entities: [{{ENTITIES}}]
+    services: [{{SERVICES}}]
+    apis: [{{APIS}}]
+    pages: [{{PAGES}}]
+    
+  # 技术规范
+  technical_specifications:
+    database_design: [{{DB_SPECS}}]
+    api_specifications: [{{API_SPECS}}]
+    component_specifications: [{{COMPONENT_SPECS}}]
