@@ -1,0 +1,1084 @@
+# JeecgBoot需求分析文档模板 v4.0
+# 专为 Layer 3 - 需求层 (Requirement Level) EARS+BDD分析设计
+# Agent-A: 需求分析师专用模板
+
+# ============================================================================
+# 📋 v4.0 三层架构文档信息 (重要更新)
+# ============================================================================
+# 本文档属于: Layer 3 - 需求层 (Requirement Level)
+# 命名格式: [SYSTEM]-[MODULE]-[TIMESTAMP]-REQ-[功能名称].yaml
+# 存储位置: ${base_working_directory}/AIGC/[SYSTEM]_[MODULE]/[文档名称].yaml
+# 
+# 当前文档:
+# - 美发管理系统-客户管理-客户生日关怀: HAIR-CUSTOMER-20250803105500-REQ-客户生日关怀功能.yaml
+#
+# 关联文档:
+# - Layer 1: system_base_info_HAIR.yaml (系统基础配置)
+# - Layer 2: requirement_baseline_HAIR_CUSTOMER.yaml (客户管理模块基线)
+# - 相关需求: HAIR-CUSTOMER-20250803103000-REQ-客户信息管理功能.yaml
+#
+# 追溯链标识:
+# - 基线追溯ID: TRACE-REQ-BASELINE-20250803-001-HAIR-CUSTOMER-20250803105500
+# ============================================================================
+
+# ============================================================================
+# 需求文档基础标识信息
+# ============================================================================
+requirement_document_identity:
+  # 文档标识
+  document_id: "HAIR-CUSTOMER-20250803105500-REQ"
+  document_name: "客户生日关怀功能需求分析"
+  document_version: "v1.0"
+  created_timestamp: "2025-08-03 17:55:00"
+  last_updated: "2025-08-03 17:55:00"
+  document_status: "draft" # draft | reviewed | approved | archived
+  
+  # 文档责任人
+  document_owner: "Agent-A 需求分析师"
+  document_reviewers: ["业务分析师", "系统架构师", "客户关系管理专家"]
+  document_approvers: ["项目经理", "技术总监"]
+
+# ============================================================================  
+# 需求套件基础信息
+# ============================================================================
+requirement_suite_info:
+  # 需求套件标识
+  requirement_suite_id: "HAIR-CUSTOMER-20250803105500"
+  business_requirement_title: "客户生日关怀功能"
+  business_requirement_description: "记录客户生日信息，系统自动检测客户生日并发送短信祝福，提升客户关怀服务质量和客户满意度"
+  
+  # 基线关联信息
+  baseline_reference:
+    system_id: "HAIR"
+    system_name: "美发管理系统"
+    baseline_id: "REQ-BASELINE-20250803-001"
+    baseline_name: "美发管理系统客户管理模块需求基线V1.0"
+    baseline_doc_path: "/Users/admin/Work/Github/JeecgBoot/AIGC/requirement_baseline_HAIR_CUSTOMER.yaml"
+    
+  # 模块分类信息
+  module_classification:
+    primary_module: "客户管理"
+    sub_module: "客户关怀服务"
+    business_domain: "客户关系管理"
+    functional_category: "自动化服务"
+
+# ============================================================================
+# 需求变更管理
+# ============================================================================
+requirement_change_management:
+  # 变更请求信息
+  change_request_info:
+    change_request_id: "CR-20250803-001"
+    change_type: "functional_enhancement"
+    change_initiator: "业务用户"
+    change_request_date: "2025-08-03"
+    change_reason: "提升客户关怀服务质量，增强客户粘性"
+    
+  # 变更影响评估
+  change_impact_assessment:
+    # 对现有需求的影响
+    existing_requirements_impact:
+      - impacted_requirement_id: "HAIR-CUSTOMER-20250803103000"
+        impact_type: "data_extension"
+        impact_description: "客户信息管理需要增加生日字段和短信授权字段"
+        impact_level: "medium"
+        
+    # 新增技术组件需求
+    new_technical_components:
+      - component_name: "定时任务调度器"
+        component_type: "scheduled_service"
+        description: "每日检测客户生日的定时任务"
+        
+      - component_name: "短信服务集成"
+        component_type: "third_party_integration"
+        description: "集成第三方短信平台发送祝福短信"
+        
+      - component_name: "消息模板管理"
+        component_type: "business_service"
+        description: "管理生日祝福短信模板"
+        
+    # 权限和安全影响
+    security_impact:
+      - aspect: "数据隐私"
+        description: "客户生日信息属于敏感个人信息"
+        requirement: "需要额外的隐私保护措施"
+        
+      - aspect: "短信发送权限"
+        description: "新增短信发送操作权限"
+        requirement: "需要细粒度的权限控制"
+        
+    # 成本影响评估
+    cost_impact:
+      development_cost: "中等（约5个工作日）"
+      operational_cost: "低（短信费用，按使用量计费）"
+      maintenance_cost: "低（集成稳定后维护成本低）"
+
+# ============================================================================
+# 业务上下文分析
+# ============================================================================
+business_context_analysis:
+  # 业务背景
+  business_background: |
+    美发行业具有服务性质，客户关怀是提升客户满意度和忠诚度的重要手段。生日祝福作为个性化关怀的体现，
+    能够让客户感受到被重视，增强品牌形象。通过系统自动化的生日提醒和祝福，可以确保服务的及时性和一致性，
+    同时减少人工遗漏，提升整体客户服务质量。
+    
+  # 业务价值
+  business_value:
+    primary_value: "提升客户满意度和忠诚度，增强客户粘性"
+    secondary_values:
+      - "自动化客户关怀流程，减少人工成本"
+      - "体现个性化服务，提升品牌形象"
+      - "增加客户触达机会，促进复购"
+      - "建立数字化客户关怀体系"
+      
+  # 关键利益相关者
+  key_stakeholders:
+    primary_stakeholders:
+      - name: "店长"
+        role: "业务决策者"
+        concerns: ["投资回报率", "客户满意度提升", "运营效率"]
+        
+      - name: "客户"
+        role: "服务接受者"
+        concerns: ["个人隐私保护", "服务质量", "个性化体验"]
+        
+    secondary_stakeholders:
+      - name: "前台接待"
+        role: "客户服务人员"
+        concerns: ["操作便利性", "客户反馈处理"]
+        
+      - name: "系统管理员"
+        role: "技术运维"
+        concerns: ["系统稳定性", "第三方服务集成", "成本控制"]
+
+# ============================================================================
+# EARS方法论需求分析
+# ============================================================================
+ears_requirement_analysis:
+  # EARS需求分析概览
+  ears_analysis_overview:
+    total_ears_requirements: 18
+    ubiquitous_requirements: 5
+    event_driven_requirements: 6  
+    unwanted_behavior_requirements: 4
+    state_driven_requirements: 2
+    optional_requirements: 1
+    
+  # 按EARS类型分类的具体需求
+  ears_requirements_by_type:
+    
+    # 普遍性需求 (Ubiquitous Requirements)
+    ubiquitous_requirements:
+      - ears_id: "EARS-UBI-001"
+        ears_type: "ubiquitous"
+        requirement_statement: "系统应当支持在客户信息中录入和管理客户生日信息"
+        business_rationale: "生日信息是生日关怀功能的基础数据，必须准确记录"
+        acceptance_criteria:
+          - "客户信息表单包含生日字段"
+          - "支持日期选择器输入生日"
+          - "生日字段为可选项，不强制填写"
+          - "支持生日信息的修改和更新"
+        priority: "high"
+        complexity: "low"
+        
+      - ears_id: "EARS-UBI-002"
+        ears_type: "ubiquitous"
+        requirement_statement: "系统应当支持客户对生日祝福短信的接收授权管理"
+        business_rationale: "遵守个人信息保护法规，需要客户明确授权才能发送短信"
+        acceptance_criteria:
+          - "客户信息中包含短信接收授权开关"
+          - "默认状态为未授权，需客户主动同意"
+          - "提供授权说明和隐私政策链接"
+          - "支持随时取消授权"
+        priority: "high"
+        complexity: "medium"
+        
+      - ears_id: "EARS-UBI-003"
+        ears_type: "ubiquitous"
+        requirement_statement: "系统应当提供生日祝福短信模板的配置和管理功能"
+        business_rationale: "不同节日或特殊情况需要不同的祝福内容，需要灵活配置"
+        acceptance_criteria:
+          - "提供短信模板创建和编辑界面"
+          - "支持变量占位符（如客户姓名、店铺名称）"
+          - "支持多个模板版本管理"
+          - "提供模板预览和测试功能"
+        priority: "medium"
+        complexity: "medium"
+        
+      - ears_id: "EARS-UBI-004"
+        ears_type: "ubiquitous"
+        requirement_statement: "系统应当记录所有生日祝福短信的发送历史和状态"
+        business_rationale: "需要跟踪短信发送情况，便于问题排查和效果评估"
+        acceptance_criteria:
+          - "记录每条短信的发送时间、接收方、内容"
+          - "记录短信发送状态（成功、失败、等待）"
+          - "提供发送历史查询功能"
+          - "统计发送成功率和失败原因"
+        priority: "medium"
+        complexity: "medium"
+        
+      - ears_id: "EARS-UBI-005"
+        ears_type: "ubiquitous"
+        requirement_statement: "系统应当提供生日提醒功能的开关控制"
+        business_rationale: "业务需要可以灵活控制功能启用状态，支持维护和调试"
+        acceptance_criteria:
+          - "系统设置中提供生日提醒功能总开关"
+          - "支持设置发送时间（如上午9点）"
+          - "提供紧急停止发送功能"
+          - "记录功能启停操作日志"
+        priority: "medium"
+        complexity: "low"
+        
+    # 事件驱动需求 (Event-driven Requirements)  
+    event_driven_requirements:
+      - ears_id: "EARS-EVT-001"
+        ears_type: "event_driven"
+        requirement_statement: "当系统检测到当日是客户生日时，应当触发生日祝福短信发送流程"
+        trigger_event: "定时任务检测到当日有客户生日"
+        system_response: "自动发送生日祝福短信给已授权的客户"
+        business_rationale: "自动化生日关怀是核心功能，确保及时送达祝福"
+        acceptance_criteria:
+          - "每日定时检查客户生日（如上午9点执行）"
+          - "只向已授权接收短信的客户发送"
+          - "使用预设的生日祝福短信模板"
+          - "记录发送结果和状态"
+        priority: "high"
+        complexity: "high"
+        
+      - ears_id: "EARS-EVT-002"
+        ears_type: "event_driven"
+        requirement_statement: "当客户更新生日信息时，系统应当验证日期格式并更新相关记录"
+        trigger_event: "客户生日信息被修改或新增"
+        system_response: "验证日期有效性并保存更新"
+        business_rationale: "确保生日信息的准确性，避免错误的生日提醒"
+        acceptance_criteria:
+          - "验证生日日期格式正确性"
+          - "检查日期合理性（如不能是未来日期）"
+          - "记录生日信息变更历史"
+          - "如当日是生日，提示是否立即发送祝福"
+        priority: "medium"
+        complexity: "medium"
+        
+      - ears_id: "EARS-EVT-003"
+        ears_type: "event_driven"
+        requirement_statement: "当短信发送失败时，系统应当记录失败原因并进行重试处理"
+        trigger_event: "短信发送接口返回失败状态"
+        system_response: "记录失败信息，根据失败类型决定是否重试"
+        business_rationale: "提高短信发送成功率，确保客户能收到生日祝福"
+        acceptance_criteria:
+          - "记录详细的失败原因和错误码"
+          - "对临时性错误进行自动重试（最多3次）"
+          - "对永久性错误（如号码无效）不再重试"
+          - "发送管理员告警通知"
+        priority: "high"
+        complexity: "high"
+        
+      - ears_id: "EARS-EVT-004"
+        ears_type: "event_driven"
+        requirement_statement: "当管理员手动触发生日祝福发送时，系统应当执行安全验证并记录操作"
+        trigger_event: "管理员点击手动发送生日祝福按钮"
+        system_response: "验证权限后执行发送，记录手动操作日志"
+        business_rationale: "支持特殊情况下的手动干预，但需要权限控制和审计"
+        acceptance_criteria:
+          - "验证操作用户的短信发送权限"
+          - "确认目标客户已授权接收短信"
+          - "记录手动发送的操作人和时间"
+          - "提供发送确认和取消选项"
+        priority: "medium"
+        complexity: "medium"
+        
+      - ears_id: "EARS-EVT-005"
+        ears_type: "event_driven"
+        requirement_statement: "当短信余额不足时，系统应当暂停发送并通知管理员"
+        trigger_event: "短信服务商返回余额不足错误"
+        system_response: "暂停自动发送功能，发送告警通知"
+        business_rationale: "避免因余额不足导致的发送失败，及时提醒充值"
+        acceptance_criteria:
+          - "检测余额不足的错误响应"
+          - "自动暂停生日祝福发送功能"
+          - "向管理员发送邮件和系统通知"
+          - "提供余额查询和充值入口"
+        priority: "high"
+        complexity: "medium"
+        
+      - ears_id: "EARS-EVT-006"
+        ears_type: "event_driven"
+        requirement_statement: "当客户取消短信接收授权时，系统应当立即停止向该客户发送任何短信"
+        trigger_event: "客户取消短信接收授权"
+        system_response: "更新客户授权状态，排除在发送列表之外"
+        business_rationale: "尊重客户意愿，遵守隐私保护要求"
+        acceptance_criteria:
+          - "立即更新客户的短信授权状态"
+          - "从当日和未来的发送队列中移除该客户"
+          - "记录取消授权的时间和原因"
+          - "提供重新授权的便捷入口"
+        priority: "high"
+        complexity: "low"
+        
+    # 不期望行为需求 (Unwanted Behavior Requirements)
+    unwanted_behavior_requirements:
+      - ears_id: "EARS-UNW-001"
+        ears_type: "unwanted_behavior"
+        requirement_statement: "系统不应当向未授权接收短信的客户发送生日祝福"
+        unwanted_condition: "向未授权客户发送短信"
+        system_response: "严格验证授权状态，拒绝向未授权客户发送"
+        business_rationale: "遵守个人信息保护法规，避免法律风险"
+        acceptance_criteria:
+          - "发送前必须验证客户授权状态"
+          - "授权状态为空或拒绝的客户不发送"
+          - "记录因未授权而跳过的客户数量"
+          - "定期审计授权状态验证逻辑"
+        priority: "high"
+        complexity: "low"
+        
+      - ears_id: "EARS-UNW-002"
+        ears_type: "unwanted_behavior"
+        requirement_statement: "系统不应当在同一天内向同一客户重复发送生日祝福短信"
+        unwanted_condition: "同一客户同一天收到多条生日祝福短信"
+        system_response: "检查发送历史，避免重复发送"
+        business_rationale: "避免骚扰客户，提升用户体验"
+        acceptance_criteria:
+          - "发送前检查当日是否已发送给该客户"
+          - "使用客户ID和日期作为唯一性约束"
+          - "记录重复发送尝试并告警"
+          - "提供手动清除发送记录的功能（紧急情况）"
+        priority: "high"
+        complexity: "medium"
+        
+      - ears_id: "EARS-UNW-003"
+        ears_type: "unwanted_behavior"
+        requirement_statement: "系统不应当在非营业时间发送生日祝福短信"
+        unwanted_condition: "在深夜或清晨等不适宜时间发送短信"
+        system_response: "限制短信发送时间在合理范围内"
+        business_rationale: "避免在不合适的时间打扰客户，体现人性化关怀"
+        acceptance_criteria:
+          - "设置短信发送时间窗口（如9:00-18:00）"
+          - "超出时间窗口的发送任务延迟到下一个窗口"
+          - "提供时间窗口配置功能"
+          - "记录因时间限制而延迟的发送任务"
+        priority: "medium"
+        complexity: "medium"
+        
+      - ears_id: "EARS-UNW-004"
+        ears_type: "unwanted_behavior"
+        requirement_statement: "系统不应当发送包含错误信息或格式不当的生日祝福短信"
+        unwanted_condition: "短信内容包含未替换的变量占位符或格式错误"
+        system_response: "发送前验证短信内容完整性和格式正确性"
+        business_rationale: "确保短信内容专业和准确，维护品牌形象"
+        acceptance_criteria:
+          - "发送前验证所有变量已正确替换"
+          - "检查短信长度不超过限制"
+          - "验证特殊字符和表情符号兼容性"
+          - "提供短信内容预览和测试功能"
+        priority: "medium"
+        complexity: "medium"
+        
+    # 状态驱动需求 (State-driven Requirements)
+    state_driven_requirements:
+      - ears_id: "EARS-STA-001"
+        ears_type: "state_driven"
+        requirement_statement: "当短信服务处于维护状态时，系统应当暂停生日祝福发送并记录待发送任务"
+        system_state: "第三方短信服务不可用或系统维护中"
+        system_behavior: "暂停发送，保存待发送任务，服务恢复后继续"
+        business_rationale: "确保服务中断期间的任务不丢失，恢复后及时补发"
+        acceptance_criteria:
+          - "检测短信服务可用性"
+          - "服务不可用时暂停定时任务"
+          - "记录因服务不可用而暂停的任务"
+          - "服务恢复后自动恢复发送"
+        priority: "medium"
+        complexity: "high"
+        
+      - ears_id: "EARS-STA-002"
+        ears_type: "state_driven"
+        requirement_statement: "当系统处于测试模式时，生日祝福短信应当只发送到测试号码"
+        system_state: "系统配置为测试模式"
+        system_behavior: "拦截正常发送，只向预设测试号码发送"
+        business_rationale: "避免测试期间向真实客户发送测试短信"
+        acceptance_criteria:
+          - "测试模式下拦截所有客户短信"
+          - "只向配置的测试号码发送"
+          - "测试短信包含测试标识"
+          - "记录测试模式下的发送行为"
+        priority: "medium"
+        complexity: "medium"
+        
+    # 可选需求 (Optional Requirements)
+    optional_requirements:
+      - ears_id: "EARS-OPT-001"
+        ears_type: "optional"
+        requirement_statement: "系统可以支持生日祝福短信的个性化定制，如根据客户偏好选择不同模板"
+        business_rationale: "提供更个性化的服务体验，但不是必需功能"
+        acceptance_criteria:
+          - "客户可以选择喜欢的祝福风格"
+          - "系统根据客户历史偏好推荐模板"
+          - "支持客户自定义昵称"
+          - "提供多语言祝福模板"
+        priority: "low"
+        complexity: "high"
+        implementation_decision: "后续版本根据用户反馈决定是否实现"
+
+# ============================================================================
+# BDD场景设计
+# ============================================================================
+bdd_scenario_design:
+  # BDD场景分析概览
+  bdd_analysis_overview:
+    total_bdd_scenarios: 15
+    functional_scenarios: 8
+    exception_scenarios: 4
+    boundary_scenarios: 2
+    integration_scenarios: 1
+    
+  # 按场景类型分类的BDD测试场景
+  bdd_scenarios_by_type:
+    
+    # 功能性场景 (Functional Scenarios)
+    functional_scenarios:
+      - scenario_id: "BDD-FUNC-001"
+        scenario_name: "成功录入客户生日信息"
+        scenario_type: "functional"
+        feature: "客户生日信息管理"
+        background: |
+          Given 系统已正常启动
+          And 用户已登录系统
+          And 用户有客户信息管理权限
+        scenario: |
+          Given 用户正在编辑客户信息
+          When 用户在生日字段中选择日期"1990-05-15"
+          And 用户勾选"同意接收生日祝福短信"授权选项
+          And 用户点击保存按钮
+          Then 系统应该成功保存客户生日信息
+          And 客户的短信接收授权状态更新为已授权
+          And 系统显示保存成功提示
+        expected_outcome: "客户生日信息和短信授权状态正确保存"
+        
+      - scenario_id: "BDD-FUNC-002"
+        scenario_name: "自动发送生日祝福短信"
+        scenario_type: "functional"
+        feature: "自动生日祝福"
+        background: |
+          Given 系统中存在生日为今天的客户
+          And 该客户已授权接收短信
+          And 生日祝福功能已启用
+          And 短信服务正常可用
+        scenario: |
+          Given 今天是"2025-05-15"
+          And 客户张三的生日是"1990-05-15"
+          And 客户张三已授权接收生日祝福短信
+          When 系统执行每日生日检查定时任务
+          Then 系统应该识别出张三今天生日
+          And 使用预设模板生成生日祝福短信
+          And 成功发送短信到张三的手机号
+          And 记录发送成功状态和时间
+        expected_outcome: "生日客户自动收到祝福短信"
+        
+      - scenario_id: "BDD-FUNC-003"
+        scenario_name: "配置生日祝福短信模板"
+        scenario_type: "functional"
+        feature: "短信模板管理"
+        background: |
+          Given 用户已登录系统
+          And 用户有短信模板管理权限
+        scenario: |
+          Given 用户访问短信模板管理页面
+          When 用户点击"新建模板"按钮
+          And 输入模板名称"标准生日祝福"
+          And 输入模板内容"亲爱的{客户姓名}，{店铺名称}祝您生日快乐！"
+          And 点击保存按钮
+          Then 系统应该成功创建短信模板
+          And 模板列表中显示新创建的模板
+          And 提供模板预览功能
+        expected_outcome: "短信模板成功创建并可用于发送"
+        
+      - scenario_id: "BDD-FUNC-004"
+        scenario_name: "查看生日祝福发送历史"
+        scenario_type: "functional"
+        feature: "发送历史查询"
+        background: |
+          Given 系统已发送多条生日祝福短信
+          And 用户有查看发送历史的权限
+        scenario: |
+          Given 用户访问短信发送历史页面
+          When 用户选择日期范围"2025-05-01"到"2025-05-31"
+          And 点击查询按钮
+          Then 系统应该显示该时间段内的发送记录
+          And 包括客户姓名、手机号、发送时间、发送状态
+          And 提供发送状态筛选功能（成功/失败/等待）
+          And 显示发送成功率统计
+        expected_outcome: "准确显示指定时间段的发送历史和统计"
+        
+      - scenario_id: "BDD-FUNC-005"
+        scenario_name: "手动发送生日祝福"
+        scenario_type: "functional"
+        feature: "手动发送功能"
+        background: |
+          Given 用户有手动发送短信的权限
+          And 存在已授权的客户信息
+        scenario: |
+          Given 用户在客户详情页面
+          And 该客户已授权接收短信
+          When 用户点击"发送生日祝福"按钮
+          And 选择短信模板"标准生日祝福"
+          And 确认发送
+          Then 系统应该验证用户权限
+          And 检查客户授权状态
+          And 成功发送生日祝福短信
+          And 记录手动发送操作日志
+        expected_outcome: "手动生日祝福发送成功并记录操作"
+        
+      - scenario_id: "BDD-FUNC-006"
+        scenario_name: "客户取消短信授权"
+        scenario_type: "functional"
+        feature: "授权管理"
+        background: |
+          Given 客户已授权接收生日祝福短信
+        scenario: |
+          Given 用户在客户信息编辑页面
+          And 客户当前授权状态为"已授权"
+          When 用户取消勾选"同意接收生日祝福短信"
+          And 点击保存按钮
+          Then 系统应该更新客户授权状态为"未授权"
+          And 从未来的发送队列中移除该客户
+          And 记录授权状态变更日志
+          And 显示授权取消成功提示
+        expected_outcome: "客户授权状态成功取消，不再发送短信"
+        
+      - scenario_id: "BDD-FUNC-007"
+        scenario_name: "管理员控制生日祝福功能开关"
+        scenario_type: "functional"
+        feature: "功能开关控制"
+        background: |
+          Given 用户有系统管理员权限
+        scenario: |
+          Given 用户访问系统设置页面
+          And 生日祝福功能当前状态为"启用"
+          When 用户点击"暂停生日祝福功能"开关
+          And 确认操作
+          Then 系统应该将功能状态更新为"暂停"
+          And 停止执行定时生日检查任务
+          And 记录功能状态变更日志
+          And 显示功能已暂停提示
+        expected_outcome: "生日祝福功能成功暂停，不再自动发送"
+        
+      - scenario_id: "BDD-FUNC-008"
+        scenario_name: "短信模板变量替换测试"
+        scenario_type: "functional"
+        feature: "模板变量处理"
+        background: |
+          Given 系统中存在包含变量的短信模板
+          And 客户信息完整包含姓名等字段
+        scenario: |
+          Given 短信模板内容为"亲爱的{客户姓名}，{店铺名称}祝您生日快乐！"
+          And 客户姓名为"李四"
+          And 店铺名称为"时尚发廊"
+          When 系统生成生日祝福短信
+          Then 系统应该正确替换所有变量占位符
+          And 生成的短信内容为"亲爱的李四，时尚发廊祝您生日快乐！"
+          And 验证短信内容不包含未替换的占位符
+        expected_outcome: "短信模板变量正确替换，内容完整准确"
+        
+    # 异常场景 (Exception Scenarios)
+    exception_scenarios:
+      - scenario_id: "BDD-EXC-001"
+        scenario_name: "短信发送失败处理"
+        scenario_type: "exception"
+        feature: "短信发送异常处理"
+        background: |
+          Given 系统检测到客户生日
+          And 客户已授权接收短信
+          And 短信服务出现临时故障
+        scenario: |
+          Given 今天是客户王五的生日
+          And 客户王五已授权接收短信
+          When 系统尝试发送生日祝福短信
+          And 短信服务返回"网络超时"错误
+          Then 系统应该记录发送失败状态和错误原因
+          And 标记该任务为待重试状态
+          And 在30分钟后自动重试发送
+          And 向管理员发送异常告警
+          When 重试发送成功
+          Then 更新发送状态为成功
+        expected_outcome: "短信发送失败时自动重试并记录详细状态"
+        
+      - scenario_id: "BDD-EXC-002"
+        scenario_name: "短信余额不足处理"
+        scenario_type: "exception"
+        feature: "余额不足异常处理"
+        background: |
+          Given 系统正在执行生日祝福发送
+          And 短信服务余额即将用完
+        scenario: |
+          Given 系统正在批量发送生日祝福
+          When 短信服务返回"余额不足"错误
+          Then 系统应该立即暂停所有待发送任务
+          And 记录余额不足的时间和影响范围
+          And 向管理员发送紧急通知邮件
+          And 在系统中显示余额不足警告
+          And 提供余额查询和充值入口链接
+        expected_outcome: "余额不足时及时暂停并通知管理员处理"
+        
+      - scenario_id: "BDD-EXC-003"
+        scenario_name: "生日日期格式错误处理"
+        scenario_type: "exception"
+        feature: "数据验证异常处理"
+        background: |
+          Given 用户正在录入客户生日信息
+        scenario: |
+          Given 用户在生日字段输入"13/32/1990"（无效日期）
+          When 用户点击保存按钮
+          Then 系统应该验证日期格式
+          And 显示"日期格式不正确"错误提示
+          And 阻止保存操作
+          And 提示正确的日期格式示例
+          And 生日字段保持焦点状态
+        expected_outcome: "无效生日日期被拒绝，用户得到明确提示"
+        
+      - scenario_id: "BDD-EXC-004"
+        scenario_name: "定时任务执行异常处理"
+        scenario_type: "exception"
+        feature: "定时任务异常处理"
+        background: |
+          Given 系统定时任务正常运行
+          And 数据库连接出现问题
+        scenario: |
+          Given 每日生日检查定时任务开始执行
+          When 数据库连接超时或异常
+          Then 系统应该捕获数据库异常
+          And 记录详细的错误日志
+          And 向管理员发送异常告警
+          And 在下一个执行周期重试任务
+          And 不影响其他系统功能正常运行
+        expected_outcome: "定时任务异常不影响系统稳定性，有完善的错误处理"
+        
+    # 边界场景 (Boundary Scenarios)
+    boundary_scenarios:
+      - scenario_id: "BDD-BND-001"
+        scenario_name: "大量生日客户批量发送性能测试"
+        scenario_type: "boundary"
+        feature: "批量发送性能"
+        background: |
+          Given 今天是特殊日期，有100+客户同时过生日
+          And 所有客户都已授权接收短信
+        scenario: |
+          Given 今天有150个不同客户过生日
+          When 系统执行生日检查定时任务
+          Then 系统应该在30分钟内完成所有短信发送
+          And 每秒发送速率不超过短信服务商限制
+          And 内存使用保持在合理范围内
+          And 不影响其他系统功能响应时间
+          And 记录批量发送的性能指标
+        expected_outcome: "大批量发送时系统保持稳定性能"
+        
+      - scenario_id: "BDD-BND-002"
+        scenario_name: "闰年2月29日生日处理"
+        scenario_type: "boundary"
+        feature: "特殊日期处理"
+        background: |
+          Given 客户生日设置为"1992-02-29"（闰年2月29日）
+          And 当前年份为非闰年
+        scenario: |
+          Given 客户张三生日为"1992-02-29"
+          And 今天是"2025-03-01"（非闰年，无2月29日）
+          When 系统执行生日检查
+          Then 系统应该识别出张三的生日
+          And 在2月28日或3月1日发送生日祝福
+          And 记录闰年生日的特殊处理逻辑
+          And 确保客户每年都能收到生日祝福
+        expected_outcome: "闰年出生客户在非闰年也能正常收到生日祝福"
+        
+    # 集成场景 (Integration Scenarios)
+    integration_scenarios:
+      - scenario_id: "BDD-INT-001"
+        scenario_name: "与第三方短信服务集成测试"
+        scenario_type: "integration"
+        feature: "短信服务集成"
+        background: |
+          Given 系统已配置第三方短信服务API
+          And 短信服务商账户余额充足
+          And 网络连接正常
+        scenario: |
+          Given 系统需要发送生日祝福短信
+          When 调用第三方短信服务API
+          And 传递手机号"13800138000"和短信内容
+          Then 第三方服务应该返回成功状态码
+          And 包含短信ID和发送时间戳
+          And 系统记录第三方返回的所有信息
+          And 可以通过短信ID查询发送状态
+          When 第三方服务状态回调
+          Then 系统更新本地短信发送状态
+        expected_outcome: "与第三方短信服务集成完整且状态同步准确"
+
+# ============================================================================
+# 需求追溯性矩阵
+# ============================================================================
+requirements_traceability_matrix:
+  # 业务需求到系统需求的映射
+  business_to_system_mapping:
+    - business_requirement: "提升客户关怀服务质量"
+      system_requirements: ["EARS-UBI-001", "EARS-UBI-002", "EARS-EVT-001", "EARS-UBI-003"]
+      rationale: "通过生日信息收集、授权管理和自动发送实现客户关怀"
+      
+    - business_requirement: "自动化客户关怀流程"
+      system_requirements: ["EARS-EVT-001", "EARS-UBI-005", "EARS-STA-001"]
+      rationale: "定时任务和功能开关实现自动化流程管理"
+      
+    - business_requirement: "遵守个人信息保护法规"
+      system_requirements: ["EARS-UBI-002", "EARS-UNW-001", "EARS-EVT-006"]
+      rationale: "授权管理和权限控制确保合规性"
+      
+    - business_requirement: "确保服务质量和可靠性"
+      system_requirements: ["EARS-UBI-004", "EARS-EVT-003", "EARS-UNW-002", "EARS-UNW-004"]
+      rationale: "发送记录、重试机制和质量控制保证服务质量"
+      
+  # 系统需求到测试场景的映射
+  system_to_test_mapping:
+    - system_requirement: "EARS-UBI-001"
+      test_scenarios: ["BDD-FUNC-001", "BDD-EXC-003"]
+      coverage_level: "complete"
+      
+    - system_requirement: "EARS-UBI-002"
+      test_scenarios: ["BDD-FUNC-001", "BDD-FUNC-006"]
+      coverage_level: "complete"
+      
+    - system_requirement: "EARS-EVT-001"
+      test_scenarios: ["BDD-FUNC-002", "BDD-BND-001"]
+      coverage_level: "complete"
+      
+    - system_requirement: "EARS-UBI-003"
+      test_scenarios: ["BDD-FUNC-003", "BDD-FUNC-008"]
+      coverage_level: "complete"
+      
+    - system_requirement: "EARS-EVT-003"
+      test_scenarios: ["BDD-EXC-001", "BDD-EXC-002"]
+      coverage_level: "complete"
+      
+  # 测试覆盖率分析
+  test_coverage_analysis:
+    functional_coverage: 90%
+    exception_coverage: 85%
+    boundary_coverage: 70%
+    integration_coverage: 80%
+    overall_coverage: 85%
+    
+    coverage_gaps:
+      - gap_id: "GAP-001"
+        description: "个性化短信模板功能测试覆盖不足"
+        impact: "low"
+        recommendation: "该功能为可选需求，暂不补充测试"
+
+# ============================================================================
+# 非功能性需求
+# ============================================================================
+non_functional_requirements:
+  # 性能需求
+  performance_requirements:
+    - nfr_id: "NFR-PERF-001"
+      requirement_type: "performance"
+      requirement_statement: "批量生日祝福发送不超过30分钟完成"
+      measurement_criteria: "100个客户的生日祝福发送完成时间"
+      target_value: "≤ 30分钟"
+      acceptance_threshold: "在正常网络条件下测试验证"
+      
+    - nfr_id: "NFR-PERF-002"
+      requirement_type: "performance"
+      requirement_statement: "定时任务执行不影响系统响应性能"
+      measurement_criteria: "定时任务执行期间系统响应时间"
+      target_value: "响应时间增幅≤20%"
+      acceptance_threshold: "性能监控验证"
+      
+  # 可靠性需求
+  reliability_requirements:
+    - nfr_id: "NFR-RELI-001"
+      requirement_type: "reliability"
+      requirement_statement: "短信发送成功率达到95%以上"
+      measurement_criteria: "成功发送短信数量与总发送数量比率"
+      target_value: "≥95%成功率"
+      acceptance_threshold: "月度统计验证"
+      
+    - nfr_id: "NFR-RELI-002"
+      requirement_type: "reliability"
+      requirement_statement: "定时任务执行可靠性达到99%"
+      measurement_criteria: "定时任务成功执行次数与计划执行次数比率"
+      target_value: "≥99%执行成功率"
+      acceptance_threshold: "系统监控验证"
+      
+  # 安全性需求
+  security_requirements:
+    - nfr_id: "NFR-SECU-001"
+      requirement_type: "security"
+      requirement_statement: "客户生日信息和短信内容加密存储"
+      measurement_criteria: "数据库加密和传输加密检查"
+      target_value: "100%敏感数据加密"
+      acceptance_threshold: "安全审计验证"
+      
+    - nfr_id: "NFR-SECU-002"
+      requirement_type: "security"
+      requirement_statement: "短信发送操作需要审计日志记录"
+      measurement_criteria: "操作日志完整性和准确性"
+      target_value: "100%操作记录"
+      acceptance_threshold: "日志审查验证"
+
+# ============================================================================
+# 技术约束条件
+# ============================================================================
+technical_constraints:
+  # 技术架构约束
+  architecture_constraints:
+    - constraint_id: "ARCH-CONS-001"
+      constraint_type: "architecture"
+      constraint_description: "必须基于JeecgBoot框架的定时任务机制"
+      constraint_rationale: "保持系统架构一致性"
+      impact_assessment: "使用框架提供的Quartz定时任务"
+      
+  # 集成约束
+  integration_constraints:
+    - constraint_id: "INTG-CONS-001"
+      constraint_type: "integration"
+      constraint_description: "短信服务必须支持主流服务商API"
+      constraint_rationale: "确保服务可用性和成本控制"
+      impact_assessment: "需要抽象短信服务接口，支持多服务商切换"
+      
+  # 合规约束
+  compliance_constraints:
+    - constraint_id: "COMP-CONS-001"
+      constraint_type: "compliance"
+      constraint_description: "必须遵守个人信息保护法和短信发送规范"
+      constraint_rationale: "法律合规要求"
+      impact_assessment: "严格的授权验证和退订机制"
+
+# ============================================================================
+# 数据需求分析
+# ============================================================================
+data_requirements_analysis:
+  # 数据实体扩展
+  data_entity_extensions:
+    - entity_name: "Customer"
+      extension_type: "field_addition"
+      new_fields:
+        - "birthday": "生日日期（DATE类型）"
+        - "sms_birthday_consent": "生日短信接收授权（BOOLEAN类型）"
+        - "sms_consent_date": "授权时间（DATETIME类型）"
+      impact: "需要数据迁移脚本处理现有客户数据"
+      
+  # 新增数据实体
+  new_data_entities:
+    - entity_id: "ENTITY-001"
+      entity_name: "BirthdaySmsTemplate"
+      entity_description: "生日祝福短信模板"
+      key_attributes:
+        - "template_id": "模板标识"
+        - "template_name": "模板名称"
+        - "template_content": "模板内容"
+        - "is_active": "是否启用"
+        - "created_date": "创建时间"
+        
+    - entity_id: "ENTITY-002"
+      entity_name: "BirthdaySmsLog"
+      entity_description: "生日短信发送记录"
+      key_attributes:
+        - "log_id": "日志标识"
+        - "customer_id": "客户标识"
+        - "send_date": "发送日期"
+        - "send_status": "发送状态"
+        - "sms_content": "短信内容"
+        - "error_message": "错误信息"
+        - "retry_count": "重试次数"
+
+# ============================================================================
+# CodeGen代码生成适用性评估
+# ============================================================================
+codegen_applicability_assessment:
+  # 整体评估结果
+  overall_assessment:
+    codegen_applicability_score: 55
+    applicability_level: "medium"
+    recommended_approach: "hybrid" # full_codegen | hybrid | manual
+    
+  # 详细评估分析
+  detailed_assessment:
+    # 高适用性组件（建议代码生成）
+    high_applicability_components:
+      - component_name: "客户生日信息CRUD接口"
+        applicability_score: 90
+        rationale: "标准的数据库操作，适合自动生成"
+        recommended_generation_approach: "完全代码生成"
+        estimated_generation_accuracy: 95
+        
+      - component_name: "短信模板管理界面"
+        applicability_score: 85
+        rationale: "标准的管理界面，模板化程度高"
+        recommended_generation_approach: "完全代码生成"
+        estimated_generation_accuracy: 90
+        
+      - component_name: "发送历史查询功能"
+        applicability_score: 80
+        rationale: "常见的查询展示功能"
+        recommended_generation_approach: "完全代码生成"
+        estimated_generation_accuracy: 85
+        
+    # 中等适用性组件（建议混合开发）
+    medium_applicability_components:
+      - component_name: "短信模板变量替换逻辑"
+        applicability_score: 60
+        rationale: "有一定复杂性的文本处理逻辑"
+        recommended_generation_approach: "框架生成+手动定制"
+        estimated_generation_accuracy: 70
+        manual_development_areas: ["复杂变量处理", "格式验证", "安全过滤"]
+        
+      - component_name: "定时任务配置和管理"
+        applicability_score: 65
+        rationale: "基于框架的定时任务但需要业务定制"
+        recommended_generation_approach: "框架生成+手动定制"
+        estimated_generation_accuracy: 75
+        manual_development_areas: ["任务调度策略", "异常处理", "状态管理"]
+        
+    # 低适用性组件（建议手动开发）
+    low_applicability_components:
+      - component_name: "第三方短信服务集成"
+        applicability_score: 30
+        rationale: "涉及复杂的第三方API集成和错误处理"
+        recommended_generation_approach: "手动开发"
+        manual_development_reasons: ["多服务商适配", "复杂错误处理", "回调处理"]
+        
+      - component_name: "生日检测和批量发送逻辑"
+        applicability_score: 25
+        rationale: "核心业务逻辑，需要精确控制和优化"
+        recommended_generation_approach: "手动开发"
+        manual_development_reasons: ["复杂生日匹配算法", "批量处理优化", "重试机制"]
+        
+      - component_name: "授权管理和合规控制"
+        applicability_score: 20
+        rationale: "涉及法律合规和安全控制，需要精细化处理"
+        recommended_generation_approach: "手动开发"
+        manual_development_reasons: ["合规验证逻辑", "权限控制", "审计追踪"]
+        
+  # 代码生成策略建议
+  generation_strategy_recommendations:
+    phase_1_full_codegen:
+      - "客户生日字段扩展"
+      - "短信模板CRUD功能"
+      - "发送历史查询界面"
+      - "基础数据模型"
+      estimated_completion: 40
+      
+    phase_2_hybrid_development:
+      - "定时任务框架搭建"
+      - "短信模板处理逻辑"
+      - "基础权限验证"
+      estimated_completion: 35
+      
+    phase_3_manual_development:
+      - "第三方短信服务集成"
+      - "生日检测核心算法"
+      - "批量发送优化"
+      - "异常处理和重试机制"
+      - "合规控制和审计"
+      estimated_completion: 25
+
+# ============================================================================
+# 项目管理信息
+# ============================================================================
+project_management_information:
+  # 开发计划
+  development_planning:
+    estimated_development_effort:
+      total_story_points: 34
+      total_person_hours: 85
+      total_person_days: 11
+      complexity_factor: 1.6
+      
+    development_phases:
+      - phase_name: "需求确认和第三方调研"
+        estimated_days: 2
+        key_activities: ["需求细化", "短信服务商调研", "合规要求分析"]
+        deliverables: ["需求确认文档", "技术调研报告", "服务商选型方案"]
+        
+      - phase_name: "基础功能开发"
+        estimated_days: 5
+        key_activities: ["数据模型扩展", "CRUD功能开发", "基础界面开发"]
+        deliverables: ["数据库结构", "基础功能模块", "管理界面"]
+        
+      - phase_name: "核心逻辑开发"
+        estimated_days: 4
+        key_activities: ["定时任务开发", "短信集成", "生日检测逻辑"]
+        deliverables: ["定时任务", "短信发送功能", "核心业务逻辑"]
+        
+  # 风险管理
+  risk_management:
+    identified_risks:
+      - risk_id: "RISK-001"
+        risk_description: "第三方短信服务可靠性和成本控制"
+        risk_probability: "medium"
+        risk_impact: "high"
+        mitigation_strategy: "选择可靠服务商，设计多服务商切换机制"
+        
+      - risk_id: "RISK-002"
+        risk_description: "个人信息保护法规合规风险"
+        risk_probability: "low"
+        risk_impact: "high"
+        mitigation_strategy: "咨询法务专家，严格按照法规要求设计"
+        
+      - risk_id: "RISK-003"
+        risk_description: "定时任务性能影响系统运行"
+        risk_probability: "medium"
+        risk_impact: "medium"
+        mitigation_strategy: "合理设计任务调度策略，做好性能测试"
+
+# ============================================================================
+# 附加信息和说明
+# ============================================================================
+additional_information:
+  # 重要假设条件
+  key_assumptions:
+    - "客户愿意提供生日信息并授权接收短信"
+    - "第三方短信服务稳定可靠，费用合理"
+    - "系统运行环境支持定时任务执行"
+    - "法律法规允许在客户授权下发送生日祝福短信"
+    
+  # 约束条件
+  constraints:
+    - "必须严格遵守个人信息保护相关法规"
+    - "短信发送成本需要控制在合理范围内"
+    - "不能影响现有系统的稳定性和性能"
+    - "需要提供完整的审计追踪功能"
+    
+  # 成功标准
+  success_criteria:
+    - "客户生日当天能及时收到祝福短信"
+    - "短信发送成功率达到95%以上"
+    - "客户满意度调查中生日关怀评分提升"
+    - "系统运行稳定，无性能问题"
+    
+  # 未来扩展考虑
+  future_considerations:
+    - "支持其他节日和纪念日提醒"
+    - "集成微信、邮件等多渠道祝福"
+    - "基于客户行为的个性化祝福内容"
+    - "客户生日预约优惠活动自动推送"
+
+# ============================================================================  
+# 文档维护信息
+# ============================================================================
+document_maintenance:
+  # 变更历史
+  change_history:
+    - version: "v1.0"
+      date: "2025-08-03"
+      author: "Agent-A 需求分析师"
+      changes: ["初始版本创建", "完成EARS需求分析", "完成BDD场景设计", "变更影响评估"]
+      
+  # 下一步行动
+  next_actions:
+    - action: "更新客户管理模块基线文档"
+      responsible: "需求分析师"
+      due_date: "需求确认后"
+      
+    - action: "第三方短信服务商技术调研"
+      responsible: "系统架构师"
+      due_date: "架构设计阶段"
+      
+    - action: "个人信息保护合规审查"
+      responsible: "法务顾问"
+      due_date: "开发开始前"
