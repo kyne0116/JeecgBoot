@@ -1,691 +1,93 @@
-# JeecgBoot AI Agent协作需求分析模板 v4.0
-# 基于BDD/EARS技术的结构化需求收集，专为Agent-A（需求分析师）设计
-# 支持三层架构的Layer 3 - 需求层 (Requirement Level)
+# JeecgBoot需求分析模板 v5.1
+# 专注核心技术流程：需求理解 + 需求分析
 
 # ============================================================================
-# 📁 v4.0 三层架构存储规范 (重要更新)
+# 文档标识
 # ============================================================================
-# 本模板属于: Layer 3 - 需求层 (Requirement Level)
-# 命名格式: [SYSTEM]-[MODULE]-[TIMESTAMP]-REQ-[TITLE].yaml
-# 存储位置: ${base_working_directory}/AIGC/[SYSTEM]_[MODULE]/[SYSTEM]-[MODULE]-[TIMESTAMP]-REQ-[TITLE].yaml
-# 
-# 示例路径:
-# - 汽车4S店-基础信息: /Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_INFO/AUTO-INFO-20250731150000-REQ-汽车基本信息维护.yaml
-# - 汽车4S店-销售信息: /Users/admin/Work/Github/JeecgBoot/AIGC/AUTO_SALE/AUTO-SALE-20250731160000-REQ-汽车销售信息维护.yaml
-#
-# 4-Agent协作文档链:
-# - REQ: [SYSTEM]-[MODULE]-[TIMESTAMP]-REQ-[TITLE].yaml (需求分析 - Agent-A)
-# - ARCH: [SYSTEM]-[MODULE]-[TIMESTAMP]-ARCH-[TITLE].yaml (架构设计 - Agent-B)
-# - DEV: [SYSTEM]-[MODULE]-[TIMESTAMP]-DEV-[TITLE].yaml (开发任务 - Agent-C)
-# - TEST: [SYSTEM]-[MODULE]-[TIMESTAMP]-TEST-[TITLE].yaml (测试设计 - Agent-D)
-# ============================================================================
-#
-# ============================================================================
-# 📁 新文件命名规范 (重要更新)
-# ============================================================================
-# 需求编号格式: 系统功能模块-子功能模块-年月日时分秒
-# 示例: ECOM-PROD-20250731143000 (电商-产品管理-2025年7月31日14:30:00)
-#
-# 此文档命名: ECOM-PROD-20250731143000-REQ-产品管理功能.yaml
-# 建议保存路径: /ContextDev/example/ECOM-PROD-20250731143000-产品管理功能/ECOM-PROD-20250731143000-REQ-产品管理功能.yaml
-#
-# 命名说明:
-# - 系统功能模块: ECOM(电商) | CRM(客户管理) | ERP(企业资源) | OA(办公自动化)
-# - 子功能模块: PROD(产品) | ORDER(订单) | USER(用户) | PAY(支付) 等
-# - 年月日时分秒: 20250731143000 (2025年7月31日14:30:00)
-# - REQ: 标识这是需求分析环节的文档
-# - 需求标题: 产品管理功能 (业务功能描述)
-# ============================================================================
+document_info:
+  id: "{{SYSTEM}}-{{MODULE}}-{{TIMESTAMP}}-REQ"
+  title: "{{BUSINESS_TITLE}}"
+  agent: "Agent-A"
 
 # ============================================================================
-# Agent协作协议声明
+# 需求理解 - 业务需求准确理解和解析
 # ============================================================================
-agent_collaboration_protocol:
-  source_agent: "Agent-A (需求分析师)"
-  target_agent: "Agent-B (架构设计师)"
-  communication_standard: "BDD/EARS结构化协议"
-  quality_target: "格式一致性>95%, 追溯完整性100%"
-  processing_time_target: "<30秒/需求项"
-
-# ============================================================================
-# 输出元数据规范 (Agent-A必须填写)
-# ============================================================================
-requirement_metadata:
-  # 文档标识
-  document_identity:
-    requirement_doc_id: "{{SYSTEM_MODULE}}-{{SUB_MODULE}}-{{YYYYMMDDHHMMSS}}-REQ" # 如：ECOM-PROD-20250731143000-REQ
-    created_timestamp: "{{YYYY-MM-DD HH:MM:SS}}"
-    agent_version: "Agent-A v{{VERSION}}"
-    processing_duration: "{{SECONDS}}s"
-    
-  # 基线和系统关联信息
-  baseline_and_system_reference:
-    # 需求基线引用
-    baseline_reference:
-      baseline_id: "{{BASELINE_ID}}" # 来自需求基线模板
-      baseline_version: "{{BASELINE_VERSION}}" # 基线版本
-      requirement_suite_id: "{{REQUIREMENT_SUITE_ID}}" # 本需求在基线中的套件ID
-      baseline_doc_path: "{{BASELINE_DOC_PATH}}" # 基线文档路径
-      
-    # 系统基础信息引用  
-    system_reference:
-      system_id: "{{SYSTEM_ID}}" # 来自系统基础模板
-      system_name: "{{SYSTEM_NAME}}" # 系统名称
-      system_base_doc_path: "{{SYSTEM_BASE_DOC_PATH}}" # 系统基础文档路径
-      jeecg_version: "{{JEECG_VERSION}}" # 继承的JeecgBoot版本
-      
-    # 追溯链起点
-    traceability_chain_origin:
-      business_requirement_source: "{{BUSINESS_REQUIREMENT_SOURCE}}" # 原始业务需求来源
-      system_level_traceability_id: "{{SYSTEM_TRACEABILITY_ID}}" # 系统级追溯ID
-      baseline_level_traceability_id: "{{BASELINE_TRACEABILITY_ID}}" # 基线级追溯ID
-      
-  # 源输入信息
-  source_input_info:
-    original_business_input: |
-      {{ORIGINAL_BUSINESS_REQUIREMENT_INPUT}}
-    input_complexity: "{{COMPLEXITY}}" # simple | medium | complex
-    input_language: "{{LANGUAGE}}" # zh-CN | en-US
-    business_domain: "{{BUSINESS_DOMAIN}}" # 继承自基线的业务领域
-    requirement_priority: "{{REQUIREMENT_PRIORITY}}" # 继承自基线的需求优先级
-    
-  # JeecgBoot环境上下文
-  jeecg_context:
-    framework_version: "{{JEECG_VERSION}}" # 默认3.8.1
-    target_module_type: "{{MODULE_TYPE}}" # system | custom | demo
-    codegen_applicability: "{{CODEGEN_PERCENTAGE}}%" # 预估CodeGen适用比例
-
-# ============================================================================
-# EARS需求分析结果 (五种类型完整覆盖)
-# ============================================================================
-ears_requirement_analysis:
-  # 分析统计摘要
-  analysis_summary:
-    total_requirements_identified: {{TOTAL_COUNT}}
-    ubiquitous_requirements_count: {{UBIQUITOUS_COUNT}}
-    event_driven_requirements_count: {{EVENT_DRIVEN_COUNT}}
-    unwanted_behavior_requirements_count: {{UNWANTED_COUNT}}
-    state_driven_requirements_count: {{STATE_DRIVEN_COUNT}}
-    optional_requirements_count: {{OPTIONAL_COUNT}}
-    
-  # 类型1：通用需求 (Ubiquitous Requirements)
-  ubiquitous_requirements:
-    - requirement_id: "REQ-U-001"
-      ears_statement: "系统应当能够{{UBIQUITOUS_ACTION_1}}"
-      business_context: "{{BUSINESS_CONTEXT_1}}"
-      business_value: "{{BUSINESS_VALUE_1}}"
-      priority: "{{PRIORITY_1}}" # high | medium | low
-      complexity: "{{COMPLEXITY_1}}" # simple | medium | complex
-      codegen_suitable: {{CODEGEN_SUITABLE_1}} # true | false
-      acceptance_criteria:
-        - criterion: "{{ACCEPTANCE_CRITERION_1_1}}"
-          validation_method: "{{VALIDATION_METHOD_1_1}}"
-        - criterion: "{{ACCEPTANCE_CRITERION_1_2}}"
-          validation_method: "{{VALIDATION_METHOD_1_2}}"
-      stakeholders: [{{STAKEHOLDER_1_1}}, {{STAKEHOLDER_1_2}}]
-      
-    - requirement_id: "REQ-U-002"
-      ears_statement: "系统应当能够{{UBIQUITOUS_ACTION_2}}"
-      business_context: "{{BUSINESS_CONTEXT_2}}"
-      business_value: "{{BUSINESS_VALUE_2}}"
-      priority: "{{PRIORITY_2}}"
-      complexity: "{{COMPLEXITY_2}}"
-      codegen_suitable: {{CODEGEN_SUITABLE_2}}
-      acceptance_criteria:
-        - criterion: "{{ACCEPTANCE_CRITERION_2_1}}"
-          validation_method: "{{VALIDATION_METHOD_2_1}}"
-      stakeholders: [{{STAKEHOLDER_2_1}}]
-      # 继续添加通用需求...
+requirement_understanding:
+  business_domain: "{{BUSINESS_DOMAIN}}"
+  core_business_value: "{{BUSINESS_VALUE}}"
+  key_stakeholders: [{{STAKEHOLDERS}}]
+  business_constraints: [{{BUSINESS_CONSTRAINTS}}]
   
-  # 类型2：事件驱动需求 (Event-driven Requirements)
-  event_driven_requirements:
-    - requirement_id: "REQ-E-001"
-      ears_statement: "当{{EVENT_TRIGGER_1}}时，系统应当{{EVENT_RESPONSE_1}}"
-      event_source: "{{EVENT_SOURCE_1}}" # user_action | system_timer | external_trigger
-      event_frequency: "{{EVENT_FREQUENCY_1}}" # realtime | periodic | occasional
-      response_timing: "{{RESPONSE_TIMING_1}}" # immediate | delayed | scheduled
-      business_context: "{{EVENT_BUSINESS_CONTEXT_1}}"
-      priority: "{{EVENT_PRIORITY_1}}"
-      complexity: "{{EVENT_COMPLEXITY_1}}"
-      acceptance_criteria:
-        - criterion: "{{EVENT_CRITERION_1_1}}"
-          validation_method: "{{EVENT_VALIDATION_1_1}}"
-      error_handling_requirement: "{{ERROR_HANDLING_1}}"
-      
-    - requirement_id: "REQ-E-002"
-      ears_statement: "当{{EVENT_TRIGGER_2}}时，系统应当{{EVENT_RESPONSE_2}}"
-      event_source: "{{EVENT_SOURCE_2}}"
-      event_frequency: "{{EVENT_FREQUENCY_2}}"
-      response_timing: "{{RESPONSE_TIMING_2}}"
-      business_context: "{{EVENT_BUSINESS_CONTEXT_2}}"
-      priority: "{{EVENT_PRIORITY_2}}"
-      complexity: "{{EVENT_COMPLEXITY_2}}"
-      acceptance_criteria:
-        - criterion: "{{EVENT_CRITERION_2_1}}"
-          validation_method: "{{EVENT_VALIDATION_2_1}}"
-      error_handling_requirement: "{{ERROR_HANDLING_2}}"
-      # 继续添加事件驱动需求...
-  
-  # 类型3：不希望行为需求 (Unwanted Behavior Requirements)
-  unwanted_behavior_requirements:
-    - requirement_id: "REQ-UB-001"
-      ears_statement: "如果{{UNWANTED_CONDITION_1}}，系统应当{{PREVENTION_ACTION_1}}"
-      unwanted_scenario: "{{UNWANTED_SCENARIO_1}}"
-      risk_level: "{{RISK_LEVEL_1}}" # high | medium | low
-      prevention_mechanism: "{{PREVENTION_MECHANISM_1}}"
-      detection_method: "{{DETECTION_METHOD_1}}"
-      recovery_action: "{{RECOVERY_ACTION_1}}"
-      business_impact: "{{BUSINESS_IMPACT_1}}"
-      priority: "{{UNWANTED_PRIORITY_1}}"
-      acceptance_criteria:
-        - criterion: "{{UNWANTED_CRITERION_1_1}}"
-          validation_method: "{{UNWANTED_VALIDATION_1_1}}"
-      
-    - requirement_id: "REQ-UB-002"
-      ears_statement: "如果{{UNWANTED_CONDITION_2}}，系统应当{{PREVENTION_ACTION_2}}"
-      unwanted_scenario: "{{UNWANTED_SCENARIO_2}}"
-      risk_level: "{{RISK_LEVEL_2}}"
-      prevention_mechanism: "{{PREVENTION_MECHANISM_2}}"
-      detection_method: "{{DETECTION_METHOD_2}}"
-      recovery_action: "{{RECOVERY_ACTION_2}}"
-      business_impact: "{{BUSINESS_IMPACT_2}}"
-      priority: "{{UNWANTED_PRIORITY_2}}"
-      acceptance_criteria:
-        - criterion: "{{UNWANTED_CRITERION_2_1}}"
-          validation_method: "{{UNWANTED_VALIDATION_2_1}}"
-      # 继续添加不希望行为需求...
-  
-  # 类型4：状态驱动需求 (State-driven Requirements)
-  state_driven_requirements:
-    - requirement_id: "REQ-S-001"
-      ears_statement: "当系统处于{{SYSTEM_STATE_1}}状态时，系统应当{{STATE_BEHAVIOR_1}}"
-      state_definition: "{{STATE_DEFINITION_1}}"
-      state_entry_condition: "{{STATE_ENTRY_CONDITION_1}}"
-      state_exit_condition: "{{STATE_EXIT_CONDITION_1}}"
-      state_behavior_description: "{{STATE_BEHAVIOR_DESC_1}}"
-      state_transitions:
-        - from_state: "{{FROM_STATE_1_1}}"
-          to_state: "{{TO_STATE_1_1}}"
-          transition_trigger: "{{TRANSITION_TRIGGER_1_1}}"
-          transition_condition: "{{TRANSITION_CONDITION_1_1}}"
-        - from_state: "{{FROM_STATE_1_2}}"
-          to_state: "{{TO_STATE_1_2}}"
-          transition_trigger: "{{TRANSITION_TRIGGER_1_2}}"
-          transition_condition: "{{TRANSITION_CONDITION_1_2}}"
-      business_context: "{{STATE_BUSINESS_CONTEXT_1}}"
-      priority: "{{STATE_PRIORITY_1}}"
-      complexity: "{{STATE_COMPLEXITY_1}}"
-      
-    - requirement_id: "REQ-S-002"
-      ears_statement: "当系统处于{{SYSTEM_STATE_2}}状态时，系统应当{{STATE_BEHAVIOR_2}}"
-      state_definition: "{{STATE_DEFINITION_2}}"
-      state_entry_condition: "{{STATE_ENTRY_CONDITION_2}}"
-      state_exit_condition: "{{STATE_EXIT_CONDITION_2}}"
-      state_behavior_description: "{{STATE_BEHAVIOR_DESC_2}}"
-      state_transitions:
-        - from_state: "{{FROM_STATE_2_1}}"
-          to_state: "{{TO_STATE_2_1}}"
-          transition_trigger: "{{TRANSITION_TRIGGER_2_1}}"
-          transition_condition: "{{TRANSITION_CONDITION_2_1}}"
-      business_context: "{{STATE_BUSINESS_CONTEXT_2}}"
-      priority: "{{STATE_PRIORITY_2}}"
-      complexity: "{{STATE_COMPLEXITY_2}}"
-      # 继续添加状态驱动需求...
-  
-  # 类型5：可选需求 (Optional Requirements)
-  optional_requirements:
-    - requirement_id: "REQ-O-001"
-      ears_statement: "在{{OPTIONAL_CONDITION_1}}情况下，系统可以{{OPTIONAL_FEATURE_1}}"
-      optional_condition: "{{OPTIONAL_CONDITION_1}}"
-      optional_feature_description: "{{OPTIONAL_FEATURE_DESC_1}}"
-      business_benefit: "{{BUSINESS_BENEFIT_1}}"
-      implementation_priority: "{{IMPL_PRIORITY_1}}" # phase_1 | phase_2 | phase_3 | future
-      effort_estimation: "{{EFFORT_ESTIMATION_1}}" # small | medium | large
-      dependency_requirements: [{{DEPENDENCY_REQ_1_1}}, {{DEPENDENCY_REQ_1_2}}]
-      business_value_score: {{BUSINESS_VALUE_SCORE_1}} # 1-10
-      technical_complexity_score: {{TECH_COMPLEXITY_SCORE_1}} # 1-10
-      
-    - requirement_id: "REQ-O-002"
-      ears_statement: "在{{OPTIONAL_CONDITION_2}}情况下，系统可以{{OPTIONAL_FEATURE_2}}"
-      optional_condition: "{{OPTIONAL_CONDITION_2}}"
-      optional_feature_description: "{{OPTIONAL_FEATURE_DESC_2}}"
-      business_benefit: "{{BUSINESS_BENEFIT_2}}"
-      implementation_priority: "{{IMPL_PRIORITY_2}}"
-      effort_estimation: "{{EFFORT_ESTIMATION_2}}"
-      dependency_requirements: [{{DEPENDENCY_REQ_2_1}}]
-      business_value_score: {{BUSINESS_VALUE_SCORE_2}}
-      technical_complexity_score: {{TECH_COMPLEXITY_SCORE_2}}
-      # 继续添加可选需求...
+# ============================================================================
+# 技术理解 - JeecgBoot技术约束
+# ============================================================================
+technical_understanding:
+  jeecg_version: "{{JEECG_VERSION}}"
+  technical_constraints: [{{TECH_CONSTRAINTS}}]
+  codegen_applicable: "{{CODEGEN_APPLICABLE}}" # true|false
 
 # ============================================================================
-# BDD场景分解 (四种场景类型完整覆盖)
+# 需求分析 - EARS标准化需求分析
 # ============================================================================
-bdd_scenario_analysis:
-  # 场景分析摘要
-  scenario_summary:
-    total_scenarios_identified: {{TOTAL_SCENARIO_COUNT}}
-    functional_scenarios_count: {{FUNCTIONAL_SCENARIO_COUNT}}
-    exception_scenarios_count: {{EXCEPTION_SCENARIO_COUNT}}
-    boundary_scenarios_count: {{BOUNDARY_SCENARIO_COUNT}}
-    integration_scenarios_count: {{INTEGRATION_SCENARIO_COUNT}}
-    
-  # 类型1：功能场景 (Functional Scenarios) - 正向业务流程
-  functional_scenarios:
-    - scenario_id: "BDD-F-001"
-      scenario_title: "{{FUNCTIONAL_SCENARIO_TITLE_1}}"
-      source_requirement_id: "{{SOURCE_REQ_ID_1}}" # 必须追溯到EARS需求
-      business_goal: "{{BUSINESS_GOAL_1}}"
-      user_role: "{{USER_ROLE_1}}"
+ears_requirements:
+  # EARS标准化功能需求
+  functional_requirements:
+    - id: "F001"
+      ears_statement: "系统应当能够{{FUNCTION_ACTION_1}}"
+      type: "ubiquitous"
       
-      # Given-When-Then核心结构
-      given: "{{GIVEN_CONDITION_1}}" # 前置条件
-      when: "{{WHEN_ACTION_1}}" # 触发动作
-      then: "{{THEN_RESULT_1}}" # 预期结果
-      and_conditions: # 附加条件
-        - "{{AND_CONDITION_1_1}}"
-        - "{{AND_CONDITION_1_2}}"
-      but_exceptions: # 异常情况
-        - condition: "{{BUT_CONDITION_1_1}}"
-          expected_behavior: "{{BUT_BEHAVIOR_1_1}}"
-          error_code: "{{ERROR_CODE_1_1}}"
-          recovery_strategy: "{{RECOVERY_STRATEGY_1_1}}"
-          user_guidance: "{{USER_GUIDANCE_1_1}}"
-          
-      # 验收标准
-      acceptance_criteria:
-        - criterion: "{{ACCEPTANCE_CRITERION_1_1}}"
-          validation_approach: "{{VALIDATION_APPROACH_1_1}}"
-          success_indicator: "{{SUCCESS_INDICATOR_1_1}}"
+    - id: "F002"
+      ears_statement: "当{{EVENT_TRIGGER_2}}时，系统应当{{FUNCTION_RESPONSE_2}}"
+      type: "event_driven"
       
-      # 测试数据需求
-      test_data_requirements:
-        - data_type: "{{TEST_DATA_TYPE_1_1}}"
-          data_description: "{{TEST_DATA_DESC_1_1}}"
-          data_source: "{{TEST_DATA_SOURCE_1_1}}"
-          
-      priority: "{{FUNCTIONAL_PRIORITY_1}}"
-      complexity: "{{FUNCTIONAL_COMPLEXITY_1}}"
+    - id: "F003"
+      ears_statement: "如果{{CONDITION_3}}，系统应当{{PREVENTION_3}}"
+      type: "unwanted_behavior"
+
+  # 业务规则分析
+  business_rules:
+    - rule: "{{BUSINESS_RULE_1}}"
+      type: "validation"
       
-    - scenario_id: "BDD-F-002"
-      scenario_title: "{{FUNCTIONAL_SCENARIO_TITLE_2}}"
-      source_requirement_id: "{{SOURCE_REQ_ID_2}}"
-      business_goal: "{{BUSINESS_GOAL_2}}"
-      user_role: "{{USER_ROLE_2}}"
+    - rule: "{{BUSINESS_RULE_2}}"
+      type: "calculation"
+
+# ============================================================================
+# BDD场景设计 - 行为驱动场景分析
+# ============================================================================
+bdd_scenarios:
+  # 正常业务场景
+  normal_scenarios:
+    - scenario: "{{SCENARIO_TITLE_1}}"
+      given: "{{GIVEN_CONDITION_1}}"
+      when: "{{WHEN_ACTION_1}}"
+      then: "{{THEN_RESULT_1}}"
+      
+    - scenario: "{{SCENARIO_TITLE_2}}"
       given: "{{GIVEN_CONDITION_2}}"
       when: "{{WHEN_ACTION_2}}"
       then: "{{THEN_RESULT_2}}"
-      and_conditions:
-        - "{{AND_CONDITION_2_1}}"
-      but_exceptions:
-        - condition: "{{BUT_CONDITION_2_1}}"
-          expected_behavior: "{{BUT_BEHAVIOR_2_1}}"
-      acceptance_criteria:
-        - criterion: "{{ACCEPTANCE_CRITERION_2_1}}"
-          validation_approach: "{{VALIDATION_APPROACH_2_1}}"
-          success_indicator: "{{SUCCESS_INDICATOR_2_1}}"
-      test_data_requirements:
-        - data_type: "{{TEST_DATA_TYPE_2_1}}"
-          data_description: "{{TEST_DATA_DESC_2_1}}"
-          data_source: "{{TEST_DATA_SOURCE_2_1}}"
-      priority: "{{FUNCTIONAL_PRIORITY_2}}"
-      complexity: "{{FUNCTIONAL_COMPLEXITY_2}}"
-      # 继续添加功能场景...
-  
-  # 类型2：异常场景 (Exception Scenarios) - 错误处理和异常情况
+
+  # 异常处理场景
   exception_scenarios:
-    - scenario_id: "BDD-E-001"
-      scenario_title: "{{EXCEPTION_SCENARIO_TITLE_1}}"
-      source_requirement_id: "{{EXCEPTION_SOURCE_REQ_ID_1}}"
-      exception_type: "{{EXCEPTION_TYPE_1}}" # business_rule_violation | system_error | external_failure | data_validation_error
-      error_category: "{{ERROR_CATEGORY_1}}" # user_error | system_error | integration_error
-      
+    - scenario: "{{EXCEPTION_SCENARIO_1}}"
       given: "{{EXCEPTION_GIVEN_1}}"
-      when: "{{EXCEPTION_WHEN_1}}" # 异常触发条件
-      then: "{{EXCEPTION_THEN_1}}" # 预期的异常处理结果
-      and_conditions:
-        - "{{EXCEPTION_AND_1_1}}"
-      
-      # 异常处理策略
-      exception_handling_strategy:
-        immediate_response: "{{IMMEDIATE_RESPONSE_1}}"
-        user_notification: "{{USER_NOTIFICATION_1}}"
-        error_logging: "{{ERROR_LOGGING_1}}"
-        recovery_mechanism: "{{RECOVERY_MECHANISM_1}}"
-        escalation_procedure: "{{ESCALATION_PROCEDURE_1}}"
-      
-      severity: "{{EXCEPTION_SEVERITY_1}}" # critical | high | medium | low
-      priority: "{{EXCEPTION_PRIORITY_1}}"
-      
-    - scenario_id: "BDD-E-002"
-      scenario_title: "{{EXCEPTION_SCENARIO_TITLE_2}}"
-      source_requirement_id: "{{EXCEPTION_SOURCE_REQ_ID_2}}"
-      exception_type: "{{EXCEPTION_TYPE_2}}"
-      error_category: "{{ERROR_CATEGORY_2}}"
-      given: "{{EXCEPTION_GIVEN_2}}"
-      when: "{{EXCEPTION_WHEN_2}}"
-      then: "{{EXCEPTION_THEN_2}}"
-      and_conditions:
-        - "{{EXCEPTION_AND_2_1}}"
-      exception_handling_strategy:
-        immediate_response: "{{IMMEDIATE_RESPONSE_2}}"
-        user_notification: "{{USER_NOTIFICATION_2}}"
-        error_logging: "{{ERROR_LOGGING_2}}"
-        recovery_mechanism: "{{RECOVERY_MECHANISM_2}}"
-        escalation_procedure: "{{ESCALATION_PROCEDURE_2}}"
-      severity: "{{EXCEPTION_SEVERITY_2}}"
-      priority: "{{EXCEPTION_PRIORITY_2}}"
-      # 继续添加异常场景...
-  
-  # 类型3：边界场景 (Boundary Scenarios) - 临界值和边界条件
-  boundary_scenarios:
-    - scenario_id: "BDD-B-001"
-      scenario_title: "{{BOUNDARY_SCENARIO_TITLE_1}}"
-      source_requirement_id: "{{BOUNDARY_SOURCE_REQ_ID_1}}"
-      boundary_type: "{{BOUNDARY_TYPE_1}}" # data_limit | time_limit | capacity_limit | permission_boundary
-      boundary_value: "{{BOUNDARY_VALUE_1}}"
-      boundary_description: "{{BOUNDARY_DESCRIPTION_1}}"
-      
-      given: "{{BOUNDARY_GIVEN_1}}"
-      when: "{{BOUNDARY_WHEN_1}}" # 边界条件触发
-      then: "{{BOUNDARY_THEN_1}}" # 边界条件下的预期行为
-      and_conditions:
-        - "{{BOUNDARY_AND_1_1}}"
-      
-      # 边界测试要求
-      boundary_test_cases:
-        - test_case: "{{BOUNDARY_TEST_CASE_1_1}}"
-          test_value: "{{BOUNDARY_TEST_VALUE_1_1}}"
-          expected_result: "{{BOUNDARY_EXPECTED_RESULT_1_1}}"
-      
-      priority: "{{BOUNDARY_PRIORITY_1}}"
-      
-    - scenario_id: "BDD-B-002"
-      scenario_title: "{{BOUNDARY_SCENARIO_TITLE_2}}"
-      source_requirement_id: "{{BOUNDARY_SOURCE_REQ_ID_2}}"
-      boundary_type: "{{BOUNDARY_TYPE_2}}"
-      boundary_value: "{{BOUNDARY_VALUE_2}}"
-      boundary_description: "{{BOUNDARY_DESCRIPTION_2}}"
-      given: "{{BOUNDARY_GIVEN_2}}"
-      when: "{{BOUNDARY_WHEN_2}}"
-      then: "{{BOUNDARY_THEN_2}}"
-      and_conditions:
-        - "{{BOUNDARY_AND_2_1}}"
-      boundary_test_cases:
-        - test_case: "{{BOUNDARY_TEST_CASE_2_1}}"
-          test_value: "{{BOUNDARY_TEST_VALUE_2_1}}"
-          expected_result: "{{BOUNDARY_EXPECTED_RESULT_2_1}}"
-      priority: "{{BOUNDARY_PRIORITY_2}}"
-      # 继续添加边界场景...
-  
-  # 类型4：集成场景 (Integration Scenarios) - 外部系统交互
-  integration_scenarios:
-    - scenario_id: "BDD-I-001"
-      scenario_title: "{{INTEGRATION_SCENARIO_TITLE_1}}"
-      source_requirement_id: "{{INTEGRATION_SOURCE_REQ_ID_1}}"
-      integration_type: "{{INTEGRATION_TYPE_1}}" # rest_api | database | file_system | message_queue | third_party_service
-      external_system: "{{EXTERNAL_SYSTEM_1}}"
-      integration_direction: "{{INTEGRATION_DIRECTION_1}}" # inbound | outbound | bidirectional
-      
-      given: "{{INTEGRATION_GIVEN_1}}"
-      when: "{{INTEGRATION_WHEN_1}}" # 集成触发条件
-      then: "{{INTEGRATION_THEN_1}}" # 集成预期结果
-      and_conditions:
-        - "{{INTEGRATION_AND_1_1}}"
-      
-      # 集成约束条件
-      integration_constraints:
-        data_format: "{{INTEGRATION_DATA_FORMAT_1}}" # json | xml | csv | binary
-        protocol: "{{INTEGRATION_PROTOCOL_1}}" # http | https | ftp | tcp
-        authentication: "{{INTEGRATION_AUTH_1}}" # none | basic | oauth | token
-        timeout_requirement: "{{INTEGRATION_TIMEOUT_1}}"
-        retry_strategy: "{{INTEGRATION_RETRY_1}}"
-        
-      # 集成异常处理
-      integration_exception_handling:
-        connection_failure: "{{CONNECTION_FAILURE_HANDLING_1}}"
-        timeout_handling: "{{TIMEOUT_HANDLING_1}}"
-        data_format_error: "{{DATA_FORMAT_ERROR_1}}"
-        authentication_failure: "{{AUTH_FAILURE_HANDLING_1}}"
-        
-      priority: "{{INTEGRATION_PRIORITY_1}}"
-      
-    - scenario_id: "BDD-I-002"
-      scenario_title: "{{INTEGRATION_SCENARIO_TITLE_2}}"
-      source_requirement_id: "{{INTEGRATION_SOURCE_REQ_ID_2}}"
-      integration_type: "{{INTEGRATION_TYPE_2}}"
-      external_system: "{{EXTERNAL_SYSTEM_2}}"
-      integration_direction: "{{INTEGRATION_DIRECTION_2}}"
-      given: "{{INTEGRATION_GIVEN_2}}"
-      when: "{{INTEGRATION_WHEN_2}}"
-      then: "{{INTEGRATION_THEN_2}}"
-      and_conditions:
-        - "{{INTEGRATION_AND_2_1}}"
-      integration_constraints:
-        data_format: "{{INTEGRATION_DATA_FORMAT_2}}"
-        protocol: "{{INTEGRATION_PROTOCOL_2}}"
-        authentication: "{{INTEGRATION_AUTH_2}}"
-        timeout_requirement: "{{INTEGRATION_TIMEOUT_2}}"
-        retry_strategy: "{{INTEGRATION_RETRY_2}}"
-      integration_exception_handling:
-        connection_failure: "{{CONNECTION_FAILURE_HANDLING_2}}"
-        timeout_handling: "{{TIMEOUT_HANDLING_2}}"
-        data_format_error: "{{DATA_FORMAT_ERROR_2}}"
-        authentication_failure: "{{AUTH_FAILURE_HANDLING_2}}"
-      priority: "{{INTEGRATION_PRIORITY_2}}"
-      # 继续添加集成场景...
+      when: "{{EXCEPTION_WHEN_1}}"
+      then: "{{EXCEPTION_THEN_1}}"
 
 # ============================================================================
-# 需求间关系映射 (确保完整追溯)
+# 技术传递接口 - 传递给Agent-B
 # ============================================================================
-requirement_relationship_mapping:
-  # EARS需求间依赖关系
-  ears_dependencies:
-    - dependency_id: "DEP-001"
-      source_requirement_id: "{{SOURCE_REQ_ID_1}}"
-      target_requirement_id: "{{TARGET_REQ_ID_1}}"
-      dependency_type: "{{DEPENDENCY_TYPE_1}}" # prerequisite | parallel | conditional | exclusive
-      dependency_description: "{{DEPENDENCY_DESCRIPTION_1}}"
-      business_rationale: "{{BUSINESS_RATIONALE_1}}"
-      
-    - dependency_id: "DEP-002"
-      source_requirement_id: "{{SOURCE_REQ_ID_2}}"
-      target_requirement_id: "{{TARGET_REQ_ID_2}}"
-      dependency_type: "{{DEPENDENCY_TYPE_2}}"
-      dependency_description: "{{DEPENDENCY_DESCRIPTION_2}}"
-      business_rationale: "{{BUSINESS_RATIONALE_2}}"
-      # 继续添加依赖关系...
+technical_handoff:
+  # 核心实体识别
+  core_entities: [{{CORE_ENTITIES}}]
   
-  # BDD场景到EARS需求的追溯映射
-  bdd_to_ears_traceability:
-    - mapping_id: "TRACE-001"
-      bdd_scenario_id: "{{BDD_SCENARIO_ID_1}}"
-      source_ears_requirement_id: "{{SOURCE_EARS_REQ_ID_1}}"
-      traceability_type: "{{TRACEABILITY_TYPE_1}}" # direct_mapping | derived_from | validates | elaborates
-      traceability_description: "{{TRACEABILITY_DESCRIPTION_1}}"
-      
-    - mapping_id: "TRACE-002"
-      bdd_scenario_id: "{{BDD_SCENARIO_ID_2}}"
-      source_ears_requirement_id: "{{SOURCE_EARS_REQ_ID_2}}"
-      traceability_type: "{{TRACEABILITY_TYPE_2}}"
-      traceability_description: "{{TRACEABILITY_DESCRIPTION_2}}"
-      # 继续添加追溯映射...
-
-# ============================================================================
-# JeecgBoot集成分析 (CodeGen适用性评估)
-# ============================================================================
-jeecg_integration_analysis:
-  # CodeGen适用性分析
-  codegen_applicability_assessment:
-    # 标准CRUD需求（适合CodeGen）
-    standard_crud_requirements:
-      - requirement_id: "{{CRUD_REQ_ID_1}}"
-        business_entity: "{{BUSINESS_ENTITY_1}}" # PascalCase命名
-        crud_operations: [{{CRUD_OPERATIONS_1}}] # create | read | update | delete | query | export | import
-        codegen_coverage: "{{CODEGEN_COVERAGE_1}}%" # 预估CodeGen覆盖率
-        custom_logic_requirements: [{{CUSTOM_LOGIC_1}}] # 需要自定义的部分
-        
-      - requirement_id: "{{CRUD_REQ_ID_2}}"
-        business_entity: "{{BUSINESS_ENTITY_2}}"
-        crud_operations: [{{CRUD_OPERATIONS_2}}]
-        codegen_coverage: "{{CODEGEN_COVERAGE_2}}%"
-        custom_logic_requirements: [{{CUSTOM_LOGIC_2}}]
-        # 继续添加CRUD需求...
-    
-    # 复杂业务需求（需要自定义开发）
-    custom_development_requirements:
-      - requirement_id: "{{CUSTOM_REQ_ID_1}}"
-        complexity_reason: "{{COMPLEXITY_REASON_1}}"
-        custom_development_scope: "{{CUSTOM_SCOPE_1}}"
-        integration_with_codegen: "{{CODEGEN_INTEGRATION_1}}" # none | partial | full
-        estimated_effort: "{{EFFORT_ESTIMATION_1}}" # small | medium | large
-        
-      - requirement_id: "{{CUSTOM_REQ_ID_2}}"
-        complexity_reason: "{{COMPLEXITY_REASON_2}}"
-        custom_development_scope: "{{CUSTOM_SCOPE_2}}"
-        integration_with_codegen: "{{CODEGEN_INTEGRATION_2}}"
-        estimated_effort: "{{EFFORT_ESTIMATION_2}}"
-        # 继续添加自定义需求...
+  # 关键业务流程
+  key_processes: [{{KEY_PROCESSES}}]
   
-  # JeecgBoot特性使用分析
-  jeecg_feature_usage:
-    permission_management: {{USE_PERMISSION}} # true | false
-    data_dictionary: {{USE_DICT}} # true | false
-    workflow_engine: {{USE_WORKFLOW}} # true | false
-    report_generation: {{USE_REPORT}} # true | false
-    system_integration: {{USE_INTEGRATION}} # true | false
-    
-    # 特性使用详细说明
-    feature_usage_details:
-      - feature: "{{JEECG_FEATURE_1}}"
-        usage_scenario: "{{USAGE_SCENARIO_1}}"
-        related_requirements: [{{RELATED_REQ_1_1}}, {{RELATED_REQ_1_2}}]
-        configuration_needs: "{{CONFIGURATION_NEEDS_1}}"
-
-# ============================================================================
-# 质量保证检查点 (Agent-A自检要求)
-# ============================================================================
-quality_assurance_checkpoints:
-  # 格式完整性自检
-  format_completeness_check:
-    ears_format_validation:
-      - check_item: "所有EARS语句符合标准格式"
-        validation_result: "{{EARS_FORMAT_VALID}}" # pass | fail
-        issue_description: "{{EARS_FORMAT_ISSUES}}"
-        
-    bdd_scenario_validation:
-      - check_item: "所有BDD场景包含Given-When-Then"
-        validation_result: "{{BDD_FORMAT_VALID}}" # pass | fail
-        issue_description: "{{BDD_FORMAT_ISSUES}}"
-        
-    traceability_validation:
-      - check_item: "所有BDD场景都有源EARS需求ID"
-        validation_result: "{{TRACEABILITY_VALID}}" # pass | fail
-        issue_description: "{{TRACEABILITY_ISSUES}}"
-  
-  # 逻辑一致性自检
-  logic_consistency_check:
-    requirement_dependency_check:
-      circular_dependency_detected: {{CIRCULAR_DEPENDENCY}} # true | false
-      missing_dependencies: [{{MISSING_DEPENDENCIES}}]
-      
-    priority_consistency_check:
-      priority_conflicts: [{{PRIORITY_CONFLICTS}}]
-      priority_alignment_issues: "{{PRIORITY_ISSUES}}"
-      
-    business_logic_coherence:
-      logic_contradictions: [{{LOGIC_CONTRADICTIONS}}]
-      missing_business_rules: [{{MISSING_RULES}}]
-  
-  # 覆盖完整性自检
-  coverage_completeness_check:
-    ears_type_coverage:
-      ubiquitous_coverage: {{UBIQUITOUS_COVERAGE}} # adequate | insufficient
-      event_driven_coverage: {{EVENT_DRIVEN_COVERAGE}}
-      unwanted_behavior_coverage: {{UNWANTED_COVERAGE}}
-      state_driven_coverage: {{STATE_DRIVEN_COVERAGE}}
-      optional_coverage: {{OPTIONAL_COVERAGE}}
-      
-    scenario_type_coverage:
-      functional_scenario_coverage: {{FUNCTIONAL_COVERAGE}}
-      exception_scenario_coverage: {{EXCEPTION_COVERAGE}}
-      boundary_scenario_coverage: {{BOUNDARY_COVERAGE}}
-      integration_scenario_coverage: {{INTEGRATION_COVERAGE}}
-      
-    business_process_coverage:
-      end_to_end_process_covered: {{E2E_COVERAGE}} # true | false
-      key_business_functions_covered: {{KEY_FUNCTIONS_COVERAGE}}
-      stakeholder_needs_covered: {{STAKEHOLDER_COVERAGE}}
-
-# ============================================================================
-# Agent-B移交信息 (标准化移交协议)
-# ============================================================================
-agent_handoff_information:
-  # 移交摘要
-  handoff_summary:
-    total_requirements_for_design: {{TOTAL_REQ_FOR_DESIGN}}
-    high_priority_requirements: {{HIGH_PRIORITY_COUNT}}
-    complex_requirements_needing_attention: {{COMPLEX_REQ_COUNT}}
-    codegen_applicable_percentage: {{CODEGEN_PERCENTAGE}}%
-    custom_development_percentage: {{CUSTOM_DEV_PERCENTAGE}}%
-    
-  # Agent间质量反馈机制
-  agent_feedback_mechanism:
-    upstream_quality_assessment:
-      baseline_quality_score: "{{BASELINE_QUALITY_SCORE}}" # 1-10
-      system_config_completeness: "{{SYSTEM_CONFIG_COMPLETENESS}}" # 1-10
-      improvement_suggestions: [{{BASELINE_IMPROVEMENT_SUGGESTIONS}}]
-    
-    downstream_requirements:
-      for_agent_b_architecture:
-        - "{{ARCHITECTURE_REQUIREMENT_1}}"
-        - "{{ARCHITECTURE_REQUIREMENT_2}}"
-      for_agent_c_development:
-        - "{{DEVELOPMENT_REQUIREMENT_1}}"
-        - "{{DEVELOPMENT_REQUIREMENT_2}}"
-      for_agent_d_testing:
-        - "{{TESTING_REQUIREMENT_1}}"
-        - "{{TESTING_REQUIREMENT_2}}"
-    
-  # 关键设计输入
-  key_design_inputs:
-    core_business_concepts: [{{CORE_CONCEPT_1}}, {{CORE_CONCEPT_2}}]
-    main_business_entities: [{{MAIN_ENTITY_1}}, {{MAIN_ENTITY_2}}]
-    complex_business_rules: [{{COMPLEX_RULE_1}}, {{COMPLEX_RULE_2}}]
-    critical_integrations: [{{CRITICAL_INTEGRATION_1}}, {{CRITICAL_INTEGRATION_2}}]
-    
-  # 设计约束条件
-  design_constraints:
-    technical_constraints: [{{TECH_CONSTRAINT_1}}, {{TECH_CONSTRAINT_2}}]
-    business_constraints: [{{BUSINESS_CONSTRAINT_1}}, {{BUSINESS_CONSTRAINT_2}}]
-    time_constraints: "{{TIME_CONSTRAINTS}}"
-    resource_constraints: "{{RESOURCE_CONSTRAINTS}}"
-    
-  # Agent-B处理建议
-  processing_recommendations:
-    recommended_design_approach: "{{RECOMMENDED_APPROACH}}"
-    attention_areas: [{{ATTENTION_AREA_1}}, {{ATTENTION_AREA_2}}]
-    potential_technical_challenges: [{{TECH_CHALLENGE_1}}, {{TECH_CHALLENGE_2}}]
-    codegen_configuration_priorities: [{{CODEGEN_PRIORITY_1}}, {{CODEGEN_PRIORITY_2}}]
-
-# ============================================================================
-# 附加信息
-# ============================================================================
-additional_information:
-  # 重要假设条件
-  key_assumptions: |
-    {{KEY_ASSUMPTIONS}}
-    
-  # 范围外事项
-  out_of_scope_items: |
-    {{OUT_OF_SCOPE}}
-    
-  # 风险提示
-  risk_alerts: |
-    {{RISK_ALERTS}}
-    
-  # 后续工作
-  next_steps: |
-    1. Agent-B接收此需求文档进行架构设计
-    2. 基于BDD/EARS结构进行设计决策追溯
-    3. 完成CodeGen配置和自定义开发规划
-    4. 进行设计质量验证和需求追溯检查
+  # JeecgBoot技术映射
+  jeecg_components:
+    entities: [{{ENTITY_LIST}}]
+    services: [{{SERVICE_LIST}}]
+    apis: [{{API_LIST}}]
+    pages: [{{PAGE_LIST}}]
