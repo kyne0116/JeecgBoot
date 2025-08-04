@@ -1,0 +1,200 @@
+# JeecgBoot系统基础信息模板 v4.0
+# 支持三层架构管理体系和模块化文档组织
+
+# ============================================================================
+# 📁 v4.0 三层架构存储规范 (重要更新)
+# ============================================================================
+# 本模板属于: Layer 1 - 系统层 (System Level)
+# 命名格式: system_base_info_[SYSTEM].yaml
+# 存储位置: ${base_working_directory}/AIGC/system_base_info_[SYSTEM].yaml
+# 
+# 示例路径:
+# - 美发管理系统: /Users/admin/Work/Github/JeecgBoot/AIGC/system_base_info_HAIR.yaml
+#
+# 关联文档:
+# - Layer 2: requirement_baseline_HAIR_[MODULE].yaml (模块需求基线)
+# - Layer 3: HAIR_[MODULE]/ 目录下的具体需求文档
+# ============================================================================
+system_overview:
+  system_name: "美发管理系统" # 系统名称
+  description: "专业的美发沙龙管理系统，提供客户管理、预约调度、服务项目管理等核心功能" # 系统的简短描述
+  base_working_directory: "/Users/admin/Work/Github/JeecgBoot" # 整个项目的根工作目录
+  aigc_working_directory: "/Users/admin/Work/Github/JeecgBoot/AIGC" # AIGC 项目需求文档根目录
+  codegen_working_directory: "/Users/admin/Work/Github/JeecgBoot/CodeGen" # CodeGen系统代码生成源码
+  contextdev_working_directory: "/Users/admin/Work/Github/JeecgBoot/ContextDev" # ContextDev上下文编程源码
+  backend_working_directory: "/Users/admin/Work/Github/JeecgBoot/jeecg-boot" # 后端服务根路径
+  frontend_working_directory: "/Users/admin/Work/Github/JeecgBoot/jeecgboot-vue3" # 前端服务根路径
+
+  contains_jeecgboot_module: # 本系统包含的JeecgBoot主要模块
+    - code: "CUSTOMER"
+      description: "客户信息管理模块"
+    - code: "BOOKING"
+      description: "预约调度管理模块"
+
+  contains_jeecgboot_submodule: # 本系统包含的JeecgBoot具体子模块
+    - code: "CUSTOMER_INFO"
+      description: "客户基础信息管理"
+    - code: "CUSTOMER_HISTORY"
+      description: "客户服务历史记录"
+    - code: "BOOKING_SCHEDULE"
+      description: "预约时间调度"
+    - code: "BOOKING_SERVICE"
+      description: "预约服务项目管理"
+
+  contains_jeecgboot_submodule_views: # 本系统包含的JeecgBoot子模块相关的前端Vue 3视图或页面
+    - path: "/views/hair/customer/CustomerList.vue"
+      description: "客户信息列表页面"
+    - path: "/views/hair/customer/CustomerForm.vue"
+      description: "客户信息编辑表单"
+    - path: "/views/hair/booking/BookingList.vue"
+      description: "预约管理列表页面"
+    - path: "/views/hair/booking/BookingCalendar.vue"
+      description: "预约日历视图页面"
+
+  environments: # 系统部署的环境信息，可包含多个
+    - id: "dev" # 开发环境的唯一标识
+      name: "开发环境"
+      backend_url: "http://localhost:8080"
+      frontend_url: "http://localhost:3000"
+      database:
+        connection_url: "jdbc:mysql://localhost:3306/jeecgboot_hair?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8"
+        driver: "com.mysql.cj.jdbc.Driver"
+        username: "root"
+        password: "root"
+      redis:
+        ip: "127.0.0.1"
+        port: "6379"
+        password: ""
+      storage: "local" # 可选值: "local", "minIO", "oss"
+      notes: "供开发人员本地测试和联调使用"
+    - id: "test" # 测试环境的唯一标识
+      name: "测试环境"
+      backend_url: "http://test-hair.company.com:8080"
+      frontend_url: "http://test-hair.company.com:3000"
+      database:
+        connection_url: "jdbc:mysql://test-db.company.com:3306/jeecgboot_hair_test?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8"
+        driver: "com.mysql.cj.jdbc.Driver"
+        username: "test_user"
+        password: "test_password"
+      redis:
+        ip: "test-redis.company.com"
+        port: "6379"
+        password: "test_redis_password"
+      storage: "minIO"
+      notes: "供测试团队进行功能和性能测试"
+    - id: "uat" # 用户验收测试环境的唯一标识
+      name: "用户验收测试环境"
+      backend_url: "http://uat-hair.company.com:8080"
+      frontend_url: "http://uat-hair.company.com:3000"
+      database:
+        connection_url: "jdbc:mysql://uat-db.company.com:3306/jeecgboot_hair_uat?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8"
+        driver: "com.mysql.cj.jdbc.Driver"
+        username: "uat_user"
+        password: "uat_password"
+      redis:
+        ip: "uat-redis.company.com"
+        port: "6379"
+        password: "uat_redis_password"
+      storage: "oss"
+      notes: "供业务用户进行验收测试，验证系统功能是否满足业务需求"
+    - id: "prod" # 生产环境的唯一标识
+      name: "生产环境"
+      backend_url: "https://hair.company.com/api"
+      frontend_url: "https://hair.company.com"
+      database:
+        connection_url: "jdbc:mysql://prod-db.company.com:3306/jeecgboot_hair?characterEncoding=UTF-8&useUnicode=true&useSSL=true&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=GMT%2B8"
+        driver: "com.mysql.cj.jdbc.Driver"
+        username: "prod_user"
+        password: "prod_password"
+      redis:
+        ip: "prod-redis.company.com"
+        port: "6379"
+        password: "prod_redis_password"
+      storage: "oss"
+      notes: "正式对外服务，高可用和高性能要求"
+
+  tech_stack:
+    base_platform: "JeecgBoot" # 基础开发平台
+    base_version: "3.8.1" # JeecgBoot版本
+    frontend: # 前端技术栈 - 基于JeecgBoot-Vue3
+      framework: "Vue.js" # 基于Vue 3的现代前端框架
+      version: "3.5.13" # Vue版本
+      ui_library: "Ant Design Vue" # UI组件库
+      build_tool: "Vite" # 前端构建工具
+      language: "TypeScript" # 开发语言
+      package_manager: "pnpm" # 包管理器
+      jeecg_frontend_version: "3.8.1" # JeecgBoot前端版本
+      additional_libraries: # 其他主要依赖
+        - name: "Vue Router"
+          version: "4.5.0"
+          description: "前端路由管理"
+        - name: "Pinia"
+          version: "2.1.7"
+          description: "状态管理"
+        - name: "Axios"
+          version: "1.7.9"
+          description: "HTTP客户端"
+        - name: "VXE Table"
+          version: "4.13.31"
+          description: "高性能表格组件"
+        - name: "ECharts"
+          version: "5.6.0"
+          description: "数据可视化图表库"
+        - name: "FullCalendar"
+          version: "6.1.15"
+          description: "预约日历组件"
+    backend: # 后端技术栈 - 基于JeecgBoot后端框架
+      framework: "Spring Boot" # 基于Spring Boot的企业级Java框架
+      language: "Java" # 开发语言
+      version: "17" # Java版本(支持JDK 17和1.8)
+      spring_boot_version: "2.7.18" # Spring Boot版本
+      jeecg_backend_version: "3.8.1" # JeecgBoot后端版本
+      orm_library: "MyBatis Plus" # ORM框架
+      api_protocol: "RESTful API" # API协议
+      security_framework: "Spring Security + JWT + Apache Shiro" # 安全框架
+      additional_frameworks: # 其他主要框架和组件
+        - name: "Spring Cloud"
+          version: "2021.0.8"
+          description: "微服务框架(可选)"
+        - name: "Spring Cloud Alibaba"
+          version: "2021.0.6.2"
+          description: "阿里巴巴微服务套件"
+        - name: "MyBatis Plus"
+          version: "3.5.3.2"
+          description: "MyBatis-Plus ORM框架"
+        - name: "Druid"
+          version: "1.2.24"
+          description: "数据库连接池"
+        - name: "Apache Shiro"
+          version: "1.13.0"
+          description: "权限管理框架"
+        - name: "Nacos"
+          version: "2.0.4"
+          description: "服务注册与配置中心"
+        - name: "XXL-Job"
+          version: "2.4.1"
+          description: "分布式任务调度"
+        - name: "Knife4j"
+          version: "4.4.0"
+          description: "API文档生成工具"
+        - name: "Hutool"
+          version: "5.8.25"
+          description: "Java工具类库"
+        - name: "APIJSON"
+          version: "5.2.0"
+          description: "腾讯开源的JSON动态API框架，支持零代码实时生成文档和自动化测试"
+          repository: "https://github.com/Tencent/APIJSON"
+
+  git_repository:
+    repo_url: "https://github.com/company/jeecgboot-hair-management" # 项目的主要Git仓库地址
+    branch_strategy: "GitFlow"
+    cicd_pipeline_tool: "Jenkins"
+
+  additional_notes: |
+    # 美发管理系统特殊说明
+    1. 本系统专注于美发沙龙的日常运营管理
+    2. 核心业务流程：客户登记 → 服务项目选择 → 预约时间安排 → 服务执行 → 结算
+    3. 预约系统支持多技师并行调度
+    4. 客户管理包含服务历史追踪功能
+    5. 系统预留扩展接口，后续可增加员工管理、财务管理等模块
+    此处可添加任何其他重要信息，例如特殊配置要求、第三方服务依赖、已知问题等。
