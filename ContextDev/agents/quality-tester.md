@@ -64,8 +64,8 @@ tags: ["Reasoning Validation", "Quality Assurance", "Testing", "agent-6"]
 
 ### 1. 协作流程规范
 
-- **输入**: agent-5 的开发文档 (DEV 文档)
-- **处理**: 测试设计 + 质量保证 + 验收标准
+- **输入**: agent-5 的开发文档 (DEV 文档，不同详细程度)
+- **处理**: 测试设计 + 质量保证 + 验收标准（适应性测试）
 - **输出**: 标准化测试文档 (testing_template.yaml)
 - **完成**: 6-Agent 协作链终点，项目就绪
 
