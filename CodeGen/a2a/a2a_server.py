@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class A2AProtocolServer:
     """A2A协议服务端 - CodeGen Agent专用"""
     
-    def __init__(self, config_path: str = "Code_Gen_Config.json"):
+    def __init__(self, config_path: str = "../Code_Gen_Config.json"):
         """
         初始化A2A协议服务端
         
@@ -51,7 +51,7 @@ class A2AProtocolServer:
     def _load_guide_template(self) -> Dict:
         """加载Code_Gen_Guide.json模板"""
         try:
-            with open("Code_Gen_Guide.json", 'r', encoding='utf-8') as f:
+            with open("../Code_Gen_Guide.json", 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"加载Guide模板失败: {e}")

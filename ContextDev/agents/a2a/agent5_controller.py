@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 import logging
 
-from a2a_client import A2AProtocolClient
+from .a2a_client import A2AProtocolClient
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)

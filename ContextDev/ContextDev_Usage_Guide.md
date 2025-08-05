@@ -1,16 +1,17 @@
-# ContextDev AI编程方法论系统使用指南
+# ContextDev AI 编程方法论系统使用指南
 
 ## 📋 概述
 
-ContextDev是基于Context Engineering和Chain of Thought推理理论的AI原生开发方法论系统，通过6-Agent协作链实现从需求分析到代码生成的完整开发闭环。
+ContextDev 是基于 Context Engineering 和 Chain of Thought 推理理论的 AI 原生开发方法论系统，通过 6-Agent 协作链实现从需求分析到代码生成的完整开发闭环。
 
-## 🔄 6-Agent协作链使用方法
+## 🔄 6-Agent 协作链使用方法
 
-### Agent-1: Context基线师
+### Agent-1: Context 基线师
 
 **功能**: 建立系统基线和模块基线，为整个协作链提供稳固基础
 
 **输入格式**:
+
 ```yaml
 user_input:
   scenario_type: "探索式" | "明确式"
@@ -20,6 +21,7 @@ user_input:
 ```
 
 **调用方式**:
+
 ```python
 # 探索式场景（需求不明确）
 agent1_input = {
@@ -39,6 +41,7 @@ agent1_input = {
 ```
 
 **输出结果**:
+
 ```yaml
 system_base_info:
   document_info:
@@ -56,9 +59,10 @@ system_base_info:
 
 ### Agent-2: 需求推理师
 
-**功能**: 基于EARS方法和BDD场景进行深度需求分析
+**功能**: 基于 EARS 方法和 BDD 场景进行深度需求分析
 
 **输入格式**:
+
 ```yaml
 input:
   system_base_info: # 来自agent-1的输出
@@ -66,6 +70,7 @@ input:
 ```
 
 **调用方式**:
+
 ```python
 agent2_input = {
     "system_base_info": agent1_output,
@@ -80,6 +85,7 @@ agent2_input = {
 ```
 
 **输出结果**:
+
 ```yaml
 requirements_document:
   document_info:
@@ -103,6 +109,7 @@ requirements_document:
 **功能**: 用户体验设计和界面原型设计
 
 **输入格式**:
+
 ```yaml
 input:
   requirements_document: # 来自agent-2的输出
@@ -110,6 +117,7 @@ input:
 ```
 
 **调用方式**:
+
 ```python
 agent3_input = {
     "requirements_document": agent2_output,
@@ -123,6 +131,7 @@ agent3_input = {
 ```
 
 **输出结果**:
+
 ```yaml
 prototype_document:
   document_info:
@@ -139,7 +148,7 @@ prototype_document:
   wireframes:
     - page: "课程列表页"
       layout: "网格布局"
-      components_layout: {...}
+      components_layout: { ... }
 ```
 
 ### Agent-4: 架构推理师
@@ -147,6 +156,7 @@ prototype_document:
 **功能**: 系统架构设计和技术决策
 
 **输入格式**:
+
 ```yaml
 input:
   requirements_document: # 来自agent-2的输出
@@ -155,6 +165,7 @@ input:
 ```
 
 **调用方式**:
+
 ```python
 agent4_input = {
     "requirements_document": agent2_output,
@@ -169,6 +180,7 @@ agent4_input = {
 ```
 
 **输出结果**:
+
 ```yaml
 architecture_document:
   document_info:
@@ -186,18 +198,19 @@ architecture_document:
     entities:
       - name: "CourseInfo"
         fields:
-          - {name: "courseName", type: "string", required: true}
-          - {name: "courseDescription", type: "text", required: false}
-          - {name: "duration", type: "integer", required: true}
+          - { name: "courseName", type: "string", required: true }
+          - { name: "courseDescription", type: "text", required: false }
+          - { name: "duration", type: "integer", required: true }
         relationships:
-          - {target: "TrainingPlan", type: "one_to_many"}
+          - { target: "TrainingPlan", type: "one_to_many" }
 ```
 
-### Agent-5: 实施推理师 (含A2A集成)
+### Agent-5: 实施推理师 (含 A2A 集成)
 
-**功能**: 开发任务分解和A2A协议代码生成
+**功能**: 开发任务分解和 A2A 协议代码生成
 
 **输入格式**:
+
 ```yaml
 input:
   architecture_document: # 来自agent-4的输出
@@ -205,6 +218,7 @@ input:
 ```
 
 **调用方式**:
+
 ```python
 agent5_input = {
     "architecture_document": agent4_output,
@@ -216,7 +230,8 @@ agent5_input = {
 }
 ```
 
-**A2A集成执行流程**:
+**A2A 集成执行流程**:
+
 ```python
 # 1. 评估CodeGen适用性
 applicable_components, manual_components = agent5.evaluate_codegen_applicability(architecture_info)
@@ -235,6 +250,7 @@ except Exception as e:
 ```
 
 **输出结果**:
+
 ```yaml
 development_document:
   document_info:
@@ -264,6 +280,7 @@ development_document:
 **功能**: 测试策略设计和质量保证
 
 **输入格式**:
+
 ```yaml
 input:
   development_document: # 来自agent-5的输出
@@ -271,6 +288,7 @@ input:
 ```
 
 **调用方式**:
+
 ```python
 agent6_input = {
     "development_document": agent5_output,
@@ -283,6 +301,7 @@ agent6_input = {
 ```
 
 **输出结果**:
+
 ```yaml
 testing_document:
   document_info:
@@ -301,9 +320,9 @@ testing_document:
       status: "PASS"
 ```
 
-## 🔗 A2A集成后的使用方法
+## 🔗 A2A 集成后的使用方法
 
-### 1. 启动CodeGen A2A服务端
+### 1. 启动 CodeGen A2A 服务端
 
 ```bash
 # 方法1: 使用集成启动脚本
@@ -314,7 +333,7 @@ cd CodeGen
 python a2a_flask_app.py
 ```
 
-### 2. 验证A2A服务状态
+### 2. 验证 A2A 服务状态
 
 ```bash
 # 健康检查
@@ -324,11 +343,11 @@ curl http://localhost:8080/health
 curl http://localhost:8080/codegen/status
 ```
 
-### 3. 完整A2A集成使用流程
+### 3. 完整 A2A 集成使用流程
 
 ```python
 # 1. 初始化Agent-5控制器
-from ContextDev.agents.agent5_controller import Agent5Controller
+from ContextDev.agents.a2a.agent5_controller import Agent5Controller
 agent5 = Agent5Controller("http://localhost:8080/codegen/a2a")
 
 # 2. 执行开发规划（含A2A集成）
@@ -349,12 +368,14 @@ else:
 ### 4. 严格异常处理机制
 
 **触发条件**:
-- A2A协议网络调用失败
-- CodeGen服务响应错误
+
+- A2A 协议网络调用失败
+- CodeGen 服务响应错误
 - 协议格式验证失败
 - 代码生成执行超时
 
 **处理流程**:
+
 ```python
 # 异常处理示例
 try:
@@ -366,7 +387,7 @@ except Exception as e:
         'error_type': 'A2A_PROTOCOL_FAILURE',
         'termination_reason': 'A2A协议调用失败，根据严格异常处理策略立即终止'
     }
-    
+
     # 2. 生成用户确认请求
     user_confirmation = {
         'confirmation_required': True,
@@ -377,7 +398,7 @@ except Exception as e:
         ],
         'recommendation': '建议采用手动开发方式继续项目'
     }
-    
+
     # 3. 等待用户确认
     return {
         'workflow_status': 'SUSPENDED',
@@ -388,18 +409,21 @@ except Exception as e:
 ## 📝 最佳实践
 
 ### 1. 输入准备最佳实践
+
 - **明确需求**: 提供详细的业务需求描述
 - **技术约束**: 明确技术栈和性能要求
 - **质量标准**: 定义代码质量和测试覆盖率要求
 
 ### 2. 协作链使用最佳实践
-- **顺序执行**: 严格按照agent-1到agent-6的顺序执行
-- **输出验证**: 每个Agent的输出都应该验证格式和完整性
-- **异常处理**: 及时处理A2A协议调用异常
 
-### 3. A2A集成最佳实践
-- **服务监控**: 持续监控CodeGen A2A服务状态
-- **错误处理**: 准备A2A调用失败的备选方案
+- **顺序执行**: 严格按照 agent-1 到 agent-6 的顺序执行
+- **输出验证**: 每个 Agent 的输出都应该验证格式和完整性
+- **异常处理**: 及时处理 A2A 协议调用异常
+
+### 3. A2A 集成最佳实践
+
+- **服务监控**: 持续监控 CodeGen A2A 服务状态
+- **错误处理**: 准备 A2A 调用失败的备选方案
 - **性能优化**: 合理设置超时时间和重试策略
 
-通过以上详细的使用方法说明，用户可以完整地使用ContextDev AI编程方法论系统，实现从需求分析到代码生成的完整开发闭环。
+通过以上详细的使用方法说明，用户可以完整地使用 ContextDev AI 编程方法论系统，实现从需求分析到代码生成的完整开发闭环。
