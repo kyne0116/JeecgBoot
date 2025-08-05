@@ -7,10 +7,11 @@
 document_info:
   id: "{{SYSTEM}}-{{MODULE}}-{{TIMESTAMP}}-TEST"
   title: "{{BUSINESS_TITLE}}"
-  agent: "Agent-D"
+  agent: "agent-6"
 
 # ============================================================================
-# 开发解�?- 来自Agent-C的开发实�?# ============================================================================
+# 开发解析 - 来自agent-5的开发实施
+# ============================================================================
 development_analysis:
   source_development: "{{SOURCE_DEV_DOC_ID}}"
   test_targets:
