@@ -28,8 +28,7 @@ PRPs/
 **/validation_report_*.json
 **/deployment_report_*.json
 **/*_backup_*
-ContextDev/**/*_20*
 .windsurfrules
 .cursor/rules/design.mdc
 .superdesign/design_iterations/default_ui_darkmode.css
-ContextDev/agents/__pycache__/
+**/__pycache__/
