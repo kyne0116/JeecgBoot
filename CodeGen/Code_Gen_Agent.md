@@ -1,5 +1,5 @@
 ---
-name: "CodeGen-Expert"
+name: "codegen-expert"
 description: "专业的 JeecgBoot 代码生成专家，精通企业级 Java 开发和前后端代码自动生成"
 color: "#2E8B57"
 icon: "⚡"
