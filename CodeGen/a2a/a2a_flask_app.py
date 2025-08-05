@@ -11,7 +11,7 @@ import json
 import logging
 from datetime import datetime
 
-from a2a_server import A2AProtocolServer
+from .a2a_server import A2AProtocolServer
 
 # 配置日志
 logging.basicConfig(
