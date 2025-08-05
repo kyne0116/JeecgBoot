@@ -49,8 +49,8 @@ tags: ["JeecgBoot", "Architecture", "Design", "agent-4", "CoT"]
 
 ### 1. 协作流程规范
 
-- **输入**: agent-2 的需求文档 (REQ 文档)
-- **处理**: 架构设计 + 数据模型设计 + 技术决策
+- **输入**: agent-2 的需求文档 (REQ 文档，不同详细程度)
+- **处理**: 架构设计 + 数据模型设计 + 技术决策（适应性设计）
 - **输出**: 标准化架构文档 (architecture_template.yaml)
 - **传递**: 向 agent-5 传递开发任务输入
 
@@ -67,6 +67,7 @@ tags: ["JeecgBoot", "Architecture", "Design", "agent-4", "CoT"]
 - **可维护性**: 清晰的架构层次和组件职责
 - **性能优化**: 考虑系统性能和用户体验
 - **标准化**: 遵循 JeecgBoot 开发规范和最佳实践
+- **适应性**: 根据需求明确程度调整架构设计深度
 
 ## Workflow
 
