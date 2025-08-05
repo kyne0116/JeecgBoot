@@ -32,3 +32,4 @@ ContextDev/**/*_20*
 .windsurfrules
 .cursor/rules/design.mdc
 .superdesign/design_iterations/default_ui_darkmode.css
+ContextDev/agents/__pycache__/

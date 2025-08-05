@@ -93,7 +93,7 @@ graph TD
 ```yaml
 # 请求格式
 a2a_request:
-  source_agent: "ContextDev-agent-5"
+  source_agent: "code-developer"
   target_agent: "codegen-expert"
   payload:
     system_context: { ... }
@@ -168,15 +168,213 @@ a2a_response:
 
 - **ContextDev 系统**: `ContextDev/README.md` - AI 编程方法论详细说明
 - **CodeGen 系统**: `CodeGen/README.md` - 代码生成系统使用指南
-- **A2A 协议规范**: `ContextDev/A2A_Protocol_Specification.md` - 完整协议规范
-- **集成实施指南**: `ContextDev/A2A_Integration_Guide.md` - 技术实施细节
+- **A2A 协议指南**: `ContextDev/A2A_Protocol_Guide.md` - 协议规范、集成实施和使用说明
+- **测试场景指南**: `ContextDev/TEST_SCENARIO_GUIDE.md` - 测试场景配置和使用说明
+
+## 🚀 上手指南
 
 ### 快速开始
 
-1. 阅读各系统的 README 文档了解基础功能
-2. 查看 A2A 协议规范了解集成机制
-3. 参考集成实施指南进行技术实施
-4. 按照 ContextDev 的 6-Agent 协作链执行开发流程
+本章节提供 A2A 协议、ContextDev 系统和 CodeGen 系统三方协作的具体使用场景和操作指南。
+
+### 场景 1：探索式需求分析场景
+
+**适用情况**: 需求不明确，需要通过 AI 协作逐步明确需求的情况
+
+#### 对话式操作步骤
+
+**步骤 1: 启动基线管理师**
+
+```
+@baseline-manager 我需要开发一个企业管理系统，但具体需求还不清楚。
+
+业务领域：企业管理
+初始描述：我们需要一个管理系统，但具体需求还不清楚
+利益相关者：业务用户、管理员
+技术约束：使用JeecgBoot框架，支持移动端
+```
+
+**预期输出**: Context 基线和领域知识框架
+
+**步骤 2: 需求分析**
+
+```
+@requirements-analyst 基于基线管理师的输出，请帮我分析具体的业务需求。
+
+请使用EARS方法进行需求分析，并设计BDD场景。
+```
+
+**预期输出**: 结构化需求文档和 BDD 测试场景
+
+**步骤 3: 原型设计**
+
+```
+@prototype-designer 基于需求分析结果，请设计系统原型。
+
+重点关注用户界面和交互流程。
+```
+
+**预期输出**: 原型设计和用户体验方案
+
+**步骤 4: 架构设计**
+
+```
+@system-architect 基于原型设计，请设计系统架构。
+
+使用JeecgBoot框架，确保架构的可扩展性和可维护性。
+```
+
+**预期输出**: 技术架构方案和组件设计
+
+**步骤 5: 代码开发**
+
+```
+@code-developer 基于架构设计，请通过A2A协议调用CodeGen生成代码。
+
+确保生成的代码符合JeecgBoot规范。
+```
+
+**预期输出**: 完整的 CRUD 代码和数据库脚本
+
+#### 预期输出
+
+- **需求文档**: 从模糊描述到结构化需求的完整转换
+- **架构设计**: 基于明确需求的技术架构方案
+- **代码生成**: 通过 A2A 协议生成的基础 CRUD 代码
+- **实施计划**: 详细的开发任务分解和时间安排
+
+#### 注意事项
+
+- **迭代过程**: 探索式场景可能需要多轮迭代才能明确需求
+- **用户参与**: 建议在需求明确过程中保持与业务用户的沟通
+- **灵活调整**: 根据探索结果随时调整技术方案和实施策略
+
+#### 故障排除
+
+- **需求发散**: 如果需求过于发散，使用 Agent-1 重新建立更聚焦的基线
+- **技术约束冲突**: 及时调整技术约束，确保方案可行性
+- **A2A 调用失败**: 检查 CodeGen 服务状态，必要时转为手动开发
+
+### 场景 2：明确需求实施场景
+
+**适用情况**: 需求已明确，直接进行代码生成和实施的情况
+
+#### 对话式操作步骤
+
+**步骤 1: 直接架构设计**
+
+```
+@system-architect 我有明确的需求，请直接设计系统架构。
+
+系统名称：培训管理系统课程信息管理
+业务领域：企业培训管理
+核心实体：
+- CourseInfo（课程信息）
+  - courseName（课程名称）
+  - courseType（课程类型）
+  - duration（课程时长）
+  - instructor（讲师）
+  - description（课程描述）
+
+技术要求：使用JeecgBoot框架，MySQL数据库
+```
+
+**预期输出**: 技术架构方案和数据库设计
+
+**步骤 2: 代码生成**
+
+```
+@code-developer 基于架构设计，请通过A2A协议调用CodeGen生成代码。
+
+模块名称：training
+子模块：course
+业务实体：CourseInfo
+确保生成完整的CRUD功能。
+```
+
+**预期输出**: 完整的后端代码（Controller、Service、Entity、Mapper）和前端代码
+
+**步骤 3: 质量验证**
+
+```
+@quality-tester 请验证生成的代码质量。
+
+检查项目：
+- 代码规范符合性
+- JeecgBoot框架兼容性
+- 数据库表结构正确性
+- API接口功能完整性
+```
+
+**预期输出**: 质量评估报告和改进建议
+
+#### 预期输出
+
+- **代码文件**: 完整的后端 Java 文件（Controller、Service、Entity、Mapper）
+- **前端文件**: Vue 组件文件（List、Form、Modal）
+- **数据库脚本**: DDL 脚本和索引创建语句
+- **配置文件**: 相关的配置和路由文件
+
+#### 注意事项
+
+- **需求完整性**: 确保输入的需求信息完整且准确
+- **环境一致性**: 确保开发环境与目标部署环境一致
+- **代码审查**: 生成的代码需要进行人工审查和测试
+
+#### 故障排除
+
+- **A2A 协议超时**: 检查网络连接和服务响应时间
+- **代码生成失败**: 查看 CodeGen 服务日志，检查 JeecgBoot API 状态
+- **文件冲突**: 检查目标目录是否存在同名文件
+- **编译错误**: 验证生成的代码语法和依赖项
+
+### 通用故障排除指南
+
+#### 环境问题
+
+```bash
+# 检查服务状态
+systemctl status jeecg-boot  # Linux
+netstat -an | findstr :8080  # Windows
+
+# 检查端口占用
+lsof -i :8080  # macOS/Linux
+netstat -ano | findstr :8080  # Windows
+```
+
+#### A2A 协议问题
+
+```python
+# 测试A2A连接
+import requests
+
+try:
+    response = requests.get("http://localhost:8888/health", timeout=5)
+    print(f"CodeGen A2A服务状态: {response.status_code}")
+except Exception as e:
+    print(f"连接失败: {e}")
+```
+
+#### 配置问题
+
+```bash
+# 验证配置文件
+python CodeGen/Code_Gen_Guide.py --validate-config
+
+# 检查环境变量
+echo $JEECG_PROJECT_ROOT  # Unix
+echo %JEECG_PROJECT_ROOT%  # Windows
+```
+
+## 📞 技术支持
+
+如遇问题，请检查：
+
+1. **服务状态**：确认 JeecgBoot 和 CodeGen A2A 服务正常运行
+2. **网络连接**：验证服务间网络连通性
+3. **配置文件**：检查配置文件格式和内容正确性
+4. **日志信息**：查看详细的错误日志和调试信息
+5. **环境依赖**：确认所有依赖项正确安装和配置
 
 ---
 

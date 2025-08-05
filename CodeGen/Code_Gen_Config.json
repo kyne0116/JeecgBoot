@@ -1,11 +1,11 @@
 {
   "project": {
-    "path_prefix": "/Users/admin/Work/Github/JeecgBoot"
+    "path_prefix": "$JEECG_PROJECT_ROOT"
   },
   "server": {
-    "base_url": "http://localhost:8080/jeecg-boot",
-    "username": "admin",
-    "password": "123456"
+    "base_url": "$JEECG_BASE_URL",
+    "username": "$JEECG_USERNAME",
+    "password": "$JEECG_PASSWORD"
   },
   "timeouts": {
     "login": 10,

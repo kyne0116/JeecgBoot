@@ -20,12 +20,143 @@ import argparse
 import re
 import subprocess
 import platform
-
+import sys
 import shutil
 import os
 import random
 from datetime import datetime
 from pathlib import Path
+
+# 设置控制台编码（Windows兼容性）
+if platform.system() == 'Windows':
+    import locale
+    try:
+        # 尝试设置UTF-8编码
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except:
+        # 如果失败，使用系统默认编码
+        pass
+
+# 跨平台兼容性工具函数
+class CrossPlatformUtils:
+    """跨平台兼容性工具类"""
+
+    @staticmethod
+    def get_platform_info():
+        """获取平台信息"""
+        return {
+            'system': platform.system(),
+            'release': platform.release(),
+            'machine': platform.machine(),
+            'python_version': platform.python_version(),
+            'is_windows': platform.system() == 'Windows',
+            'is_macos': platform.system() == 'Darwin',
+            'is_linux': platform.system() == 'Linux'
+        }
+
+    @staticmethod
+    def get_maven_executable():
+        """获取Maven可执行文件名"""
+        if platform.system() == 'Windows':
+            return 'mvn.cmd'
+        else:
+            return 'mvn'
+
+    @staticmethod
+    def normalize_path(path_str):
+        """标准化路径，处理不同平台的路径分隔符"""
+        return Path(path_str).resolve()
+
+    @staticmethod
+    def get_executable_extension():
+        """获取可执行文件扩展名"""
+        return '.exe' if platform.system() == 'Windows' else ''
+
+    @staticmethod
+    def get_shell_command(command):
+        """获取适合当前平台的shell命令"""
+        if platform.system() == 'Windows':
+            return ['cmd', '/c'] + (command if isinstance(command, list) else [command])
+        else:
+            return ['/bin/bash', '-c'] + (command if isinstance(command, list) else [command])
+
+    @staticmethod
+    def get_default_project_prefix():
+        """获取默认项目路径前缀"""
+        home = Path.home()
+        if platform.system() == 'Windows':
+            # Windows: 通常在用户目录下的开发文件夹
+            return str(home / 'Documents' / 'JeecgBoot')
+        elif platform.system() == 'Darwin':
+            # macOS: 通常在用户目录下的工作文件夹
+            return str(home / 'Work' / 'JeecgBoot')
+        else:
+            # Linux: 通常在用户目录下的项目文件夹
+            return str(home / 'projects' / 'JeecgBoot')
+
+    @staticmethod
+    def ensure_directory_permissions(directory_path):
+        """确保目录具有正确的权限"""
+        path = Path(directory_path)
+        if path.exists():
+            if platform.system() != 'Windows':
+                # Unix-like系统设置权限
+                os.chmod(path, 0o755)
+                for item in path.rglob('*'):
+                    if item.is_dir():
+                        os.chmod(item, 0o755)
+                    else:
+                        os.chmod(item, 0o644)
+
+    @staticmethod
+    def detect_project_root():
+        """智能检测项目根目录"""
+        current_path = Path.cwd()
+
+        # 检查当前目录及其父目录，寻找JeecgBoot项目标识
+        for path in [current_path] + list(current_path.parents):
+            # 检查是否包含JeecgBoot项目的标识文件/目录
+            indicators = [
+                'jeecg-boot',
+                'jeecgboot-vue3',
+                'CodeGen',
+                'pom.xml'
+            ]
+
+            if any((path / indicator).exists() for indicator in indicators):
+                return str(path)
+
+        # 如果没有找到，返回当前目录
+        return str(current_path)
+
+    @staticmethod
+    def resolve_path_prefix(config_path_prefix):
+        """解析路径前缀，支持相对路径、环境变量和自动检测"""
+        if not config_path_prefix:
+            return CrossPlatformUtils.detect_project_root()
+
+        # 处理环境变量
+        if config_path_prefix.startswith('$'):
+            env_var = config_path_prefix[1:]
+            env_value = os.environ.get(env_var)
+            if env_value:
+                return str(CrossPlatformUtils.normalize_path(env_value))
+            else:
+                print(f"⚠️ 环境变量 {env_var} 未设置，使用自动检测")
+                return CrossPlatformUtils.detect_project_root()
+
+        # 处理特殊标记
+        if config_path_prefix == "AUTO_DETECT":
+            return CrossPlatformUtils.detect_project_root()
+
+        # 处理相对路径
+        if not Path(config_path_prefix).is_absolute():
+            base_path = Path(__file__).parent.parent  # CodeGen目录的父目录
+            return str(CrossPlatformUtils.normalize_path(base_path / config_path_prefix))
+
+        # 处理绝对路径
+        return str(CrossPlatformUtils.normalize_path(config_path_prefix))
 
 def load_config():
     """加载配置文件"""
@@ -35,12 +166,12 @@ def load_config():
     # 默认配置（仅在配置文件不存在时使用）
     default_config = {
         "project": {
-            "path_prefix": "/Users/admin/Work/Github/JeecgBoot"  # 默认路径，应在Code_Gen_Config.json中配置
+            "path_prefix": CrossPlatformUtils.get_default_project_prefix()  # 跨平台默认路径
         },
         "server": {
-            "base_url": "http://localhost:8080/jeecg-boot",
-            "username": "admin",
-            "password": "123456"
+            "base_url": os.environ.get('JEECG_BASE_URL', 'http://localhost:8080/jeecg-boot'),
+            "username": os.environ.get('JEECG_USERNAME', 'admin'),
+            "password": os.environ.get('JEECG_PASSWORD', '123456')
         },
         "timeouts": {
             "login": 10,
@@ -119,6 +250,35 @@ def load_config():
         print(f"⚠️  配置文件不存在: {config_file}")
         print(f"💡 将使用默认配置运行，如需自定义配置请创建配置文件")
         print(f"📝 可以复制现有配置文件模板或使用 --config 参数指定配置文件")
+
+    # 解析项目路径前缀
+    original_path_prefix = default_config["project"]["path_prefix"]
+    resolved_path_prefix = CrossPlatformUtils.resolve_path_prefix(original_path_prefix)
+    default_config["project"]["path_prefix"] = resolved_path_prefix
+
+    if original_path_prefix != resolved_path_prefix:
+        try:
+            print(f"📁 路径解析: {original_path_prefix} → {resolved_path_prefix}")
+        except UnicodeEncodeError:
+            print(f"[路径解析] {original_path_prefix} -> {resolved_path_prefix}")
+
+    # 解析服务器配置中的环境变量
+    def resolve_env_var(value):
+        """解析环境变量"""
+        if isinstance(value, str) and value.startswith('$'):
+            env_var = value[1:]
+            env_value = os.environ.get(env_var)
+            if env_value:
+                return env_value
+            else:
+                print(f"⚠️ 环境变量 {env_var} 未设置，使用默认值")
+                return value
+        return value
+
+    # 解析服务器配置
+    default_config["server"]["base_url"] = resolve_env_var(default_config["server"]["base_url"])
+    default_config["server"]["username"] = resolve_env_var(default_config["server"]["username"])
+    default_config["server"]["password"] = resolve_env_var(default_config["server"]["password"])
 
     return default_config
 
@@ -1352,8 +1512,9 @@ def create_maven_module(module_name):
     project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
     
     # 构建Maven命令
+    mvn_executable = CrossPlatformUtils.get_maven_executable()
     maven_cmd = [
-        'mvn', 'archetype:generate',
+        mvn_executable, 'archetype:generate',
         '-DgroupId=org.jeecgframework.boot',
         f'-DartifactId=jeecg-module-{module_name}',
         '-Dversion=3.8.1',
@@ -1363,11 +1524,8 @@ def create_maven_module(module_name):
         '-DinteractiveMode=false'  # 非交互模式
     ]
 
-    # 构建执行目录路径，使用正确的路径分隔符
-    if platform.system() == 'Windows':
-        exec_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module'
-    else:
-        exec_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module'
+    # 构建执行目录路径，使用跨平台路径处理
+    exec_dir = CrossPlatformUtils.normalize_path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module'
 
     print(f"   操作系统: {platform.system()}")
     print(f"   执行目录: {exec_dir.absolute()}")
@@ -3952,11 +4110,14 @@ def print_workflow_variables():
     print(f"   迁移方式                 = 重命名vue3为模块名并整体移动")
 
     # 运行环境信息
+    platform_info = CrossPlatformUtils.get_platform_info()
     print("\n💻 运行环境信息:")
-    print(f"   操作系统                 = {platform.system()} {platform.release()}")
-    print(f"   Python版本               = {platform.python_version()}")
+    print(f"   操作系统                 = {platform_info['system']} {platform_info['release']}")
+    print(f"   架构                     = {platform_info['machine']}")
+    print(f"   Python版本               = {platform_info['python_version']}")
     print(f"   当前工作目录             = {Path.cwd()}")
     print(f"   配置文件路径             = {Path('Code_Gen_Config.json').absolute()}")
+    print(f"   平台特性                 = {'Windows' if platform_info['is_windows'] else 'macOS' if platform_info['is_macos'] else 'Linux'}")
 
     print("=" * 80)
 

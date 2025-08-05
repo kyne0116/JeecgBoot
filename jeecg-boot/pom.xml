@@ -585,10 +585,6 @@
     <!-- 开发 -->
     <profile>
       <id>dev</id>
-      <activation>
-        <!--默认激活配置-->
-        <activeByDefault>true</activeByDefault>
-      </activation>
       <properties>
         <!--当前环境-->
         <profile.name>dev</profile.name>
@@ -619,6 +615,10 @@
     <!-- 测试 -->
     <profile>
       <id>test</id>
+      <activation>
+        <!--默认激活配置-->
+        <activeByDefault>true</activeByDefault>
+      </activation>
       <properties>
         <!--当前环境-->
         <profile.name>test</profile.name>
