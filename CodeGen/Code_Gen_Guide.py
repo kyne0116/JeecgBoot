@@ -27,16 +27,78 @@ import random
 from datetime import datetime
 from pathlib import Path
 
-# 设置控制台编码（Windows兼容性）
-if platform.system() == 'Windows':
-    import locale
+# 设置控制台编码（跨平台兼容性）
+def setup_console_encoding():
+    """设置控制台编码，确保跨平台兼容性"""
+    global EMOJI_SUPPORT
+    EMOJI_SUPPORT = True
+    
     try:
-        # 尝试设置UTF-8编码
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
-    except:
-        # 如果失败，使用系统默认编码
-        pass
+        if platform.system() == 'Windows':
+            import locale
+            # Windows 控制台编码设置
+            try:
+                # 尝试设置UTF-8编码
+                sys.stdout.reconfigure(encoding='utf-8')
+                sys.stderr.reconfigure(encoding='utf-8')
+                # 设置控制台代码页为UTF-8 (仅Windows)
+                import subprocess
+                result = subprocess.run(['chcp', '65001'], capture_output=True, check=False)
+                
+                # 检测控制台编码来判断emoji支持
+                if sys.stdout.encoding.lower() in ['utf-8', 'utf8']:
+                    EMOJI_SUPPORT = True
+                else:
+                    EMOJI_SUPPORT = False
+                    
+            except:
+                # 如果UTF-8失败，使用系统默认编码
+                EMOJI_SUPPORT = False
+                try:
+                    encoding = locale.getpreferredencoding()
+                    sys.stdout.reconfigure(encoding=encoding)
+                    sys.stderr.reconfigure(encoding=encoding)
+                except:
+                    pass
+        else:
+            # macOS/Linux 通常默认UTF-8，但确保设置正确
+            try:
+                sys.stdout.reconfigure(encoding='utf-8')
+                sys.stderr.reconfigure(encoding='utf-8')
+            except:
+                pass
+    except Exception:
+        # 如果所有设置都失败，保持默认
+        EMOJI_SUPPORT = False
+
+def safe_print(text, **kwargs):
+    """安全打印函数，在不支持emoji的环境下使用fallback"""
+    global EMOJI_SUPPORT
+    if not EMOJI_SUPPORT and platform.system() == 'Windows':
+        # Windows环境下emoji fallback
+        emoji_map = {
+            '🔧': '[工具]', '✅': '[OK]', '❌': '[FAIL]', '📊': '[图表]', 
+            '🎯': '[目标]', '🚀': '[启动]', '📋': '[清单]', '📁': '[文件夹]',
+            '🔍': '[搜索]', '⚡': '[闪电]', '🎉': '[庆祝]', '⚠️': '[警告]',
+            '💡': '[提示]', '📝': '[记录]', '🗄️': '[数据库]', '🌐': '[网络]',
+            '🔄': '[刷新]', '🔗': '[链接]', '📦': '[包]', '🎨': '[设计]',
+            '🏗️': '[构建]', '1️⃣': '1.', '2️⃣': '2.', '3️⃣': '3.', '4️⃣': '4.',
+            '5️⃣': '5.', '6️⃣': '6.', '7️⃣': '7.', '8️⃣': '8.'
+        }
+        
+        for emoji, replacement in emoji_map.items():
+            text = text.replace(emoji, replacement)
+    
+    try:
+        print(text, **kwargs)
+    except UnicodeEncodeError:
+        # 最后的fallback：移除所有非ASCII字符
+        ascii_text = text.encode('ascii', 'ignore').decode('ascii')
+        print(ascii_text, **kwargs)
+
+# 初始化控制台编码
+EMOJI_SUPPORT = True
+setup_console_encoding()
 
 # 跨平台兼容性工具函数
 class CrossPlatformUtils:
@@ -1355,19 +1417,27 @@ def convert_to_java_entity_name(snake_case_str):
     # 如果是复合词，尝试智能分割（基于常见模式）
     # 这里可以根据需要扩展更多的分割规则
     common_patterns = [
-        ('profile', 'Profile'),
-        ('manager', 'Manager'), 
-        ('service', 'Service'),
-        ('config', 'Config'),
-        ('info', 'Info'),
-        ('data', 'Data'),
-        ('record', 'Record'),
-        ('detail', 'Detail'),
-        ('item', 'Item'),
-        ('list', 'List'),
-        ('table', 'Table'),
-        ('form', 'Form'),
-        ('view', 'View')
+        # 长词汇优先匹配（避免被短词汇截断）
+        ('template', 'Template'),    # emailtemplate -> EmailTemplate
+        ('category', 'Category'),    # productcategory -> ProductCategory
+        ('history', 'History'),      # orderhistory -> OrderHistory
+        ('summary', 'Summary'),      # salesummary -> SaleSummary
+        ('setting', 'Setting'),      # usersetting -> UserSetting
+        ('manager', 'Manager'),      # employeemanager -> EmployeeManager
+        ('service', 'Service'),      # userservice -> UserService
+        ('profile', 'Profile'),      # customerprofile -> CustomerProfile
+        ('header', 'Header'),        # invoiceheader -> InvoiceHeader
+        ('detail', 'Detail'),        # orderdetail -> OrderDetail
+        ('record', 'Record'),        # logrecord -> LogRecord
+        ('config', 'Config'),        # systemconfig -> SystemConfig
+        ('status', 'Status'),        # orderstatus -> OrderStatus
+        ('table', 'Table'),          # mastertable -> MasterTable
+        ('info', 'Info'),            # productinfo -> ProductInfo
+        ('data', 'Data'),            # userdata -> UserData
+        ('item', 'Item'),            # orderitem -> OrderItem
+        ('list', 'List'),            # productlist -> ProductList
+        ('form', 'Form'),            # userform -> UserForm
+        ('view', 'View')             # reportview -> ReportView
     ]
     
     result = snake_case_str
@@ -3591,6 +3661,8 @@ def execute_post_generation_workflow():
 
 def _output_workflow_results(workflow_results):
     """统一输出工作流执行结果"""
+    import sys
+    
     # 计算总体结果
     total_success = sum(workflow_results.values())
     total_steps = len(workflow_results)
@@ -3601,13 +3673,28 @@ def _output_workflow_results(workflow_results):
         print_generated_file_paths()
 
     # 输出工作流执行结果（作为最后的输出）
-    print(f"\n{'='*50}")
+    print()  # 空行确保分隔
+    print("=" * 50)
+    sys.stdout.flush()  # 强制刷新缓冲区
+    
     print("📊 代码生成工作流执行结果:")
+    sys.stdout.flush()
+    
+    # 逐行输出每个步骤的结果，确保换行显示
     for step_name, result in workflow_results.items():
         status = "✅ Pass" if result else "❌ Fail"
-        print(f"   {step_name}: {status}")
+        # 使用显式的换行符和刷新确保正确显示
+        print(f"   {step_name}: {status}", flush=True)
+        if platform.system() == 'Windows':
+            # Windows 额外处理
+            sys.stdout.flush()
+            time.sleep(0.001)  # 微小延迟确保输出
 
-    print(f"\n🎯 总体执行结果: {overall_result} ({total_success}/{total_steps})")
+    print()  # 空行分隔
+    print(f"🎯 总体执行结果: {overall_result} ({total_success}/{total_steps})", flush=True)
+    
+    # 最终刷新
+    sys.stdout.flush()
 
     # 返回总体结果（True表示Pass，False表示Fail）
     return total_success == total_steps

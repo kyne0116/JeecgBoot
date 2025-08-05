@@ -18,8 +18,12 @@ from typing import Dict, List, Tuple
 class CodeGenValidator:
     """高效配置文件验证器"""
 
-    def __init__(self, schema_file: str = "Code_Gen_Schema.json"):
+    def __init__(self, schema_file: str = None):
         """初始化验证器"""
+        if schema_file is None:
+            import os
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            schema_file = os.path.join(current_dir, "Code_Gen_Schema.json")
         self.schema_file = schema_file
         self.schema = self._load_schema()
         # 核心常量
@@ -31,10 +35,10 @@ class CodeGenValidator:
             with open(self.schema_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except FileNotFoundError:
-            print(f"❌ Schema文件不存在: {self.schema_file}")
+            print(f"Schema文件不存在: {self.schema_file}")
             return {}
         except json.JSONDecodeError as e:
-            print(f"❌ Schema文件格式错误: {e}")
+            print(f"Schema文件格式错误: {e}")
             return {}
 
     def validate_config(self, config_file: str) -> Tuple[bool, List[str]]:
@@ -107,10 +111,10 @@ class CodeGenValidator:
         table_name = config.get('head', {}).get('tableName', '')
 
         if not table_name.startswith('us_'):
-            errors.append("⚠️ 表名必须以us_开头")
+            errors.append("表名必须以us_开头")
 
         if table_name.count('_') != 3:
-            errors.append("⚠️ 表名必须是4段式: us_module_submodule_entity")
+            errors.append("表名必须是4段式: us_module_submodule_entity")
 
         return errors
     def generate_validation_report(self, config_file: str) -> str:
@@ -118,22 +122,22 @@ class CodeGenValidator:
         is_valid, errors = self.validate_config(config_file)
 
         report = f"""
-📋 JSON配置验证报告
+JSON配置验证报告
 {'='*40}
 文件: {config_file}
-状态: {'✅ 验证通过' if is_valid else '❌ 验证失败'}
+状态: {'验证通过' if is_valid else '验证失败'}
 
 """
 
         if is_valid:
-            report += "🎉 配置文件符合JeecgBoot API要求\n"
-            report += "✅ 核心验证通过：orderNum连续性、系统字段、表名格式\n"
+            report += "配置文件符合JeecgBoot API要求\n"
+            report += "核心验证通过：orderNum连续性、系统字段、表名格式\n"
         else:
-            report += f"❌ 发现 {len(errors)} 个问题:\n\n"
+            report += f"发现 {len(errors)} 个问题:\n\n"
             for i, error in enumerate(errors, 1):
                 report += f"{i}. {error}\n"
 
-            report += "\n🔧 修复建议:\n"
+            report += "\n修复建议:\n"
             report += "1. 确保orderNum从0开始连续递增\n"
             report += "2. 检查前7个系统字段是否正确\n"
             report += "3. 验证表名格式: us_module_submodule_entity\n"
@@ -149,7 +153,7 @@ def main():
     config_file = sys.argv[1]
     validator = CodeGenValidator()
 
-    print("🔍 验证JSON配置文件...")
+    print("验证JSON配置文件...")
     report = validator.generate_validation_report(config_file)
     print(report)
 
