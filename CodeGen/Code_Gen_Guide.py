@@ -62,6 +62,47 @@ class CrossPlatformUtils:
             return 'mvn.cmd'
         else:
             return 'mvn'
+    
+    @staticmethod
+    def is_git_bash_environment():
+        """检测是否在Git Bash环境中运行"""
+        return (
+            platform.system() == 'Windows' and 
+            ('MSYSTEM' in os.environ or '/c/' in os.environ.get('PATH', ''))
+        )
+    
+    @staticmethod
+    def execute_command_safely(cmd_list, cwd=None, timeout=300):
+        """
+        安全执行命令，处理Git Bash环境兼容性问题
+        
+        Args:
+            cmd_list: 命令列表，如 ['mvn.cmd', 'archetype:generate', ...]
+            cwd: 工作目录
+            timeout: 超时时间（秒）
+        
+        Returns:
+            subprocess.CompletedProcess: 执行结果
+        """
+        if CrossPlatformUtils.is_git_bash_environment() and platform.system() == 'Windows':
+            # 在Git Bash环境中，使用cmd.exe /c来执行Windows命令
+            cmd_str = ' '.join(cmd_list)
+            full_cmd = ['cmd.exe', '/c', cmd_str]
+            print(f"   Git Bash环境检测: 使用 cmd.exe /c 执行命令")
+            print(f"   执行命令: {' '.join(full_cmd)}")
+        else:
+            # 其他环境直接执行
+            full_cmd = cmd_list
+            print(f"   标准环境: 直接执行命令")
+            print(f"   执行命令: {' '.join(full_cmd)}")
+        
+        return subprocess.run(
+            full_cmd,
+            cwd=str(cwd) if cwd else None,
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
 
     @staticmethod
     def normalize_path(path_str):
@@ -173,6 +214,12 @@ def load_config():
             "username": os.environ.get('JEECG_USERNAME', 'admin'),
             "password": os.environ.get('JEECG_PASSWORD', '123456')
         },
+        "database": {
+            "type": os.environ.get('JEECG_DATABASE_TYPE', 'mysql'),
+            "url": os.environ.get('JEECG_DATABASE_URL', 'jdbc:mysql://localhost:3306/jeecg-boot'),
+            "username": os.environ.get('JEECG_DATABASE_USERNAME', 'root'),
+            "password": os.environ.get('JEECG_DATABASE_PASSWORD', '123456')
+        },
         "timeouts": {
             "login": 10,
             "create": 30,
@@ -279,6 +326,12 @@ def load_config():
     default_config["server"]["base_url"] = resolve_env_var(default_config["server"]["base_url"])
     default_config["server"]["username"] = resolve_env_var(default_config["server"]["username"])
     default_config["server"]["password"] = resolve_env_var(default_config["server"]["password"])
+    
+    # 解析数据库配置
+    default_config["database"]["type"] = resolve_env_var(default_config["database"]["type"])
+    default_config["database"]["url"] = resolve_env_var(default_config["database"]["url"])
+    default_config["database"]["username"] = resolve_env_var(default_config["database"]["username"])
+    default_config["database"]["password"] = resolve_env_var(default_config["database"]["password"])
 
     return default_config
 
@@ -1537,12 +1590,10 @@ def create_maven_module(module_name):
             print(f"❌ 执行目录不存在: {exec_dir.absolute()}")
             return False
 
-        # 执行Maven命令
-        result = subprocess.run(
+        # 执行Maven命令 - 使用安全执行方法处理Git Bash兼容性
+        result = CrossPlatformUtils.execute_command_safely(
             maven_cmd,
             cwd=exec_dir,
-            capture_output=True,
-            text=True,
             timeout=300  # 5分钟超时
         )
 
@@ -2377,6 +2428,22 @@ def _merge_frontend_files(source_dir, target_dir):
 
 # ==================== 数据库SQL执行功能 ====================
 
+def validate_database_type():
+    """验证数据库类型是否支持"""
+    db_config = CONFIG.get('database', {})
+    db_type = db_config.get('type', 'mysql').lower()
+    
+    print(f"🔍 检查数据库类型: {db_type}")
+    
+    if db_type != 'mysql':
+        print(f"❌ 暂不支持 {db_type} 的数据库处理")
+        print("   目前仅支持 MySQL 数据库")
+        print("   请设置环境变量 JEECG_DATABASE_TYPE=mysql 或在配置文件中指定")
+        return False
+    
+    print("✅ 数据库类型验证通过")
+    return True
+
 def execute_database_sql():
     """执行生成的SQL文件到数据库"""
     db_config = CONFIG.get('database_execution', {})
@@ -2565,15 +2632,47 @@ def extract_frontend_path_from_sql_in_backend():
 def parse_database_config():
     """解析数据库连接配置"""
     try:
-        # 读取application-dev.yml配置文件
+        # 优先使用环境变量配置的数据库信息
+        db_config = CONFIG.get('database', {})
+        db_url = db_config.get('url', '')
+        
+        if db_url and db_url.startswith('jdbc:mysql://'):
+            print(f"📖 使用环境变量数据库配置")
+            
+            # 解析JDBC URL格式: jdbc:mysql://host:port/database
+            import re
+            url_pattern = r'jdbc:mysql://([^:]+):(\d+)/([^?\s]+)'
+            url_match = re.search(url_pattern, db_url)
+            
+            if url_match:
+                host = url_match.group(1)
+                port = int(url_match.group(2))
+                database = url_match.group(3)
+                username = db_config.get('username', 'root')
+                password = db_config.get('password', '123456')
+                
+                print(f"✅ 环境变量数据库配置解析成功: {host}:{port}/{database} (用户: {username})")
+                
+                return {
+                    'host': host,
+                    'port': port,
+                    'database': database,
+                    'username': username,
+                    'password': password
+                }
+            else:
+                print(f"❌ 无法解析数据库URL格式: {db_url}")
+        
+        # 如果环境变量配置无效，则回退到读取YAML文件
+        print(f"⚠️ 环境变量数据库配置无效，回退到读取YAML文件")
         project_prefix = CONFIG.get('project', {}).get('path_prefix', '/Users/admin/Work/Github/JeecgBoot')
         config_file = Path(project_prefix) / 'jeecg-boot' / 'jeecg-module-system' / 'jeecg-system-start' / 'src' / 'main' / 'resources' / 'application-dev.yml'
 
         if not config_file.exists():
-            print(f"❌ 配置文件不存在: {config_file}")
+            print(f"❌ YAML配置文件不存在: {config_file}")
             return None
 
-        print(f"📖 读取数据库配置: {config_file}")
+        print(f"📖 读取YAML数据库配置: {config_file}")
 
         # 简单解析YAML中的数据库配置
         with open(config_file, 'r', encoding='utf-8') as f:
@@ -2738,8 +2837,14 @@ def execute_sql_with_python(sql_file_path, db_connection):
             import mysql.connector
         except ImportError:
             print("❌ 未安装mysql-connector-python库")
-            print("   请安装: pip install mysql-connector-python")
-            print("   跳过数据库SQL执行步骤")
+            print("   ")
+            print("   🔧 解决方案:")
+            print("   1. 安装库: pip install mysql-connector-python")
+            print("   2. 如果使用conda环境: conda install mysql-connector-python")
+            print("   3. 如果在虚拟环境中，请先激活虚拟环境再安装")
+            print("   ")
+            print("   💡 提示: 安装完成后重新运行命令即可")
+            print("   ⏭️  跳过数据库SQL执行步骤")
             return False
 
         # 读取SQL文件内容
@@ -3449,6 +3554,11 @@ def execute_post_generation_workflow():
     print(f"\n{'='*50}")
     print("6️⃣ 执行数据库SQL...")
     try:
+        # 首先验证数据库类型
+        if not validate_database_type():
+            print("❌ 数据库类型验证失败，工作流终止")
+            return _output_workflow_results(workflow_results)
+        
         if execute_database_sql():
             print("✅ 创建菜单SQL数据库执行完成")
             workflow_results['6️⃣ 创建菜单SQL数据库执行'] = True
@@ -3832,6 +3942,18 @@ def validate_config():
         errors.append("用户名不能为空")
     if not CONFIG['server']['password']:
         errors.append("密码不能为空")
+    
+    # 验证数据库配置
+    if not CONFIG['database']['type']:
+        errors.append("数据库类型不能为空")
+    elif CONFIG['database']['type'].lower() != 'mysql':
+        errors.append(f"暂不支持 {CONFIG['database']['type']} 数据库类型，目前仅支持 MySQL")
+    if not CONFIG['database']['url']:
+        errors.append("数据库URL不能为空")
+    if not CONFIG['database']['username']:
+        errors.append("数据库用户名不能为空")
+    if not CONFIG['database']['password']:
+        errors.append("数据库密码不能为空")
 
     # 验证代码生成配置
     if not CONFIG['codegen']['project_path']:
@@ -4051,6 +4173,14 @@ def print_workflow_variables():
     print(f"   BASE_URL                 = {BASE_URL}")
     print(f"   LOGIN_USERNAME           = {LOGIN_USERNAME}")
     print(f"   LOGIN_PASSWORD           = {'*' * len(LOGIN_PASSWORD)}")
+    
+    # 数据库配置
+    print("\n🗄️ 数据库配置:")
+    db_config = CONFIG.get('database', {})
+    print(f"   数据库类型               = {db_config.get('type', 'mysql')}")
+    print(f"   数据库URL                = {db_config.get('url', 'N/A')}")
+    print(f"   数据库用户名             = {db_config.get('username', 'N/A')}")
+    print(f"   数据库密码               = {'*' * len(db_config.get('password', ''))}")
 
     # 超时配置
     print("\n⏱️  超时配置:")
@@ -4424,6 +4554,12 @@ def jeecg_complete_workflow():
     
     # 7. 同步到数据库
     print("\n7️⃣ 正在同步到数据库...")
+    
+    # 首先验证数据库类型
+    if not validate_database_type():
+        print("❌ 数据库类型验证失败，工作流终止")
+        _execute_failed_workflow("数据库类型不支持")
+        return
 
     try:
         # 确保使用正确的headers和Token
