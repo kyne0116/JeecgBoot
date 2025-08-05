@@ -1,5 +1,5 @@
-# JeecgBoot开发实施模板 v5.1
-# 专注核心技术流程：开发实施 + 代码实现
+# JeecgBoot开发实施模板 v6.0-CoT
+# 专注核心技术流程：开发实施 + 代码实现 + CoT推理链
 
 # ============================================================================
 # 文档标识
@@ -7,13 +7,133 @@
 document_info:
   id: "{{SYSTEM}}-{{MODULE}}-{{TIMESTAMP}}-DEV"
   title: "{{BUSINESS_TITLE}}"
-  agent: "Agent-C"
+  agent: "Agent-5"
+  version: "6.0-CoT"
+  cot_enabled: true
 
 # ============================================================================
-# 架构解析 - 来自Agent-B的架构设计
+# CoT推理链 - 开发实施思维过程
+# ============================================================================
+development_reasoning:
+  # 步骤1: 架构理解推理
+  architecture_analysis_reasoning:
+    reasoning_question: "如何将架构设计转化为具体的开发任务？"
+
+    step_1_dependency_analysis:
+      thinking: "分析组件间的依赖关系和开发顺序"
+      process: |
+        1. 识别核心依赖: {{CORE_DEPENDENCIES}}
+        2. 分析依赖层次: {{DEPENDENCY_HIERARCHY}}
+        3. 确定关键路径: {{CRITICAL_PATH}}
+      findings: "{{DEPENDENCY_ANALYSIS_FINDINGS}}"
+
+    step_2_complexity_evaluation:
+      thinking: "评估各组件的开发复杂度和技术挑战"
+      process: |
+        1. 技术复杂度评估: {{TECHNICAL_COMPLEXITY}}
+        2. 业务逻辑复杂度: {{BUSINESS_COMPLEXITY}}
+        3. 集成复杂度分析: {{INTEGRATION_COMPLEXITY}}
+      findings: "{{COMPLEXITY_EVALUATION_FINDINGS}}"
+
+    step_3_risk_identification:
+      thinking: "识别开发过程中的技术风险和挑战"
+      process: |
+        1. 技术风险识别: {{TECHNICAL_RISKS}}
+        2. 集成风险分析: {{INTEGRATION_RISKS}}
+        3. 实施风险评估: {{IMPLEMENTATION_RISKS}}
+      findings: "{{RISK_IDENTIFICATION_FINDINGS}}"
+
+    reasoning_conclusion:
+      architecture_understanding: "{{ARCHITECTURE_UNDERSTANDING_SUMMARY}}"
+      development_strategy: "{{DEVELOPMENT_STRATEGY}}"
+      risk_mitigation: "{{RISK_MITIGATION_PLAN}}"
+
+  # 步骤2: 任务分解推理
+  task_decomposition_reasoning:
+    reasoning_question: "如何合理分解开发任务以提高效率？"
+
+    step_1_layer_decomposition:
+      thinking: "按照架构层次分解开发任务"
+      process: |
+        1. 数据层任务分解: {{DATA_LAYER_TASKS}}
+        2. 业务层任务分解: {{BUSINESS_LAYER_TASKS}}
+        3. 表现层任务分解: {{PRESENTATION_LAYER_TASKS}}
+      findings: "{{LAYER_DECOMPOSITION_FINDINGS}}"
+
+    step_2_parallel_opportunities:
+      thinking: "识别可以并行开发的任务和机会"
+      process: |
+        1. 独立任务识别: {{INDEPENDENT_TASKS}}
+        2. 并行开发机会: {{PARALLEL_OPPORTUNITIES}}
+        3. 并行实施策略: {{PARALLEL_IMPLEMENTATION}}
+      findings: "{{PARALLEL_OPPORTUNITIES_FINDINGS}}"
+
+    step_3_task_dependencies:
+      thinking: "分析任务间的依赖关系和执行顺序"
+      process: |
+        1. 任务依赖图: {{TASK_DEPENDENCY_GRAPH}}
+        2. 关键路径分析: {{CRITICAL_PATH_ANALYSIS}}
+        3. 实施顺序规划: {{IMPLEMENTATION_SEQUENCE}}
+      findings: "{{TASK_DEPENDENCIES_FINDINGS}}"
+
+    reasoning_conclusion:
+      task_breakdown_strategy: "{{TASK_BREAKDOWN_STRATEGY}}"
+      execution_sequence: "{{EXECUTION_SEQUENCE}}"
+      parallel_execution_plan: "{{PARALLEL_EXECUTION_PLAN}}"
+
+  # 步骤3: 实施策略推理
+  implementation_strategy_reasoning:
+    reasoning_question: "如何制定最优的技术实施策略？"
+
+    step_1_complexity_analysis:
+      thinking: "分析技术实施复杂度和挑战"
+      process: |
+        1. 技术复杂度分析: {{TECHNICAL_COMPLEXITY}}
+        2. 业务逻辑复杂度: {{BUSINESS_COMPLEXITY}}
+        3. 集成复杂度评估: {{INTEGRATION_COMPLEXITY}}
+      findings: "{{COMPLEXITY_ANALYSIS_FINDINGS}}"
+
+    step_2_technology_path:
+      thinking: "推理最优的技术实现路径"
+      process: |
+        1. 技术方案对比: {{TECH_SOLUTION_COMPARISON}}
+        2. 实施路径分析: {{IMPLEMENTATION_PATH}}
+        3. 技术选型推理: {{TECH_SELECTION_REASONING}}
+      findings: "{{TECHNOLOGY_PATH_FINDINGS}}"
+
+    step_3_risk_mitigation:
+      thinking: "推理技术风险缓解策略"
+      process: |
+        1. 风险影响分析: {{RISK_IMPACT_ANALYSIS}}
+        2. 缓解策略推理: {{MITIGATION_STRATEGY}}
+        3. 应急方案设计: {{CONTINGENCY_DESIGN}}
+      findings: "{{RISK_MITIGATION_FINDINGS}}"
+
+    reasoning_conclusion:
+      implementation_strategy: "{{IMPLEMENTATION_STRATEGY}}"
+      technology_decisions: "{{TECHNOLOGY_DECISIONS}}"
+      risk_management_plan: "{{RISK_MANAGEMENT_PLAN}}"
+
+  # 推理链总结
+  overall_reasoning_summary:
+    reasoning_quality_score: "{{REASONING_QUALITY_SCORE}}" # 1-10
+    key_development_decisions: "{{KEY_DEVELOPMENT_DECISIONS}}"
+    assumptions_documented: "{{DOCUMENTED_ASSUMPTIONS}}"
+    risks_identified: "{{IDENTIFIED_RISKS}}"
+    next_agent_guidance: "{{GUIDANCE_FOR_AGENT_6}}"
+
+# ============================================================================
+# 架构解析 - 来自agent-4的架构设计
 # ============================================================================
 architecture_analysis:
   source_architecture: "{{SOURCE_ARCH_DOC_ID}}"
+
+  # 架构解析推理
+  architecture_understanding:
+    reasoning_input: "{{AGENT_4_REASONING_CONCLUSION}}"
+    architecture_insights: "{{ARCHITECTURE_INSIGHTS}}"
+    implementation_implications: "{{IMPLEMENTATION_IMPLICATIONS}}"
+
   development_components:
     entities: [{ { ENTITIES } }]
     services: [{ { SERVICES } }]
@@ -21,89 +141,118 @@ architecture_analysis:
     pages: [{ { PAGES } }]
 
 # ============================================================================
-# 开发实施 - 技术组件开发任务
+# 开发实施 - 技术组件开发任务 (CoT驱动)
 # ============================================================================
 development_implementation:
+  # 基于CoT推理的开发策略
+  implementation_strategy:
+    development_approach: "{{DEVELOPMENT_APPROACH}}"
+    approach_reasoning: "{{APPROACH_REASONING}}"
+    risk_mitigation_measures: "{{RISK_MITIGATION_MEASURES}}"
+
   # 后端开发任务
   backend_development:
+    implementation_reasoning: "{{BACKEND_IMPLEMENTATION_REASONING}}"
+
     # 数据层实现
     data_layer:
       - task: "{{DATA_TASK_1}}"
         component: "{{DATA_COMPONENT_1}}"
         implementation: "{{DATA_IMPLEMENTATION_1}}"
+        reasoning: "{{DATA_TASK_1_REASONING}}"
+        complexity: "{{DATA_TASK_1_COMPLEXITY}}"
+        implementation_strategy: "{{DATA_TASK_1_STRATEGY}}"
 
       - task: "{{DATA_TASK_2}}"
         component: "{{DATA_COMPONENT_2}}"
         implementation: "{{DATA_IMPLEMENTATION_2}}"
+        reasoning: "{{DATA_TASK_2_REASONING}}"
+        complexity: "{{DATA_TASK_2_COMPLEXITY}}"
+        implementation_strategy: "{{DATA_TASK_2_STRATEGY}}"
 
     # 业务层实现
     business_layer:
       - task: "{{BUSINESS_TASK_1}}"
         component: "{{BUSINESS_COMPONENT_1}}"
         implementation: "{{BUSINESS_IMPLEMENTATION_1}}"
-
-      - task: "{{BUSINESS_TASK_2}}"
-        component: "{{BUSINESS_COMPONENT_2}}"
-        implementation: "{{BUSINESS_IMPLEMENTATION_2}}"
+        reasoning: "{{BUSINESS_TASK_1_REASONING}}"
+        complexity: "{{BUSINESS_TASK_1_COMPLEXITY}}"
+        implementation_strategy: "{{BUSINESS_TASK_1_STRATEGY}}"
 
     # 控制层实现
     controller_layer:
       - task: "{{CONTROLLER_TASK_1}}"
         component: "{{CONTROLLER_COMPONENT_1}}"
         implementation: "{{CONTROLLER_IMPLEMENTATION_1}}"
+        reasoning: "{{CONTROLLER_TASK_1_REASONING}}"
+        complexity: "{{CONTROLLER_TASK_1_COMPLEXITY}}"
+        implementation_strategy: "{{CONTROLLER_TASK_1_STRATEGY}}"
 
   # 前端开发任务
   frontend_development:
+    implementation_reasoning: "{{FRONTEND_IMPLEMENTATION_REASONING}}"
+
     # 页面实现
     page_implementation:
       - task: "{{PAGE_TASK_1}}"
         component: "{{PAGE_COMPONENT_1}}"
         implementation: "{{PAGE_IMPLEMENTATION_1}}"
-
-      - task: "{{PAGE_TASK_2}}"
-        component: "{{PAGE_COMPONENT_2}}"
-        implementation: "{{PAGE_IMPLEMENTATION_2}}"
+        reasoning: "{{PAGE_TASK_1_REASONING}}"
+        complexity: "{{PAGE_TASK_1_COMPLEXITY}}"
+        implementation_strategy: "{{PAGE_TASK_1_STRATEGY}}"
 
     # 组件实现
     component_implementation:
       - task: "{{COMP_TASK_1}}"
         component: "{{COMP_COMPONENT_1}}"
         implementation: "{{COMP_IMPLEMENTATION_1}}"
+        reasoning: "{{COMP_TASK_1_REASONING}}"
+        complexity: "{{COMP_TASK_1_COMPLEXITY}}"
+        implementation_strategy: "{{COMP_TASK_1_STRATEGY}}"
 
 # ============================================================================
 # 代码实现 - JeecgBoot代码生成和定制
 # ============================================================================
 code_implementation:
+  # 基于推理的代码生成策略
+  codegen_strategy:
+    generation_approach: "{{GENERATION_APPROACH}}"
+    customization_strategy: "{{CUSTOMIZATION_STRATEGY}}"
+    integration_plan: "{{INTEGRATION_PLAN}}"
+
   # CodeGen代码生成
   codegen_tasks:
     - entity: "{{CODEGEN_ENTITY_1}}"
       table: "{{CODEGEN_TABLE_1}}"
       generation_type: "{{CODEGEN_TYPE_1}}" # crud|tree|one_to_many
+      reasoning: "{{CODEGEN_1_REASONING}}"
+      customization_needs: "{{CODEGEN_1_CUSTOMIZATION}}"
 
     - entity: "{{CODEGEN_ENTITY_2}}"
       table: "{{CODEGEN_TABLE_2}}"
       generation_type: "{{CODEGEN_TYPE_2}}"
+      reasoning: "{{CODEGEN_2_REASONING}}"
+      customization_needs: "{{CODEGEN_2_CUSTOMIZATION}}"
 
   # 定制化开发
   customization_tasks:
     - task: "{{CUSTOM_TASK_1}}"
       type: "{{CUSTOM_TYPE_1}}" # business_logic|ui_enhancement|integration
       implementation: "{{CUSTOM_IMPLEMENTATION_1}}"
-
-    - task: "{{CUSTOM_TASK_2}}"
-      type: "{{CUSTOM_TYPE_2}}"
-      implementation: "{{CUSTOM_IMPLEMENTATION_2}}"
-
-  # 集成实现
-  integration_tasks:
-    - task: "{{INTEGRATION_TASK_1}}"
-      type: "{{INTEGRATION_TYPE_1}}" # database|api|service
-      implementation: "{{INTEGRATION_IMPLEMENTATION_1}}"
+      reasoning: "{{CUSTOM_TASK_1_REASONING}}"
+      priority: "{{CUSTOM_TASK_1_PRIORITY}}"
 
 # ============================================================================
-# 技术传递接口 - 传递给Agent-D
+# 技术传递接口 - 传递给Agent-6 (CoT增强)
 # ============================================================================
 technical_handoff:
+  # CoT推理结论传递
+  reasoning_output:
+    development_insights: "{{DEVELOPMENT_INSIGHTS_SUMMARY}}"
+    implementation_decisions: "{{IMPLEMENTATION_DECISIONS}}"
+    testing_considerations: "{{TESTING_CONSIDERATIONS}}"
+    quality_guidance: "{{QUALITY_GUIDANCE}}"
+
   # 测试对象
   test_targets:
     backend_components: [{ { BACKEND_COMPONENTS } }]
@@ -117,8 +266,35 @@ technical_handoff:
     performance_requirements: [{ { PERFORMANCE_REQS } }]
     security_requirements: [{ { SECURITY_REQS } }]
 
-  # 技术规范
-  technical_specifications:
-    testing_frameworks: [{ { TESTING_FRAMEWORKS } }]
-    testing_environments: [{ { TESTING_ENVIRONMENTS } }]
-    testing_data: [{ { TESTING_DATA } }]
+  # 开发成果
+  development_deliverables:
+    code_modules: [{ { CODE_MODULES } }]
+    configuration_files: [{ { CONFIG_FILES } }]
+    documentation: [{ { DOCUMENTATION } }]
+
+# ============================================================================
+# 协作信息 - Agent协作和CoT传递
+# ============================================================================
+collaboration_info:
+  input_documents: ["{{ARCH_DOCUMENT_ID}}"]
+  input_reasoning: "{{AGENT_4_REASONING_CONCLUSION}}"
+  output_for_next_agent: "technical_handoff"
+  output_reasoning: "{{DEVELOPMENT_REASONING_CONCLUSION}}"
+  next_agent: "agent-6 (Quality Tester)"
+  reasoning_traceability: "{{REASONING_CHAIN_TRACE}}"
+  collaboration_notes: "{{COLLABORATION_NOTES}}"
+
+# ============================================================================
+# 元数据 - 文档管理和CoT质量追溯
+# ============================================================================
+metadata:
+  creation_timestamp: "{{TIMESTAMP}}"
+  agent_version: "6.0"
+  template_version: "6.0"
+  reasoning_quality_score: "{{REASONING_QUALITY_SCORE}}"
+  reasoning_processing_time: "{{REASONING_PROCESSING_TIME}}"
+  development_complexity_score: "{{DEVELOPMENT_COMPLEXITY_SCORE}}"
+  effort_estimation_confidence: "{{EFFORT_ESTIMATION_CONFIDENCE}}"
+  quality_score: "{{QUALITY_SCORE}}"
+  review_status: "{{REVIEW_STATUS}}" # draft|reviewed|approved
+  last_modified: "{{LAST_MODIFIED}}"

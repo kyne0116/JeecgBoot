@@ -1,5 +1,5 @@
-# JeecgBoot架构设计模板 v5.1
-# 专注核心技术流程：架构设计 + 技术决策
+# JeecgBoot架构设计模板 v6.0-CoT
+# 专注核心技术流程：架构设计 + 技术决策 + CoT推理链
 
 # ============================================================================
 # 文档标识
@@ -7,153 +7,267 @@
 document_info:
   id: "{{SYSTEM}}-{{MODULE}}-{{TIMESTAMP}}-ARCH"
   title: "{{BUSINESS_TITLE}}"
-  agent: "Agent-B"
+  agent: "Agent-4"
+  version: "6.0-CoT"
+  cot_enabled: true
 
 # ============================================================================
-# 需求解析 - 来自Agent-A的需求理解
+# CoT推理链 - 架构设计思维过程
+# ============================================================================
+architecture_reasoning:
+  # 步骤1: 需求理解推理
+  requirement_analysis_reasoning:
+    reasoning_question: "如何准确理解和解析需求文档中的架构要求？"
+
+    step_1_entity_analysis:
+      thinking: "分析需求文档中的核心业务实体"
+      process: "{{ENTITY_ANALYSIS_PROCESS}}"
+      findings: "{{ENTITY_FINDINGS}}"
+
+    step_2_process_analysis:
+      thinking: "识别关键业务流程和数据流向"
+      process: "{{PROCESS_ANALYSIS_PROCESS}}"
+      findings: "{{PROCESS_FINDINGS}}"
+
+    step_3_complexity_assessment:
+      thinking: "评估技术实现的复杂度和挑战"
+      process: "{{COMPLEXITY_ASSESSMENT_PROCESS}}"
+      findings: "{{COMPLEXITY_FINDINGS}}"
+
+    reasoning_conclusion:
+      summary: "{{REQUIREMENT_UNDERSTANDING_SUMMARY}}"
+      key_insights: "{{KEY_ARCHITECTURAL_INSIGHTS}}"
+      constraints_identified: "{{IDENTIFIED_CONSTRAINTS}}"
+
+  # 步骤2: 架构选型推理
+  architecture_decision_reasoning:
+    reasoning_question: "如何选择最适合的架构模式和技术组件？"
+
+    step_1_jeecg_fit_analysis:
+      thinking: "评估JeecgBoot框架的适配性和限制"
+      considerations:
+        [
+          "{{JEECG_STRENGTH_ANALYSIS}}",
+          "{{JEECG_LIMITATION_ANALYSIS}}",
+          "{{JEECG_CUSTOMIZATION_NEEDS}}",
+        ]
+      conclusion: "{{JEECG_FIT_CONCLUSION}}"
+
+    step_2_performance_analysis:
+      thinking: "分析性能要求和架构影响"
+      considerations:
+        [
+          "{{PERFORMANCE_REQUIREMENTS}}",
+          "{{BOTTLENECK_IDENTIFICATION}}",
+          "{{OPTIMIZATION_STRATEGIES}}",
+        ]
+      conclusion: "{{PERFORMANCE_ARCHITECTURE_CONCLUSION}}"
+
+    step_3_scalability_analysis:
+      thinking: "考虑系统扩展性和未来发展"
+      considerations:
+        [
+          "{{SCALABILITY_REQUIREMENTS}}",
+          "{{GROWTH_PROJECTIONS}}",
+          "{{ARCHITECTURE_FLEXIBILITY}}",
+        ]
+      conclusion: "{{SCALABILITY_CONCLUSION}}"
+
+    step_4_tech_debt_analysis:
+      thinking: "权衡技术债务和实施成本"
+      considerations:
+        [
+          "{{IMPLEMENTATION_COMPLEXITY}}",
+          "{{MAINTENANCE_COST}}",
+          "{{TECHNICAL_RISK_ASSESSMENT}}",
+        ]
+      conclusion: "{{TECH_DEBT_CONCLUSION}}"
+
+    reasoning_conclusion:
+      architecture_decision: "{{FINAL_ARCHITECTURE_DECISION}}"
+      decision_rationale: "{{DECISION_REASONING}}"
+      trade_offs_accepted: "{{ACCEPTED_TRADE_OFFS}}"
+
+  # 步骤3: 组件设计推理
+  component_design_reasoning:
+    reasoning_question: "如何设计高内聚低耦合的组件架构？"
+
+    step_1_responsibility_analysis:
+      thinking: "分析各组件的职责和边界"
+      process: "{{RESPONSIBILITY_ANALYSIS_PROCESS}}"
+      component_responsibilities: "{{COMPONENT_RESPONSIBILITIES}}"
+
+    step_2_interface_design:
+      thinking: "设计清晰的组件接口契约"
+      process: "{{INTERFACE_DESIGN_PROCESS}}"
+      interface_contracts: "{{INTERFACE_CONTRACTS}}"
+
+    step_3_dependency_analysis:
+      thinking: "评估和优化组件间依赖关系"
+      process: "{{DEPENDENCY_ANALYSIS_PROCESS}}"
+      dependency_optimization: "{{DEPENDENCY_OPTIMIZATION}}"
+
+    reasoning_conclusion:
+      component_design: "{{FINAL_COMPONENT_DESIGN}}"
+      design_principles: "{{APPLIED_DESIGN_PRINCIPLES}}"
+      quality_attributes: "{{ACHIEVED_QUALITY_ATTRIBUTES}}"
+
+  # 推理链总结
+  overall_reasoning_summary:
+    reasoning_quality_score: "{{REASONING_QUALITY_SCORE}}" # 1-10
+    key_decisions_made: "{{KEY_ARCHITECTURAL_DECISIONS}}"
+    assumptions_documented: "{{DOCUMENTED_ASSUMPTIONS}}"
+    risks_identified: "{{IDENTIFIED_RISKS}}"
+    next_agent_guidance: "{{GUIDANCE_FOR_AGENT_5}}"
+
+# ============================================================================
+# 需求解析 - 来自Agent-3的原型设计 (CoT增强)
 # ============================================================================
 requirement_analysis:
-  source_requirement: "{{SOURCE_REQ_DOC_ID}}"
-  core_entities: [{{CORE_ENTITIES}}]
-  key_processes: [{{KEY_PROCESSES}}]
-  business_rules: [{{BUSINESS_RULES}}]
+  source_prototype: "{{SOURCE_PROTO_DOC_ID}}"
+
+  # CoT增强的需求解析
+  cot_requirement_understanding:
+    reasoning_input: "{{AGENT_3_REASONING_CONCLUSION}}"
+    prototype_analysis: "{{PROTOTYPE_ANALYSIS_INSIGHTS}}"
+    architectural_implications: "{{ARCHITECTURAL_IMPLICATIONS}}"
+
+  core_entities: [{ { CORE_ENTITIES } }]
+  key_processes: [{ { KEY_PROCESSES } }]
+  business_rules: [{ { BUSINESS_RULES } }]
+  ui_requirements: [{ { UI_REQUIREMENTS } }]
 
 # ============================================================================
-# 架构设计 - JeecgBoot四层架构设计
+# 架构设计 - JeecgBoot四层架构设计 (CoT驱动)
 # ============================================================================
 architecture_design:
+  # 基于CoT推理的架构决策
+  architecture_decisions:
+    chosen_pattern: "{{CHOSEN_ARCHITECTURE_PATTERN}}"
+    pattern_rationale: "{{PATTERN_REASONING}}"
+    jeecg_adaptations: "{{JEECG_SPECIFIC_ADAPTATIONS}}"
+
   # 表现层设计
   presentation_layer:
+    design_reasoning: "{{PRESENTATION_LAYER_REASONING}}"
     pages:
       - name: "{{PAGE_NAME_1}}"
         type: "{{PAGE_TYPE_1}}" # list|form|detail
-        components: [{{PAGE_COMPONENTS_1}}]
-        
+        components: [{ { PAGE_COMPONENTS_1 } }]
+        reasoning: "{{PAGE_DESIGN_REASONING_1}}"
+
       - name: "{{PAGE_NAME_2}}"
         type: "{{PAGE_TYPE_2}}"
-        components: [{{PAGE_COMPONENTS_2}}]
-    
+        components: [{ { PAGE_COMPONENTS_2 } }]
+        reasoning: "{{PAGE_DESIGN_REASONING_2}}"
+
     components:
       - name: "{{COMPONENT_NAME_1}}"
         type: "{{COMPONENT_TYPE_1}}" # table|form|modal
-        
+        reasoning: "{{COMPONENT_REASONING_1}}"
+
       - name: "{{COMPONENT_NAME_2}}"
         type: "{{COMPONENT_TYPE_2}}"
+        reasoning: "{{COMPONENT_REASONING_2}}"
 
   # 业务层设计
   business_layer:
+    design_reasoning: "{{BUSINESS_LAYER_REASONING}}"
     services:
       - name: "{{SERVICE_NAME_1}}"
-        methods: [{{SERVICE_METHODS_1}}]
-        
+        methods: [{ { SERVICE_METHODS_1 } }]
+        reasoning: "{{SERVICE_REASONING_1}}"
+
       - name: "{{SERVICE_NAME_2}}"
-        methods: [{{SERVICE_METHODS_2}}]
-    
+        methods: [{ { SERVICE_METHODS_2 } }]
+        reasoning: "{{SERVICE_REASONING_2}}"
+
     business_logic:
       - name: "{{LOGIC_NAME_1}}"
         implementation: "{{LOGIC_IMPLEMENTATION_1}}"
-        
-      - name: "{{LOGIC_NAME_2}}"
-        implementation: "{{LOGIC_IMPLEMENTATION_2}}"
+        reasoning: "{{LOGIC_REASONING_1}}"
 
   # 数据访问层设计
   data_access_layer:
+    design_reasoning: "{{DATA_LAYER_REASONING}}"
     entities:
       - name: "{{ENTITY_NAME_1}}"
         table: "{{TABLE_NAME_1}}"
-        fields: [{{ENTITY_FIELDS_1}}]
-        
+        fields: [{ { ENTITY_FIELDS_1 } }]
+        reasoning: "{{ENTITY_REASONING_1}}"
+
       - name: "{{ENTITY_NAME_2}}"
         table: "{{TABLE_NAME_2}}"
-        fields: [{{ENTITY_FIELDS_2}}]
-    
-    repositories:
-      - name: "{{REPOSITORY_NAME_1}}"
-        entity: "{{REPOSITORY_ENTITY_1}}"
-        methods: [{{REPOSITORY_METHODS_1}}]
+        fields: [{ { ENTITY_FIELDS_2 } }]
+        reasoning: "{{ENTITY_REASONING_2}}"
 
 # ============================================================================
-# 数据模型设计 - MySQL数据库设计
+# 数据模型设计 - MySQL数据库设计 (CoT优化)
 # ============================================================================
 data_model:
+  design_reasoning: "{{DATA_MODEL_REASONING}}"
+
   tables:
     - name: "{{TABLE_NAME_1}}"
+      design_reasoning: "{{TABLE_REASONING_1}}"
       fields:
         - name: "id"
           type: "varchar(32)"
           primary_key: true
+          reasoning: "JeecgBoot标准主键设计"
         - name: "{{FIELD_NAME_1_1}}"
           type: "{{FIELD_TYPE_1_1}}"
           nullable: "{{FIELD_NULLABLE_1_1}}"
-      indexes: [{{TABLE_INDEXES_1}}]
-      
-    - name: "{{TABLE_NAME_2}}"
-      fields:
-        - name: "id"
-          type: "varchar(32)"
-          primary_key: true
-        - name: "{{FIELD_NAME_2_1}}"
-          type: "{{FIELD_TYPE_2_1}}"
-          nullable: "{{FIELD_NULLABLE_2_1}}"
-      indexes: [{{TABLE_INDEXES_2}}]
+          reasoning: "{{FIELD_REASONING_1_1}}"
+      indexes: [{ { TABLE_INDEXES_1 } }]
+      index_reasoning: "{{INDEX_REASONING_1}}"
 
   relationships:
     - type: "{{RELATIONSHIP_TYPE_1}}" # one_to_one|one_to_many|many_to_many
       from_table: "{{FROM_TABLE_1}}"
       to_table: "{{TO_TABLE_1}}"
       foreign_key: "{{FOREIGN_KEY_1}}"
+      reasoning: "{{RELATIONSHIP_REASONING_1}}"
 
 # ============================================================================
-# API接口设计 - RESTful API规范
-# ============================================================================
-api_design:
-  rest_apis:
-    - path: "{{API_PATH_1}}"
-      method: "{{API_METHOD_1}}" # GET|POST|PUT|DELETE
-      description: "{{API_DESCRIPTION_1}}"
-      
-    - path: "{{API_PATH_2}}"
-      method: "{{API_METHOD_2}}"
-      description: "{{API_DESCRIPTION_2}}"
-
-  dto_design:
-    - name: "{{DTO_NAME_1}}"
-      fields: [{{DTO_FIELDS_1}}]
-      
-    - name: "{{DTO_NAME_2}}"
-      fields: [{{DTO_FIELDS_2}}]
-
-# ============================================================================
-# 技术决策 - 架构决策和技术选型
-# ============================================================================
-technical_decisions:
-  architecture_decisions:
-    - decision: "{{ARCH_DECISION_1}}"
-      rationale: "{{ARCH_RATIONALE_1}}"
-      
-    - decision: "{{ARCH_DECISION_2}}"
-      rationale: "{{ARCH_RATIONALE_2}}"
-
-  technology_choices:
-    - component: "{{TECH_COMPONENT_1}}"
-      choice: "{{TECH_CHOICE_1}}"
-      
-    - component: "{{TECH_COMPONENT_2}}"
-      choice: "{{TECH_CHOICE_2}}"
-
-# ============================================================================
-# 技术传递接口 - 传递给Agent-C
+# 技术传递接口 - 传递给Agent-5 (CoT增强)
 # ============================================================================
 technical_handoff:
-  # 开发组件
-  development_components:
-    entities: [{{ENTITIES}}]
-    services: [{{SERVICES}}]
-    apis: [{{APIS}}]
-    pages: [{{PAGES}}]
-    
-  # 技术规范
-  technical_specifications:
-    database_design: [{{DB_SPECS}}]
-    api_specifications: [{{API_SPECS}}]
-    component_specifications: [{{COMPONENT_SPECS}}]
+  # CoT推理结论传递
+  reasoning_output:
+    architecture_decisions: "{{ARCHITECTURE_DECISIONS_SUMMARY}}"
+    design_rationale: "{{DESIGN_RATIONALE_SUMMARY}}"
+    implementation_guidance: "{{IMPLEMENTATION_GUIDANCE}}"
+    risk_considerations: "{{RISK_CONSIDERATIONS}}"
+
+  # 开发实施指导
+  development_guidance:
+    priority_components: [{ { PRIORITY_COMPONENTS } }]
+    implementation_sequence: [{ { IMPLEMENTATION_SEQUENCE } }]
+    technical_challenges: [{ { TECHNICAL_CHALLENGES } }]
+    quality_requirements: [{ { QUALITY_REQUIREMENTS } }]
+
+# ============================================================================
+# 协作信息 - Agent协作和CoT传递
+# ============================================================================
+collaboration_info:
+  input_documents: ["{{PROTO_DOCUMENT_ID}}"]
+  input_reasoning: "{{AGENT_3_REASONING_CONCLUSION}}"
+  output_for_next_agent: "technical_handoff"
+  output_reasoning: "{{ARCHITECTURE_REASONING_CONCLUSION}}"
+  next_agent: "agent-5 (Code Developer)"
+  reasoning_traceability: "{{REASONING_CHAIN_TRACE}}"
+  collaboration_notes: "{{COLLABORATION_NOTES}}"
+
+# ============================================================================
+# 元数据 - 文档管理和CoT质量追溯
+# ============================================================================
+metadata:
+  creation_timestamp: "{{TIMESTAMP}}"
+  agent_version: "6.0-CoT"
+  template_version: "6.0-CoT"
+  reasoning_quality_score: "{{REASONING_QUALITY_SCORE}}"
+  cot_processing_time: "{{COT_PROCESSING_TIME}}"
+  quality_score: "{{QUALITY_SCORE}}"
+  review_status: "{{REVIEW_STATUS}}" # draft|reviewed|approved
+  last_modified: "{{LAST_MODIFIED}}"

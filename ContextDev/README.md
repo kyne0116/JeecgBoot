@@ -1,53 +1,59 @@
-# JeecgBoot AI Agent 协作开发系统
+# ContextDev: AI Programming Methodology System
 
-高效的 AI Agent 协作开发系统，专为 JeecgBoot 3.8.1+框架优化，实现标准化的 6-Agent 协作流程。
+**Context Engineering + Chain of Thought (CoT) 驱动的 AI 原生开发方法论**
 
-## 🎯 系统特性
+专为 JeecgBoot 3.8.1+框架设计的 AI 编程系统，基于 Context Engineering 理论和 CoT 推理链，通过 MCP (Model Context Protocol) 工具集成，实现从需求理解到测试验证的完整 AI 驱动开发生命周期。
 
-### 🤖 6-Agent 协作链
+## 🧠 核心方法论
 
-- **agent-1 (基线管理师)**: 系统基线建立 + 模块基线管理 + 变更控制
-- **agent-2 (需求分析师)**: EARS 需求分析 + BDD 场景设计
-- **agent-3 (原型设计师)**: 需求可视化 + 交互设计 + 原型生成
-- **agent-4 (系统架构师)**: 技术架构设计 + 数据模型设计
-- **agent-5 (开发工程师)**: 任务分解 + 代码生成配置
-- **agent-6 (质量测试师)**: 测试设计 + 质量验证
+### 🔗 Context Engineering + CoT 推理链
 
-### 📐 标准化协议
+**AI 原生开发流程**: `需求理解 → 分析推理 → 设计思考 → 架构决策 → 任务分解 → 实施生成 → 测试验证`
 
-- **EARS 协议**: 结构化需求表达
-- **BDD 协议**: 行为驱动场景设计
-- **架构协议**: 技术架构标准化
-- **测试协议**: 全栈测试覆盖
+- **agent-1 (Context 基线师)**: Context 基线建立 + 领域知识构建 + 上下文管理
+- **agent-2 (需求推理师)**: EARS 需求分析 + BDD 场景设计 + CoT 业务推理
+- **agent-3 (设计思考师)**: 需求可视化 + 交互设计推理 + 原型生成
+- **agent-4 (架构推理师)**: 技术架构 CoT 推理 + 设计决策链 + 组件设计
+- **agent-5 (实施推理师)**: 任务分解 CoT + 代码生成策略 + 实施推理
+- **agent-6 (验证推理师)**: 测试策略推理 + 质量保证 CoT + 验证设计
 
-### 🗂️ 系统架构
+### 🛠️ AI 编程技术栈
+
+- **Context Engineering**: 上下文工程和领域知识管理
+- **CoT Reasoning**: 思维链推理和决策追溯
+- **MCP Integration**: Model Context Protocol 工具集成
+- **EARS Compliance**: 结构化需求表达标准
+- **BDD Specification**: 行为驱动开发规范
+
+### 🗂️ AI 编程方法论架构
 
 ```
 ContextDev/
-├── agents/                         # AI Agent定义
-│   ├── baseline-manager.md         # agent-1
-│   ├── requirements-analyst.md     # agent-2
-│   ├── prototype-designer.md       # agent-3
-│   ├── system-architect.md         # agent-4
-│   ├── code-developer.md           # agent-5
-│   └── quality-tester.md           # agent-6
-├── templates/                      # 标准化模板
-│   ├── 01-baseline/               # 系统基线
-│   ├── 02-requirements/           # 需求分析
-│   ├── 03-prototype/              # 原型设计
-│   ├── 04-architecture/           # 架构设计
-│   ├── 05-development/            # 开发任务
-│   └── 06-testing/                # 测试设计
-└── README.md                      # 系统说明
+├── agents/                         # AI推理Agent定义
+│   ├── baseline-manager.md         # Context基线师
+│   ├── requirements-analyst.md     # 需求推理师
+│   ├── prototype-designer.md       # 设计思考师
+│   ├── system-architect.md         # 架构推理师
+│   ├── code-developer.md           # 实施推理师
+│   └── quality-tester.md           # 验证推理师
+├── templates/                      # Context Engineering模板
+│   ├── 01-baseline/               # Context基线
+│   ├── 02-requirements/           # EARS需求推理
+│   ├── 03-prototype/              # 设计思考
+│   ├── 04-architecture/           # 架构推理
+│   ├── 05-development/            # 实施推理
+│   └── 06-testing/                # 验证推理
+└── README.md                      # AI编程方法论说明
 ```
 
-### 📁 协作流程
+### 🔗 AI 推理协作链
 
-**6-Agent 标准协作链**:
+**Context Engineering + 推理流程**:
 
 ```
-agent-1 → agent-2 → agent-3 → agent-4 → agent-5 → agent-6
-基线管理 → 需求分析 → 原型设计 → 架构设计 → 开发任务 → 测试设计
+Context基线 → 需求推理 → 设计思考 → 架构推理 → 实施推理 → 验证推理
+   ↓           ↓          ↓          ↓          ↓          ↓
+领域知识构建 → EARS+BDD → 交互设计 → 技术决策 → 代码生成 → 质量保证
 ```
 
 **文件命名格式**: `[SYSTEM]-[MODULE]-[TIMESTAMP]-[AGENT]-[TITLE].yaml`
@@ -60,90 +66,106 @@ agent-1 → agent-2 → agent-3 → agent-4 → agent-5 → agent-6
 - `HAIR-CUSTOMER-20250804143000-DEV-客户信息管理.yaml`
 - `HAIR-CUSTOMER-20250804143000-TEST-客户信息管理.yaml`
 
-### 🎯 存储结构
+### 🎯 Context Engineering 存储结构
 
 ```
 AIGC/
-├── system_base_info_[SYSTEM].yaml
-├── requirement_baseline_[SYSTEM]_[MODULE].yaml
+├── context_base_[SYSTEM].yaml                    # Context基线和领域知识
+├── reasoning_baseline_[SYSTEM]_[MODULE].yaml     # 推理基线和上下文
 └── [SYSTEM]_[MODULE]/
-    ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-REQ-[TITLE].yaml
-    ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-PROTO-[TITLE].yaml
-    ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-ARCH-[TITLE].yaml
-    ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-DEV-[TITLE].yaml
-    └── [SYSTEM]-[MODULE]-[TIMESTAMP]-TEST-[TITLE].yaml
-└── SHARED-COMPONENTS/
-    ├── common-entities.yaml
-    └── shared-services.yaml
+    ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-REQ-[TITLE].yaml    # EARS需求推理
+    ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-PROTO-[TITLE].yaml  # 设计思考
+    ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-ARCH-[TITLE].yaml   # 架构推理
+    ├── [SYSTEM]-[MODULE]-[TIMESTAMP]-DEV-[TITLE].yaml    # 实施推理
+    └── [SYSTEM]-[MODULE]-[TIMESTAMP]-TEST-[TITLE].yaml   # 验证推理
+└── CONTEXT-KNOWLEDGE/
+    ├── domain-knowledge.yaml                     # 领域知识库
+    └── reasoning-patterns.yaml                   # 推理模式库
 ```
 
-## 🚀 快速开始
+## 🚀 AI 编程方法论快速开始
 
-### 1. 系统初始化
+### 1. Context Engineering 初始化
 
 ```bash
-# 配置系统基础信息
-cp templates/01-baseline/system_base_info_template.yaml AIGC/system_base_info_[SYSTEM].yaml
+# 建立Context基线和领域知识
+cp templates/01-baseline/context_base_template.yaml AIGC/context_base_[SYSTEM].yaml
 
-# 建立模块基线
-cp templates/01-baseline/requirement_baseline_template.yaml AIGC/requirement_baseline_[SYSTEM]_[MODULE].yaml
+# 建立推理基线和上下文
+cp templates/01-baseline/reasoning_baseline_template.yaml AIGC/reasoning_baseline_[SYSTEM]_[MODULE].yaml
 ```
 
-### 2. 6-Agent 协作流程
+### 2. AI 推理协作链执行
 
 ```bash
-# Step 1: agent-1 基线管理
-使用 templates/01-baseline/system_base_info_template.yaml
+# Step 1: Context基线师 - 领域知识构建
+使用 templates/01-baseline/context_base_template.yaml
 
-# Step 2: agent-2 需求分析
+# Step 2: 需求推理师 - EARS需求分析 + 推理链
 使用 templates/02-requirements/requirement_template.yaml
 
-# Step 3: agent-3 原型设计
+# Step 3: 设计思考师 - 交互设计推理
 使用 templates/03-prototype/prototype_template.yaml
 
-# Step 4: agent-4 架构设计
+# Step 4: 架构推理师 - 技术架构推理
 使用 templates/04-architecture/architecture_template.yaml
 
-# Step 5: agent-5 开发任务
+# Step 5: 实施推理师 - 任务分解推理 + 代码生成
 使用 templates/05-development/development_template.yaml
 
-# Step 6: agent-6 测试设计
+# Step 6: 验证推理师 - 测试策略推理
 使用 templates/06-testing/testing_design_template.yaml
 ```
 
-### 3. JeecgBoot 集成
+### 3. MCP 工具集成和 JeecgBoot 适配
 
-- **CodeGen 支持**: 自动生成 CRUD 操作和页面
-- **数据字典**: 集成标准数据字典管理
-- **权限控制**: 支持细粒度权限配置
-- **业务扩展**: 支持自定义业务逻辑
+- **MCP Protocol**: Model Context Protocol 工具链集成
+- **Context Retrieval**: 智能上下文检索和知识管理
+- **CoT Reasoning**: 思维链推理和决策追溯
+- **EARS Compliance**: 结构化需求表达自动化
+- **BDD Generation**: 行为驱动场景自动生成
+- **JeecgBoot CodeGen**: 基于推理结果的代码自动生成
 
-## 📖 技术规范
+## 🧠 AI 编程方法论特性
 
-### 🏗️ 架构标准
+### 🔗 Context Engineering 核心
 
-- **前端**: Vue 3 + Ant Design Vue + TypeScript
-- **后端**: Spring Boot + MyBatis Plus + Java 17
-- **数据库**: MySQL 8.0+ / PostgreSQL 12+
-- **缓存**: Redis 6.0+
+- **领域知识管理**: 构建和维护领域特定的知识图谱
+- **上下文工程**: 智能上下文构建和推理链管理
+- **推理模式库**: 可复用的推理模式和决策模板
+- **知识追溯**: 完整的推理链追溯和决策依据记录
 
-### 📐 协议规范
+### 🧩 推理增强
 
-- **EARS 协议**: 结构化需求表达标准
-- **BDD 协议**: Given-When-Then 场景设计
-- **API 规范**: RESTful API 设计标准
-- **测试规范**: 单元测试 + 集成测试 + E2E 测试
+- **多层推理**: 业务理解 → 技术分析 → 实施决策的递进推理
+- **决策透明**: 每个技术决策都有明确的推理过程和依据
+- **质量保证**: 推理质量评分和一致性验证机制
+- **协作传递**: Agent 间推理结论的无缝传递和继承
 
-### 🎯 质量标准
+### 🛠️ AI 原生工具链
 
-- **需求覆盖率**: ≥95%
-- **代码覆盖率**: ≥80%
-- **API 响应时间**: ≤2 秒
-- **系统可用性**: ≥99.9%
+- **MCP 集成**: 原生支持 Model Context Protocol 工具生态
+- **EARS 自动化**: 自动化需求结构化表达和分类
+- **BDD 生成**: 基于推理的行为驱动场景自动生成
+- **代码推理**: 从架构推理到代码生成的完整链路
+
+## 🎯 AI 编程适用场景
+
+- **AI 驱动开发**: 基于 AI 推理和 Context Engineering 的原生开发方法论
+- **复杂业务分析**: 需要深度推理和决策追溯的复杂业务系统
+- **知识密集型应用**: 依赖领域知识和专家推理的应用开发
+- **标准化 AI 协作**: 需要标准化 AI 协作流程的团队和项目
+
+## 📚 方法论架构
+
+- **agents/**: AI 推理 Agent 定义和推理规范
+- **templates/**: Context Engineering 模板和推理链模板
+- **README.md**: AI 编程方法论说明和实施指南
 
 ---
 
-**版本**: v5.0
-**更新日期**: 2025-08-04
-**兼容框架**: JeecgBoot 3.8.1+
-**维护团队**: JeecgBoot ContextDev Team
+**方法论版本**: v6.0
+**Context Engineering**: 基于上下文工程理论
+**Reasoning Integration**: 完整思维链推理集成
+**MCP Compatible**: Model Context Protocol 兼容
+**更新**: 2025-08-05

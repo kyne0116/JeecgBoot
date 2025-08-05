@@ -86,7 +86,7 @@ system_base_reference:
     compliance_requirements: [{{COMPLIANCE_REQUIREMENTS}}] # 合规要求
 
 # ============================================================================
-# 共享组件管理 (第二轮评估反馈新增)
+# 共享组件管理
 # ============================================================================
 shared_components_management:
   # 共享组件概览
@@ -160,17 +160,16 @@ requirement_registry:
         urgency: "{{URGENCY_1}}" # urgent | normal | low
         complexity: "{{COMPLEXITY_1}}" # simple | medium | complex
         
-      # 时间规划
-      timeline_planning:
-        planned_start_date: "{{PLANNED_START_DATE_1}}" # YYYY-MM-DD
-        planned_end_date: "{{PLANNED_END_DATE_1}}" # YYYY-MM-DD
-        actual_start_date: "{{ACTUAL_START_DATE_1}}" # YYYY-MM-DD (如果已开始)
-        estimated_completion_date: "{{ESTIMATED_COMPLETION_DATE_1}}" # YYYY-MM-DD
-        target_sprint: "{{TARGET_SPRINT_1}}" # 如：Sprint-2025-Q1-S3
+      # 实施推理
+      implementation_reasoning:
+        complexity_analysis: "{{COMPLEXITY_ANALYSIS_1}}" # 复杂度分析
+        implementation_strategy: "{{IMPLEMENTATION_STRATEGY_1}}" # 实施策略
+        technical_approach: "{{TECHNICAL_APPROACH_1}}" # 技术方案
+        reasoning_quality: "{{REASONING_QUALITY_1}}" # 推理质量评分
         
       # 文档关联路径 (核心关联机制) - 新命名规范
       document_references:
-        # Agent-A需求分析文档
+        # agent-2需求分析文档
         requirement_analysis_doc:
           doc_path: "{{REQ_DOC_PATH_1}}" # 如：/ContextDev/example/ECOM-PROD-20250731143000-产品管理功能/ECOM-PROD-20250731143000-REQ-产品管理功能.yaml
           doc_id: "{{REQ_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-REQ
@@ -178,15 +177,15 @@ requirement_registry:
           doc_version: "{{REQ_DOC_VERSION_1}}" # v1.0
           last_modified: "{{REQ_DOC_LAST_MODIFIED_1}}" # YYYY-MM-DD HH:MM:SS
           
-        # Agent-B架构设计文档
+        # agent-4架构设计文档
         architecture_design_doc:
           doc_path: "{{DESIGN_DOC_PATH_1}}" # 如：ECOM-PROD-20250731143000-ARCH-产品管理功能.yaml
           doc_id: "{{DESIGN_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-ARCH
           doc_status: "{{DESIGN_DOC_STATUS_1}}"
           doc_version: "{{DESIGN_DOC_VERSION_1}}"
           last_modified: "{{DESIGN_DOC_LAST_MODIFIED_1}}"
-          
-        # Agent-C开发任务文档
+
+        # agent-5开发任务文档
         development_task_doc:
           doc_path: "{{DEV_DOC_PATH_1}}" # 如：ECOM-PROD-20250731143000-DEV-产品管理功能.yaml
           doc_id: "{{DEV_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-DEV
@@ -194,7 +193,7 @@ requirement_registry:
           doc_version: "{{DEV_DOC_VERSION_1}}"
           last_modified: "{{DEV_DOC_LAST_MODIFIED_1}}"
           
-        # Agent-D测试设计文档
+        # agent-6测试设计文档
         testing_design_doc:
           doc_path: "{{TEST_DOC_PATH_1}}" # 如：ECOM-PROD-20250731143000-TEST-产品管理功能.yaml
           doc_id: "{{TEST_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-TEST
@@ -209,21 +208,14 @@ requirement_registry:
         baseline_reference: "{{BASELINE_ID}}" # 基线级追溯
         requirement_suite_reference: "REQ-SUITE-001" # 需求套件级追溯
         
-      # 工作量估算
-      effort_estimation:
-        estimated_story_points: {{ESTIMATED_STORY_POINTS_1}} # 总故事点
-        estimated_person_hours: {{ESTIMATED_PERSON_HOURS_1}} # 总人时
-        estimated_person_days: {{ESTIMATED_PERSON_DAYS_1}} # 总人天
-        complexity_factor: {{COMPLEXITY_FACTOR_1}} # 复杂度系数
+      # AI推理分析
+      ai_reasoning_analysis:
+        reasoning_complexity: "{{REASONING_COMPLEXITY_1}}" # 推理复杂度评估
+        context_requirements: [{{CONTEXT_REQUIREMENTS_1}}] # 上下文需求
+        knowledge_dependencies: [{{KNOWLEDGE_DEPENDENCIES_1}}] # 知识依赖
+        reasoning_patterns: [{{REASONING_PATTERNS_1}}] # 推理模式
         
-      # 资源需求
-      resource_requirements:
-        required_skills: [{{REQUIRED_SKILLS_1}}] # 需要的技能
-        team_composition: [{{TEAM_COMPOSITION_1}}] # 团队组成
-        external_dependencies: [{{EXTERNAL_DEPENDENCIES_1}}] # 外部依赖
-        infrastructure_needs: [{{INFRASTRUCTURE_NEEDS_1}}] # 基础设施需求
-        
-      # 需求套件依赖 (第二轮评估反馈新增)
+      # 需求套件依赖
       suite_dependencies:
         upstream_dependencies: # 本需求依赖的其他需求
           - dependency_suite_id: "{{UPSTREAM_DEPENDENCY_SUITE_ID_1}}" # 如：REQ-SUITE-000-基础功能
@@ -353,87 +345,97 @@ requirement_relationship_management:
         approved_by: "{{APPROVED_BY_1}}"
 
 # ============================================================================
-# 项目管理集成
+# Context Engineering集成
 # ============================================================================
-project_management_integration:
-  # Sprint分配规划
-  sprint_allocation:
-    - sprint_id: "SPRINT-{{YEAR}}-Q{{QUARTER}}-S{{SPRINT_NUMBER}}" # 如：SPRINT-2025-Q1-S3
-      sprint_name: "{{SPRINT_NAME_1}}" # 如：用户管理核心功能Sprint
-      sprint_duration: "{{SPRINT_DURATION_1}}" # 如：2周
-      sprint_capacity: {{SPRINT_CAPACITY_1}} # 故事点容量
-      
-      # Sprint分配的需求
+context_engineering_integration:
+  # 推理链规划
+  reasoning_chain_planning:
+    - reasoning_chain_id: "REASONING-{{SYSTEM}}-{{MODULE}}-{{SEQUENCE}}" # 如：REASONING-ECOM-PROD-001
+      reasoning_chain_name: "{{REASONING_CHAIN_NAME_1}}" # 如：产品管理功能推理链
+      reasoning_depth: {{REASONING_DEPTH_1}} # 推理深度级别
+      context_quality: {{CONTEXT_QUALITY_1}} # 上下文质量评分
+
+      # 推理链分配的需求
       allocated_requirements:
         - requirement_suite_id: "{{ALLOCATED_REQ_ID_1}}"
-          allocated_story_points: {{ALLOCATED_POINTS_1}}
-          planned_completion_percentage: {{PLANNED_COMPLETION_1}}% # 计划完成百分比
-          risk_level: "{{RISK_LEVEL_1}}" # low | medium | high
-          
+          reasoning_complexity: {{REASONING_COMPLEXITY_1}}
+          context_completeness: {{CONTEXT_COMPLETENESS_1}}% # 上下文完整性百分比
+          reasoning_risk_level: "{{REASONING_RISK_LEVEL_1}}" # low | medium | high
+
         - requirement_suite_id: "{{ALLOCATED_REQ_ID_2}}"
-          allocated_story_points: {{ALLOCATED_POINTS_2}}
-          planned_completion_percentage: {{PLANNED_COMPLETION_2}}%
-          risk_level: "{{RISK_LEVEL_2}}"
+          reasoning_complexity: {{REASONING_COMPLEXITY_2}}
+          context_completeness: {{CONTEXT_COMPLETENESS_2}}%
+          reasoning_risk_level: "{{REASONING_RISK_LEVEL_2}}"
           # 继续添加分配的需求...
-          
-      # Sprint目标和成功标准
-      sprint_objectives: [{{SPRINT_OBJECTIVES_1}}]
-      success_criteria: [{{SPRINT_SUCCESS_CRITERIA_1}}]
-      sprint_risks: [{{SPRINT_RISKS_1}}]
+
+      # 推理目标和质量标准
+      reasoning_objectives: [{{REASONING_OBJECTIVES_1}}]
+      quality_criteria: [{{REASONING_QUALITY_CRITERIA_1}}]
+      reasoning_risks: [{{REASONING_RISKS_1}}]
       
-  # 里程碑定义
-  milestone_definitions:
-    - milestone_id: "MILESTONE-001"
-      milestone_name: "{{MILESTONE_NAME_1}}" # 如：MVP版本发布
-      milestone_date: "{{MILESTONE_DATE_1}}" # YYYY-MM-DD
-      milestone_type: "{{MILESTONE_TYPE_1}}" # major_release | minor_release | feature_completion | integration_point
+  # 推理质量检查点
+  reasoning_quality_checkpoints:
+    - checkpoint_id: "CHECKPOINT-001"
+      checkpoint_name: "{{CHECKPOINT_NAME_1}}" # 如：需求推理完成检查点
+      reasoning_stage: "{{REASONING_STAGE_1}}" # requirements_analysis | design_thinking | architecture_reasoning | implementation_reasoning
+      quality_threshold: {{QUALITY_THRESHOLD_1}} # 质量阈值评分
+
+      # 检查点包含的需求
+      included_requirements: [{{CHECKPOINT_REQ_IDS_1}}]
+      validation_criteria: [{{VALIDATION_CRITERIA_1}}]
+      reasoning_deliverables: [{{REASONING_DELIVERABLES_1}}]
+      context_validation_required: {{CONTEXT_VALIDATION_REQUIRED_1}} # true | false
+
+    - checkpoint_id: "CHECKPOINT-002"
+      checkpoint_name: "{{CHECKPOINT_NAME_2}}"
+      reasoning_stage: "{{REASONING_STAGE_2}}"
+      quality_threshold: {{QUALITY_THRESHOLD_2}}
+      included_requirements: [{{CHECKPOINT_REQ_IDS_2}}]
+      validation_criteria: [{{VALIDATION_CRITERIA_2}}]
+      reasoning_deliverables: [{{REASONING_DELIVERABLES_2}}]
+      context_validation_required: {{CONTEXT_VALIDATION_REQUIRED_2}}
+      # 继续添加检查点...
       
-      # 里程碑包含的需求
-      included_requirements: [{{MILESTONE_REQ_IDS_1}}]
-      completion_criteria: [{{MILESTONE_COMPLETION_CRITERIA_1}}]
-      deliverables: [{{MILESTONE_DELIVERABLES_1}}]
-      stakeholder_review_required: {{STAKEHOLDER_REVIEW_REQUIRED_1}} # true | false
-      
-    - milestone_id: "MILESTONE-002"
-      milestone_name: "{{MILESTONE_NAME_2}}"
-      milestone_date: "{{MILESTONE_DATE_2}}"
-      milestone_type: "{{MILESTONE_TYPE_2}}"
-      included_requirements: [{{MILESTONE_REQ_IDS_2}}]
-      completion_criteria: [{{MILESTONE_COMPLETION_CRITERIA_2}}]
-      deliverables: [{{MILESTONE_DELIVERABLES_2}}]
-      stakeholder_review_required: {{STAKEHOLDER_REVIEW_REQUIRED_2}}
-      # 继续添加里程碑...
-      
-  # 资源分配管理
-  resource_allocation:
-    # 团队资源分配
-    team_allocation:
-      - role: "requirements_analyst" # 对应Agent-A
-        allocated_person_days: {{RA_PERSON_DAYS}}
-        team_members: [{{RA_TEAM_MEMBERS}}]
-        workload_distribution: [{{RA_WORKLOAD_DISTRIBUTION}}] # 按需求套件分配
-        
-      - role: "solution_architect" # 对应Agent-B
-        allocated_person_days: {{SA_PERSON_DAYS}}
-        team_members: [{{SA_TEAM_MEMBERS}}]
-        workload_distribution: [{{SA_WORKLOAD_DISTRIBUTION}}]
-        
-      - role: "development_engineer" # 对应Agent-C
-        allocated_person_days: {{DE_PERSON_DAYS}}
-        team_members: [{{DE_TEAM_MEMBERS}}]
-        workload_distribution: [{{DE_WORKLOAD_DISTRIBUTION}}]
-        
-      - role: "test_engineer" # 对应Agent-D
-        allocated_person_days: {{TE_PERSON_DAYS}}
-        team_members: [{{TE_TEAM_MEMBERS}}]
-        workload_distribution: [{{TE_WORKLOAD_DISTRIBUTION}}]
-        
-    # 基础设施资源分配
-    infrastructure_allocation:
-      development_environments: [{{DEV_ENV_ALLOCATION}}]
-      testing_environments: [{{TEST_ENV_ALLOCATION}}]
-      deployment_environments: [{{DEPLOY_ENV_ALLOCATION}}]
-      shared_services: [{{SHARED_SERVICES_ALLOCATION}}]
+  # Agent推理能力分配
+  agent_reasoning_allocation:
+    # Agent推理能力分配
+    reasoning_capability_allocation:
+      - agent_role: "context_baseline_agent" # 对应agent-1
+        reasoning_capability: {{CBA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{CBA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{CBA_COMPLEXITY_HANDLING}}] # 按需求套件分配
+
+      - agent_role: "requirements_reasoning_agent" # 对应agent-2
+        reasoning_capability: {{RRA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{RRA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{RRA_COMPLEXITY_HANDLING}}]
+
+      - agent_role: "design_thinking_agent" # 对应agent-3
+        reasoning_capability: {{DTA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{DTA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{DTA_COMPLEXITY_HANDLING}}]
+
+      - agent_role: "architecture_reasoning_agent" # 对应agent-4
+        reasoning_capability: {{ARA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{ARA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{ARA_COMPLEXITY_HANDLING}}]
+
+      - agent_role: "implementation_reasoning_agent" # 对应agent-5
+        reasoning_capability: {{IRA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{IRA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{IRA_COMPLEXITY_HANDLING}}]
+
+      - agent_role: "validation_reasoning_agent" # 对应agent-6
+        reasoning_capability: {{VRA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{VRA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{VRA_COMPLEXITY_HANDLING}}]
+
+    # Context Engineering基础设施
+    context_infrastructure_allocation:
+      knowledge_repositories: [{{KNOWLEDGE_REPO_ALLOCATION}}]
+      reasoning_pattern_libraries: [{{REASONING_PATTERN_ALLOCATION}}]
+      context_validation_tools: [{{CONTEXT_VALIDATION_ALLOCATION}}]
+      mcp_tool_integrations: [{{MCP_TOOL_ALLOCATION}}]
 
 # ============================================================================
 # 变更管理与追溯
@@ -454,28 +456,28 @@ change_management_and_traceability:
         
         # 变更影响分析
         impact_analysis:
-          affected_documents: [{{AFFECTED_DOCS_1}}] # 受影响的4类文档
+          affected_documents: [{{AFFECTED_DOCS_1}}] # 受影响的Agent文档
           affected_requirements: [{{AFFECTED_REQ_IDS_1}}] # 受影响的其他需求
-          affected_sprints: [{{AFFECTED_SPRINTS_1}}] # 受影响的Sprint
-          affected_milestones: [{{AFFECTED_MILESTONES_1}}] # 受影响的里程碑
+          affected_reasoning_chains: [{{AFFECTED_REASONING_CHAINS_1}}] # 受影响的推理链
+          affected_checkpoints: [{{AFFECTED_CHECKPOINTS_1}}] # 受影响的质量检查点
           
         # 变更传播路径
         propagation_path:
-          - layer: "L1_baseline" # 基线层变更
+          - layer: "L1_context_baseline" # Context基线层变更
             actions_required: [{{L1_ACTIONS_1}}]
-            estimated_effort: "{{L1_EFFORT_1}}"
-            
-          - layer: "L2_requirements" # 需求分析层变更
+            reasoning_impact: "{{L1_REASONING_IMPACT_1}}"
+
+          - layer: "L2_requirements_reasoning" # 需求推理层变更
             actions_required: [{{L2_ACTIONS_1}}]
-            estimated_effort: "{{L2_EFFORT_1}}"
-            
-          - layer: "L3_architecture" # 架构设计层变更
+            reasoning_impact: "{{L2_REASONING_IMPACT_1}}"
+
+          - layer: "L3_architecture_reasoning" # 架构推理层变更
             actions_required: [{{L3_ACTIONS_1}}]
-            estimated_effort: "{{L3_EFFORT_1}}"
-            
-          - layer: "L4_development" # 开发任务层变更
+            reasoning_impact: "{{L3_REASONING_IMPACT_1}}"
+
+          - layer: "L4_implementation_reasoning" # 实施推理层变更
             actions_required: [{{L4_ACTIONS_1}}]
-            estimated_effort: "{{L4_EFFORT_1}}"
+            reasoning_impact: "{{L4_REASONING_IMPACT_1}}"
             
           - layer: "L5_testing" # 测试设计层变更
             actions_required: [{{L5_ACTIONS_1}}]
@@ -501,11 +503,12 @@ change_management_and_traceability:
         
       # 实现追溯
       implementation_traceability:
-        ears_requirements: [{{EARS_REQ_IDS_1}}] # Agent-A产生的EARS需求
-        bdd_scenarios: [{{BDD_SCENARIO_IDS_1}}] # Agent-A产生的BDD场景
-        design_decisions: [{{DESIGN_DECISION_IDS_1}}] # Agent-B产生的设计决策
-        development_tasks: [{{DEV_TASK_IDS_1}}] # Agent-C产生的开发任务
-        test_cases: [{{TEST_CASE_IDS_1}}] # Agent-D产生的测试用例
+        ears_requirements: [{{EARS_REQ_IDS_1}}] # agent-2产生的EARS需求
+        bdd_scenarios: [{{BDD_SCENARIO_IDS_1}}] # agent-2产生的BDD场景
+        prototype_designs: [{{PROTOTYPE_IDS_1}}] # agent-3产生的原型设计
+        design_decisions: [{{DESIGN_DECISION_IDS_1}}] # agent-4产生的设计决策
+        development_tasks: [{{DEV_TASK_IDS_1}}] # agent-5产生的开发任务
+        test_cases: [{{TEST_CASE_IDS_1}}] # agent-6产生的测试用例
         
       # 交付物追溯
       deliverable_traceability:
