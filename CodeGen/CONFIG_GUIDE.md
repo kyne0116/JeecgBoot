@@ -58,6 +58,12 @@ export JEECG_PROJECT_ROOT=/Users/username/Projects/JeecgBoot
     "base_url": "$JEECG_BASE_URL",
     "username": "$JEECG_USERNAME",
     "password": "$JEECG_PASSWORD"
+  },
+  "database": {
+    "type": "$JEECG_DATABASE_TYPE",
+    "url": "$JEECG_DATABASE_URL",
+    "username": "$JEECG_DATABASE_USERNAME",
+    "password": "$JEECG_DATABASE_PASSWORD"
   }
 }
 ```
@@ -69,11 +75,19 @@ export JEECG_PROJECT_ROOT=/Users/username/Projects/JeecgBoot
 set JEECG_BASE_URL=http://localhost:8080/jeecg-boot
 set JEECG_USERNAME=admin
 set JEECG_PASSWORD=123456
+set JEECG_DATABASE_TYPE=mysql
+set JEECG_DATABASE_URL=jdbc:mysql://localhost:3306/jeecg-boot
+set JEECG_DATABASE_USERNAME=root
+set JEECG_DATABASE_PASSWORD=123456
 
 # macOS/Linux
 export JEECG_BASE_URL=http://localhost:8080/jeecg-boot
 export JEECG_USERNAME=admin
 export JEECG_PASSWORD=123456
+export JEECG_DATABASE_TYPE=mysql
+export JEECG_DATABASE_URL=jdbc:mysql://localhost:3306/jeecg-boot
+export JEECG_DATABASE_USERNAME=root
+export JEECG_DATABASE_PASSWORD=123456
 ```
 
 **生产环境示例**:
@@ -83,6 +97,34 @@ export JEECG_PASSWORD=123456
 export JEECG_BASE_URL=https://prod-server.company.com/jeecg-boot
 export JEECG_USERNAME=prod_admin
 export JEECG_PASSWORD=${SECURE_PASSWORD}  # 从密钥管理系统获取
+export JEECG_DATABASE_TYPE=mysql
+export JEECG_DATABASE_URL=jdbc:mysql://prod-db.company.com:3306/jeecg_prod
+export JEECG_DATABASE_USERNAME=jeecg_user
+export JEECG_DATABASE_PASSWORD=${DB_SECURE_PASSWORD}  # 从密钥管理系统获取
+```
+
+#### 数据库配置说明
+
+**支持的数据库类型**:
+- `mysql`: MySQL数据库（完全支持）
+- 其他类型: 暂不支持，会提示错误并终止执行
+
+**配置参数说明**:
+- `JEECG_DATABASE_TYPE`: 数据库类型，目前仅支持 `mysql`
+- `JEECG_DATABASE_URL`: 数据库连接URL，包含主机、端口和数据库名
+- `JEECG_DATABASE_USERNAME`: 数据库用户名
+- `JEECG_DATABASE_PASSWORD`: 数据库密码
+
+**URL格式示例**:
+```bash
+# MySQL标准格式
+jdbc:mysql://localhost:3306/jeecg-boot
+
+# MySQL带参数格式
+jdbc:mysql://localhost:3306/jeecg-boot?useUnicode=true&characterEncoding=utf-8&useSSL=false
+
+# 远程MySQL服务器
+jdbc:mysql://192.168.1.100:3306/jeecg_prod
 ```
 
 ### 方案 3: 相对路径
@@ -144,6 +186,12 @@ export JEECG_PASSWORD=${SECURE_PASSWORD}  # 从密钥管理系统获取
     "username": "$JEECG_USERNAME",
     "password": "$JEECG_PASSWORD"
   },
+  "database": {
+    "type": "$JEECG_DATABASE_TYPE",
+    "url": "$JEECG_DATABASE_URL",
+    "username": "$JEECG_DATABASE_USERNAME",
+    "password": "$JEECG_DATABASE_PASSWORD"
+  },
   "timeouts": {
     "login": 10,
     "create": 30,
@@ -175,6 +223,10 @@ export JEECG_PROJECT_ROOT=/path/to/your/jeecgboot/project
 export JEECG_BASE_URL=http://localhost:8080/jeecg-boot
 export JEECG_USERNAME=admin
 export JEECG_PASSWORD=123456
+export JEECG_DATABASE_TYPE=mysql
+export JEECG_DATABASE_URL=jdbc:mysql://localhost:3306/jeecg-boot
+export JEECG_DATABASE_USERNAME=root
+export JEECG_DATABASE_PASSWORD=123456
 ```
 
 ## 🔍 配置验证
