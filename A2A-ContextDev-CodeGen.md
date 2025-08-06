@@ -10,12 +10,16 @@
 
 **ContextDev**是基于 Context Engineering 和 Chain of Thought 推理理论的 AI 原生开发方法论系统，专为 JeecgBoot 3.8.1+框架设计。
 
-### 6-Agent 协作链
+### 7-Agent 协作链
+
+**ContextDev 6-Agent + CodeGen 1-Agent = 7-Agent 完整协作链**
 
 ```
 agent-1 (Context基线师) → agent-2 (需求推理师) → agent-3 (设计思考师)
      ↓                        ↓                      ↓
 agent-6 (验证推理师) ← agent-5 (实施推理师) ← agent-4 (架构推理师)
+                           ↓ A2A协议调用
+                    CodeGen Agent (代码生成师)
 ```
 
 **完整开发生命周期**：
@@ -162,7 +166,136 @@ a2a_response:
 - **完整需求**: 明确的业务需求和技术约束
 - **标准环境**: 配置完整的 JeecgBoot 开发环境
 
-## 📚 详细文档
+## � MCP Server 集成
+
+### superdesign MCP Server
+
+**superdesign** 是一个专业的原型设计 MCP Server，为 ContextDev 系统的 agent-3 (原型设计师) 提供强大的可视化设计能力。
+
+#### 🌐 项目信息
+
+- **上游仓库**: https://github.com/jonthebeef/superdesign-mcp-claude-code
+- **功能定位**: 原型设计和可视化界面生成
+- **集成位置**: ContextDev agent-3 (prototype-designer)
+- **技术栈**: Node.js + TypeScript
+
+#### ⚡ 核心功能
+
+- **智能原型生成**: 基于需求描述自动生成界面原型
+- **组件库集成**: 支持主流前端组件库（Ant Design、Material-UI 等）
+- **响应式设计**: 自动适配多设备屏幕尺寸
+- **交互原型**: 生成可交互的 HTML 原型文件
+- **设计系统**: 提供一致的设计语言和规范
+
+#### 🎯 JeecgBoot 适配
+
+- **Vue3 兼容**: 生成的原型符合 Vue3 组件结构
+- **Ant Design Vue**: 优先使用 Ant Design Vue 组件
+- **JeecgBoot 主题**: 适配 JeecgBoot 的设计规范和主题系统
+- **响应式布局**: 支持 JeecgBoot 的响应式布局要求
+
+#### 🔗 集成方式
+
+1. **MCP 服务配置**:
+
+   ```bash
+   claude mcp add superdesign "node D:/path/to/superdesign-mcp-claude-code/dist/index.js"
+   ```
+
+2. **agent-3 集成**:
+
+   - 在原型设计阶段自动调用 superdesign 服务
+   - 生成符合 JeecgBoot 规范的原型文件
+   - 输出标准化的原型设计文档
+
+3. **输出格式**:
+   - HTML 线框图文件
+   - 高保真原型文件
+   - 组件设计规范
+   - 交互设计说明
+
+#### 📋 使用流程
+
+```mermaid
+graph TD
+    A[agent-2: 需求分析] --> B[agent-3: 原型设计师]
+    B --> C[调用superdesign MCP]
+    C --> D[生成原型设计]
+    D --> E[JeecgBoot适配]
+    E --> F[输出PROTO文档]
+    F --> G[agent-4: 架构设计]
+```
+
+#### 🚀 配置要求
+
+- **Node.js**: v16.0+
+- **依赖安装**: `npm install` 在 superdesign 项目目录
+- **构建项目**: `npm run build` 生成 dist 目录
+- **MCP 配置**: 项目级别配置，每个项目需单独设置
+
+## 🤖 Claude Code 集成
+
+### Claude Code 作为 Subagent
+
+**Claude Code** 是 Anthropic 开发的 AI 编程助手，在 ContextDev 系统中作为 **subagent** 集成，为整个 7-Agent 协作链提供底层 AI 能力支持。
+
+#### 🔗 集成架构
+
+```mermaid
+graph TD
+    A[Claude Code AI Engine] --> B[ContextDev 6-Agent 协作链]
+    A --> C[CodeGen Agent]
+    B --> D[agent-1: Context基线师]
+    B --> E[agent-2: 需求推理师]
+    B --> F[agent-3: 设计思考师 + superdesign MCP]
+    B --> G[agent-4: 架构推理师]
+    B --> H[agent-5: 实施推理师]
+    B --> I[agent-6: 验证推理师]
+    H --> J[A2A协议调用]
+    J --> C
+```
+
+#### ⚡ Subagent 功能
+
+1. **AI 推理引擎**: 为所有 Agent 提供核心 AI 推理能力
+2. **MCP 服务集成**: 支持 superdesign 等 MCP 服务调用
+3. **上下文管理**: 维护整个协作链的上下文连续性
+4. **代码理解**: 深度理解 JeecgBoot 框架和代码结构
+
+#### 🎯 使用方法
+
+1. **Agent 激活**: 通过特定的 Agent 文档激活对应角色
+
+   ```
+   # 激活 agent-1
+   @baseline-manager 请建立系统基线...
+
+   # 激活 agent-3 + superdesign MCP
+   @prototype-designer 请设计界面原型...
+
+   # 激活 CodeGen Agent
+   @codegen-expert 请生成代码...
+   ```
+
+2. **协作链执行**: Claude Code 自动维护 Agent 间的协作状态
+
+   - 自动传递 EXECUTION_MODE 参数
+   - 维护文档引用和上下文
+   - 确保输出格式标准化
+
+3. **MCP 服务调用**: 在 agent-3 中自动调用 superdesign MCP
+   - 基于需求分析结果生成原型
+   - 自动适配 JeecgBoot 技术栈
+   - 输出标准化原型文档
+
+#### 🔧 配置要求
+
+- **Claude Code 环境**: 确保 Claude Code 正常运行
+- **MCP 服务配置**: 项目级别配置 superdesign MCP Server
+- **Agent 文档**: 确保所有 Agent 文档在正确路径
+- **模板文件**: 确保所有模板文件完整可用
+
+## �📚 详细文档
 
 ### 系统文档位置
 

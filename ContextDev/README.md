@@ -115,6 +115,34 @@ AIGC/
 
 ## 🚀 AI 编程方法论快速开始
 
+### 0. MCP Server 环境配置
+
+#### superdesign MCP Server 安装
+
+```bash
+# 1. 克隆 superdesign MCP Server 项目
+git clone https://github.com/jonthebeef/superdesign-mcp-claude-code.git
+
+# 2. 安装依赖
+cd superdesign-mcp-claude-code
+npm install
+
+# 3. 构建项目
+npm run build
+
+# 4. 配置 Claude Code MCP 服务
+claude mcp add superdesign "node /path/to/superdesign-mcp-claude-code/dist/index.js"
+
+# 5. 验证 MCP 服务状态
+claude mcp list
+```
+
+#### MCP 服务配置说明
+
+- **项目级别配置**: 每个项目目录需要单独配置 MCP 服务
+- **配置文件位置**: `.claude.json` 文件在项目根目录
+- **服务要求**: Node.js v16.0+ 环境
+
 ### 1. Context Engineering 初始化
 
 ```bash
@@ -134,8 +162,9 @@ cp templates/01-baseline/reasoning_baseline_template.yaml AIGC/reasoning_baselin
 # Step 2: 需求推理师 - EARS需求分析 + 推理链
 使用 templates/02-requirements/requirement_template.yaml
 
-# Step 3: 设计思考师 - 交互设计推理
+# Step 3: 设计思考师 - 交互设计推理 + MCP 原型生成
 使用 templates/03-prototype/prototype_template.yaml
+集成 superdesign MCP Server 进行智能原型生成
 
 # Step 4: 架构推理师 - 技术架构推理
 使用 templates/04-architecture/architecture_template.yaml
@@ -150,6 +179,11 @@ cp templates/01-baseline/reasoning_baseline_template.yaml AIGC/reasoning_baselin
 ### 3. MCP 工具集成和 JeecgBoot 适配
 
 - **MCP Protocol**: Model Context Protocol 工具链集成
+- **superdesign MCP Server**: 专业原型设计 MCP 服务集成
+  - 智能原型生成：基于需求描述自动生成界面原型
+  - JeecgBoot 适配：符合 Vue3 + Ant Design Vue 技术栈
+  - 响应式设计：自动适配多设备屏幕尺寸
+  - 组件映射：优先使用 JeecgBoot 和 Ant Design 组件
 - **Context Retrieval**: 智能上下文检索和知识管理
 - **CoT Reasoning**: 思维链推理和决策追溯
 - **EARS Compliance**: 结构化需求表达自动化
