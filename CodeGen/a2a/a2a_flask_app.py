@@ -25,50 +25,97 @@ logger = logging.getLogger(__name__)
 
 # 创建Flask应用
 app = Flask(__name__)
-CORS(app)  # 允许跨域请求
+
+# 配置CORS - 符合A2A中台技术规范
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:9000",    # A2A中台地址
+            "http://127.0.0.1:9000",   # A2A中台地址
+            "http://localhost:8080",    # JeecgBoot后端
+            "http://127.0.0.1:8080",   # JeecgBoot后端
+            "http://localhost:3000",    # 前端开发服务器
+            "http://127.0.0.1:3000",   # 前端开发服务器
+            "*"  # 开发环境允许所有来源，生产环境应移除
+        ],
+        "supports_credentials": True,
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
+    }
+})
 
 # 初始化A2A协议服务器
 a2a_server = A2AProtocolServer()
 
 @app.route('/.well-known/agent.json', methods=['GET'])
 def agent_card():
-    """Agent Card - 符合 A2A 协议的服务发现端点"""
+    """Agent Card - 符合 A2A 中台期望格式的服务发现端点"""
     base_url = request.host_url.rstrip('/')
 
+    # A2A 规范的完整结构
     agent_card = {
-        # Agent 基本信息
-        "agent": {
-            "id": "codegen-expert",
-            "name": "CodeGen Expert",
-            "description": "JeecgBoot 代码生成专家 Agent，支持完整的 CRUD 代码生成工作流",
-            "version": "1.0.0",
-            "type": "code-generator",
-            "vendor": "JeecgBoot Team",
-            "created": "2024-08-07T00:00:00Z",
-            "updated": datetime.now().isoformat()
+        # Agent 基本信息 (根级别)
+        "name": "CodeGen Expert",
+        "description": "JeecgBoot 代码生成专家 Agent，支持完整的 CRUD 代码生成工作流",
+        "url": base_url,
+        "version": "1.0.0",
+
+        # 提供商信息
+        "provider": {
+            "name": "JeecgBoot Team",
+            "url": "https://github.com/jeecgboot/jeecg-boot"
         },
 
-        # A2A 协议支持
-        "protocols": {
-            "a2a": {
-                "version": "1.0",
-                "endpoint": f"{base_url}/codegen/a2a",
-                "supported_message_types": [
-                    "code_generation_request",
-                    "code_generation_response",
-                    "capability_inquiry",
-                    "health_check"
-                ]
+        # Agent 能力声明 (A2A 规范的 Capability 对象列表)
+        "capabilities": [
+            {
+                "name": "code_generation",
+                "description": "支持Java、Vue、SQL代码生成，包含CRUD、树形、一对多等多种类型",
+                "input_types": ["text/plain", "application/json"],
+                "output_types": ["application/java", "application/vue", "application/sql"]
+            },
+            {
+                "name": "jeecgboot_integration",
+                "description": "JeecgBoot框架集成功能，包含在线表单创建、数据库同步、模块管理等",
+                "input_types": ["application/json"],
+                "output_types": ["text/plain", "application/json"]
+            },
+            {
+                "name": "variable_extraction",
+                "description": "智能变量提取和推理，支持模块名、子模块名、业务实体映射",
+                "input_types": ["text/plain"],
+                "output_types": ["application/json"]
+            },
+            {
+                "name": "a2a_protocol",
+                "description": "A2A协议通信支持，处理Agent间消息传递和代码生成请求",
+                "input_types": ["application/json"],
+                "output_types": ["application/json"]
             }
+        ],
+
+        # 认证配置
+        "authentication": {
+            "schemes": ["Bearer", "Basic"],
+            "credentials": "支持Bearer Token和Basic认证"
         },
 
-        # Agent 能力声明
-        "capabilities": {
+        # 默认输入输出模式
+        "default_input_modes": ["text/plain", "application/json"],
+        "default_output_modes": ["application/json", "text/plain"],
+
+        # 详细元数据 (保留原有的详细配置信息)
+        "metadata": {
+            "categories": ["development-tools", "code-generation", "enterprise"],
+            "tags": ["codegen", "jeecgboot", "a2a", "expert", "crud"],
+            "documentation": "https://github.com/jeecgboot/jeecg-boot/tree/master/CodeGen",
+            "support": "https://github.com/jeecgboot/jeecg-boot/issues",
+            "license": "Apache-2.0",
             "code_generation": {
-                "supported_types": ["crud", "tree", "one_to_many"],
+                "output_formats": ["java", "vue", "sql"],
                 "supported_databases": ["mysql", "postgresql", "oracle"],
                 "supported_frameworks": ["jeecgboot", "spring-boot"],
-                "output_formats": ["java", "vue", "sql"]
+                "supported_types": ["crud", "tree", "one_to_many"]
             },
             "jeecgboot_integration": {
                 "online_form_creation": True,
@@ -85,14 +132,30 @@ def agent_card():
             }
         },
 
-        # API 端点
+        # API 端点 (核心端点)
         "endpoints": {
+            "a2a_protocol": f"{base_url}/codegen/a2a",
             "health": f"{base_url}/health",
             "status": f"{base_url}/codegen/status",
-            "a2a_protocol": f"{base_url}/codegen/a2a",
             "variable_extraction": f"{base_url}/codegen/variables/extract",
             "config_generation": f"{base_url}/codegen/config/generate",
             "agent_card": f"{base_url}/.well-known/agent.json"
+        },
+
+        # A2A 协议支持 (符合规范)
+        "protocols": {
+            "a2a": {
+                "endpoint": f"{base_url}/codegen/a2a",
+                "version": "1.0",
+                "supported_message_types": [
+                    "task_request",
+                    "task_response",
+                    "health_check",
+                    "code_generation_request",
+                    "code_generation_response",
+                    "capability_inquiry"
+                ]
+            }
         },
 
         # 服务配置
@@ -112,15 +175,6 @@ def agent_card():
             "health": "healthy",
             "uptime_seconds": (datetime.now() - datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds(),
             "last_updated": datetime.now().isoformat()
-        },
-
-        # 元数据
-        "metadata": {
-            "tags": ["codegen", "jeecgboot", "a2a", "expert", "crud"],
-            "categories": ["development-tools", "code-generation", "enterprise"],
-            "documentation": "https://github.com/jeecgboot/jeecg-boot/tree/master/CodeGen",
-            "support": "https://github.com/jeecgboot/jeecg-boot/issues",
-            "license": "Apache-2.0"
         }
     }
 

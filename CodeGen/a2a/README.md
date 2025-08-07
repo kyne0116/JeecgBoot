@@ -159,38 +159,61 @@ AgentCard 端点 (`/.well-known/agent.json`) 完全符合 A2A 协议规范，提
 - **协议协商**: A2A 协议版本和消息类型支持
 - **端点映射**: 所有可用 API 端点的完整列表
 
-### 响应结构
+### 响应结构 (A2A 完整技术规范)
 
 ```json
 {
-  "agent": {
-    "id": "codegen-expert",
-    "name": "CodeGen Expert",
-    "description": "JeecgBoot 代码生成专家 Agent，支持完整的 CRUD 代码生成工作流",
-    "version": "1.0.0",
-    "type": "code-generator",
-    "vendor": "JeecgBoot Team",
-    "created": "2024-08-07T00:00:00Z",
-    "updated": "2025-08-07T16:40:30.094949"
+  "name": "CodeGen Expert",
+  "description": "JeecgBoot 代码生成专家 Agent，支持完整的 CRUD 代码生成工作流",
+  "url": "http://127.0.0.1:8888",
+  "version": "1.0.0",
+  "provider": {
+    "name": "JeecgBoot Team",
+    "url": "https://github.com/jeecgboot/jeecg-boot"
   },
-  "protocols": {
-    "a2a": {
-      "version": "1.0",
-      "endpoint": "http://localhost:8888/codegen/a2a",
-      "supported_message_types": [
-        "code_generation_request",
-        "code_generation_response",
-        "capability_inquiry",
-        "health_check"
-      ]
+  "capabilities": [
+    {
+      "name": "code_generation",
+      "description": "支持Java、Vue、SQL代码生成，包含CRUD、树形、一对多等多种类型",
+      "input_types": ["text/plain", "application/json"],
+      "output_types": ["application/java", "application/vue", "application/sql"]
+    },
+    {
+      "name": "jeecgboot_integration",
+      "description": "JeecgBoot框架集成功能，包含在线表单创建、数据库同步、模块管理等",
+      "input_types": ["application/json"],
+      "output_types": ["text/plain", "application/json"]
+    },
+    {
+      "name": "variable_extraction",
+      "description": "智能变量提取和推理，支持模块名、子模块名、业务实体映射",
+      "input_types": ["text/plain"],
+      "output_types": ["application/json"]
+    },
+    {
+      "name": "a2a_protocol",
+      "description": "A2A协议通信支持，处理Agent间消息传递和代码生成请求",
+      "input_types": ["application/json"],
+      "output_types": ["application/json"]
     }
+  ],
+  "authentication": {
+    "schemes": ["Bearer", "Basic"],
+    "credentials": "支持Bearer Token和Basic认证"
   },
-  "capabilities": {
+  "default_input_modes": ["text/plain", "application/json"],
+  "default_output_modes": ["application/json", "text/plain"],
+  "metadata": {
+    "categories": ["development-tools", "code-generation", "enterprise"],
+    "tags": ["codegen", "jeecgboot", "a2a", "expert", "crud"],
+    "documentation": "https://github.com/jeecgboot/jeecg-boot/tree/master/CodeGen",
+    "support": "https://github.com/jeecgboot/jeecg-boot/issues",
+    "license": "Apache-2.0",
     "code_generation": {
-      "supported_types": ["crud", "tree", "one_to_many"],
+      "output_formats": ["java", "vue", "sql"],
       "supported_databases": ["mysql", "postgresql", "oracle"],
       "supported_frameworks": ["jeecgboot", "spring-boot"],
-      "output_formats": ["java", "vue", "sql"]
+      "supported_types": ["crud", "tree", "one_to_many"]
     },
     "jeecgboot_integration": {
       "online_form_creation": true,
@@ -207,12 +230,26 @@ AgentCard 端点 (`/.well-known/agent.json`) 完全符合 A2A 协议规范，提
     }
   },
   "endpoints": {
-    "agent_card": "http://localhost:8888/.well-known/agent.json",
-    "health": "http://localhost:8888/health",
-    "status": "http://localhost:8888/codegen/status",
-    "a2a_protocol": "http://localhost:8888/codegen/a2a",
-    "variable_extraction": "http://localhost:8888/codegen/variables/extract",
-    "config_generation": "http://localhost:8888/codegen/config/generate"
+    "a2a_protocol": "http://127.0.0.1:8888/codegen/a2a",
+    "health": "http://127.0.0.1:8888/health",
+    "status": "http://127.0.0.1:8888/codegen/status",
+    "variable_extraction": "http://127.0.0.1:8888/codegen/variables/extract",
+    "config_generation": "http://127.0.0.1:8888/codegen/config/generate",
+    "agent_card": "http://127.0.0.1:8888/.well-known/agent.json"
+  },
+  "protocols": {
+    "a2a": {
+      "endpoint": "http://127.0.0.1:8888/codegen/a2a",
+      "version": "1.0",
+      "supported_message_types": [
+        "task_request",
+        "task_response",
+        "health_check",
+        "code_generation_request",
+        "code_generation_response",
+        "capability_inquiry"
+      ]
+    }
   },
   "configuration": {
     "max_concurrent_requests": 10,
@@ -228,27 +265,91 @@ AgentCard 端点 (`/.well-known/agent.json`) 完全符合 A2A 协议规范，提
     "health": "healthy",
     "uptime_seconds": 60030.094949,
     "last_updated": "2025-08-07T16:40:30.094949"
-  },
-  "metadata": {
-    "tags": ["codegen", "jeecgboot", "a2a", "expert", "crud"],
-    "categories": ["development-tools", "code-generation", "enterprise"],
-    "documentation": "https://github.com/jeecgboot/jeecg-boot/tree/master/CodeGen",
-    "support": "https://github.com/jeecgboot/jeecg-boot/issues",
-    "license": "Apache-2.0"
   }
 }
 ```
 
-### 关键字段说明
+### 关键字段说明 (A2A 完整技术规范)
 
-| 字段            | 描述         | 用途               |
-| --------------- | ------------ | ------------------ |
-| `agent.id`      | 唯一标识符   | 服务识别和路由     |
-| `protocols.a2a` | A2A 协议支持 | 协议版本协商       |
-| `capabilities`  | 服务能力声明 | 功能发现和匹配     |
-| `endpoints`     | API 端点映射 | 自动客户端配置     |
-| `configuration` | 服务配置信息 | 性能和限制参数     |
-| `status`        | 实时状态信息 | 健康监控和负载均衡 |
+| 字段                   | 描述                    | 用途                   |
+| ---------------------- | ----------------------- | ---------------------- |
+| `name`                 | Agent 名称 (根级别)     | A2A 中台服务识别       |
+| `url`                  | 服务基础 URL (根级别)   | A2A 中台服务注册       |
+| `version`              | 版本号 (根级别)         | A2A 中台版本管理       |
+| `provider`             | **提供商信息**          | 服务提供商标识         |
+| `capabilities`         | **Capability 对象数组** | A2A 规范的能力声明     |
+| `authentication`       | **认证配置**            | 支持的认证方案         |
+| `default_input_modes`  | **默认输入模式**        | 默认接受的输入类型     |
+| `default_output_modes` | **默认输出模式**        | 默认返回的输出类型     |
+| `metadata`             | 详细元数据              | 分类、标签、文档等信息 |
+| `endpoints`            | API 端点映射            | 自动客户端配置         |
+| `protocols.a2a`        | A2A 协议支持            | 协议版本协商           |
+| `configuration`        | 服务配置信息            | 性能和限制参数         |
+| `status`               | 实时状态信息            | 健康监控和负载均衡     |
+
+### 🌐 CORS 配置 (A2A 中台访问支持)
+
+为了支持 A2A 中台访问，Agent 已配置了符合技术规范的 CORS 设置：
+
+```python
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:9000",    # A2A中台地址
+            "http://127.0.0.1:9000",   # A2A中台地址
+            "http://localhost:8080",    # JeecgBoot后端
+            "http://127.0.0.1:8080",   # JeecgBoot后端
+            "http://localhost:3000",    # 前端开发服务器
+            "http://127.0.0.1:3000",   # 前端开发服务器
+        ],
+        "supports_credentials": True,
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
+    }
+})
+```
+
+**CORS 配置说明**:
+
+- ✅ **A2A 中台访问**: 允许来自 `localhost:9000` 和 `127.0.0.1:9000` 的请求
+- ✅ **凭据支持**: `supports_credentials: True` 支持认证信息传递
+- ✅ **完整方法支持**: 支持所有 RESTful HTTP 方法
+- ✅ **标准头部**: 支持 A2A 协议要求的所有头部字段
+
+### 📋 Capability 对象结构
+
+每个 Capability 对象包含以下字段：
+
+| 字段           | 描述           | 示例                                    |
+| -------------- | -------------- | --------------------------------------- |
+| `name`         | 能力名称       | "code_generation"                       |
+| `description`  | 能力描述       | "支持 Java、Vue、SQL 代码生成"          |
+| `input_types`  | 支持的输入类型 | ["text/plain", "application/json"]      |
+| `output_types` | 支持的输出类型 | ["application/java", "application/vue"] |
+
+### 🔄 结构变更说明
+
+**变更原因**: 为了符合 A2A 规范，将 Agent 基本信息提升到根级别，并将 capabilities 调整为 Capability 对象数组。
+
+**第一次变更 (扁平化结构)**:
+
+- ✅ `name` 字段提升到根级别 (原 `agent.name`)
+- ✅ `url` 字段提升到根级别 (新增，指向服务基础 URL)
+- ✅ `version` 字段提升到根级别 (原 `agent.version`)
+- ✅ `id` 字段提升到根级别 (原 `agent.id`)
+
+**第二次变更 (Capability 对象数组)**:
+
+- ✅ `capabilities` 从嵌套对象改为 **Capability 对象数组**
+- ✅ 每个 Capability 包含 `name`, `description`, `input_types`, `output_types`
+- ✅ 原有详细配置信息移至 `metadata` 字段保持向后兼容
+- ✅ 符合 A2A 规范的标准 Capability 模型定义
+
+**兼容性保证**:
+
+- ✅ 所有原有信息通过 `metadata` 字段保留
+- ✅ 新格式完全符合 A2A 中台期望
+- ✅ 支持渐进式迁移和向后兼容
 
 ## 🔗 A2A 协议集成
 
