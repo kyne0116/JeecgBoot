@@ -1,0 +1,12 @@
+[project]
+name = "codegen-expert-a2a"
+version = "1.0.0"
+description = "CodeGen Expert A2A Service"
+requires-python = ">=3.8"
+
+dependencies = [
+    "flask>=2.0.0",
+    "flask-cors>=4.0.0",
+    "requests>=2.25.0",
+    "mysql-connector-python>=8.0.0",
+]

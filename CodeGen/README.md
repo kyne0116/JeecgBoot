@@ -9,6 +9,8 @@ JeecgBoot CodeGen 是一个基于 AI 驱动的智能代码生成系统，通过"
 - **AI 智能分析**: 基于自然语言处理的业务需求理解和变量提取
 - **配置标准化**: 通过 JSON Schema 严格验证配置文件格式和内容
 - **自动化流程**: 一键生成完整的前后端代码、数据库结构和模块集成
+- **A2A 协议支持**: 完整的 Agent-to-Agent 通信协议，支持服务发现和自动配置
+- **微服务架构**: 现代化的服务架构，支持分布式部署和水平扩展
 - **模块化设计**: 清晰的文件职责分离和流程标准化
 - **质量保证**: 多层次验证机制确保生成代码的正确性和可用性
 
@@ -26,12 +28,19 @@ CodeGen/
 ├── Code_Gen_Validator.py           # ✅ 简化验证器 - 专注核心验证逻辑
 ├── Code_Gen_DICT.json              # 📚 数据字典 - 系统数据字典缓存
 ├── Code_Gen_JSON_Standards.md      # 🚨 统一标准规范 - 变量定义+JSON标准+验证规则
-└── temp_*_config.json              # 🚀 临时配置 - 运行时生成的配置文件
+├── temp_*_config.json              # 🚀 临时配置 - 运行时生成的配置文件
+└── a2a/                           # 🌐 A2A 协议服务 - Agent-to-Agent 通信和服务发现
+    ├── main.py                    # 🚀 A2A 服务主入口 - 支持 uv run main.py 启动
+    ├── a2a_server.py              # 🤖 A2A 协议服务器 - 处理 Agent 间通信
+    ├── a2a_flask_app.py           # 🌐 Flask Web 应用 - 提供 HTTP API 和 AgentCard
+    ├── pyproject.toml             # 📦 uv 包管理配置 - 现代 Python 依赖管理
+    └── README.md                  # 📋 A2A 服务文档 - 详细使用指南和 API 规范
 
-# 系统优化说明：
-# - 变量定义统一管理在 Code_Gen_JSON_Standards.md
-# - 字段模板集成在 Code_Gen_Guide.json 的 constants 部分
-# - 验证器专注核心功能，提升执行效率
+# 系统架构说明：
+# - 核心代码生成：传统脚本模式，支持本地和 API 调用
+# - A2A 协议服务：现代微服务架构，支持 Agent 间通信和服务发现
+# - 统一配置管理：所有组件共享配置标准和验证规则
+# - 模块化设计：清晰的职责分离和接口标准化
 ```
 
 ## 🔄 核心工作流程
@@ -106,6 +115,49 @@ graph TD
 - **PACKAGE_NAME**: `org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}`
 - **JAVA_ENTITY_NAME**: 直接使用 `{BUSINESS_ENTITY}` (已为 PascalCase 格式)
 
+## 🌐 A2A 协议服务
+
+### 服务发现与通信
+
+CodeGen 系统提供完整的 A2A (Agent-to-Agent) 协议支持，实现智能 Agent 间的自动发现和通信：
+
+**🚀 快速启动 A2A 服务**:
+
+```bash
+cd CodeGen/a2a/
+uv run main.py
+# 或
+python main.py
+```
+
+**📋 核心功能**:
+
+- **AgentCard 服务发现**: 符合 RFC 8615 规范的 `/.well-known/agent.json` 端点
+- **A2A 协议通信**: 完整的 Agent 间消息传递和代码生成请求处理
+- **自动服务注册**: 支持服务注册中心和健康检查机制
+- **能力声明**: 详细的服务能力描述和 API 端点映射
+
+**🔍 服务发现端点**:
+
+```bash
+# 获取完整的 Agent 服务信息
+curl http://localhost:8888/.well-known/agent.json
+
+# A2A 协议代码生成请求
+curl -X POST http://localhost:8888/codegen/a2a \
+  -H "Content-Type: application/json" \
+  -d '{"a2a_protocol": {...}, "payload": {...}}'
+```
+
+### 与 ContextDev 系统集成
+
+A2A 服务完全兼容 ContextDev 系统架构，支持：
+
+- 自动服务发现和配置
+- 分布式代码生成任务处理
+- 智能负载均衡和故障转移
+- 统一的监控和日志管理
+
 ## 🤖 AI 代理系统
 
 ### AI 职责边界 (详见 `Code_Gen_Agent.md`)
@@ -116,6 +168,7 @@ graph TD
 - 三核心变量智能提取和推理
 - 数据字典智能匹配和字段类型推断
 - JSON 配置文件生成和验证
+- A2A 协议消息处理和响应生成
 
 **❌ AI 严格禁止的行为**:
 
@@ -130,6 +183,7 @@ graph TD
 - **多维度评估**: 从业务流程、管理对象、核心功能等维度分析
 - **智能映射**: 优先映射到核心业务系统，支持新兴领域扩展
 - **置信度评估**: 提供推理置信度评分和多候选方案
+- **协议适配**: 自动适配不同 Agent 的通信协议和消息格式
 
 ## 📝 配置文件详解
 
@@ -220,11 +274,30 @@ graph TD
 
 ### 环境要求
 
-- Python 3.7+
+- Python 3.8+
 - JeecgBoot 后端服务 (localhost:8080)
 - Maven 3.6+
+- uv 包管理器 (推荐) 或 pip
 
-### 基本使用
+### 启动方式
+
+#### 方式一：A2A 协议服务 (推荐)
+
+```bash
+# 进入 A2A 服务目录
+cd CodeGen/a2a/
+
+# 使用 uv 启动 (推荐)
+uv run main.py
+
+# 或使用 Python 直接启动
+python main.py
+
+# 验证服务
+curl http://localhost:8888/.well-known/agent.json
+```
+
+#### 方式二：传统脚本模式
 
 ```bash
 # 1. 获取最新数据字典
@@ -238,6 +311,15 @@ python3 Code_Gen_Guide.py --validate-table-name us_finance_invoice_management
 ```
 
 ### AI 驱动的代码生成流程
+
+#### A2A 协议模式 (现代化)
+
+1. **服务发现**: 通过 AgentCard 自动发现服务能力
+2. **A2A 通信**: 使用标准协议发送代码生成请求
+3. **智能处理**: AI 自动分析需求并生成配置
+4. **代码生成**: 返回完整的 CRUD 功能模块
+
+#### 传统脚本模式
 
 1. **需求描述**: 使用自然语言描述业务需求
 2. **AI 分析**: 系统自动分析并提取三核心变量

@@ -11,7 +11,10 @@ import json
 import logging
 from datetime import datetime
 
-from .a2a_server import A2AProtocolServer
+try:
+    from .a2a_server import A2AProtocolServer
+except ImportError:
+    from a2a_server import A2AProtocolServer
 
 # 配置日志
 logging.basicConfig(
@@ -26,6 +29,102 @@ CORS(app)  # 允许跨域请求
 
 # 初始化A2A协议服务器
 a2a_server = A2AProtocolServer()
+
+@app.route('/.well-known/agent.json', methods=['GET'])
+def agent_card():
+    """Agent Card - 符合 A2A 协议的服务发现端点"""
+    base_url = request.host_url.rstrip('/')
+
+    agent_card = {
+        # Agent 基本信息
+        "agent": {
+            "id": "codegen-expert",
+            "name": "CodeGen Expert",
+            "description": "JeecgBoot 代码生成专家 Agent，支持完整的 CRUD 代码生成工作流",
+            "version": "1.0.0",
+            "type": "code-generator",
+            "vendor": "JeecgBoot Team",
+            "created": "2024-08-07T00:00:00Z",
+            "updated": datetime.now().isoformat()
+        },
+
+        # A2A 协议支持
+        "protocols": {
+            "a2a": {
+                "version": "1.0",
+                "endpoint": f"{base_url}/codegen/a2a",
+                "supported_message_types": [
+                    "code_generation_request",
+                    "code_generation_response",
+                    "capability_inquiry",
+                    "health_check"
+                ]
+            }
+        },
+
+        # Agent 能力声明
+        "capabilities": {
+            "code_generation": {
+                "supported_types": ["crud", "tree", "one_to_many"],
+                "supported_databases": ["mysql", "postgresql", "oracle"],
+                "supported_frameworks": ["jeecgboot", "spring-boot"],
+                "output_formats": ["java", "vue", "sql"]
+            },
+            "jeecgboot_integration": {
+                "online_form_creation": True,
+                "database_synchronization": True,
+                "code_generation": True,
+                "module_management": True,
+                "permission_authorization": True
+            },
+            "variable_extraction": {
+                "module_name_inference": True,
+                "submodule_name_inference": True,
+                "business_entity_mapping": True,
+                "naming_convention_validation": True
+            }
+        },
+
+        # API 端点
+        "endpoints": {
+            "health": f"{base_url}/health",
+            "status": f"{base_url}/codegen/status",
+            "a2a_protocol": f"{base_url}/codegen/a2a",
+            "variable_extraction": f"{base_url}/codegen/variables/extract",
+            "config_generation": f"{base_url}/codegen/config/generate",
+            "agent_card": f"{base_url}/.well-known/agent.json"
+        },
+
+        # 服务配置
+        "configuration": {
+            "max_concurrent_requests": 10,
+            "request_timeout_seconds": 300,
+            "supported_languages": ["zh-CN", "en-US"],
+            "rate_limiting": {
+                "enabled": False,
+                "requests_per_minute": 60
+            }
+        },
+
+        # 服务状态
+        "status": {
+            "state": "active",
+            "health": "healthy",
+            "uptime_seconds": (datetime.now() - datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds(),
+            "last_updated": datetime.now().isoformat()
+        },
+
+        # 元数据
+        "metadata": {
+            "tags": ["codegen", "jeecgboot", "a2a", "expert", "crud"],
+            "categories": ["development-tools", "code-generation", "enterprise"],
+            "documentation": "https://github.com/jeecgboot/jeecg-boot/tree/master/CodeGen",
+            "support": "https://github.com/jeecgboot/jeecg-boot/issues",
+            "license": "Apache-2.0"
+        }
+    }
+
+    return jsonify(agent_card)
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -218,15 +317,19 @@ def generate_config():
 @app.errorhandler(404)
 def not_found(error):
     """404错误处理"""
+    base_url = request.host_url.rstrip('/')
     return jsonify({
         'error': 'Endpoint not found',
-        'available_endpoints': [
-            '/health',
-            '/codegen/a2a',
-            '/codegen/status',
-            '/codegen/variables/extract',
-            '/codegen/config/generate'
-        ]
+        'message': 'The requested endpoint does not exist',
+        'available_endpoints': {
+            'agent_card': f"{base_url}/.well-known/agent.json",
+            'health': f"{base_url}/health",
+            'status': f"{base_url}/codegen/status",
+            'a2a_protocol': f"{base_url}/codegen/a2a",
+            'variable_extraction': f"{base_url}/codegen/variables/extract",
+            'config_generation': f"{base_url}/codegen/config/generate"
+        },
+        'documentation': 'See /.well-known/agent.json for complete API specification'
     }), 404
 
 @app.errorhandler(405)
