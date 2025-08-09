@@ -2,10 +2,4 @@ spring:
   application:
     name: jeecg-system
   profiles:
-    active: '@profile.name@'
----
-spring:
-  config:
-    activate:
-      on-profile: mac
-  import: optional:classpath:application-mac.yml
+    active: "@profile.name@"
