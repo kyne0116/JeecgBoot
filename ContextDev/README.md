@@ -40,7 +40,7 @@ ContextDev/
 │   ├── requirements-analyst.md     # 需求推理师
 │   ├── prototype-designer.md       # 设计思考师
 │   ├── system-architect.md         # 架构推理师
-│   ├── code-developer.md           # 实施推理师
+│   ├── code-developer.md           # 实施推理师 (集成@codegen-expert)
 │   └── quality-tester.md           # 验证推理师
 ├── templates/                      # Context Engineering模板
 │   ├── 01-baseline/               # Context基线

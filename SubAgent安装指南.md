@@ -16,6 +16,7 @@ python subagent-installer.py
 ```
 
 这是最简单的使用方式，脚本会自动：
+
 1. 清理已安装的 SubAgent 文件
 2. 清理 Claude Code 缓存
 3. 安装所有 7 个 SubAgent 到官方目录
@@ -57,6 +58,7 @@ python subagent-installer.py --batch
 ### 官方安装位置
 
 SubAgent 文件被安装到 Claude Code 官方目录：
+
 - **Windows**: `C:\Users\用户名\.claude\agents\`
 - **macOS**: `~/.claude/agents/`
 - **Linux**: `~/.claude/agents/`
@@ -72,23 +74,27 @@ SubAgent 文件被安装到 Claude Code 官方目录：
 
 项目中包含以下 7 个 SubAgent：
 
-### ContextDev 协作链（6个）
-1. **baseline-manager** - Context基线师，专注Context基线建立和领域知识管理
+### ContextDev 协作链（6 个）
+
+1. **baseline-manager** - Context 基线师，专注 Context 基线建立和领域知识管理
 2. **requirements-analyst** - 需求分析专家，负责业务需求分析和功能设计
 3. **prototype-designer** - 原型设计师，创建交互原型和用户体验设计
 4. **system-architect** - 系统架构师，设计技术架构和系统方案
 5. **code-developer** - 开发工程师，实现具体功能和代码开发
 6. **quality-tester** - 质量测试师，负责测试设计和质量保证
 
-### CodeGen 模块（1个）
+### CodeGen 模块（1 个）
+
 7. **codegen-expert** - 代码生成专家，基于 JeecgBoot 的智能代码生成
 
 ## ⚠️ 重要说明：Claude Code 缓存问题
 
 ### 问题现象
+
 如果在 Claude Code 中使用 `/agents` 命令看到 SubAgent 重复显示（如每个 agent 显示两次），这是由于 Claude Code 的会话级缓存机制导致的。
 
 ### 解决方案
+
 1. **完全退出 Claude Code**（包括后台进程）
 2. **运行安装脚本**：
    ```bash
@@ -98,21 +104,25 @@ SubAgent 文件被安装到 Claude Code 官方目录：
 4. **验证结果**：使用 `/agents` 命令检查
 
 ### 根本原因
+
 Claude Code 在 `~/.claude/projects/` 目录为每个工作目录维护会话缓存，可能导致 SubAgent 信息被重复加载。脚本已内置缓存清理功能。
 
 ## 🖥️ 平台兼容性
 
 ### Windows
+
 - 支持 Windows 7/8/10/11
 - 兼容 CMD、PowerShell、Windows Terminal
 - 自动处理编码问题和路径格式
 
 ### macOS
+
 - 支持 macOS 10.12+
 - 兼容 Terminal.app、iTerm2
 - 支持 Intel 和 Apple Silicon
 
 ### Linux
+
 - 支持主流 Linux 发行版
 - 兼容各种 Shell 环境
 - 自动检测系统架构
@@ -171,6 +181,7 @@ python subagent-installer.py --copy
 ## 🚨 故障排除
 
 ### 1. 编码问题（Windows）
+
 ```cmd
 # 设置控制台为 UTF-8
 chcp 65001
@@ -178,6 +189,7 @@ python subagent-installer.py
 ```
 
 ### 2. 权限问题
+
 ```bash
 # Linux/macOS - 确保有读取权限
 chmod +r ContextDev/agents/*.md CodeGen/*.md
@@ -187,7 +199,9 @@ python subagent-installer.py
 ```
 
 ### 3. Claude Code 仍显示重复
+
 完全退出 Claude Code 后重新安装：
+
 ```bash
 # 1. 完全退出 Claude Code
 # 2. 运行安装
@@ -196,6 +210,7 @@ python subagent-installer.py
 ```
 
 ### 4. 文件读取失败
+
 脚本会自动尝试多种编码：UTF-8、UTF-8 BOM、GBK、CP1252
 
 ## 🛠️ 技术实现
@@ -208,6 +223,7 @@ python subagent-installer.py
 ## 📊 安装统计
 
 每次安装完成后，脚本会显示详细统计：
+
 - 发现的 SubAgent 数量
 - 成功安装的数量
 - 失败安装的数量（如有）
@@ -216,12 +232,15 @@ python subagent-installer.py
 ## 🔄 更新和维护
 
 ### 更新 SubAgent
+
 当项目中的 SubAgent 定义更新时，只需重新运行：
+
 ```bash
 python subagent-installer.py
 ```
 
 ### 卸载所有 SubAgent
+
 ```bash
 python subagent-installer.py --clean
 ```
@@ -229,7 +248,7 @@ python subagent-installer.py --clean
 ## 👥 开发团队
 
 - JeecgBoot ContextDev Team
-- A2A 协议集成支持
+- Subagent 集成支持
 - 跨平台兼容性优化
 - Claude Code 集成专家
 

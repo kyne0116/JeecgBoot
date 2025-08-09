@@ -205,9 +205,9 @@ architecture_document:
           - { target: "TrainingPlan", type: "one_to_many" }
 ```
 
-### Agent-5: 实施推理师 (含 A2A 集成)
+### Agent-5: 实施推理师 (含 Subagent 集成)
 
-**功能**: 开发任务分解和 A2A 协议代码生成
+**功能**: 开发任务分解和 @codegen-expert subagent 代码生成
 
 **输入格式**:
 
@@ -224,29 +224,29 @@ agent5_input = {
     "architecture_document": agent4_output,
     "implementation_preferences": {
         "development_approach": "敏捷开发",
-        "code_generation": "优先使用A2A协议调用CodeGen",
+        "code_generation": "优先使用@codegen-expert subagent",
         "testing_strategy": "TDD测试驱动开发"
     }
 }
 ```
 
-**A2A 集成执行流程**:
+**Subagent 集成执行流程**:
 
 ```python
 # 1. 评估CodeGen适用性
 applicable_components, manual_components = agent5.evaluate_codegen_applicability(architecture_info)
 
-# 2. 构建A2A请求
-a2a_request = agent5.build_a2a_request(applicable_components, system_context)
+# 2. 构建Subagent调用请求
+subagent_request = agent5.build_subagent_request(applicable_components, system_context)
 
-# 3. 调用CodeGen Agent
+# 3. 调用@codegen-expert Subagent
 try:
-    codegen_response = agent5.invoke_codegen_agent(a2a_request)
+    codegen_response = agent5.invoke_codegen_subagent(subagent_request)
     # 处理成功响应
 except Exception as e:
-    # 严格异常处理：立即终止工作流
-    termination_result = agent5.handle_strict_failure(e, context)
-    # 请求用户确认
+    # 智能异常处理：提供多种解决方案
+    solution_options = agent5.handle_intelligent_failure(e, context)
+    # 提供用户指导
 ```
 
 **输出结果**:
@@ -256,8 +256,8 @@ development_document:
   document_info:
     id: "DEV-20250805-001"
     title: "培训管理系统开发计划"
-  a2a_codegen_execution:
-    status: "SUCCESS" | "WORKFLOW_TERMINATED"
+  subagent_codegen_execution:
+    status: "SUCCESS" | "RETRY_AVAILABLE"
     applicable_components:
       - entity: "CourseInfo"
         confidence: 0.9
@@ -320,89 +320,68 @@ testing_document:
       status: "PASS"
 ```
 
-## 🔗 A2A 集成后的使用方法
+## 🔗 Subagent 集成使用方法
 
-### 1. 启动 CodeGen A2A 服务端
-
-```bash
-# 方法1: 使用集成启动脚本
-python start_a2a_integration.py
-
-# 方法2: 手动启动
-cd CodeGen
-python a2a_flask_app.py
-```
-
-### 2. 验证 A2A 服务状态
+### 1. 使用 @codegen-expert Subagent
 
 ```bash
-# 健康检查
-curl http://localhost:8080/health
-
-# 服务状态
-curl http://localhost:8080/codegen/status
+# 在 Claude Code 中直接调用
+@codegen-expert 请根据以下架构信息生成代码：
+- 系统模块：finance
+- 功能模块：invoice
+- 业务实体：InvoiceInfo
 ```
 
-### 3. 完整 A2A 集成使用流程
+### 2. 完整 Subagent 集成使用流程
 
 ```python
-# 1. 初始化Agent-5控制器
-from ContextDev.agents.a2a.agent5_controller import Agent5Controller
-agent5 = Agent5Controller("http://localhost:8080/codegen/a2a")
+# 1. 在 Agent-5 中集成 Subagent 调用
+# 通过自然语言与 @codegen-expert 交互
+subagent_request = f"""
+@codegen-expert 请生成以下模块的代码：
+系统：{system_name}
+模块：{module_name}
+实体：{entity_name}
+"""
 
-# 2. 执行开发规划（含A2A集成）
-architecture_document = agent4_output  # 来自agent-4
-development_result = agent5.execute_development_planning(architecture_document)
-
-# 3. 检查执行结果
-if development_result.get('document_info', {}).get('status') == 'TERMINATED':
-    # A2A协议调用失败，工作流已终止
-    print("A2A协议调用失败，需要用户确认后续操作")
-    user_confirmation = development_result['user_action_required']
-    # 处理用户确认...
-else:
-    # A2A协议调用成功，继续后续流程
-    print("A2A协议执行成功，继续agent-6测试设计")
+# 2. 处理 Subagent 响应
+# @codegen-expert 会返回生成的代码和配置
+# 然后继续后续的开发流程
 ```
 
-### 4. 严格异常处理机制
+### 3. 智能异常处理机制
 
 **触发条件**:
 
-- A2A 协议网络调用失败
-- CodeGen 服务响应错误
-- 协议格式验证失败
-- 代码生成执行超时
+- Subagent 调用失败
+- CodeGen 配置错误
+- 代码生成不完整
+- 业务逻辑复杂度超出范围
 
 **处理流程**:
 
 ```python
 # 异常处理示例
 try:
-    codegen_response = agent5.invoke_codegen_agent(a2a_request)
+    codegen_response = invoke_codegen_subagent(subagent_request)
 except Exception as e:
-    # 1. 立即终止6-Agent工作流
-    termination_result = {
-        'status': 'WORKFLOW_TERMINATED',
-        'error_type': 'A2A_PROTOCOL_FAILURE',
-        'termination_reason': 'A2A协议调用失败，根据严格异常处理策略立即终止'
-    }
-
-    # 2. 生成用户确认请求
-    user_confirmation = {
-        'confirmation_required': True,
-        'available_actions': [
-            'MANUAL_DEVELOPMENT',  # 继续手动开发
-            'RETRY_A2A_CALL',      # 重试A2A调用
-            'TERMINATE_PROJECT'     # 终止项目
+    # 1. 提供多种解决方案
+    solution_options = {
+        'status': 'RETRY_AVAILABLE',
+        'error_type': 'SUBAGENT_CALL_FAILURE',
+        'available_solutions': [
+            'ADJUST_CONFIGURATION',  # 调整配置重试
+            'MANUAL_DEVELOPMENT',    # 手动开发
+            'SIMPLIFY_REQUIREMENTS', # 简化需求
+            'HYBRID_APPROACH'        # 混合开发
         ],
-        'recommendation': '建议采用手动开发方式继续项目'
+        'recommendation': '建议先调整配置重试，如仍失败则采用混合开发方式'
     }
 
-    # 3. 等待用户确认
+    # 2. 继续工作流程
     return {
-        'workflow_status': 'SUSPENDED',
-        'user_action_required': user_confirmation
+        'workflow_status': 'CONTINUE_WITH_OPTIONS',
+        'solution_options': solution_options
     }
 ```
 
@@ -418,12 +397,12 @@ except Exception as e:
 
 - **顺序执行**: 严格按照 agent-1 到 agent-6 的顺序执行
 - **输出验证**: 每个 Agent 的输出都应该验证格式和完整性
-- **异常处理**: 及时处理 A2A 协议调用异常
+- **异常处理**: 及时处理 Subagent 调用异常
 
-### 3. A2A 集成最佳实践
+### 3. Subagent 集成最佳实践
 
-- **服务监控**: 持续监控 CodeGen A2A 服务状态
-- **错误处理**: 准备 A2A 调用失败的备选方案
-- **性能优化**: 合理设置超时时间和重试策略
+- **清晰表达**: 使用清晰的自然语言与 @codegen-expert 交互
+- **错误处理**: 准备 Subagent 调用失败的多种解决方案
+- **灵活调整**: 根据生成结果灵活调整开发策略
 
 通过以上详细的使用方法说明，用户可以完整地使用 ContextDev AI 编程方法论系统，实现从需求分析到代码生成的完整开发闭环。
