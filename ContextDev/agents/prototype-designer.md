@@ -122,9 +122,14 @@ tags: ["JeecgBoot", "Prototype", "UI/UX", "Wireframe", "agent-3"]
 ### Step 4: 界面原型设计
 
 1. **MCP 原型生成**: 调用 superdesign MCP Server 生成智能原型
-   - 基于需求分析结果调用 MCP 服务
-   - 生成符合 JeecgBoot 规范的原型设计
-   - 自动适配 Vue3 + Ant Design Vue 组件
+   - **需求数据提取**: 从 agent-2 的需求文档中提取 EARS 需求、BDD 场景、技术约束
+   - **MCP 参数准备**: 将需求数据转换为 superdesign MCP Server 的调用参数
+   - **原型生成调用**:
+     - `generate_wireframe`: 生成低保真线框图
+     - `generate_mockup`: 生成高保真视觉原型
+     - `generate_interactive_prototype`: 生成可交互原型
+   - **结果验证**: 检查生成的原型文件质量和 JeecgBoot 兼容性
+   - **文件输出**: 保存原型文件到 AIGC/{SYSTEM}\_{MODULE}/prototypes/目录
 2. **线框图**: 创建低保真度的页面结构图
 3. **布局设计**: 确定页面布局和组件排列
 4. **交互设计**: 定义用户交互行为和反馈
@@ -133,9 +138,18 @@ tags: ["JeecgBoot", "Prototype", "UI/UX", "Wireframe", "agent-3"]
 ### Step 5: JeecgBoot 适配
 
 1. **MCP 结果优化**: 优化 superdesign MCP 生成的原型
+
    - 验证组件映射的准确性
    - 调整不符合 JeecgBoot 规范的设计元素
    - 确保响应式布局的正确性
+
+   **错误处理机制**:
+
+   - **MCP 服务不可用**: 使用 wireframe_template.html 生成基础原型
+   - **生成质量不达标**: 重新调用 MCP 服务或手工创建原型
+   - **JeecgBoot 兼容性问题**: 调整组件映射和样式适配
+   - **文件保存失败**: 重试保存或使用备用路径
+
 2. **组件映射**: 将设计元素映射到具体组件
 3. **主题适配**: 应用 JeecgBoot 设计主题
 4. **响应式适配**: 确保多设备兼容性
