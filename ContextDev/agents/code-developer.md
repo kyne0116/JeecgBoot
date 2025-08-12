@@ -131,13 +131,26 @@ tags: ["JeecgBoot", "Development", "Tasks", "agent-5"]
 3. **风险推理**: 推理技术风险和缓解策略
 4. **依赖推理**: 推理组件间依赖和实施顺序
 
-### Step 4: Subagent 代码生成
+### Step 4: Code_Gen_Agent.md 精准调度执行
 
-1. **CodeGen 适用性评估**: 评估哪些组件适合使用 CodeGen 自动生成
-2. **Subagent 请求构建**: 将架构信息转换为 @codegen-expert subagent 调用请求
-3. **CodeGen Subagent 调用**: 通过 @codegen-expert subagent 执行代码生成
-4. **生成结果处理**: 解析 CodeGen 响应，识别成功和失败的组件
-5. **智能异常处理**: Subagent 调用失败时提供多种解决方案和用户指导
+1. **架构文档解析**: 深度分析 Agent-4 提供的架构设计文档
+2. **核心变量推理**: 基于业务需求智能推理三核心变量
+   ```yaml
+   MODULE_NAME: { 从架构设计中提取的模块名 }
+   SUBMODULE_NAME: { 从业务实体中推导的子模块名 }
+   BUSINESS_ENTITY: { 核心业务实体名称 }
+   ```
+3. **调度参数构建**: 构建符合 Code_Gen_Agent.md 规范的调度参数
+   ```markdown
+   MODULE_NAME: milktea
+   SUBMODULE_NAME: product
+   BUSINESS_ENTITY: Product
+   REQUIREMENT: 奶茶店商品管理功能，支持商品 CRUD、库存预警、价格调整
+   EXECUTION_MODE: silent
+   ```
+4. **智能代理调度**: 精准调度 Code_Gen_Agent.md 执行代码生成
+5. **生成结果验证**: 验证生成代码的完整性和可编译性
+6. **质量控制**: 确保代码符合 JeecgBoot 框架规范
 
 ### Step 5: 文档生成
 
