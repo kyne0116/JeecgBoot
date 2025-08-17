@@ -2,13 +2,13 @@
 
 ## 📋 概述
 
-`test_scenario_course_management.yaml` 是 ContextDev AI 编程方法论系统的标准测试场景配置文件，用于验证 6-Agent 协作链和 A2A 协议集成的完整工作流程。
+`test_scenario_course_management.yaml` 是 ContextDev AI 编程方法论系统的标准测试场景配置文件，用于验证 7-Agent 协作链和 A2A 协议集成的完整工作流程。
 
 ## 🎯 文件作用
 
 ### 核心功能
 
-1. **标准化测试输入**: 为 ContextDev 6-Agent 协作链提供标准化的测试数据
+1. **标准化测试输入**: 为 ContextDev 7-Agent 协作链提供标准化的测试数据
 2. **验证 A2A 协议**: 测试 ContextDev 与 CodeGen 系统的 A2A 协议集成
 3. **质量基准**: 建立代码生成质量和系统集成的验证标准
 4. **回归测试**: 确保系统更新后功能的一致性和稳定性
@@ -20,7 +20,7 @@
 - **性能基准**: 建立 A2A 协议调用和代码生成的性能标准
 - **异常处理**: 验证系统在各种异常情况下的处理能力
 
-## 🔗 与 6-Agent 协作链的集成
+## 🔗 与 7-Agent 协作链的集成
 
 ### Agent-1 (Context 基线师)
 
@@ -170,7 +170,7 @@ class TestCourseManagement(unittest.TestCase):
         self.scenario_file = 'ContextDev/test_scenario_course_management.yaml'
 
     def test_full_workflow(self):
-        """测试完整的6-Agent工作流程"""
+        """测试完整的7-Agent工作流程"""
         result = self.test_runner.run_scenario(self.scenario_file)
         self.assertTrue(result.success)
         self.assertGreaterEqual(result.a2a_success_rate, 0.95)

@@ -14,7 +14,7 @@ tags: ["Context Engineering", "Domain Knowledge", "Baseline", "agent-1"]
 >
 > **角色**: Context 基线师
 > **职责**: Context 基线建立 + 领域知识构建 + 上下文管理
-> **协作位置**: 6-Agent 协作链起点
+> **协作位置**: 7-Agent 协作链起点
 > **输出目标**: Context 基线和领域知识，传递给 agent-2
 > **版本**: v6.0
 
@@ -27,7 +27,7 @@ tags: ["Context Engineering", "Domain Knowledge", "Baseline", "agent-1"]
 - Author: JeecgBoot ContextDev Team
 - Version: 1.0
 - Language: 中文
-- Description: JeecgBoot 基线管理专家，6-Agent 协作链起点，专注基线建立与维护
+- Description: JeecgBoot 基线管理专家，7-Agent 协作链起点，专注基线建立与维护
 
 ## Core Skills
 
@@ -111,7 +111,7 @@ tags: ["Context Engineering", "Domain Knowledge", "Baseline", "agent-1"]
 
 2. **执行模式确认**：
    - 询问用户选择执行模式（interactive/silent）
-   - 在整个 6-Agent 协作链中保持一致
+   - 在整个 7-Agent 协作链中保持一致
 
 ### Step 1: 场景识别和需求探索
 
@@ -291,7 +291,7 @@ key_outputs:
 
 你好！我是 **agent-1: JeecgBoot 基线管理师** 📊
 
-我专注于建立和维护 JeecgBoot 项目的系统基线和模块基线，为整个 6-Agent 协作链提供稳固的基础。
+我专注于建立和维护 JeecgBoot 项目的系统基线和模块基线，为整个 7-Agent 协作链提供稳固的基础。
 
 **我的核心能力**：
 

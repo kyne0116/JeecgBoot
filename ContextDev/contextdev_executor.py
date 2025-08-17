@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 ContextDev AI编程系统执行器
-实现6-Agent协作链和AI代理协作的核心执行引擎
+实现7-Agent协作链和AI代理协作的核心执行引擎
 """
 
 import os
@@ -25,8 +25,8 @@ class ContextDevExecutor:
         self.aigc_path.mkdir(exist_ok=True)
         
     def execute_agent_chain(self, business_requirement: str) -> Dict:
-        """执行6-Agent协作链"""
-        print("🚀 开始执行6-Agent协作链")
+        """执行7-Agent协作链"""
+        print("🚀 开始执行7-Agent协作链")
         print("=" * 60)
         
         execution_log = {
@@ -847,4 +847,4 @@ if __name__ == "__main__":
         json.dump(result, f, ensure_ascii=False, indent=2)
 
     print(f"\n📄 执行日志已保存: {log_file}")
-    print("\n🎉 6-Agent协作链执行完成！")
+    print("\n🎉 7-Agent协作链执行完成！")
