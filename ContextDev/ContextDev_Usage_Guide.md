@@ -2,9 +2,9 @@
 
 ## 📋 概述
 
-ContextDev 是基于 Context Engineering 和 Chain of Thought 推理理论的 AI 原生开发方法论系统，通过 6-Agent 协作链实现从需求分析到代码生成的完整开发闭环。
+ContextDev 是基于 Context Engineering 和 Chain of Thought 推理理论的 AI 原生开发方法论系统，通过 7-Agent 协作链实现从需求分析到代码生成的完整开发闭环。
 
-## 🔄 6-Agent 协作链使用方法
+## 🔄 7-Agent 协作链使用方法
 
 ### Agent-1: Context 基线师
 

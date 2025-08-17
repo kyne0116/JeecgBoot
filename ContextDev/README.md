@@ -20,8 +20,9 @@
 - **agent-2 (需求推理师)**: EARS 需求分析 + BDD 场景设计 + CoT 业务推理
 - **agent-3 (设计思考师)**: 需求可视化 + 交互设计推理 + 原型生成
 - **agent-4 (架构推理师)**: 技术架构 CoT 推理 + 设计决策链 + 组件设计
-- **agent-5 (实施推理师)**: 任务分解 CoT + 代码生成策略 + 实施推理
-- **agent-6 (验证推理师)**: 测试策略推理 + 质量保证 CoT + 验证设计
+- **agent-5 (POC验证师)**: POC场景开发 + 技术验证 + 风险评估
+- **agent-6 (实施推理师)**: 任务分解 CoT + 代码生成策略 + 实施推理
+- **agent-7 (验证推理师)**: 测试策略推理 + 质量保证 CoT + 验证设计
 
 ### 🛠️ AI 编程技术栈
 
@@ -40,6 +41,7 @@ ContextDev/
 │   ├── requirements-analyst.md     # 需求推理师
 │   ├── prototype-designer.md       # 设计思考师
 │   ├── system-architect.md         # 架构推理师
+│   ├── poc-developer.md            # POC验证师
 │   ├── code-developer.md           # 实施推理师 (集成@codegen-expert)
 │   └── quality-tester.md           # 验证推理师
 ├── templates/                      # Context Engineering模板
@@ -47,8 +49,9 @@ ContextDev/
 │   ├── 02-requirements/           # EARS需求推理
 │   ├── 03-prototype/              # 设计思考
 │   ├── 04-architecture/           # 架构推理
-│   ├── 05-development/            # 实施推理
-│   └── 06-testing/                # 验证推理
+│   ├── 05-poc/                    # POC验证
+│   ├── 06-development/            # 实施推理
+│   └── 07-testing/                # 验证推理
 └── README.md                      # AI编程方法论说明
 ```
 
@@ -57,14 +60,14 @@ ContextDev/
 **Context Engineering + 推理流程**:
 
 ```
-Context基线 → 需求推理 → 设计思考 → 架构推理 → 实施推理 → 验证推理
-   ↓           ↓          ↓          ↓          ↓          ↓
-领域知识构建 → EARS+BDD → 交互设计 → 技术决策 → 代码生成 → 质量保证
+Context基线 → 需求推理 → 设计思考 → 架构推理 → POC验证 → 实施推理 → 验证推理
+   ↓           ↓          ↓          ↓          ↓         ↓          ↓
+领域知识构建 → EARS+BDD → 交互设计 → 技术决策 → 技术验证 → 代码生成 → 质量保证
 ```
 
 ### 🎛️ EXECUTION_MODE 参数配置
 
-ContextDev 6-Agent 协作链支持两种执行模式：
+ContextDev 7-Agent 协作链支持两种执行模式：
 
 #### interactive 模式（交互式）
 
@@ -83,7 +86,7 @@ ContextDev 6-Agent 协作链支持两种执行模式：
 #### 参数传递机制
 
 - **设置位置**: 由 agent-1（Context 基线师）在初始化时设置
-- **传递方式**: 在整个 6-Agent 协作链中保持一致
+- **传递方式**: 在整个 7-Agent 协作链中保持一致
 - **配置方法**: 在启动 agent-1 时选择执行模式（1=interactive, 2=silent）
 
 **文件命名格式**: `[SYSTEM]-[MODULE]-[TIMESTAMP]-[AGENT]-[TITLE].yaml`
@@ -205,7 +208,7 @@ ContextDev 系统支持两种主要使用场景，根据用户需求的明确程
 **工作流程**：
 
 ```
-需求探索 → 商业目标确认 → 系统功能范围界定 → 需求基线建立 → 6-Agent协作链执行
+需求探索 → 商业目标确认 → 系统功能范围界定 → 需求基线建立 → 7-Agent协作链执行
 ```
 
 **操作步骤**：
@@ -249,9 +252,9 @@ ContextDev 系统支持两种主要使用场景，根据用户需求的明确程
    - reasoning_baseline_[SYSTEM]_[MODULE].yaml
    ```
 
-5. **6-Agent 协作链执行**
+5. **7-Agent 协作链执行**
    ```
-   按标准流程执行: agent-2 → agent-3 → agent-4 → agent-5 → agent-6
+   按标准流程执行: agent-2 → agent-3 → agent-4 → agent-5 → agent-6 → agent-7
    ```
 
 **示例交互流程**：
@@ -293,7 +296,7 @@ agent-1:
 **工作流程**：
 
 ```
-需求理解 → 文档架构预览 → 内容摘要确认 → 6-Agent协作链执行
+需求理解 → 文档架构预览 → 内容摘要确认 → 7-Agent协作链执行
 ```
 
 **操作步骤**：
@@ -325,9 +328,9 @@ agent-1:
    - 实施计划的可行性
    ```
 
-4. **6-Agent 协作链执行**
+4. **7-Agent 协作链执行**
    ```
-   完整执行: agent-1 → agent-2 → agent-3 → agent-4 → agent-5 → agent-6
+   完整执行: agent-1 → agent-2 → agent-3 → agent-4 → agent-5 → agent-6 → agent-7
    ```
 
 **示例交互流程**：
@@ -348,7 +351,7 @@ agent-2:
 
 用户: "确认，请开始"
 
-agent-2: "开始执行6-Agent协作链，为您生成完整的技术实施方案..."
+agent-2: "开始执行7-Agent协作链，为您生成完整的技术实施方案..."
 ```
 
 **预期输出**：

@@ -1,5 +1,5 @@
 # JeecgBoot AI Agent协作模板组合器 v6.0
-# 智能模板选择和组合系统，优化6-Agent协作效率，集成推理能力
+# 智能模板选择和组合系统，优化7-Agent协作效率，集成推理能力
 
 # ============================================================================
 # 组合器配置
@@ -10,7 +10,7 @@ composer_config:
   reasoning_enabled: true
   reasoning_quality_threshold: 8 # 推理质量阈值
   target_success_rate: 95 # 百分比
-  collaboration_mode: "6-agent-chain"
+  collaboration_mode: "7-agent-chain"
 
 # ============================================================================
 # 模板库管理
@@ -43,7 +43,7 @@ template_library:
 composition_strategies:
   # 策略1：标准协作链 (CoT增强版)
   standard_collaboration:
-    description: "标准6-Agent协作链，集成CoT推理能力，适用于大部分业务场景"
+    description: "标准7-Agent协作链，集成CoT推理能力，适用于大部分业务场景"
     complexity: "simple|medium"
     reasoning_quality: "高质量推理链" # CoT增强推理
     success_rate: "98%+" # CoT提升成功率
