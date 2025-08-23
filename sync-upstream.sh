@@ -262,12 +262,83 @@ EOF
     log_success "冲突解决指南已生成：$guide_file"
 }
 
+# 显示同步配置信息
+show_sync_info() {
+    echo "========================================"
+    echo "        Git上游同步配置信息"
+    echo "========================================"
+    echo
+    
+    # 获取当前分支
+    local current_branch=$(git branch --show-current)
+    
+    # 获取远程仓库URL
+    local upstream_url=$(git remote get-url upstream 2>/dev/null || echo "未配置")
+    local origin_url=$(git remote get-url origin 2>/dev/null || echo "未配置")
+    
+    # 获取分支差异信息
+    local upstream_commits=$(git rev-list --count ${current_branch}..upstream/master 2>/dev/null || echo "0")
+    local local_commits=$(git rev-list --count upstream/master..${current_branch} 2>/dev/null || echo "0")
+    
+    echo "📋 同步配置:"
+    echo "  🎯 目标分支: ${current_branch} (当前分支)"
+    echo "  🔄 源分支: upstream/master"
+    echo
+    echo "📡 远程仓库信息:"
+    echo "  🏠 Origin (Fork): ${origin_url}"
+    echo "  ⬆️  Upstream (官方): ${upstream_url}"
+    echo
+    echo "📊 分支状态:"
+    echo "  📈 上游领先: ${upstream_commits} 个提交"
+    echo "  📉 本地领先: ${local_commits} 个提交"
+    echo
+    echo "🔄 同步操作:"
+    echo "  将 upstream/master 的更新合并到 ${current_branch} 分支"
+    
+    if [ "$upstream_commits" -gt 0 ]; then
+        echo "  📦 预计同步: ${upstream_commits} 个新提交"
+    else
+        echo "  ✅ 状态: 已是最新，无需同步"
+    fi
+    
+    echo
+    echo "========================================"
+}
+
+# 用户确认函数
+confirm_sync() {
+    echo
+    log_warning "⚠️  同步操作将会："
+    echo "   1. 创建备份分支 (my-custom-backup-时间戳)"
+    echo "   2. 将上游更新合并到当前分支"
+    echo "   3. 如有冲突会生成解决指南并中止操作"
+    echo
+    
+    read -p "🤔 确认执行同步操作吗？(y/N): " -n 1 -r
+    echo
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_info "用户取消同步操作"
+        exit 0
+    fi
+    
+    log_info "用户确认，开始执行同步..."
+    echo
+}
+
 # 主函数
 main() {
     log_info "开始Git上游同步流程..."
     
     check_git_status
     fetch_upstream
+    
+    # 显示同步信息
+    show_sync_info
+    
+    # 用户确认
+    confirm_sync
+    
     check_differences
     attempt_merge
     
