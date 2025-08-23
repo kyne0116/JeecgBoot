@@ -26,6 +26,7 @@ mcp_service_config:
     target_framework: "JeecgBoot + Vue3 + Ant Design Vue"
     output_format: ["html", "wireframe", "mockup"]
     responsive_design: true
+    output_directory: "AIGC/{{SYSTEM}}_{{MODULE}}/prototypes"  # 指定输出目录为ContextDev规范路径
 
   # 调用指令
   mcp_execution_commands:

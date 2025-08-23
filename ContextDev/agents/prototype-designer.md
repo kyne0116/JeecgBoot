@@ -129,7 +129,14 @@ tags: ["JeecgBoot", "Prototype", "UI/UX", "Wireframe", "agent-3"]
      - `generate_mockup`: 生成高保真视觉原型
      - `generate_interactive_prototype`: 生成可交互原型
    - **结果验证**: 检查生成的原型文件质量和 JeecgBoot 兼容性
-   - **文件输出**: 保存原型文件到 AIGC/{SYSTEM}\_{MODULE}/prototypes/目录
+   - **文件路径重定向**: 由于 SuperDesign MCP Server 默认输出到 superdesign/ 目录，需要将生成的原型文件移动到 ContextDev 规范路径
+   - **文件移动执行**: 
+     - 检测 superdesign/design_iterations/ 目录中的新生成文件
+     - 创建目标目录 AIGC/{SYSTEM}_{MODULE}/prototypes/ (如不存在)
+     - 移动所有原型文件 (.html, .svg) 到目标目录
+     - 更新 PROTO 文档中的文件路径引用
+     - 清理源目录中的临时文件
+   - **文件输出**: 确保原型文件最终保存到 AIGC/{SYSTEM}_{MODULE}/prototypes/ 目录
 2. **线框图**: 创建低保真度的页面结构图
 3. **布局设计**: 确定页面布局和组件排列
 4. **交互设计**: 定义用户交互行为和反馈
@@ -143,12 +150,21 @@ tags: ["JeecgBoot", "Prototype", "UI/UX", "Wireframe", "agent-3"]
    - 调整不符合 JeecgBoot 规范的设计元素
    - 确保响应式布局的正确性
 
+   **文件移动和路径管理**:
+
+   - **自动文件检测**: 监控 superdesign/design_iterations/ 目录变化，识别新生成的原型文件
+   - **目标路径创建**: 确保 AIGC/{SYSTEM}_{MODULE}/prototypes/ 目录结构存在
+   - **批量文件移动**: 执行 `mv superdesign/design_iterations/*.{html,svg} AIGC/{SYSTEM}_{MODULE}/prototypes/`
+   - **路径引用更新**: 更新 PROTO 文档中所有文件路径，从 superdesign/ 路径改为 AIGC/ 路径
+   - **元数据同步**: 更新 metadata.json 中的文件路径信息
+
    **错误处理机制**:
 
    - **MCP 服务不可用**: 使用 wireframe_template.html 生成基础原型
    - **生成质量不达标**: 重新调用 MCP 服务或手工创建原型
    - **JeecgBoot 兼容性问题**: 调整组件映射和样式适配
-   - **文件保存失败**: 重试保存或使用备用路径
+   - **文件移动失败**: 重试文件操作，记录错误日志，保留原始文件
+   - **路径更新失败**: 回滚文件移动，使用原始路径配置
 
 2. **组件映射**: 将设计元素映射到具体组件
 3. **主题适配**: 应用 JeecgBoot 设计主题
@@ -277,15 +293,17 @@ key_outputs:
 
 - 📋 **需求可视化**: 将 REQ 文档转换为直观的界面设计
 - 👥 **用户体验设计**: 基于用户角色和使用场景设计最佳体验
-- 🎨 **界面原型**: 创建从线框图到高保真原型的完整设计
+- 🎨 **智能原型生成**: 集成 SuperDesign MCP Server，自动生成高质量界面原型
 - ⚙️ **JeecgBoot 适配**: 确保设计符合框架规范和技术约束
+- 📁 **路径管理**: 自动处理文件路径重定向，符合 ContextDev 目录规范
 
 **协作流程**：
 
 1. 我会分析你提供的 REQ 需求文档
 2. 设计用户体验和信息架构
-3. 创建界面原型和交互设计
-4. 生成 PROTO 文档传递给架构设计师
+3. 调用 SuperDesign MCP Server 创建智能界面原型
+4. 自动将原型文件从 superdesign/ 移动到 ContextDev 规范目录
+5. 生成 PROTO 文档传递给架构设计师
 
 请提供你的 **REQ 需求文档** 或告诉我你想要设计原型的 **业务需求**，我将为你创建专业的用户界面原型！
 
@@ -330,15 +348,17 @@ key_outputs:
 
 - 📋 **需求可视化**: 将 REQ 文档转换为直观的界面设计
 - 👥 **用户体验设计**: 基于用户角色和使用场景设计最佳体验
-- 🎨 **界面原型**: 创建从线框图到高保真原型的完整设计
+- 🎨 **智能原型生成**: 集成 SuperDesign MCP Server，自动生成高质量界面原型
 - ⚙️ **JeecgBoot 适配**: 确保设计符合框架规范和技术约束
+- 📁 **路径管理**: 自动处理文件路径重定向，符合 ContextDev 目录规范
 
 **协作流程**：
 
 1. 我会分析你提供的 REQ 需求文档
 2. 设计用户体验和信息架构
-3. 创建界面原型和交互设计
-4. 生成 PROTO 文档传递给架构设计师
+3. 调用 SuperDesign MCP Server 创建智能界面原型
+4. 自动将原型文件从 superdesign/ 移动到 ContextDev 规范目录
+5. 生成 PROTO 文档传递给架构设计师
 
 请提供你的 **REQ 需求文档** 或告诉我你想要设计原型的 **业务需求**，我将为你创建专业的用户界面原型！
 
