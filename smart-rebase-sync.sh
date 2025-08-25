@@ -2787,6 +2787,200 @@ EOF
     log_success "冲突报告已生成: $REPORT_FILE"
 }
 
+# ========================================
+# 后续工作流管理
+# ========================================
+
+# 主后续工作流控制器
+post_sync_workflow() {
+    log_section "🚀 开始后续工作流处理"
+    
+    echo -e "${GREEN}✅ Git同步已成功完成！${NC}"
+    echo -e "${CYAN}为确保完整的同步流程，建议执行以下后续任务：${NC}"
+    echo
+    
+    show_post_sync_overview
+    
+    while true; do
+        echo
+        echo -e "${BLUE}════════════════════════════════════════${NC}"
+        echo -e "${GREEN}🛠️ 后续工作流选择${NC}"
+        echo -e "${BLUE}════════════════════════════════════════${NC}"
+        echo
+        echo -e "${YELLOW}[1] 🧹 工作区清理${NC}"
+        echo -e "    ${GREEN}✅ 清理临时文件和提交历史${NC}"
+        echo -e "    ${PURPLE}💡 建议: 保持仓库整洁${NC}"
+        echo
+        echo -e "${YELLOW}[2] 📤 推送到远程仓库${NC}"
+        echo -e "    ${GREEN}✅ 将同步结果推送到origin远程${NC}"
+        echo -e "    ${PURPLE}💡 建议: 备份同步成果${NC}"
+        echo
+        echo -e "${YELLOW}[3] 🔨 构建验证${NC}"
+        echo -e "    ${GREEN}✅ 验证项目编译和运行状态${NC}"
+        echo -e "    ${PURPLE}💡 建议: 确保同步后项目正常${NC}"
+        echo
+        echo -e "${YELLOW}[4] 📊 完整状态报告${NC}"
+        echo -e "    ${GREEN}✅ 生成详细的最终同步报告${NC}"
+        echo -e "    ${PURPLE}💡 建议: 记录同步详情${NC}"
+        echo
+        echo -e "${YELLOW}[5] 🎯 执行全部任务${NC}"
+        echo -e "    ${GREEN}✅ 按顺序执行所有推荐任务${NC}"
+        echo -e "    ${PURPLE}💡 推荐: 完整的端到端处理${NC}"
+        echo
+        echo -e "${YELLOW}[6] ✅ 跳过后续工作流${NC}"
+        echo -e "    ${RED}⚠️  直接结束，手动处理剩余任务${NC}"
+        echo
+        echo -e "${BLUE}════════════════════════════════════════${NC}"
+        
+        echo -n "请选择操作 (1-6): "
+        read -r choice
+        
+        case "$choice" in
+            1)
+                cleanup_workflow
+                ;;
+            2)
+                push_workflow  
+                ;;
+            3)
+                build_verification_workflow
+                ;;
+            4)
+                final_status_report
+                ;;
+            5)
+                execute_full_workflow
+                return 0
+                ;;
+            6)
+                log_info "跳过后续工作流，同步流程结束"
+                return 0
+                ;;
+            "")
+                echo -e "${YELLOW}⚠️  请输入有效选择 (1-6)，不能为空${NC}"
+                ;;
+            *)
+                echo -e "${YELLOW}⚠️  无效选择 '$choice'，请输入 1-6${NC}"
+                ;;
+        esac
+    done
+}
+
+# 显示后续工作流概览
+show_post_sync_overview() {
+    echo -e "${BLUE}📋 当前状态概览：${NC}"
+    
+    # 检查工作区状态
+    local git_status=$(git status --porcelain 2>/dev/null || echo "")
+    local unclean_files=$(echo "$git_status" | wc -l | tr -d ' ')
+    
+    if [ "$unclean_files" -gt 0 ]; then
+        echo -e "${YELLOW}  ⚠️  工作区: $unclean_files 个未处理文件${NC}"
+    else
+        echo -e "${GREEN}  ✅ 工作区: 干净${NC}"
+    fi
+    
+    # 检查临时提交
+    local temp_commits=$(git log --oneline --grep="临时提交" -n 5 | wc -l | tr -d ' ')
+    if [ "$temp_commits" -gt 0 ]; then
+        echo -e "${YELLOW}  ⚠️  临时提交: 发现 $temp_commits 个需要整理${NC}"
+    else
+        echo -e "${GREEN}  ✅ 提交历史: 整洁${NC}"
+    fi
+    
+    # 检查与远程的差异
+    local commits_ahead=$(git rev-list --count origin/$TARGET_BRANCH..HEAD 2>/dev/null || echo "0")
+    if [ "$commits_ahead" -gt 0 ]; then
+        echo -e "${BLUE}  📤 远程同步: 本地领先 $commits_ahead 个提交${NC}"
+    else
+        echo -e "${GREEN}  ✅ 远程同步: 已同步${NC}"
+    fi
+    
+    # Maven构建状态（如果存在pom.xml）
+    if [ -f "jeecg-boot/pom.xml" ]; then
+        echo -e "${BLUE}  🔨 构建验证: 需要验证Maven项目状态${NC}"
+    fi
+}
+
+# 执行完整工作流
+execute_full_workflow() {
+    echo
+    log_section "🚀 执行完整后续工作流"
+    echo -e "${GREEN}将按以下顺序执行所有推荐任务：${NC}"
+    echo -e "${CYAN}1. 工作区清理${NC}"
+    echo -e "${CYAN}2. 推送到远程仓库${NC}"
+    echo -e "${CYAN}3. 构建验证${NC}" 
+    echo -e "${CYAN}4. 生成最终报告${NC}"
+    echo
+    
+    if ! confirm_action "确认执行完整工作流"; then
+        log_info "用户取消完整工作流执行"
+        return 1
+    fi
+    
+    echo
+    log_info "🚀 开始执行完整后续工作流..."
+    
+    # 1. 工作区清理
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    log_info "📍 步骤 1/4: 工作区清理"
+    cleanup_workflow
+    
+    # 2. 推送到远程
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    log_info "📍 步骤 2/4: 推送到远程仓库"
+    push_workflow
+    
+    # 3. 构建验证
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    log_info "📍 步骤 3/4: 构建验证"
+    build_verification_workflow
+    
+    # 4. 最终报告
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    log_info "📍 步骤 4/4: 生成最终报告"
+    final_status_report
+    
+    echo
+    log_success "🎉 完整后续工作流执行完毕！"
+}
+
+# 用户确认函数
+confirm_action() {
+    local action_description="$1"
+    local default_yes="${2:-false}"
+    
+    if [ "$default_yes" = "true" ]; then
+        local prompt="$action_description (Y/n): "
+    else
+        local prompt="$action_description (y/N): "
+    fi
+    
+    while true; do
+        echo -n "$prompt"
+        read -r response
+        
+        case "$response" in
+            [Yy]|[Yy][Ee][Ss])
+                return 0
+                ;;
+            [Nn]|[Nn][Oo])
+                return 1
+                ;;
+            "")
+                if [ "$default_yes" = "true" ]; then
+                    return 0
+                else
+                    return 1
+                fi
+                ;;
+            *)
+                echo -e "${YELLOW}请输入 y/yes 或 n/no${NC}"
+                ;;
+        esac
+    done
+}
+
 update_report_after_file_processing() {
     local processed_files=("$@")
     
@@ -2869,6 +3063,8 @@ perform_full_sync() {
     if start_rebase; then
         # 同步成功
         generate_sync_report "✅ 同步成功" "成功同步 $commits_behind 个提交，无冲突"
+        # 启动后续工作流
+        post_sync_workflow
     else
         # 同步过程中有冲突，由handle_rebase_conflicts处理
         local remaining_conflicts=$(git diff --name-only --diff-filter=U 2>/dev/null || echo "")
@@ -2876,6 +3072,8 @@ perform_full_sync() {
             generate_conflict_report "$remaining_conflicts"
         else
             generate_sync_report "✅ 同步成功" "冲突已解决，同步完成"
+            # 启动后续工作流
+            post_sync_workflow
         fi
     fi
 }
