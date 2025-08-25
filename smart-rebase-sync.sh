@@ -707,10 +707,10 @@ display_intelligent_suggestions() {
             done"
             
             echo
-            echo -n "选择快捷操作 (直接回车继续): "
+            echo -n "选择快捷操作 (直接回车或3秒后自动继续): "
             
             local choice
-            read -t 5 choice || choice=""  # 5秒超时，更快
+            read -t 3 choice || choice=""  # 3秒超时，更快响应
             
             if [[ -n "$choice" ]] && [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le $actions_count ]; then
                 execute_quick_action "$choice" "$actions_array_name"
@@ -823,11 +823,35 @@ check_working_tree() {
         fi
         echo
         
-        echo -e "${GREEN}💡 处理选项:${NC}"
-        echo "  [1] 🗂️  暂存所有更改并继续"
-        echo "  [2] 📦 储藏更改并继续"
-        echo "  [3] 📋 查看详细更改"
-        echo "  [4] 🚫 退出脚本"
+        echo -e "${BLUE}════════════════════════════════════════${NC}"
+        echo -e "${GREEN}💡 工作区更改处理选项${NC}"
+        echo -e "${BLUE}════════════════════════════════════════${NC}"
+        echo
+        echo -e "${YELLOW}[1] 🗂️  创建提交保存所有更改${NC}"
+        echo -e "    ${CYAN}命令:${NC} git add . && git commit -m '临时提交'"
+        echo -e "    ${GREEN}✅ 包含:${NC} 所有修改文件 + 新增文件 (M + ??)"
+        echo -e "    ${GREEN}✅ 结果:${NC} 创建永久Git提交，工作区完全干净"
+        echo -e "    ${BLUE}📝 恢复:${NC} git reset HEAD~1 (撤销最后一个提交)"
+        echo -e "    ${PURPLE}💡 适用:${NC} 想要保留这些更改作为正式提交"
+        echo
+        echo -e "${YELLOW}[2] 📦 储藏当前修改${NC}"
+        echo -e "    ${CYAN}命令:${NC} git stash push -m '临时储藏'"
+        echo -e "    ${GREEN}✅ 包含:${NC} 已跟踪文件的修改 (仅M标记文件)"
+        echo -e "    ${RED}⚠️  排除:${NC} 新增文件会保留在工作区 (?? 文件)"
+        echo -e "    ${GREEN}✅ 结果:${NC} 修改被临时保存，工作区相对干净"
+        echo -e "    ${BLUE}📝 恢复:${NC} git stash pop (稍后恢复储藏的修改)"
+        echo -e "    ${PURPLE}💡 适用:${NC} 临时保存修改，稍后决定如何处理"
+        echo
+        echo -e "${YELLOW}[3] 📋 查看详细变更${NC}"
+        echo -e "    ${CYAN}命令:${NC} git diff --stat"
+        echo -e "    ${GREEN}✅ 效果:${NC} 显示每个文件的具体变更统计"
+        echo -e "    ${PURPLE}💡 适用:${NC} 了解具体改动内容后再决定"
+        echo
+        echo -e "${YELLOW}[4] 🚫 退出脚本${NC}"
+        echo -e "    ${RED}⚠️  效果:${NC} 保持当前状态不变，需手动处理"
+        echo -e "    ${PURPLE}💡 适用:${NC} 想要手动处理这些更改"
+        echo
+        echo -e "${BLUE}════════════════════════════════════════${NC}"
         echo
         
         while true; do
@@ -2890,4 +2914,4 @@ quick_auto_fix
 # 执行主函数
 main "$@"
 
-log_success "脚本执行完成 - $(date '+%Y-%m-%d %H:%M:%S')"
+log_success "脚本执行完成 - $(date '+%Y-%m-%d %H:%M:%S')"测试修改
