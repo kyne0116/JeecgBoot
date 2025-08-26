@@ -88,7 +88,8 @@ check_working_tree() {
         log_warning "工作区有未提交的更改"
         echo
         echo "未提交的更改："
-        git status --porcelain | head -10
+        # 确保中文文件名正确显示
+        git -c core.quotepath=false status --porcelain | head -10
         echo
         
         echo "选择处理方式："
@@ -401,7 +402,7 @@ handle_rebase_conflicts() {
     local attempt=0
     
     while [ $attempt -lt $max_attempts ]; do
-        local conflict_files=$(git diff --name-only --diff-filter=U 2>/dev/null || echo "")
+        local conflict_files=$(git -c core.quotepath=false diff --name-only --diff-filter=U 2>/dev/null || echo "")
         
         if [ -z "$conflict_files" ]; then
             # 无冲突，尝试继续rebase
@@ -460,7 +461,7 @@ handle_rebase_conflicts() {
                         if [ -n "$file" ]; then
                             echo "────────────────────────────────────────────"
                             echo "文件: $file"
-                            git diff HEAD -- "$file" | head -30
+                            git -c core.quotepath=false diff HEAD -- "$file" | head -30
                             echo
                             read -p "按Enter查看下一个文件，或输入 q 返回菜单: " continue_choice
                             if [ "$continue_choice" = "q" ]; then
@@ -499,7 +500,7 @@ handle_rebase_conflicts() {
         sleep 1
         
         # 验证所有冲突是否已解决
-        local remaining_conflicts=$(git diff --name-only --diff-filter=U 2>/dev/null || echo "")
+        local remaining_conflicts=$(git -c core.quotepath=false diff --name-only --diff-filter=U 2>/dev/null || echo "")
         if [ -z "$remaining_conflicts" ]; then
             log_success "所有冲突已解决，尝试继续rebase..."
         else
@@ -761,6 +762,9 @@ check_git_repo
 
 # 启用rerere自动冲突重用
 git config rerere.enabled true 2>/dev/null || true
+
+# 设置Git正确显示中文文件名（修复乱码问题）
+git config core.quotepath false 2>/dev/null || true
 
 # 执行主函数
 main "$@"

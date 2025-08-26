@@ -4,7 +4,7 @@
 
 ## 脚本文件
 
-- **subagent-installer.py** - 完整的 SubAgent 自动安装和管理脚本
+- **simbest-subagent-installer.py** - 完整的 SubAgent 自动安装和管理脚本
 
 ## 🚀 快速开始
 
@@ -12,7 +12,7 @@
 
 ```bash
 # 自动清理 + 安装所有 SubAgent
-python subagent-installer.py
+python simbest-subagent-installer.py
 ```
 
 这是最简单的使用方式，脚本会自动：
@@ -28,29 +28,29 @@ python subagent-installer.py
 
 ```bash
 # 显示平台信息
-python subagent-installer.py --platform
+python simbest-subagent-installer.py --platform
 
 # 显示发现的 subagent 报告
-python subagent-installer.py --report
+python simbest-subagent-installer.py --report
 
 # 仅安装（不清理）
-python subagent-installer.py --install
+python simbest-subagent-installer.py --install
 
 # 仅清理已安装的 SubAgent
-python subagent-installer.py --clean
+python simbest-subagent-installer.py --clean
 
 # 生成创建命令（适用于手动安装）
-python subagent-installer.py --commands
+python simbest-subagent-installer.py --commands
 ```
 
 ### 高级功能
 
 ```bash
 # 生成命令并复制到剪贴板
-python subagent-installer.py --copy
+python simbest-subagent-installer.py --copy
 
 # 生成批处理脚本文件
-python subagent-installer.py --batch
+python simbest-subagent-installer.py --batch
 ```
 
 ## 🔧 安装原理
@@ -98,7 +98,7 @@ SubAgent 文件被安装到 Claude Code 官方目录：
 1. **完全退出 Claude Code**（包括后台进程）
 2. **运行安装脚本**：
    ```bash
-   python subagent-installer.py
+   python simbest-subagent-installer.py
    ```
 3. **重新启动 Claude Code**
 4. **验证结果**：使用 `/agents` 命令检查
@@ -145,7 +145,7 @@ Claude Code 在 `~/.claude/projects/` 目录为每个工作目录维护会话缓
 cd /path/to/JeecgBoot
 
 # 2. 执行一键安装
-python subagent-installer.py
+python simbest-subagent-installer.py
 
 # 预期输出：
 # 🚀 开始 SubAgent 自动化安装流程...
@@ -163,17 +163,17 @@ python subagent-installer.py
 
 ```bash
 # 查看平台信息
-python subagent-installer.py --platform
+python simbest-subagent-installer.py --platform
 
 # 查看发现的 SubAgent
-python subagent-installer.py --report
+python simbest-subagent-installer.py --report
 ```
 
 ### 手动安装模式
 
 ```bash
 # 生成命令并复制到剪贴板
-python subagent-installer.py --copy
+python simbest-subagent-installer.py --copy
 
 # 然后在 Claude Code 中手动执行显示的命令
 ```
@@ -185,7 +185,7 @@ python subagent-installer.py --copy
 ```cmd
 # 设置控制台为 UTF-8
 chcp 65001
-python subagent-installer.py
+python simbest-subagent-installer.py
 ```
 
 ### 2. 权限问题
@@ -195,7 +195,7 @@ python subagent-installer.py
 chmod +r ContextDev/agents/*.md CodeGen/*.md
 
 # Windows - 以管理员身份运行
-python subagent-installer.py
+python simbest-subagent-installer.py
 ```
 
 ### 3. Claude Code 仍显示重复
@@ -205,7 +205,7 @@ python subagent-installer.py
 ```bash
 # 1. 完全退出 Claude Code
 # 2. 运行安装
-python subagent-installer.py
+python simbest-subagent-installer.py
 # 3. 重启 Claude Code
 ```
 
@@ -236,13 +236,13 @@ python subagent-installer.py
 当项目中的 SubAgent 定义更新时，只需重新运行：
 
 ```bash
-python subagent-installer.py
+python simbest-subagent-installer.py
 ```
 
 ### 卸载所有 SubAgent
 
 ```bash
-python subagent-installer.py --clean
+python simbest-subagent-installer.py --clean
 ```
 
 ## 👥 开发团队
@@ -262,4 +262,4 @@ python subagent-installer.py --clean
 
 ---
 
-**💡 提示**: 推荐使用默认的一键安装命令 `python subagent-installer.py`，这是最简单且最可靠的安装方式。
+**💡 提示**: 推荐使用默认的一键安装命令 `python simbest-subagent-installer.py`，这是最简单且最可靠的安装方式。
