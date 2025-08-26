@@ -15,8 +15,13 @@ os_del_doc.cmd
 *.log
 **/settings.json
 .sync-state.txt
+# macOS系统文件
+**/.DS_Store
 .DS_Store
+
+# IDE和编辑器配置
 .vscode/
+.cursor/
 .java-version
 .ai-config/
 context-engineering-intro/
@@ -29,6 +34,5 @@ PRPs/
 **/deployment_report_*.json
 **/*_backup_*
 .windsurfrules
-.cursor/rules/design.mdc
 .superdesign/design_iterations/default_ui_darkmode.css
 **/__pycache__/
