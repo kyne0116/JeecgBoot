@@ -10,7 +10,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 import java.util.ArrayList;
 import java.util.List;
-import com.bazaarvoice.jolt.Chainr;
+// import com.bazaarvoice.jolt.Chainr; // 注释掉jolt依赖
 import apijson.JSONResponse;
 import apijson.RequestMethod;
 

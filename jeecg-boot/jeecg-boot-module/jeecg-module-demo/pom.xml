@@ -16,6 +16,19 @@
             <groupId>org.jeecgframework.boot</groupId>
             <artifactId>jeecg-boot-base-core</artifactId>
         </dependency>
+        
+        <!-- APIJSON Framework -->
+        <dependency>
+            <groupId>com.github.APIJSON</groupId>
+            <artifactId>apijson-framework</artifactId>
+            <version>6.2.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.APIJSON</groupId>
+                    <artifactId>apijson-column</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
 </project>
