@@ -10,6 +10,7 @@ import org.jeecg.common.aspect.annotation.Dict;
 import org.jeecgframework.poi.excel.annotation.Excel;
 import org.springframework.format.annotation.DateTimeFormat;
 
+import javax.persistence.Column;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Objects;
@@ -53,6 +54,8 @@ public class SysDepart implements Serializable {
 	private String orgType;
 	/**机构编码*/
 	@Excel(name="机构编码",width=15)
+	@Column(unique = true)
+	@TableField(value = "org_code")
 	private String orgCode;
 	/**手机号*/
 	@Excel(name="手机号",width=15)
@@ -78,6 +81,8 @@ public class SysDepart implements Serializable {
 	private String dingIdentifier;
 	/**UUMS机构编码*/
 	@Excel(name="UUMS机构编码",width=15)
+	@Column(unique = true)
+	@TableField(value = "uums_org_code")
 	private String uumsOrgCode;
 	/**UUMS父机构编码*/
 	@Excel(name="UUMS父机构编码",width=15)

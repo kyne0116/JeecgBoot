@@ -199,6 +199,11 @@ export const useUserStore = defineStore({
         //update-end---author:scott ---date::2024-02-21  for：【QQYUN-8326】登录不需要构建路由，进入首页有构建---
         
         await this.setLoginInfo({ ...data, isLogin: true });
+        
+        // ========== 登录成功后打印用户身份信息 ==========
+        await this.printUserIdentityInfo();
+        // ============================================
+        
         //update-begin-author:liusq date:2022-5-5 for:登录成功后缓存拖拽模块的接口前缀
         localStorage.setItem(JDragConfigEnum.DRAG_BASE_URL, useGlobSetting().domainUrl);
         //update-end-author:liusq date:2022-5-5 for: 登录成功后缓存拖拽模块的接口前缀
@@ -378,6 +383,86 @@ export const useUserStore = defineStore({
           await this.logout(true);
         },
       });
+    },
+    
+    /**
+     * 打印用户身份信息到控制台
+     */
+    async printUserIdentityInfo() {
+      try {
+        const userInfo = this.getUserInfo || {};
+        const loginInfo = this.getLoginInfo || {};
+        const tenantId = this.getTenant || '';
+        
+        // 获取权限信息用于显示
+        try {
+          const { usePermissionStore } = await import('/@/store/modules/permission');
+          const permissionStore = usePermissionStore();
+          
+          // 获取权限代码列表
+          let codeList = permissionStore.getPermCodeList || [];
+          
+          // 如果权限列表为空，主动获取权限数据
+          if (codeList.length === 0) {
+            const { getBackMenuAndPerms } = await import('/@/api/sys/menu');
+            const permissionData = await getBackMenuAndPerms();
+            
+            if (permissionData && permissionData.codeList) {
+              codeList = permissionData.codeList;
+              permissionStore.setPermCodeList(permissionData.codeList);
+            }
+          }
+          
+          // 存储权限数据用于显示
+          (this as any).currentPermissions = codeList;
+        } catch (err) {
+          console.warn('获取权限信息失败:', err);
+        }
+        
+        // 获取部门信息
+        const departs = loginInfo?.departs || [];
+        const currentDepart = departs.find(dept => dept.orgCode === userInfo.orgCode) || departs[0];
+        
+        console.group('🎉 JeecgBoot 用户身份信息');
+        console.log('%c============== 用户登录成功 ==============', 'color: #52c41a; font-weight: bold; font-size: 16px;');
+        
+        // 核心身份信息
+        const coreInfo = {
+          '用户账号': userInfo.username || 'N/A',
+          '真实姓名': userInfo.realname || 'N/A', 
+          '租户ID': tenantId || 'N/A',
+          '部门编码': userInfo.orgCode || 'N/A',
+          '部门名称': currentDepart?.departName || 'N/A'
+        };
+        
+        console.group('👤 核心身份信息');
+        console.table(coreInfo);
+        console.groupEnd();
+        
+        // 权限信息展示
+        const currentPermissions = (this as any).currentPermissions || [];
+        if (currentPermissions.length > 0) {
+          console.group('🔐 权限信息');
+          console.log('%c权限编码:', 'color: #722ed1; font-weight: bold;', currentPermissions.join(', '));
+          console.groupEnd();
+        }
+        
+        if (departs.length > 0) {
+          console.group('🏢 部门信息');
+          console.table(departs.map(dept => ({
+            '部门名称': dept.departName,
+            '部门编码': dept.orgCode,
+            '部门ID': dept.id,
+            '上级部门': dept.parentId
+          })));
+          console.groupEnd();
+        }
+        
+        console.groupEnd();
+        
+      } catch (error) {
+        console.error('❌ 打印用户身份信息时出错:', error);
+      }
     },
   },
 });

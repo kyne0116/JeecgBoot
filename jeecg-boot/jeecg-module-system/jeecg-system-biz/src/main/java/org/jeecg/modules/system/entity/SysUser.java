@@ -2,8 +2,12 @@ package org.jeecg.modules.system.entity;
 
 import java.util.Date;
 
+import javax.persistence.Column;
+import javax.persistence.Index;
+import javax.persistence.Table;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jeecg.common.aspect.annotation.Dict;
 import org.jeecgframework.poi.excel.annotation.Excel;
@@ -30,6 +34,10 @@ import lombok.experimental.Accessors;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
+@TableName(value = "sys_user")
+@Table(name = "sys_user", indexes = {
+        @Index(name = "idx_username_orgcode", columnList = "username,org_code", unique = true)
+})
 public class SysUser implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -44,6 +52,7 @@ public class SysUser implements Serializable {
      * 登录账号
      */
     @Excel(name = "登录账号", width = 15)
+    @Column(unique = true)
     private String username;
 
     /**

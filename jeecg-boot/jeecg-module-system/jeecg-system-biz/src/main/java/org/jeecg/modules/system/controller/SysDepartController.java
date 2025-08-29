@@ -511,6 +511,48 @@ public class SysDepartController {
 		result.setResult(ls);
 		return result;
 	}
+
+	/**
+	 * 根据UUMS机构编码查询单条部门记录（高性能版）
+	 * 用于优化部门创建时的父部门查询性能
+	 * 
+	 * @param uumsOrgCode UUMS机构编码
+	 * @return 部门信息
+	 */
+	@GetMapping("/getByUumsOrgCode")
+	public Result<SysDepart> getByUumsOrgCode(@RequestParam(name = "uumsOrgCode") String uumsOrgCode) {
+		Result<SysDepart> result = new Result<>();
+		try {
+			if (StringUtils.isBlank(uumsOrgCode)) {
+				return Result.error("UUMS机构编码不能为空");
+			}
+			
+			// 使用uumsOrgCode唯一索引进行查询，性能优化
+			LambdaQueryWrapper<SysDepart> query = new LambdaQueryWrapper<>();
+			query.eq(SysDepart::getUumsOrgCode, uumsOrgCode);
+			query.eq(SysDepart::getDelFlag, CommonConstant.DEL_FLAG_0); // 只查询未删除的记录
+			
+			SysDepart sysDepart = sysDepartService.getOne(query);
+			
+			if (sysDepart != null) {
+				result.setSuccess(true);
+				result.setResult(sysDepart);
+				log.debug("成功查询到部门: uumsOrgCode={}, departName={}, id={}", 
+					uumsOrgCode, sysDepart.getDepartName(), sysDepart.getId());
+			} else {
+				result.setSuccess(true);
+				result.setResult(null);
+				result.setMessage("未找到对应的部门记录");
+				log.debug("未找到部门: uumsOrgCode={}", uumsOrgCode);
+			}
+		} catch (Exception e) {
+			log.error("查询部门异常: uumsOrgCode={}, error={}", uumsOrgCode, e.getMessage(), e);
+			result.setSuccess(false);
+			result.setMessage("查询部门失败: " + e.getMessage());
+		}
+		return result;
+	}
+
 	/**
 	 * 查询数据 查出所有部门,并以树结构数据格式响应给前端
 	 *
