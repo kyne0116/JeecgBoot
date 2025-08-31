@@ -1568,7 +1568,7 @@ python3 create_user.py --file 人员信息导入.xlsx --username admin --passwor
    - 权限分配审计
 
 ### 兼容性
-- JeecgBoot 3.8.1+
+- JeecgBoot 3.8.2+
 - MySQL 5.7+
 - Python 3.8+
 - 支持Docker部署

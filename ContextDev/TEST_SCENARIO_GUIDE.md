@@ -30,7 +30,7 @@ agent1_input:
   system_description: "企业培训管理系统..."
   business_domain: "企业培训管理"
   technical_constraints:
-    - "JeecgBoot 3.8.1+"
+    - "JeecgBoot 3.8.2+"
     - "MySQL 8.0"
     - "Vue 3.0"
 ```

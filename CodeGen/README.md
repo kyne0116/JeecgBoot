@@ -422,6 +422,6 @@ python3 Code_Gen_Validator.py temp_config.json
 
 ---
 
-**版本**: 3.8.1
+**版本**: 3.8.2
 **更新日期**: 2025-07-30
 **维护团队**: JeecgBoot 开发团队

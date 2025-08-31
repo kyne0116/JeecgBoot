@@ -90,7 +90,7 @@ class ContextDevExecutor:
                     "business_domain": "餐饮零售管理",
                     "core_modules": ["商品管理", "订单管理", "会员管理"],
                     "technical_stack": {
-                        "backend": "JeecgBoot 3.8.1+ + Spring Boot 2.7.x",
+                        "backend": "JeecgBoot 3.8.2+ + Spring Boot 2.7.x",
                         "frontend": "Vue 3.0 + Ant Design Vue",
                         "database": "MySQL 8.0",
                         "cache": "Redis 6.x"

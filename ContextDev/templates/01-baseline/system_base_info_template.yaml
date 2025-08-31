@@ -112,7 +112,7 @@ system_overview:
 
   tech_stack:
     base_platform: "JeecgBoot" # 基础开发平台
-    base_version: "3.8.1" # JeecgBoot版本
+    base_version: "3.8.2" # JeecgBoot版本
     frontend: # 前端技术栈 - 基于JeecgBoot-Vue3
       framework: "Vue.js" # 基于Vue 3的现代前端框架
       version: "3.5.13" # Vue版本
@@ -120,7 +120,7 @@ system_overview:
       build_tool: "Vite" # 前端构建工具
       language: "TypeScript" # 开发语言
       package_manager: "pnpm" # 包管理器
-      jeecg_frontend_version: "3.8.1" # JeecgBoot前端版本
+      jeecg_frontend_version: "3.8.2" # JeecgBoot前端版本
       additional_libraries: # 其他主要依赖
         - name: "Vue Router"
           version: "4.5.0"
@@ -142,7 +142,7 @@ system_overview:
       language: "Java" # 开发语言
       version: "17" # Java版本(支持JDK 17和1.8)
       spring_boot_version: "2.7.18" # Spring Boot版本
-      jeecg_backend_version: "3.8.1" # JeecgBoot后端版本
+      jeecg_backend_version: "3.8.2" # JeecgBoot后端版本
       orm_library: "MyBatis Plus" # ORM框架
       api_protocol: "RESTful API" # API协议
       security_framework: "Spring Security + JWT + Apache Shiro" # 安全框架

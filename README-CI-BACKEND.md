@@ -126,7 +126,7 @@ jeecg-boot/
 - **Spring Boot**: 2.7.18
 - **Java**: 17 (支持 JDK 8, 17, 21)
 - **Maven**: 多模块项目结构
-- **JeecgBoot**: 3.8.1
+- **JeecgBoot**: 3.8.2
 
 ## 测试策略
 

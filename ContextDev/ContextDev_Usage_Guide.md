@@ -28,7 +28,7 @@ agent1_input = {
     "scenario_type": "探索式",
     "system_description": "需要一个培训管理系统",
     "business_domain": "企业培训",
-    "technical_constraints": ["JeecgBoot 3.8.1+", "Vue 3.0"]
+    "technical_constraints": ["JeecgBoot 3.8.2+", "Vue 3.0"]
 }
 
 # 明确式场景（需求明确）
@@ -36,7 +36,7 @@ agent1_input = {
     "scenario_type": "明确式",
     "system_description": "培训管理系统，包含课程管理、学员管理、培训计划等功能模块",
     "business_domain": "企业培训管理",
-    "technical_constraints": ["JeecgBoot 3.8.1+", "MySQL 8.0", "Vue 3.0"]
+    "technical_constraints": ["JeecgBoot 3.8.2+", "MySQL 8.0", "Vue 3.0"]
 }
 ```
 
@@ -171,7 +171,7 @@ agent4_input = {
     "requirements_document": agent2_output,
     "prototype_document": agent3_output,
     "architecture_constraints": {
-        "framework": "JeecgBoot 3.8.1+",
+        "framework": "JeecgBoot 3.8.2+",
         "database": "MySQL 8.0",
         "deployment": "Docker容器化",
         "scalability": "支持1000并发用户"

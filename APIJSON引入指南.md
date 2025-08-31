@@ -375,4 +375,4 @@ mvn clean compile -U
 
 ---
 
-_本指南基于 JeecgBoot 3.8.1 版本编写，适用于 Java 17 环境。_
+_本指南基于 JeecgBoot 3.8.2 版本编写，适用于 Java 17 环境。_

@@ -1761,7 +1761,7 @@ def create_maven_module(module_name):
         mvn_executable, 'archetype:generate',
         '-DgroupId=org.jeecgframework.boot',
         f'-DartifactId=jeecg-module-{module_name}',
-        '-Dversion=3.8.1',
+        '-Dversion=3.8.2',
         '-DarchetypeGroupId=org.jeecgframework.archetype',
         '-DarchetypeArtifactId=jeecg-boot-gen',
         '-DarchetypeVersion=2.0',
@@ -3410,7 +3410,7 @@ def create_module_pom_xml(module_name, project_path):
     <parent>
         <artifactId>jeecg-boot-module</artifactId>
         <groupId>org.jeecgframework.boot</groupId>
-        <version>3.8.1</version>
+        <version>3.8.2</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 

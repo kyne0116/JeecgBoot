@@ -288,7 +288,7 @@ usage_guide:
 version_info:
   current_version: "v6.0"
   release_date: "2025-08-05"
-  compatibility: "JeecgBoot 3.8.1+"
+  compatibility: "JeecgBoot 3.8.2+"
   reasoning_integration: true
   agent_versions:
     agent_1: "v6.0"

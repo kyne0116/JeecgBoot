@@ -2,7 +2,7 @@
 
 **Context Engineering + Chain of Thought (CoT) 驱动的 AI 原生开发方法论**
 
-专为 JeecgBoot 3.8.1+框架设计的 AI 编程系统，基于 Context Engineering 理论和 CoT 推理链，通过 A2A (Agent-to-Agent) 协议集成，实现从需求理解到代码生成的完整 AI 驱动开发生命周期。
+专为 JeecgBoot 3.8.2+框架设计的 AI 编程系统，基于 Context Engineering 理论和 CoT 推理链，通过 A2A (Agent-to-Agent) 协议集成，实现从需求理解到代码生成的完整 AI 驱动开发生命周期。
 
 ## 📚 文档导航
 

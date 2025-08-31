@@ -153,4 +153,4 @@ TABLE_NAME: us_dictd_datas_exceltemplate
 
 **版本**: 2.0
 **创建日期**: 2025-07-30
-**适用版本**: JeecgBoot 3.8.1+
+**适用版本**: JeecgBoot 3.8.2+
