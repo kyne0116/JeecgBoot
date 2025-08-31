@@ -5635,17 +5635,33 @@ def process_generated_code_templates():
                             empty_template_dirs_cleaned += 1
                         else:
                             # 如果目录不为空，递归检查是否只包含空的子目录
-                            all_empty = True
+                            # 重要修复：保护pom.xml等重要文件不被删除
+                            has_important_files = False
+                            important_files = ['pom.xml', 'README.md', 'application.yml', 'application.properties']
+                            
                             for item in template_dir.rglob("*"):
                                 if item.is_file():
-                                    all_empty = False
-                                    break
+                                    # 检查是否为重要文件
+                                    if item.name in important_files:
+                                        has_important_files = True
+                                        safe_print(f"   [PROTECT] 保护重要文件: {item.relative_to(module_path)}")
+                                        break
                             
-                            if all_empty:
-                                # 目录中只有空的子目录，可以安全删除
-                                shutil.rmtree(template_dir)
-                                safe_print(f"   [SYMBOL]️ 删除空目录树: {template_dir.relative_to(module_path)}")
-                                empty_template_dirs_cleaned += 1
+                            # 只有在没有重要文件时才检查是否全为空目录
+                            if not has_important_files:
+                                all_empty = True
+                                for item in template_dir.rglob("*"):
+                                    if item.is_file():
+                                        all_empty = False
+                                        break
+                                
+                                if all_empty:
+                                    # 目录中只有空的子目录，可以安全删除
+                                    shutil.rmtree(template_dir)
+                                    safe_print(f"   [SYMBOL]️ 删除空目录树: {template_dir.relative_to(module_path)}")
+                                    empty_template_dirs_cleaned += 1
+                            else:
+                                safe_print(f"   [SKIP] 跳过包含重要文件的目录: {template_dir.relative_to(module_path)}")
                 except Exception as e:
                     safe_print(f"   [WARN] 清理目录失败 {template_dir}: {e}")
 
