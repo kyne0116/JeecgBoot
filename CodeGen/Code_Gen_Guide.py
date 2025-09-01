@@ -3818,8 +3818,17 @@ def _output_workflow_results(workflow_results):
             time.sleep(0.001)  # 微小延迟确保输出
 
     print()  # 空行分隔
+
+    # 如果总体执行结果为Pass，显示Maven编译提醒
+    if overall_result == "Pass":
+        safe_print("=" * 50)
+        safe_print("[TIP] 代码生成完成！请执行以下命令编译后端代码:")
+        safe_print("mvn clean install -DskipTests -Dmaven.compile.fork=true")
+        safe_print("=" * 50)
+        print()  # 空行分隔
+
     safe_print(f"[TARGET] 总体执行结果: {overall_result} ({total_success}/{total_steps})", flush=True)
-    
+
     # 最终刷新
     sys.stdout.flush()
 
