@@ -149,6 +149,98 @@ Code_Gen_Guide.py 脚本已内置自动修正功能：
 }
 ```
 
+### 🔧 表类型配置参数详解
+
+#### tableType、relationType、tabOrderNum 三核心参数
+
+基于对 JeecgBoot 框架的深入分析，表的类型配置需要正确设置以下三个关键参数：
+
+| 表类型          | tableType | relationType | tabOrderNum | 说明                     |
+| --------------- | --------- | ------------ | ----------- | ------------------------ |
+| **单表/独立表** | `1`       | `null`       | `null`      | 独立的业务表，无关联关系 |
+| **主表**        | `2`       | `null`       | `null`      | 主子表关系中的主表       |
+| **子表/附表**   | `3`       | `0`          | `1,2,3...`  | 主子表关系中的子表       |
+
+#### 参数详细说明
+
+**1. tableType（表类型）**
+
+- `1` = 单表或独立表：完全独立的业务表
+- `2` = 主表：主子表关系中的主表，包含 subTableStr 字段
+- `3` = 子表：主子表关系中的子表，需要外键关联主表
+
+**2. relationType（关系类型）**
+
+- `null` = 无关联关系（单表、主表）
+- `0` = 一对多关系（1:N）- 子表使用
+- `1` = 一对一关系（1:1）- 子表使用（推测）
+
+**3. tabOrderNum（子表显示序号）**
+
+- `null` = 不适用（单表、主表）
+- `1,2,3...` = 子表在主子表界面中的显示顺序，数字越小越靠前
+
+#### 配置示例
+
+**单表配置**：
+
+```json
+{
+  "head": {
+    "tableName": "us_system_user_profile",
+    "tableType": 1,
+    "relationType": null,
+    "tabOrderNum": null
+  }
+}
+```
+
+**主表配置**：
+
+```json
+{
+  "head": {
+    "tableName": "us_education_student_info",
+    "tableType": 2,
+    "relationType": null,
+    "tabOrderNum": null,
+    "subTableStr": "us_education_student_parents,us_education_student_classmate"
+  }
+}
+```
+
+**子表配置**：
+
+```json
+{
+  "head": {
+    "tableName": "us_education_student_parents",
+    "tableType": 3,
+    "relationType": 0,
+    "tabOrderNum": 1
+  }
+}
+```
+
+#### ⚠️ 重要注意事项
+
+1. **主子表关系必须配置正确**：
+
+   - 主表必须设置 `tableType=2`
+   - 所有子表必须设置 `tableType=3` + `relationType=0` + `tabOrderNum`
+   - 否则会导致代码生成时的 null 指针异常
+
+2. **tabOrderNum 序号规则**：
+
+   - 从 1 开始递增：1, 2, 3, 4...
+   - 决定子表在前端界面中的标签页顺序
+   - 不能重复或跳跃
+
+3. **外键字段要求**：
+   - 子表必须包含指向主表的外键字段
+   - 外键字段命名规范：`{主表名}_id`
+   - 外键字段的 `mainTable` 和 `mainField` 属性必须正确设置
+
 ### 关键注意事项
 
 - `tableType`和`scroll`必须是整数，不能是字符串

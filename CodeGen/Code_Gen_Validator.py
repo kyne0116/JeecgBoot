@@ -62,6 +62,11 @@ class CodeGenValidator:
         errors.extend(self._validate_system_fields(config))
         errors.extend(self._validate_table_name(config))
 
+        # 验证表类型参数
+        table_type_valid, table_type_errors = self.validate_table_type_params(config)
+        if not table_type_valid:
+            errors.extend(table_type_errors)
+
         # 验证subList配置（如果存在）
         if 'subList' in config:
             sub_list_valid, sub_list_errors = self.validate_sub_list(config['subList'])
@@ -127,8 +132,8 @@ class CodeGenValidator:
         if not table_name.startswith('us_'):
             errors.append("表名必须以us_开头")
 
-        if table_name.count('_') != 3:
-            errors.append("表名必须是4段式: us_module_submodule_entity")
+        if table_name.count('_') < 3:
+            errors.append("表名必须至少是4段式: us_module_submodule_entity（支持更多段）")
 
         return errors
     def generate_validation_report(self, config_file: str) -> str:
@@ -251,8 +256,8 @@ JSON配置验证报告
 
         # 解析主表的模块信息
         main_parts = main_table_name.split('_')
-        if len(main_parts) != 4:
-            errors.append(f"主表名格式错误: {main_table_name}")
+        if len(main_parts) < 4:
+            errors.append(f"主表名格式错误: {main_table_name}（至少需要4段）")
             return False, errors
 
         main_prefix, main_module, main_submodule = main_parts[0], main_parts[1], main_parts[2]
@@ -274,6 +279,94 @@ JSON配置验证报告
                     # 子模块可以不同，但不能与主表相同
                     if sub_submodule == main_submodule:
                         errors.append(f"subList[{i}]子模块与主表相同: {sub_submodule}")
+
+        return len(errors) == 0, errors
+
+    def validate_table_type_params(self, config: Dict) -> Tuple[bool, List[str]]:
+        """验证表类型参数（tableType、relationType、tabOrderNum）"""
+        errors = []
+
+        head = config.get('head', {})
+        table_type = head.get('tableType')
+        relation_type = head.get('relationType')
+        tab_order_num = head.get('tabOrderNum')
+        sub_list = config.get('subList', [])
+
+        # 验证tableType
+        if table_type is None:
+            errors.append("head.tableType 字段缺失")
+        elif not isinstance(table_type, int) or table_type not in [1, 2, 3]:
+            errors.append(f"head.tableType 必须是整数 1、2 或 3，当前值: {table_type}")
+
+        # 根据tableType验证其他参数
+        if table_type == 1:  # 独立表
+            if relation_type is not None:
+                errors.append(f"独立表的 relationType 必须为 null，当前值: {relation_type}")
+            if tab_order_num is not None:
+                errors.append(f"独立表的 tabOrderNum 必须为 null，当前值: {tab_order_num}")
+            if sub_list:
+                errors.append("独立表不应包含 subList 配置")
+
+        elif table_type == 2:  # 主表
+            if relation_type is not None:
+                errors.append(f"主表的 relationType 必须为 null，当前值: {relation_type}")
+            if tab_order_num is not None:
+                errors.append(f"主表的 tabOrderNum 必须为 null，当前值: {tab_order_num}")
+            # 主表可以有subList，这是正常的
+
+        elif table_type == 3:  # 子表
+            if relation_type is None:
+                errors.append("子表的 relationType 不能为 null")
+            elif not isinstance(relation_type, int) or relation_type not in [0, 1]:
+                errors.append(f"子表的 relationType 必须是 0（一对多）或 1（一对一），当前值: {relation_type}")
+
+            if tab_order_num is None:
+                errors.append("子表的 tabOrderNum 不能为 null")
+            elif not isinstance(tab_order_num, int) or tab_order_num < 1:
+                errors.append(f"子表的 tabOrderNum 必须是大于0的整数，当前值: {tab_order_num}")
+
+            if sub_list:
+                errors.append("子表不应包含 subList 配置")
+
+            # 验证外键字段
+            foreign_key_valid, foreign_key_errors = self.validate_foreign_key_fields(config)
+            if not foreign_key_valid:
+                errors.extend(foreign_key_errors)
+
+        return len(errors) == 0, errors
+
+    def validate_foreign_key_fields(self, config: Dict) -> Tuple[bool, List[str]]:
+        """验证子表的外键字段"""
+        errors = []
+
+        fields = config.get('fields', [])
+        foreign_key_found = False
+
+        for field in fields:
+            field_name = field.get('dbFieldName', '')
+            main_table = field.get('mainTable', '')
+            main_field = field.get('mainField', '')
+
+            # 检查是否有外键字段（以_id结尾且有mainTable配置）
+            if field_name.endswith('_id') and main_table and main_field:
+                foreign_key_found = True
+
+                # 验证外键字段配置
+                if main_field != 'id':
+                    errors.append(f"外键字段 {field_name} 的 mainField 应该是 'id'，当前值: {main_field}")
+
+                # 验证字段类型
+                db_type = field.get('dbType', '')
+                if db_type != 'string':
+                    errors.append(f"外键字段 {field_name} 的 dbType 应该是 'string'，当前值: {db_type}")
+
+                # 验证字段长度
+                db_length = field.get('dbLength', 0)
+                if db_length != 36:
+                    errors.append(f"外键字段 {field_name} 的 dbLength 应该是 36（UUID长度），当前值: {db_length}")
+
+        if not foreign_key_found:
+            errors.append("子表必须包含至少一个外键字段（字段名以_id结尾，且配置了mainTable和mainField）")
 
         return len(errors) == 0, errors
 

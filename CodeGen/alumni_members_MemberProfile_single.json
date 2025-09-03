@@ -21,13 +21,35 @@
       "module_name": "alumni",
       "submodule_name": "members",
       "business_entity": "MemberProfile",
-      "inference_strategy": "主子表关联场景",
-      "semantic_analysis": "校友会会员管理系统主表，包含基础档案信息和与系统用户的1:1关联，同时关联教育背景、职业发展、荣誉成就、社交属性四个子表"
+      "inference_strategy": "单表场景",
+      "semantic_analysis": "校友会会员管理系统主表，包含基础档案信息和与系统用户的1:1关联"
     },
     "derived_formats": {
       "table_suffix": "member_profile",
       "url_path": "/alumni/members/memberProfile",
       "frontend_path": "src/views/alumni/members/MemberProfile"
+    }
+  },
+  "constants": {
+    "system_fields": ["id", "create_by", "create_time", "update_by", "update_time", "sys_org_code", "del_flag"],
+    "required_arrays": ["indexs", "deleteFieldIds", "deleteIndexIds"],
+    "field_templates": {
+      "text": {
+        "fieldShowType": "text",
+        "dbType": "string",
+        "dbLength": 100,
+        "isShowForm": "1",
+        "isShowList": "1",
+        "isQuery": "1"
+      },
+      "date": {
+        "fieldShowType": "date",
+        "dbType": "Date",
+        "dbLength": 0,
+        "isShowForm": "1",
+        "isShowList": "1",
+        "isQuery": "1"
+      }
     }
   },
   "fields": [

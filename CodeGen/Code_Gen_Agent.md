@@ -50,8 +50,20 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
 5. **场景分类决策**：
    - **独立表场景**：无 1 对多关联关系，生成单独的 JSON 配置
    - **主子表场景**：存在 1 对多关联，主表包含 subList，子表独立配置
-6. 验证变量的合规性和命名规范
-7. 避免生成系统管理类功能（用户、权限、角色等框架已有功能）
+6. **表类型参数智能设置**：
+   - **tableType 自动推理**：
+     - 独立表场景：`tableType: 1`
+     - 主表场景：`tableType: 2`
+     - 子表场景：`tableType: 3`
+   - **relationType 关系类型**：
+     - 独立表/主表：`relationType: null`
+     - 子表（一对多）：`relationType: 0`
+     - 子表（一对一）：`relationType: 1`
+   - **tabOrderNum 序号分配**：
+     - 独立表/主表：`tabOrderNum: null`
+     - 子表：从 1 开始递增（1, 2, 3, 4...）
+7. 验证变量的合规性和命名规范
+8. 避免生成系统管理类功能（用户、权限、角色等框架已有功能）
 
 #### Skill 2: 代码生成工作流协调
 
@@ -140,10 +152,18 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
      - 使用 constants.field_templates 生成业务字段
      - 确保 orderNum 从 0 开始严格连续递增
    - **主子表配置生成策略**：
-     - **独立表场景**：生成标准 JSON 配置，不包含 subList 属性
+     - **独立表场景**：
+       - 生成标准 JSON 配置，不包含 subList 属性
+       - 设置 `tableType: 1, relationType: null, tabOrderNum: null`
      - **主子表场景**：
-       - 主表：包含完整字段定义 + subList 数组属性
-       - 子表：生成独立 JSON 配置，包含与主表的关联字段
+       - **主表配置**：
+         - 包含完整字段定义 + subList 数组属性
+         - 设置 `tableType: 2, relationType: null, tabOrderNum: null`
+         - 添加 `subTableStr` 字段，包含所有子表名（逗号分隔）
+       - **子表配置**：
+         - 生成独立 JSON 配置，包含与主表的关联字段
+         - 设置 `tableType: 3, relationType: 0, tabOrderNum: 递增序号`
+         - 添加外键字段：`{主表名}_id`，设置正确的 mainTable 和 mainField
        - subList 格式：`[{tableName, entityName, ftlDescription, id}]`
        - ID 生成规则：row_1020、row_1021、row_1022...（从 1020 开始递增）
    - 使用 **Code_Gen_Validator.py** 执行核心验证：
@@ -207,6 +227,12 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
    - subList 中的 id 必须从 row_1020 开始严格递增
    - 主子表必须属于同一个业务模块
    - 子表配置文件不得包含 subList 属性
+7. **表类型参数约束**：
+   - **tableType 必须正确设置**：独立表=1，主表=2，子表=3
+   - **relationType 关系约束**：独立表/主表=null，子表=0（一对多）或 1（一对一）
+   - **tabOrderNum 序号约束**：独立表/主表=null，子表=1,2,3...（连续递增）
+   - **外键字段约束**：子表必须包含 `{主表名}_id` 外键字段
+   - **主表 subTableStr 约束**：必须包含所有子表名的逗号分隔字符串
 
 ## Tools
 

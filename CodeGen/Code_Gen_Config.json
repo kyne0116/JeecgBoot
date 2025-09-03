@@ -26,12 +26,41 @@
     "package_style": "service",
     "vue_style": "vue3",
     "code_types": "controller,service,dao,mapper,entity,vue",
+    "table_types": {
+      "single": {
+        "tableType": 1,
+        "relationType": null,
+        "tabOrderNum": null,
+        "jsp_mode": "one",
+        "jform_type": "1",
+        "description": "独立表配置"
+      },
+      "main": {
+        "tableType": 2,
+        "relationType": null,
+        "tabOrderNum": null,
+        "jsp_mode": "jvxe",
+        "jform_type": "2",
+        "enable_sub_list": true,
+        "description": "主表配置"
+      },
+      "sub": {
+        "tableType": 3,
+        "relationType": 0,
+        "tabOrderNum": "{{AUTO_INCREMENT}}",
+        "jsp_mode": "one",
+        "jform_type": "1",
+        "description": "子表配置"
+      }
+    },
     "master_sub_table": {
       "jsp_mode": "jvxe",
       "jform_type": "2",
       "enable_sub_list": true,
       "sub_id_start": 1020,
-      "sub_id_prefix": "row_"
+      "sub_id_prefix": "row_",
+      "foreign_key_suffix": "_id",
+      "tab_order_start": 1
     }
   },
   "compilation": {

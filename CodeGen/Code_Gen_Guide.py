@@ -3669,12 +3669,18 @@ def ensure_field_completeness(fields):
         completed_field = field.copy()
 
         # 确保所有可能为null的Integer字段都有默认值
+        # 根据JeecgBoot标准格式：数字字段用数字，布尔字段用字符串"0"/"1"
         integer_defaults = {
+            # 真正的数字字段
             "fieldLength": 200,
-            "dbLength": completed_field.get("dbLength", 50),
-            "dbPointLength": completed_field.get("dbPointLength", 0),
-            "orderNum": completed_field.get("orderNum", 0),
+            "dbLength": completed_field.get("dbLength") if completed_field.get("dbLength") is not None else 50,
+            "dbPointLength": completed_field.get("dbPointLength") if completed_field.get("dbPointLength") is not None else 0,
+            "orderNum": completed_field.get("orderNum") if completed_field.get("orderNum") is not None else 0,
             "fieldPointLength": 0,  # 添加可能缺失的字段
+        }
+
+        # 布尔字段（在JeecgBoot中用字符串"0"/"1"表示）
+        boolean_string_defaults = {
             "queryConfigFlag": completed_field.get("queryConfigFlag", "0"),
             "fieldMustInput": completed_field.get("fieldMustInput", "0"),
             "isShowForm": completed_field.get("isShowForm", "1"),
@@ -3687,8 +3693,13 @@ def ensure_field_completeness(fields):
             "dbIsPersist": completed_field.get("dbIsPersist", "1")
         }
 
-        # 应用默认值
+        # 应用数字字段默认值
         for key, default_value in integer_defaults.items():
+            if key not in completed_field or completed_field[key] is None:
+                completed_field[key] = default_value
+
+        # 应用布尔字符串字段默认值
+        for key, default_value in boolean_string_defaults.items():
             if key not in completed_field or completed_field[key] is None:
                 completed_field[key] = default_value
 
@@ -3719,6 +3730,34 @@ def ensure_field_completeness(fields):
         for key, default_value in string_defaults.items():
             if key not in completed_field or completed_field[key] is None:
                 completed_field[key] = default_value
+
+        # 额外的null值安全检查 - 确保关键的数字字段绝对不为null
+        critical_numeric_fields = ["fieldLength", "dbLength", "dbPointLength", "orderNum"]
+        for field_name in critical_numeric_fields:
+            if completed_field.get(field_name) is None:
+                if field_name == "fieldLength":
+                    completed_field[field_name] = 200
+                elif field_name == "dbLength":
+                    completed_field[field_name] = 50
+                elif field_name == "dbPointLength":
+                    completed_field[field_name] = 0
+                elif field_name == "orderNum":
+                    completed_field[field_name] = 0
+
+        # 确保布尔字符串字段不为null且格式正确
+        critical_boolean_fields = ["queryConfigFlag", "fieldMustInput", "isShowForm", "isShowList",
+                                 "sortFlag", "isReadOnly", "isQuery", "dbIsKey", "dbIsNull", "dbIsPersist"]
+        for field_name in critical_boolean_fields:
+            value = completed_field.get(field_name)
+            if value is None or value == "":
+                # 设置合理的默认值
+                if field_name in ["isShowForm", "isShowList", "dbIsPersist"]:
+                    completed_field[field_name] = "1"
+                else:
+                    completed_field[field_name] = "0"
+            elif value not in ["0", "1"]:
+                # 转换其他值为标准格式
+                completed_field[field_name] = "1" if str(value).lower() in ["true", "1", "yes"] else "0"
 
         completed_fields.append(completed_field)
 

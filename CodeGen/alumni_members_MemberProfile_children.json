@@ -3,7 +3,10 @@
     "tableName": "us_alumni_members_member_profile",
     "tableTxt": "校友基础档案",
     "business_entity": "MemberProfile",
-    "tableType": 1,
+    "tableType": 2,
+    "relationType": null,
+    "tabOrderNum": null,
+    "subTableStr": "us_alumni_members_member_education,us_alumni_members_member_career,us_alumni_members_member_achievement,us_alumni_members_member_social",
     "formCategory": "temp",
     "idType": "UUID",
     "isCheckbox": "Y",
@@ -28,6 +31,28 @@
       "table_suffix": "member_profile",
       "url_path": "/alumni/members/memberProfile",
       "frontend_path": "src/views/alumni/members/MemberProfile"
+    }
+  },
+  "constants": {
+    "system_fields": ["id", "create_by", "create_time", "update_by", "update_time", "sys_org_code", "del_flag"],
+    "required_arrays": ["indexs", "deleteFieldIds", "deleteIndexIds"],
+    "field_templates": {
+      "text": {
+        "fieldShowType": "text",
+        "dbType": "string",
+        "dbLength": 100,
+        "isShowForm": "1",
+        "isShowList": "1",
+        "isQuery": "1"
+      },
+      "date": {
+        "fieldShowType": "date",
+        "dbType": "Date",
+        "dbLength": 0,
+        "isShowForm": "1",
+        "isShowList": "1",
+        "isQuery": "1"
+      }
     }
   },
   "fields": [

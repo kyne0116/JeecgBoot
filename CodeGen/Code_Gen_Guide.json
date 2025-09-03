@@ -3,7 +3,10 @@
     "tableName": "{{TABLE_NAME}}",
     "tableTxt": "{{TABLE_DESCRIPTION}}",
     "business_entity": "{{BUSINESS_ENTITY}}",
-    "tableType": 1,
+    "tableType": "{{TABLE_TYPE}}",
+    "relationType": "{{RELATION_TYPE}}",
+    "tabOrderNum": "{{TAB_ORDER_NUM}}",
+    "subTableStr": "{{SUB_TABLE_STR}}",
     "formCategory": "temp",
     "idType": "UUID",
     "isCheckbox": "Y",
@@ -33,6 +36,29 @@
   "constants": {
     "system_fields": ["id", "create_by", "create_time", "update_by", "update_time", "sys_org_code", "del_flag"],
     "required_arrays": ["indexs", "deleteFieldIds", "deleteIndexIds"],
+    "table_types": {
+      "single": {
+        "tableType": 1,
+        "relationType": null,
+        "tabOrderNum": null,
+        "subTableStr": null,
+        "description": "独立表/单表"
+      },
+      "main": {
+        "tableType": 2,
+        "relationType": null,
+        "tabOrderNum": null,
+        "subTableStr": "{{SUB_TABLE_NAMES}}",
+        "description": "主子表关系中的主表"
+      },
+      "sub": {
+        "tableType": 3,
+        "relationType": 0,
+        "tabOrderNum": "{{ORDER_NUMBER}}",
+        "subTableStr": null,
+        "description": "主子表关系中的子表"
+      }
+    },
     "field_templates": {
       "text": {
         "fieldShowType": "text",
@@ -73,6 +99,18 @@
         "isShowForm": "1",
         "isShowList": "1",
         "isQuery": "1"
+      },
+      "foreign_key": {
+        "fieldShowType": "text",
+        "dbType": "string",
+        "dbLength": 36,
+        "isShowForm": "1",
+        "isShowList": "1",
+        "isQuery": "0",
+        "mainTable": "{{MAIN_TABLE_NAME}}",
+        "mainField": "id",
+        "fieldValidType": "",
+        "fieldMustInput": "0"
       }
     }
   },
