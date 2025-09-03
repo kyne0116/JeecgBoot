@@ -82,6 +82,38 @@
           "required": ["table_suffix", "url_path", "frontend_path"]
         }
       }
+    },
+    "subList": {
+      "type": "array",
+      "description": "主子表关联场景的子表配置数组（可选）",
+      "items": {
+        "type": "object",
+        "required": ["tableName", "entityName", "ftlDescription", "id"],
+        "properties": {
+          "tableName": {
+            "type": "string",
+            "pattern": "^us_[a-z0-9_]+$",
+            "description": "子表的表名，必须以us_开头"
+          },
+          "entityName": {
+            "type": "string",
+            "pattern": "^[A-Z][a-zA-Z0-9]*$",
+            "description": "子表的Java实体类名称，PascalCase格式"
+          },
+          "ftlDescription": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "子表的业务描述"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^row_[0-9]{4}$",
+            "description": "子表ID，格式为row_xxxx，从1020开始递增"
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": true

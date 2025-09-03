@@ -30,6 +30,67 @@
 
 ---
 
+## 🔗 **主子表关联配置规范**
+
+### 📋 **场景分类**
+
+#### **独立表场景**
+
+- **特征**：无 1 对多关联关系
+- **JSON 配置**：标准格式，不包含 subList 属性
+- **API 调用**：完整调用四个 API（addAll → head/list → doDbSynch → codeGenerate）
+
+#### **主子表关联场景**
+
+- **特征**：存在 1 对多关联关系（主子、主从、主附、父子）
+- **JSON 配置**：主表包含 subList 数组，子表独立配置
+- **API 调用策略**：
+  - 子表：只调用前三个 API（addAll → head/list → doDbSynch）
+  - 主表：完整调用四个 API，传入 subList 参数
+
+### 🏗️ **subList 数组格式规范**
+
+**主表 JSON 格式（包含 subList）**：
+
+```json
+{
+  "head": {
+    "tableName": "us_education_student_info",
+    "tableTxt": "学生信息表"
+  },
+  "fields": [...],
+  "subList": [
+    {
+      "tableName": "us_education_student_parents",
+      "entityName": "StudentParents",
+      "ftlDescription": "学生家长信息表",
+      "id": "row_1020"
+    },
+    {
+      "tableName": "us_education_student_classmate",
+      "entityName": "StudentClassmate",
+      "ftlDescription": "学生同学关系表",
+      "id": "row_1021"
+    }
+  ]
+}
+```
+
+**subList 对象属性说明**：
+
+- `tableName`：子表的表名，必须符合 4 段式命名规范
+- `entityName`：子表的 Java 实体类名称，PascalCase 格式
+- `ftlDescription`：子表的业务描述，用于代码注释
+- `id`：子表 ID，格式为"row\_"前缀 + 从 1020 开始的四位递增数字
+
+**ID 生成规则**：
+
+- 起始值：row_1020
+- 递增规则：row_1020、row_1021、row_1022...
+- 格式验证：`^row_[0-9]{4}$`
+
+---
+
 ## 🚨 **JSON 配置核心约束**
 
 ### ⚠️ **orderNum 连续性 - 致命约束**

@@ -25,7 +25,14 @@
     "jform_type": "1",
     "package_style": "service",
     "vue_style": "vue3",
-    "code_types": "controller,service,dao,mapper,entity,vue"
+    "code_types": "controller,service,dao,mapper,entity,vue",
+    "master_sub_table": {
+      "jsp_mode": "jvxe",
+      "jform_type": "2",
+      "enable_sub_list": true,
+      "sub_id_start": 1020,
+      "sub_id_prefix": "row_"
+    }
   },
   "compilation": {
     "enabled": false,

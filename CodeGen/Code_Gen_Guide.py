@@ -3258,12 +3258,7 @@ def query_role_permissions(token):
         permission_config = CONFIG.get('permission_authorization', {})
         admin_role_id = permission_config.get('admin_role_id', "f6817f48af4fb3af11b9e8bf182f618b")
 
-        headers = {
-            'authorization': f'Bearer {token}',
-            'x-access-token': token,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
+        headers = create_auth_headers(token)
 
         url = f"{BASE_URL}/sys/permission/queryRolePermission"
         params = {'roleId': admin_role_id}
@@ -3343,12 +3338,7 @@ def save_role_permissions(token, existing_permissions, all_permissions):
         permission_config = CONFIG.get('permission_authorization', {})
         admin_role_id = permission_config.get('admin_role_id', "f6817f48af4fb3af11b9e8bf182f618b")
 
-        headers = {
-            'authorization': f'Bearer {token}',
-            'x-access-token': token,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
+        headers = create_auth_headers(token)
 
         # 构建请求数据
         request_data = {
@@ -3667,6 +3657,493 @@ def verify_compilation_success():
     else:
         safe_print(f"[WARN] 编译验证部分通过 ({success_count}/{total_count})")
         return False
+
+def ensure_field_completeness(fields):
+    """确保字段配置包含所有必需的Integer属性"""
+    if not fields:
+        return fields
+
+    completed_fields = []
+    for field in fields:
+        # 创建字段副本并确保所有Integer属性都有值
+        completed_field = field.copy()
+
+        # 确保所有可能为null的Integer字段都有默认值
+        integer_defaults = {
+            "fieldLength": 200,
+            "dbLength": completed_field.get("dbLength", 50),
+            "dbPointLength": completed_field.get("dbPointLength", 0),
+            "orderNum": completed_field.get("orderNum", 0),
+            "fieldPointLength": 0,  # 添加可能缺失的字段
+            "queryConfigFlag": completed_field.get("queryConfigFlag", "0"),
+            "fieldMustInput": completed_field.get("fieldMustInput", "0"),
+            "isShowForm": completed_field.get("isShowForm", "1"),
+            "isShowList": completed_field.get("isShowList", "1"),
+            "sortFlag": completed_field.get("sortFlag", "0"),
+            "isReadOnly": completed_field.get("isReadOnly", "0"),
+            "isQuery": completed_field.get("isQuery", "0"),
+            "dbIsKey": completed_field.get("dbIsKey", "0"),
+            "dbIsNull": completed_field.get("dbIsNull", "1"),
+            "dbIsPersist": completed_field.get("dbIsPersist", "1")
+        }
+
+        # 应用默认值
+        for key, default_value in integer_defaults.items():
+            if key not in completed_field or completed_field[key] is None:
+                completed_field[key] = default_value
+
+        # 确保字符串字段不为null
+        string_defaults = {
+            "queryShowType": "text",
+            "queryDictTable": "",
+            "queryDictField": "",
+            "queryDictText": "",
+            "queryDefVal": "",
+            "mainTable": "",
+            "mainField": "",
+            "fieldHref": "",
+            "fieldValidType": "",
+            "dictTable": "",
+            "dictField": "",
+            "dictText": "",
+            "fieldShowType": "text",
+            "queryMode": "single",
+            "fieldDefaultValue": "",
+            "converter": "",
+            "fieldExtendJson": "",
+            "fieldConfig": "",
+            "dbDefaultVal": "",
+            "dbType": completed_field.get("dbType", "string")
+        }
+
+        for key, default_value in string_defaults.items():
+            if key not in completed_field or completed_field[key] is None:
+                completed_field[key] = default_value
+
+        completed_fields.append(completed_field)
+
+    return completed_fields
+
+def create_auth_headers(token):
+    """创建标准的认证请求头"""
+    return {
+        'authorization': f'Bearer {token}',
+        'x-access-token': token,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+
+def get_sub_table_form_id(table_name, token):
+    """获取子表的表单ID"""
+    try:
+        params = {'pageNo': 1, 'pageSize': 10, 'tableName': table_name}
+        list_response = requests.get(f"{BASE_URL}/online/cgform/head/list",
+                                   params=params,
+                                   headers=create_auth_headers(token),
+                                   timeout=REQUEST_TIMEOUT_LIST)
+
+        if list_response.status_code == 200:
+            result = list_response.json()
+            if result.get('success'):
+                records = result.get('result', {}).get('records', [])
+                existing_form = next((record for record in records if record.get('tableName') == table_name), None)
+                if existing_form:
+                    return existing_form['id']
+        return None
+    except Exception as e:
+        safe_print(f"[WARN] 获取子表表单ID失败: {table_name} - {e}")
+        return None
+
+def prepare_sub_list_for_api(sub_list, token=None):
+    """为API调用准备subList配置，严格按照JeecgBoot规范格式"""
+    if not sub_list:
+        return []
+
+    prepared_sub_list = []
+    for sub_table in sub_list:
+        # 严格按照JeecgBoot规范，只包含4个必需属性
+        prepared_sub_table = {
+            "tableName": sub_table.get("tableName", ""),
+            "entityName": sub_table.get("entityName", ""),
+            "ftlDescription": sub_table.get("ftlDescription", ""),
+            "id": sub_table.get("id", "")
+        }
+
+        prepared_sub_list.append(prepared_sub_table)
+
+        safe_print(f"[OK] 准备子表配置: {prepared_sub_table['tableName']} -> {prepared_sub_table['entityName']}")
+
+    return prepared_sub_list
+
+def find_sub_table_config(table_name):
+    """查找子表对应的配置文件"""
+    import glob
+
+    # 在当前目录（CodeGen）中查找包含指定表名的JSON文件
+    # 如果当前目录已经是CodeGen，直接使用当前目录
+    current_dir = os.getcwd()
+    if current_dir.endswith('CodeGen'):
+        codegen_dir = current_dir
+    else:
+        codegen_dir = os.path.join(current_dir, "CodeGen")
+
+    pattern = os.path.join(codegen_dir, "*.json")
+    json_files = glob.glob(pattern)
+
+    safe_print(f"[DEBUG] 查找子表配置: {table_name}")
+    safe_print(f"[DEBUG] 搜索目录: {codegen_dir}")
+    safe_print(f"[DEBUG] 找到JSON文件数量: {len(json_files)}")
+
+    for json_file in json_files:
+        try:
+            with open(json_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+
+            # 检查表名是否匹配
+            config_table_name = config.get('head', {}).get('tableName')
+            safe_print(f"[DEBUG] 检查文件: {os.path.basename(json_file)} -> 表名: {config_table_name}")
+
+            if config_table_name == table_name:
+                safe_print(f"[DEBUG] 找到匹配的配置文件: {json_file}")
+                return json_file
+        except Exception as e:
+            safe_print(f"[DEBUG] 读取文件失败: {os.path.basename(json_file)} - {e}")
+            continue
+
+    safe_print(f"[DEBUG] 未找到匹配的配置文件，目标表名: {table_name}")
+    return None
+
+def execute_sub_table_apis(config_file):
+    """为子表执行前3个API（addAll → head/list → doDbSynch）"""
+    try:
+        # 保存当前的FORM_DATA_FILE
+        original_form_file = globals().get('FORM_DATA_FILE')
+
+        # 临时设置为子表配置文件
+        globals()['FORM_DATA_FILE'] = config_file
+
+        # 加载子表配置
+        with open(config_file, 'r', encoding='utf-8') as f:
+            form_data = json.load(f)
+
+        # 确保字段配置完整性
+        if 'fields' in form_data:
+            form_data['fields'] = ensure_field_completeness(form_data['fields'])
+
+        table_name = form_data['head']['tableName']
+        safe_print(f"[SUB_API] 开始为子表 {table_name} 执行前3个API")
+
+        # 1. 登录获取Token
+        login_data = {"username": LOGIN_USERNAME, "password": LOGIN_PASSWORD}
+        response = requests.post(f"{BASE_URL}/sys/mLogin", json=login_data, timeout=REQUEST_TIMEOUT_LOGIN)
+        if response.status_code != 200 or not response.json().get('success'):
+            safe_print(f"[FAIL] 子表登录失败")
+            return False
+
+        token = response.json()['result']['token']
+        safe_print(f"[OK] 子表登录成功")
+
+        # 2. 检查表单是否已存在
+        params = {'pageNo': 1, 'pageSize': 10, 'tableName': table_name}
+        list_response = requests.get(f"{BASE_URL}/online/cgform/head/list",
+                                   params=params,
+                                   headers=create_auth_headers(token),
+                                   timeout=REQUEST_TIMEOUT_LIST)
+
+        if list_response.status_code == 200:
+            result = list_response.json()
+            if result.get('success'):
+                records = result.get('result', {}).get('records', [])
+                existing_form = next((record for record in records if record.get('tableName') == table_name), None)
+
+                if existing_form:
+                    form_id = existing_form['id']
+                    safe_print(f"[OK] 子表表单已存在: {form_id}")
+                else:
+                    # 3. 创建表单（API 1: addAll）
+                    safe_print(f"[API_1] 创建子表表单...")
+                    create_response = requests.post(f"{BASE_URL}/online/cgform/api/addAll",
+                                                  json=form_data,
+                                                  headers=create_auth_headers(token),
+                                                  timeout=REQUEST_TIMEOUT_CREATE)
+
+                    if create_response.status_code == 200:
+                        result = create_response.json()
+                        if result.get('success'):
+                            safe_print(f"[OK] 子表表单创建成功")
+
+                            # 重新获取表单ID
+                            list_response = requests.get(f"{BASE_URL}/online/cgform/head/list",
+                                                       params=params,
+                                                       headers=create_auth_headers(token),
+                                                       timeout=REQUEST_TIMEOUT_LIST)
+
+                            if list_response.status_code == 200:
+                                result = list_response.json()
+                                if result.get('success'):
+                                    records = result.get('result', {}).get('records', [])
+                                    existing_form = next((record for record in records if record.get('tableName') == table_name), None)
+                                    if existing_form:
+                                        form_id = existing_form['id']
+                                        safe_print(f"[OK] 获取子表表单ID: {form_id}")
+                                    else:
+                                        safe_print(f"[FAIL] 无法获取子表表单ID")
+                                        return False
+                        else:
+                            safe_print(f"[FAIL] 子表表单创建失败: {result.get('message')}")
+                            return False
+                    else:
+                        safe_print(f"[FAIL] 子表表单创建请求失败: {create_response.status_code}")
+                        return False
+
+                # 4. 数据库同步（API 3: doDbSynch）
+                safe_print(f"[API_3] 同步子表到数据库...")
+                sync_url = f"{BASE_URL}/online/cgform/api/doDbSynch/{form_id}/normal"
+                response = requests.post(sync_url, headers=create_auth_headers(token), timeout=REQUEST_TIMEOUT_SYNC)
+
+                if response.status_code == 200:
+                    result = response.json()
+                    if result.get('success'):
+                        safe_print(f"[OK] 子表数据库同步成功")
+                        return True
+                    else:
+                        safe_print(f"[FAIL] 子表数据库同步失败: {result.get('message', '未知错误')}")
+                        return False
+                else:
+                    safe_print(f"[FAIL] 子表同步请求失败: HTTP {response.status_code}")
+                    return False
+            else:
+                safe_print(f"[FAIL] 获取子表列表失败: {result.get('message')}")
+                return False
+        else:
+            safe_print(f"[FAIL] 获取子表列表请求失败: {list_response.status_code}")
+            return False
+
+    except Exception as e:
+        safe_print(f"[FAIL] 子表API执行异常: {e}")
+        return False
+    finally:
+        # 恢复原始的FORM_DATA_FILE
+        if original_form_file:
+            globals()['FORM_DATA_FILE'] = original_form_file
+
+def jeecg_sub_table_workflow():
+    """子表专用工作流 - 只执行前3个API（addAll → head/list → doDbSynch）"""
+
+    print("\n[SUB_TABLE] 开始执行子表工作流（只创建数据库表）")
+    print("=" * 50)
+
+    # 打印所有变量信息
+    print_workflow_variables()
+
+    # 1. 登录获取Token
+    print("1. 正在登录...")
+    login_data = {"username": LOGIN_USERNAME, "password": LOGIN_PASSWORD}
+
+    try:
+        response = requests.post(f"{BASE_URL}/sys/mLogin", json=login_data, timeout=REQUEST_TIMEOUT_LOGIN)
+        if response.status_code != 200 or not response.json().get('success'):
+            safe_print("[FAIL] 登录失败")
+            _execute_failed_workflow("登录失败")
+            return
+
+        token = response.json()['result']['token']
+        user_info = response.json()['result']['userInfo']
+        safe_print(f"[OK] 登录成功: {user_info.get('realname')}")
+
+    except Exception as e:
+        safe_print(f"[FAIL] 登录异常: {e}")
+        _execute_failed_workflow("登录异常")
+        return
+
+    # 2. 数据字典状态检查
+    print("\n2. 正在检查数据字典状态...")
+    try:
+        dict_response = requests.get(f"{BASE_URL}/sys/dict/loadDict/sex",
+                                   headers=create_auth_headers(token),
+                                   timeout=REQUEST_TIMEOUT_LIST)
+        if dict_response.status_code == 200:
+            safe_print("[OK] 数据字典状态正常")
+        else:
+            safe_print(f"[WARN] 数据字典状态异常: {dict_response.status_code}")
+    except Exception as e:
+        safe_print(f"[WARN] 数据字典检查异常: {e}")
+
+    # 3. 准备表单数据
+    print("\n3. 正在准备表单数据...")
+    try:
+        with open(FORM_DATA_FILE, 'r', encoding='utf-8') as f:
+            form_data = json.load(f)
+
+        # 确保字段配置完整性
+        if 'fields' in form_data:
+            form_data['fields'] = ensure_field_completeness(form_data['fields'])
+            safe_print(f"[OK] 字段配置完整性检查完成")
+
+        safe_print(f"[OK] 表单数据加载成功")
+        safe_print(f"   表名: {form_data['head']['tableName']}")
+        safe_print(f"   描述: {form_data['head']['tableTxt']}")
+        safe_print(f"   字段数量: {len(form_data['fields'])}")
+    except Exception as e:
+        safe_print(f"[FAIL] 表单数据准备失败: {e}")
+        _execute_failed_workflow("表单数据准备失败")
+        return
+
+    # 4. 获取表单ID（检查是否已存在）
+    print("\n4. 正在获取表单ID...")
+    table_name = form_data['head']['tableName']
+
+    try:
+        params = {'pageNo': 1, 'pageSize': 10, 'tableName': table_name}
+        list_response = requests.get(f"{BASE_URL}/online/cgform/head/list",
+                                   params=params,
+                                   headers=create_auth_headers(token),
+                                   timeout=REQUEST_TIMEOUT_LIST)
+
+        if list_response.status_code == 200:
+            result = list_response.json()
+            if result.get('success'):
+                records = result.get('result', {}).get('records', [])
+                existing_form = next((record for record in records if record.get('tableName') == table_name), None)
+
+                if existing_form:
+                    form_id = existing_form['id']
+                    safe_print(f"[OK] 找到已存在的表单: {form_id}")
+                else:
+                    form_id = None
+                    safe_print(f"[INFO] 表单不存在，需要创建")
+            else:
+                safe_print(f"[FAIL] 获取表单列表失败: {result.get('message')}")
+                _execute_failed_workflow("获取表单列表失败")
+                return
+        else:
+            safe_print(f"[FAIL] 获取表单列表请求失败: {list_response.status_code}")
+            _execute_failed_workflow("获取表单列表请求失败")
+            return
+    except Exception as e:
+        safe_print(f"[FAIL] 获取表单ID异常: {e}")
+        _execute_failed_workflow("获取表单ID异常")
+        return
+
+    # 5. 创建表单（如果不存在）
+    if not form_id:
+        print("\n5. 正在创建表单...")
+        try:
+            create_response = requests.post(f"{BASE_URL}/online/cgform/api/addAll",
+                                          json=form_data,
+                                          headers=create_auth_headers(token),
+                                          timeout=REQUEST_TIMEOUT_CREATE)
+
+            if create_response.status_code == 200:
+                result = create_response.json()
+                if result.get('success'):
+                    safe_print(f"[OK] 表单创建成功")
+
+                    # 重新获取表单ID
+                    list_response = requests.get(f"{BASE_URL}/online/cgform/head/list",
+                                               params=params,
+                                               headers=create_auth_headers(token),
+                                               timeout=REQUEST_TIMEOUT_LIST)
+
+                    if list_response.status_code == 200:
+                        result = list_response.json()
+                        if result.get('success'):
+                            records = result.get('result', {}).get('records', [])
+                            existing_form = next((record for record in records if record.get('tableName') == table_name), None)
+                            if existing_form:
+                                form_id = existing_form['id']
+                                safe_print(f"[OK] 获取新创建的表单ID: {form_id}")
+                            else:
+                                safe_print(f"[FAIL] 无法获取新创建的表单ID")
+                                _execute_failed_workflow("无法获取新创建的表单ID")
+                                return
+                else:
+                    safe_print(f"[FAIL] 表单创建失败: {result.get('message')}")
+                    _execute_failed_workflow("表单创建失败")
+                    return
+            else:
+                safe_print(f"[FAIL] 表单创建请求失败: {create_response.status_code}")
+                _execute_failed_workflow("表单创建请求失败")
+                return
+        except Exception as e:
+            safe_print(f"[FAIL] 表单创建异常: {e}")
+            _execute_failed_workflow("表单创建异常")
+            return
+    else:
+        print("\n5. 表单已存在，跳过创建")
+
+    # 6. 数据库同步
+    print("\n6. 正在同步到数据库...")
+    try:
+        sync_url = f"{BASE_URL}/online/cgform/api/doDbSynch/{form_id}/normal"
+        response = requests.post(sync_url, headers=create_auth_headers(token), timeout=REQUEST_TIMEOUT_SYNC)
+
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                safe_print(f"[OK] 数据库同步成功")
+                safe_print(f"   响应消息: {result.get('message', 'N/A')}")
+            else:
+                safe_print(f"[FAIL] 数据库同步失败: {result.get('message', '未知错误')}")
+                _execute_failed_workflow("数据库同步失败")
+                return
+        else:
+            safe_print(f"[FAIL] 同步请求失败: HTTP {response.status_code}")
+            _execute_failed_workflow("数据库同步请求失败")
+            return
+
+    except Exception as e:
+        safe_print(f"[FAIL] 数据库同步异常: {e}")
+        _execute_failed_workflow("数据库同步异常")
+        return
+
+    # 子表工作流完成 - 跳过代码生成
+    print("\n[SUB_TABLE] 子表工作流完成")
+    print("=" * 50)
+
+    # 子表专用的工作流执行结果跟踪
+    workflow_results = {
+        '1. 数据字典替换': True,  # 子表场景已完成
+        '2. 代码生成接口调用': True,  # 子表场景跳过，标记为成功
+        '3. Java文件package替换': True,  # 子表场景不需要
+        '4. Java路径处理': True,  # 子表场景不需要
+        '5. 前端代码迁移': True,  # 子表场景不需要
+        '6. 创建菜单SQL数据库执行': True,  # 子表场景不需要
+        '7. 管理员admin授权菜单': True,  # 子表场景不需要
+        '8. 还原配置文件': True  # 子表场景已完成
+    }
+
+    current_table_name = form_data.get('head', {}).get('tableName')
+    safe_print(f"\n[CHART] 子表处理完成:")
+    safe_print(f"   ✅ 数据库表已创建: {current_table_name}")
+    safe_print(f"   ⏭️  代码生成已跳过: 将由主表统一生成")
+    safe_print(f"   📋 下一步: 请运行主表的代码生成脚本")
+
+    # 输出子表专用的工作流结果
+    return _output_workflow_results(workflow_results)
+
+def execute_sub_table_success_workflow(table_name):
+    """执行子表成功的工作流程 - 专门用于子表场景（已废弃，使用jeecg_sub_table_workflow）"""
+
+    # 子表专用的工作流执行结果跟踪
+    workflow_results = {
+        '1. 数据字典替换': True,  # 子表场景已完成
+        '2. 代码生成接口调用': True,  # 子表场景跳过，标记为成功
+        '3. Java文件package替换': True,  # 子表场景不需要
+        '4. Java路径处理': True,  # 子表场景不需要
+        '5. 前端代码迁移': True,  # 子表场景不需要
+        '6. 创建菜单SQL数据库执行': True,  # 子表场景不需要
+        '7. 管理员admin授权菜单': True,  # 子表场景不需要
+        '8. 还原配置文件': True  # 子表场景已完成
+    }
+
+    safe_print(f"\n[CHART] 子表处理完成:")
+    safe_print(f"   ✅ 数据库表已创建: {table_name}")
+    safe_print(f"   ⏭️  代码生成已跳过: 将由主表统一生成")
+    safe_print(f"   📋 下一步: 请运行主表的代码生成脚本")
+
+    # 输出子表专用的工作流结果
+    return _output_workflow_results(workflow_results)
 
 def execute_post_generation_workflow():
     """执行代码生成后的必要工作流程 - 顺序执行，任意环节失败即停止"""
@@ -4154,6 +4631,111 @@ PAGE_NO = CONFIG['query']['page_no']
 DISPLAY_TOKEN_LENGTH = CONFIG['display']['token_length']
 MAX_DISPLAY_RECORDS = CONFIG['display']['max_records']
 
+# ==================== 主子表智能检测功能 ====================
+
+def scan_all_json_files():
+    """
+    扫描CodeGen目录下的所有JSON配置文件
+
+    Returns:
+        list: JSON文件路径列表
+    """
+    try:
+        json_files = []
+        codegen_dir = os.path.dirname(os.path.abspath(__file__))
+
+        for file in os.listdir(codegen_dir):
+            if file.endswith('.json') and not file.startswith('Code_Gen_'):
+                json_files.append(os.path.join(codegen_dir, file))
+
+        return json_files
+
+    except Exception as e:
+        safe_print(f"[WARN] 扫描JSON文件失败: {e}")
+        return []
+
+def is_sub_table(current_table_name):
+    """
+    检测当前表是否为子表（被其他表的subList引用）
+
+    Args:
+        current_table_name (str): 当前处理的表名
+
+    Returns:
+        tuple: (is_sub_table: bool, master_table_name: str)
+    """
+    try:
+        if not current_table_name:
+            return False, None
+
+        json_files = scan_all_json_files()
+
+        for json_file in json_files:
+            try:
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                # 检查是否包含subList
+                if 'subList' in data and isinstance(data['subList'], list):
+                    for sub_table in data['subList']:
+                        sub_table_name = sub_table.get('tableName')
+                        if sub_table_name == current_table_name:
+                            master_table_name = data.get('head', {}).get('tableName', 'N/A')
+                            safe_print(f"[CHART] 检测到子表关系:")
+                            safe_print(f"   当前表: {current_table_name}")
+                            safe_print(f"   主表: {master_table_name}")
+                            safe_print(f"   关系: 子表被主表的subList引用")
+                            return True, master_table_name
+
+            except Exception as e:
+                safe_print(f"[WARN] 解析JSON文件失败 {json_file}: {e}")
+                continue
+
+        return False, None
+
+    except Exception as e:
+        safe_print(f"[WARN] 子表检测失败: {e}")
+        return False, None
+
+def detect_table_scenario(form_data, current_table_name):
+    """
+    检测表场景类型
+
+    Args:
+        form_data (dict): 表单数据
+        current_table_name (str): 当前表名
+
+    Returns:
+        str: 'master', 'sub', 'independent'
+    """
+    try:
+        # 检查是否为主表（包含subList）
+        if isinstance(form_data, dict) and 'subList' in form_data:
+            sub_list = form_data['subList']
+            if isinstance(sub_list, list) and len(sub_list) > 0:
+                safe_print(f"[CHART] 场景识别: 主表")
+                safe_print(f"   表名: {current_table_name}")
+                safe_print(f"   子表数量: {len(sub_list)}")
+                return 'master'
+
+        # 检查是否为子表（被其他表的subList引用）
+        is_sub, master_name = is_sub_table(current_table_name)
+        if is_sub:
+            safe_print(f"[CHART] 场景识别: 子表")
+            safe_print(f"   表名: {current_table_name}")
+            safe_print(f"   主表: {master_name}")
+            return 'sub'
+
+        # 独立表
+        safe_print(f"[CHART] 场景识别: 独立表")
+        safe_print(f"   表名: {current_table_name}")
+        return 'independent'
+
+    except Exception as e:
+        safe_print(f"[WARN] 场景识别失败: {e}")
+        safe_print(f"[INFO] 默认按独立表处理")
+        return 'independent'
+
 # ==================== 验证和测试功能 ====================
 
 def validate_config():
@@ -4476,11 +5058,178 @@ def print_workflow_variables():
 
     print("=" * 80)
 
+def validate_generation_prerequisites():
+    """验证生成前的先决条件，确保生成质量"""
+    try:
+        # 1. 验证配置文件存在且格式正确
+        if not os.path.exists(FORM_DATA_FILE):
+            safe_print(f"[FAIL] 配置文件不存在: {FORM_DATA_FILE}")
+            return False
+
+        # 2. 验证配置文件JSON格式
+        try:
+            with open(FORM_DATA_FILE, 'r', encoding='utf-8') as f:
+                form_data = json.load(f)
+        except json.JSONDecodeError as e:
+            safe_print(f"[FAIL] 配置文件JSON格式错误: {e}")
+            return False
+
+        # 3. 验证必需字段
+        if 'head' not in form_data or 'fields' not in form_data:
+            safe_print(f"[FAIL] 配置文件缺少必需的head或fields字段")
+            return False
+
+        # 4. 验证表名格式
+        table_name = form_data.get('head', {}).get('tableName', '')
+        if not table_name or not table_name.startswith('us_'):
+            safe_print(f"[FAIL] 表名格式错误: {table_name}")
+            return False
+
+        # 5. 验证字段配置
+        fields = form_data.get('fields', [])
+        if len(fields) < 7:  # 至少需要7个系统字段
+            safe_print(f"[FAIL] 字段数量不足: {len(fields)}，至少需要7个系统字段")
+            return False
+
+        # 6. 验证JeecgBoot服务基础连接（不需要认证）
+        try:
+            # 使用不需要认证的健康检查端点
+            response = requests.get(f"{BASE_URL}", timeout=5)
+            if response.status_code not in [200, 401, 403]:  # 这些状态码说明服务在运行
+                safe_print(f"[FAIL] JeecgBoot服务连接失败: HTTP {response.status_code}")
+                return False
+        except Exception as e:
+            safe_print(f"[FAIL] JeecgBoot服务连接异常: {e}")
+            return False
+
+        safe_print(f"[OK] 生成前验证通过")
+        return True
+
+    except Exception as e:
+        safe_print(f"[FAIL] 生成前验证异常: {e}")
+        return False
+
+def cleanup_duplicate_json_files():
+    """清理重复的JSON配置文件，确保每个领域对象只有一个配置文件"""
+    try:
+        import glob
+        import re
+        from collections import defaultdict
+
+        # 在CodeGen目录中查找所有JSON文件
+        codegen_dir = os.path.join(os.getcwd(), "CodeGen")
+        pattern = os.path.join(codegen_dir, "*.json")
+        json_files = glob.glob(pattern)
+
+        # 按领域对象分组（去除时间戳）
+        entity_groups = defaultdict(list)
+        for json_file in json_files:
+            filename = os.path.basename(json_file)
+            # 匹配模式：alumni_members_EntityName_timestamp.json
+            match = re.match(r'^(alumni_members_\w+)_(\d{14})\.json$', filename)
+            if match:
+                entity_base = match.group(1)
+                timestamp = match.group(2)
+                entity_groups[entity_base].append((json_file, timestamp))
+
+        # 清理重复文件，保留最新的
+        cleaned_count = 0
+        for entity_base, files in entity_groups.items():
+            if len(files) > 1:
+                # 按时间戳排序，保留最新的
+                files.sort(key=lambda x: x[1], reverse=True)
+                latest_file = files[0][0]
+
+                # 删除旧文件
+                for old_file, timestamp in files[1:]:
+                    try:
+                        os.remove(old_file)
+                        safe_print(f"[CLEANUP] 删除重复文件: {os.path.basename(old_file)}")
+                        cleaned_count += 1
+                    except Exception as e:
+                        safe_print(f"[WARN] 删除文件失败: {old_file} - {e}")
+
+                safe_print(f"[CLEANUP] 保留最新文件: {os.path.basename(latest_file)}")
+
+        if cleaned_count > 0:
+            safe_print(f"[CLEANUP] 清理完成，删除了 {cleaned_count} 个重复文件")
+        else:
+            safe_print(f"[CLEANUP] 没有发现重复文件")
+
+    except Exception as e:
+        safe_print(f"[WARN] 清理重复文件时出错: {e}")
+
 def jeecg_complete_workflow():
     """JeecgBoot完整表单工作流 - 纯粹的API调用工具"""
 
     print("\n[START] 开始执行 JeecgBoot 表单工作流")
     print("=" * 50)
+
+    # 清理重复的JSON文件
+    cleanup_duplicate_json_files()
+
+    # 强化生成前验证
+    if not validate_generation_prerequisites():
+        safe_print(f"[FAIL] 生成前验证失败，终止执行")
+        return
+
+    # 提前进行场景检测
+    try:
+        with open(FORM_DATA_FILE, 'r', encoding='utf-8') as f:
+            form_data = json.load(f)
+
+        current_table_name = form_data.get('head', {}).get('tableName')
+        table_scenario = detect_table_scenario(form_data, current_table_name)
+
+        safe_print(f"\n[CHART] 场景检测结果: {table_scenario}")
+
+        # 子表场景：只执行前3个API，跳过代码生成
+        if table_scenario == 'sub':
+            safe_print(f"[INFO] 检测到子表场景，将只创建数据库表")
+            safe_print(f"[TIP] 子表的前后端代码将由主表统一生成")
+            return jeecg_sub_table_workflow()
+
+        # 主表场景：先自动创建所有子表，再执行主表工作流
+        if table_scenario == 'master':
+            safe_print(f"[INFO] 检测到主表场景，将自动创建子表并生成主子表关联代码")
+
+            # 获取subList中的所有子表
+            sub_list = form_data.get('subList', [])
+            if sub_list:
+                safe_print(f"[CHART] 发现{len(sub_list)}个子表，将自动创建：")
+                for i, sub_table in enumerate(sub_list):
+                    safe_print(f"   {i+1}. {sub_table.get('tableName')} - {sub_table.get('ftlDescription')}")
+
+                # 自动为每个子表执行前3个API
+                for i, sub_table in enumerate(sub_list):
+                    sub_table_name = sub_table.get('tableName')
+                    safe_print(f"\n[SUB_TABLE_{i+1}] 开始自动创建子表: {sub_table_name}")
+
+                    # 查找对应的子表配置文件
+                    sub_config_file = find_sub_table_config(sub_table_name)
+                    if sub_config_file:
+                        safe_print(f"[OK] 找到子表配置文件: {sub_config_file}")
+                        # 执行子表的前3个API
+                        success = execute_sub_table_apis(sub_config_file)
+                        if success:
+                            safe_print(f"[OK] 子表 {sub_table_name} 创建成功")
+                        else:
+                            safe_print(f"[FAIL] 子表 {sub_table_name} 创建失败，终止主表创建")
+                            return
+                    else:
+                        safe_print(f"[FAIL] 未找到子表配置文件: {sub_table_name}")
+                        safe_print(f"[TIP] 请确保子表配置文件存在于CodeGen目录中")
+                        return
+
+                safe_print(f"\n[CHART] 所有子表创建完成，开始创建主表")
+
+            safe_print(f"[INFO] 开始生成主子表关联代码")
+        else:
+            safe_print(f"[INFO] 检测到独立表场景，将生成单表代码")
+
+    except Exception as e:
+        safe_print(f"[WARN] 场景检测失败: {e}")
+        safe_print(f"[INFO] 默认按独立表场景处理")
 
     # 打印所有变量信息
     print_workflow_variables()
@@ -4689,11 +5438,7 @@ def jeecg_complete_workflow():
     
     # 6. 创建表单
     print("\n6. 正在创建表单...")
-    headers = {
-        'X-Access-Token': token,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    }
+    headers = create_auth_headers(token)
 
     try:
         create_url = f"{BASE_URL}/online/cgform/api/addAll"
@@ -4789,17 +5534,11 @@ def jeecg_complete_workflow():
 
     try:
         # 确保使用正确的headers和Token
-        sync_headers = {
-            'X-Access-Token': token,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-
         sync_url = f"{BASE_URL}/online/cgform/api/doDbSynch/{form_id}/normal"
         safe_print(f"   同步URL: {sync_url}")
         safe_print(f"   使用Token: {token[:DISPLAY_TOKEN_LENGTH]}...")
 
-        response = requests.post(sync_url, headers=sync_headers, timeout=REQUEST_TIMEOUT_SYNC)
+        response = requests.post(sync_url, headers=create_auth_headers(token), timeout=REQUEST_TIMEOUT_SYNC)
 
         safe_print(f"   响应状态码: {response.status_code}")
 
@@ -4828,6 +5567,15 @@ def jeecg_complete_workflow():
     print("\n8. 正在生成代码...")
 
     try:
+        # 重新获取场景信息（用于日志显示）
+        current_table_name = form_data.get('head', {}).get('tableName')
+        table_scenario = detect_table_scenario(form_data, current_table_name)
+
+        # 主表和独立表场景：正常执行代码生成
+        if table_scenario == 'master':
+            safe_print(f"[INFO] 检测到主表场景，将生成主子表关联代码")
+        else:
+            safe_print(f"[INFO] 检测到独立表场景，将生成单表代码")
         # 生成实体名（只使用业务实体名，不包含模块和子模块前缀）
         entity_name = BUSINESS_ENTITY if BUSINESS_ENTITY else ''.join(word.capitalize() for word in table_name.split('_'))
 
@@ -4873,34 +5621,71 @@ def jeecg_complete_workflow():
         # - entityPackage设置为SUBMODULE_NAME，这样最终组合为：org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}
         base_package = f"org.jeecg.modules.{MODULE_NAME}"
 
-        codegen_data = {
-            "projectPath": PROJECT_PATH,
-            "jspMode": JSP_MODE,
-            "ftlDescription": form_data['head']['tableTxt'],
-            "jformType": JFORM_TYPE,
-            "tableName_tmp": table_name,
-            "entityName": BUSINESS_ENTITY,
-            "entityPackage": SUBMODULE_NAME,
-            "bussiPackage": base_package,  # 只包含org.jeecg.modules.{MODULE_NAME}
-            "packageStyle": PACKAGE_STYLE,
-            "vueStyle": VUE_STYLE,
-            "codeTypes": CODE_TYPES,
-            "code": form_id,
-            "tableName": table_name
-        }
+        # 根据表场景准备不同的参数
+        if table_scenario == 'master':
+            # 主表场景：使用主子表参数
+            codegen_data = {
+                "projectPath": PROJECT_PATH,
+                "jspMode": "jvxe",  # 主子表场景使用jvxe模式
+                "ftlDescription": form_data['head']['tableTxt'],
+                "jformType": "2",   # 主子表场景使用类型"2"（字符串）
+                "tableName_tmp": table_name,
+                "entityName": BUSINESS_ENTITY,
+                "entityPackage": SUBMODULE_NAME,
+                "bussiPackage": base_package,
+                "packageStyle": PACKAGE_STYLE,
+                "vueStyle": VUE_STYLE,
+                "codeTypes": CODE_TYPES,
+                "code": form_id,
+                "tableName": table_name,
+                "subList": prepare_sub_list_for_api(form_data.get('subList', []), token)  # 包含子表配置
+            }
+        else:
+            # 独立表场景：使用原有参数
+            codegen_data = {
+                "projectPath": PROJECT_PATH,
+                "jspMode": JSP_MODE,
+                "ftlDescription": form_data['head']['tableTxt'],
+                "jformType": JFORM_TYPE,  # 保持字符串类型
+                "tableName_tmp": table_name,
+                "entityName": BUSINESS_ENTITY,
+                "entityPackage": SUBMODULE_NAME,
+                "bussiPackage": base_package,  # 只包含org.jeecg.modules.{MODULE_NAME}
+                "packageStyle": PACKAGE_STYLE,
+                "vueStyle": VUE_STYLE,
+                "codeTypes": CODE_TYPES,
+                "code": form_id,
+                "tableName": table_name
+            }
 
         # 打印完整的代码生成请求参数
         safe_print(f"\n[LIST] 代码生成请求参数:")
-        safe_print(f"   [TOOL] 修复后的API调用参数:")
-        safe_print(f"      entityName    = \"{BUSINESS_ENTITY}\" (业务实体)")
-        safe_print(f"      entityPackage = \"{SUBMODULE_NAME}\" (子模块名)")
-        safe_print(f"      bussiPackage  = \"{base_package}\" (基础包路径)")
-        safe_print(f"      最终package   = {base_package}.{SUBMODULE_NAME}")
-        safe_print(f"      预期生成路径 = {base_package.replace('.', '/')}/{SUBMODULE_NAME}/")
-        safe_print(f"      修复效果     = 避免重复{SUBMODULE_NAME}目录层级")
+        if table_scenario == 'master':
+            safe_print(f"   [TOOL] 主子表关联API调用参数:")
+            safe_print(f"      场景类型      = 主子表关联")
+            safe_print(f"      jspMode      = \"{codegen_data.get('jspMode')}\" (主子表模式)")
+            safe_print(f"      jformType    = \"{codegen_data.get('jformType')}\" (主子表类型)")
+            safe_print(f"      主表名称      = \"{codegen_data.get('tableName')}\"")
+            safe_print(f"      子表数量      = {len(codegen_data.get('subList', []))}")
+            if 'subList' in codegen_data:
+                for i, sub_table in enumerate(codegen_data['subList']):
+                    safe_print(f"      子表{i+1}        = {sub_table.get('tableName')} ({sub_table.get('ftlDescription')})")
+        else:
+            safe_print(f"   [TOOL] 独立表API调用参数:")
+            safe_print(f"      场景类型      = 独立表")
+            safe_print(f"      entityName    = \"{BUSINESS_ENTITY}\" (业务实体)")
+            safe_print(f"      entityPackage = \"{SUBMODULE_NAME}\" (子模块名)")
+            safe_print(f"      bussiPackage  = \"{base_package}\" (基础包路径)")
+            safe_print(f"      最终package   = {base_package}.{SUBMODULE_NAME}")
+            safe_print(f"      预期生成路径 = {base_package.replace('.', '/')}/{SUBMODULE_NAME}/")
+            safe_print(f"      修复效果     = 避免重复{SUBMODULE_NAME}目录层级")
+
         safe_print(f"   [LIST] 完整参数列表:")
         for key, value in codegen_data.items():
-            safe_print(f"      {key:<20} = {value}")
+            if key == 'subList' and isinstance(value, list):
+                safe_print(f"      {key:<20} = [包含{len(value)}个子表配置]")
+            else:
+                safe_print(f"      {key:<20} = {value}")
 
         # 代码生成前：备份并替换配置文件变量
         config_replaced = backup_and_replace_jeecg_config(PROJECT_PATH, package_name)
@@ -4908,6 +5693,8 @@ def jeecg_complete_workflow():
             safe_print("[WARN] 配置文件替换失败，继续执行代码生成...")
 
         codegen_url = f"{BASE_URL}/online/cgform/api/codeGenerate"
+        headers = create_auth_headers(token)
+
         safe_print(f"   代码生成URL: {codegen_url}")
         safe_print(f"   表单ID: {form_id}")
         safe_print(f"   实体名: {entity_name}")
@@ -4968,8 +5755,28 @@ def jeecg_complete_workflow():
                 execute_post_generation_workflow()
 
             else:
-                safe_print(f"[FAIL] 代码生成失败: {result.get('message', '未知错误')}")
+                error_message = result.get('message', '未知错误')
+                safe_print(f"[FAIL] 代码生成失败: {error_message}")
                 safe_print(f"   完整响应: {result}")
+
+                # 提供针对性的错误诊断
+                if "Cannot invoke" in error_message and "intValue()" in error_message:
+                    safe_print(f"\n🔧 Java空指针异常诊断:")
+                    safe_print(f"   这是 JeecgBoot 主子表代码生成 API 的内部错误，可能原因：")
+                    safe_print(f"   1. 子表配置中缺少必要的数值字段")
+                    safe_print(f"   2. subList 配置格式不完全兼容")
+                    safe_print(f"   3. 主子表关联参数传递异常")
+                    safe_print(f"\n🔧 问题解决建议:")
+                    safe_print(f"   1. 检查 JeecgBoot 服务状态：确保后端服务正常运行")
+                    safe_print(f"   2. 验证子表配置完整性：确认所有子表的表单ID和配置都正确创建")
+                    safe_print(f"   3. 简化测试：可以先尝试生成单独的主表（不含subList）进行测试")
+                    safe_print(f"   4. 日志检查：查看 JeecgBoot 后端日志获取更详细的错误信息")
+                elif "没有关联子表" in error_message:
+                    safe_print(f"\n🔧 主子表关联错误诊断:")
+                    safe_print(f"   主表类型设置为【主表】，但系统中没有找到关联的子表")
+                    safe_print(f"   可能原因：子表尚未在 JeecgBoot 系统中创建")
+                    safe_print(f"   解决方案：确保所有子表都已通过前3个API成功创建")
+
                 # 代码生成失败，执行失败的工作流
                 _execute_failed_workflow("代码生成接口调用失败")
                 return

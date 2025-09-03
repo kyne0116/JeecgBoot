@@ -7,13 +7,16 @@ JeecgBoot配置文件验证器
 - 系统字段完整性验证
 - 表名格式验证
 - 高效JSON格式验证
+- subList配置完整性验证（主子表场景）
+- 主子表一致性检查
 """
 
 import json
 import jsonschema
 from jsonschema import validate, ValidationError
 import sys
-from typing import Dict, List, Tuple
+import re
+from typing import Dict, List, Tuple, Optional
 
 class CodeGenValidator:
     """高效配置文件验证器"""
@@ -58,6 +61,17 @@ class CodeGenValidator:
         errors.extend(self._validate_order_num(config))
         errors.extend(self._validate_system_fields(config))
         errors.extend(self._validate_table_name(config))
+
+        # 验证subList配置（如果存在）
+        if 'subList' in config:
+            sub_list_valid, sub_list_errors = self.validate_sub_list(config['subList'])
+            if not sub_list_valid:
+                errors.extend(sub_list_errors)
+
+            # 验证主子表一致性
+            consistency_valid, consistency_errors = self.validate_master_sub_consistency(config)
+            if not consistency_valid:
+                errors.extend(consistency_errors)
 
         return len(errors) == 0, errors
 
@@ -143,6 +157,125 @@ JSON配置验证报告
             report += "3. 验证表名格式: us_module_submodule_entity\n"
 
         return report
+
+    def validate_sub_list(self, sub_list: List[Dict]) -> Tuple[bool, List[str]]:
+        """验证subList配置的完整性"""
+        errors = []
+
+        if not isinstance(sub_list, list):
+            errors.append("subList必须是数组类型")
+            return False, errors
+
+        if len(sub_list) == 0:
+            errors.append("subList不能为空数组")
+            return False, errors
+
+        # 验证必需字段
+        required_fields = ['tableName', 'entityName', 'ftlDescription', 'id']
+        used_ids = set()
+        used_table_names = set()
+
+        for i, sub_table in enumerate(sub_list):
+            if not isinstance(sub_table, dict):
+                errors.append(f"subList[{i}]必须是对象类型")
+                continue
+
+            # 检查必需字段
+            for field in required_fields:
+                if field not in sub_table or not sub_table[field]:
+                    errors.append(f"subList[{i}]缺少必需字段: {field}")
+
+            # 验证表名格式
+            table_name = sub_table.get('tableName', '')
+            if table_name:
+                if not re.match(r'^us_[a-z0-9_]+$', table_name):
+                    errors.append(f"subList[{i}]表名格式错误: {table_name}，应为us_开头的小写字母、数字和下划线格式")
+
+                if table_name in used_table_names:
+                    errors.append(f"subList[{i}]表名重复: {table_name}")
+                else:
+                    used_table_names.add(table_name)
+
+            # 验证实体名格式
+            entity_name = sub_table.get('entityName', '')
+            if entity_name and not re.match(r'^[A-Z][a-zA-Z0-9]*$', entity_name):
+                errors.append(f"subList[{i}]实体名格式错误: {entity_name}，应为PascalCase格式")
+
+            # 验证ID格式
+            sub_id = sub_table.get('id', '')
+            if sub_id:
+                if not re.match(r'^row_[0-9]{4}$', sub_id):
+                    errors.append(f"subList[{i}]的id格式错误: {sub_id}，应为row_xxxx格式")
+
+                if sub_id in used_ids:
+                    errors.append(f"subList[{i}]的id重复: {sub_id}")
+                else:
+                    used_ids.add(sub_id)
+
+        # 验证ID连续性（从row_1020开始）
+        if used_ids:
+            id_numbers = []
+            for sub_id in used_ids:
+                if re.match(r'^row_[0-9]{4}$', sub_id):
+                    id_numbers.append(int(sub_id[4:]))
+
+            if id_numbers:
+                id_numbers.sort()
+                expected_start = 1020
+                for i, num in enumerate(id_numbers):
+                    if num != expected_start + i:
+                        errors.append(f"subList的id不连续，期望row_{expected_start + i:04d}，实际row_{num:04d}")
+                        break
+
+        return len(errors) == 0, errors
+
+    def validate_master_sub_consistency(self, config: Dict) -> Tuple[bool, List[str]]:
+        """验证主子表配置的一致性"""
+        errors = []
+
+        # 检查是否包含subList
+        if 'subList' not in config:
+            return True, []  # 不是主子表场景，跳过验证
+
+        sub_list = config['subList']
+        if not sub_list:
+            return True, []  # 空subList，跳过验证
+
+        # 获取主表信息
+        head = config.get('head', {})
+        main_table_name = head.get('tableName', '')
+
+        if not main_table_name:
+            errors.append("主表缺少tableName")
+            return False, errors
+
+        # 解析主表的模块信息
+        main_parts = main_table_name.split('_')
+        if len(main_parts) != 4:
+            errors.append(f"主表名格式错误: {main_table_name}")
+            return False, errors
+
+        main_prefix, main_module, main_submodule = main_parts[0], main_parts[1], main_parts[2]
+
+        # 验证子表与主表的模块一致性
+        for i, sub_table in enumerate(sub_list):
+            sub_table_name = sub_table.get('tableName', '')
+            if sub_table_name:
+                sub_parts = sub_table_name.split('_')
+                if len(sub_parts) == 4:
+                    sub_prefix, sub_module, sub_submodule = sub_parts[0], sub_parts[1], sub_parts[2]
+
+                    if sub_prefix != main_prefix:
+                        errors.append(f"subList[{i}]前缀不一致: 主表{main_prefix}，子表{sub_prefix}")
+
+                    if sub_module != main_module:
+                        errors.append(f"subList[{i}]模块不一致: 主表{main_module}，子表{sub_module}")
+
+                    # 子模块可以不同，但不能与主表相同
+                    if sub_submodule == main_submodule:
+                        errors.append(f"subList[{i}]子模块与主表相同: {sub_submodule}")
+
+        return len(errors) == 0, errors
 
 def main():
     """主函数"""

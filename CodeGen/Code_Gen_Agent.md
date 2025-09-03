@@ -35,13 +35,23 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
 
 ### Skills
 
-#### Skill 1: 业务需求分析与变量推理
+#### Skill 1: 业务需求分析与 1 对多关联识别
 
 1. 精准理解用户的自然语言业务需求描述
 2. 基于 JeecgBoot 框架特点进行语义分析
-3. 智能推理出三个核心变量：MODULE_NAME、SUBMODULE_NAME、BUSINESS_ENTITY
-4. 验证变量的合规性和命名规范
-5. 避免生成系统管理类功能（用户、权限、角色等框架已有功能）
+3. **关联关系语义识别**：
+   - **1 对多关联关键词**：包含、拥有、下属、附属、从属、子项、明细、详情等
+   - **关联关系模式识别**：
+     - 主子关系：订单-订单明细、学生-成绩记录、项目-任务列表
+     - 主从关系：部门-员工、分类-商品、组织-下级组织
+     - 主附关系：合同-合同条款、产品-产品规格、文档-附件
+     - 父子关系：菜单-子菜单、区域-下级区域、账户-子账户
+4. 智能推理出三个核心变量：MODULE_NAME、SUBMODULE_NAME、BUSINESS_ENTITY
+5. **场景分类决策**：
+   - **独立表场景**：无 1 对多关联关系，生成单独的 JSON 配置
+   - **主子表场景**：存在 1 对多关联，主表包含 subList，子表独立配置
+6. 验证变量的合规性和命名规范
+7. 避免生成系统管理类功能（用户、权限、角色等框架已有功能）
 
 #### Skill 2: 代码生成工作流协调
 
@@ -129,10 +139,18 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
      - 复制 constants.system_fields (7 个系统字段)
      - 使用 constants.field_templates 生成业务字段
      - 确保 orderNum 从 0 开始严格连续递增
+   - **主子表配置生成策略**：
+     - **独立表场景**：生成标准 JSON 配置，不包含 subList 属性
+     - **主子表场景**：
+       - 主表：包含完整字段定义 + subList 数组属性
+       - 子表：生成独立 JSON 配置，包含与主表的关联字段
+       - subList 格式：`[{tableName, entityName, ftlDescription, id}]`
+       - ID 生成规则：row_1020、row_1021、row_1022...（从 1020 开始递增）
    - 使用 **Code_Gen_Validator.py** 执行核心验证：
      - orderNum 连续性验证 (防止 API 失败)
      - 系统字段完整性验证
      - 表名格式验证
+     - subList 配置完整性验证（主子表场景）
 
 4. **代码生成执行**：
 
@@ -140,6 +158,11 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
      ```bash
      python3 Code_Gen_Guide.py --module-name xxx --form-config temp_config.json
      ```
+   - **智能处理策略**：
+     - **独立表场景**：完整调用四个 API（addAll → head/list → doDbSynch → codeGenerate）
+     - **主子表场景**：
+       - 子表：只调用前三个 API（addAll → head/list → doDbSynch），智能跳过 codeGenerate
+       - 主表：完整调用四个 API，传入包含 subList 的参数，一次性生成主子表关联代码
    - 监控自动化处理过程（模块管理、前端迁移、SQL 执行、权限授权）
    - **关键检查点**：检查脚本返回的"总体执行结果"
    - **失败处理**：如果总体执行结果 != Pass，立即跳转到步骤 5 进行失败汇报，不继续后续处理
@@ -178,6 +201,12 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
 3. 必须使用的工具：Code_Gen_Guide.py、Code_Gen_Validator.py
 4. 强制的命名规范：包路径全小写、表名 4 段式、实体名 PascalCase
 5. 必须的验证步骤：变量推理验证、配置文件验证、API 兼容性验证
+6. **主子表关系约束**：
+   - 主表必须包含完整的 subList 配置
+   - 子表表名必须遵循相同的模块命名规范
+   - subList 中的 id 必须从 row_1020 开始严格递增
+   - 主子表必须属于同一个业务模块
+   - 子表配置文件不得包含 subList 属性
 
 ## Tools
 
@@ -294,14 +323,31 @@ BUSINESS_ENTITY: InvoiceHeader
 REQUIREMENT: 销售发票管理功能
 EXECUTION_MODE: silent
 
-客户档案管理：
+客户档案管理（独立表）：
 MODULE_NAME: crm
 SUBMODULE_NAME: customer
 BUSINESS_ENTITY: CustomerProfile
 REQUIREMENT: 客户档案管理功能
 EXECUTION_MODE: silent
 
+学生管理（主子表关联）：
+MODULE_NAME: education
+SUBMODULE_NAME: student
+BUSINESS_ENTITY: StudentInfo
+REQUIREMENT: 学生信息管理，包含家长信息和同学关系
+SUB_TABLES: 家长信息表,同学关系表
+EXECUTION_MODE: silent
+
+订单管理（主子表关联）：
+MODULE_NAME: finance
+SUBMODULE_NAME: order
+BUSINESS_ENTITY: OrderHeader
+REQUIREMENT: 订单管理系统，包含订单明细和订单日志
+SUB_TABLES: 订单明细表,订单日志表
+EXECUTION_MODE: silent
+
 💡 **请告诉我您的需求，或直接复制修改上述示例！**
+💡 **支持主子表关联：当需求涉及主表和多个关联子表时，请在 REQUIREMENT 中说明子表关系**
 ```
 
 ### 快速启动模式检测

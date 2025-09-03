@@ -40,6 +40,35 @@ python3 Code_Gen_Guide.py --fix-table-name biz_product_management
 python3 Code_Gen_Guide.py --check-field-lengths temp_config.json
 ```
 
+### 🔗 主子表关联场景用法
+
+#### **场景说明**
+
+当业务需求包含 1 对多关联关系时（如订单-订单明细、学生-家长信息），使用主子表关联功能：
+
+#### **使用步骤**
+
+```bash
+# 步骤1：先生成所有子表（只创建数据库表，不生成代码）
+python3 Code_Gen_Guide.py --module-name education --form-config student_parents_config.json
+python3 Code_Gen_Guide.py --module-name education --form-config student_classmate_config.json
+
+# 步骤2：最后生成主表（创建数据库表 + 生成主子表关联代码）
+python3 Code_Gen_Guide.py --module-name education --form-config student_info_config.json
+```
+
+#### **智能处理机制**
+
+- **子表处理**：自动检测到被 subList 引用，只调用前 3 个 API，跳过代码生成
+- **主表处理**：检测到包含 subList，调用全部 4 个 API，生成主子表关联代码
+- **独立表处理**：保持现有逻辑不变，完整调用 4 个 API
+
+#### **配置文件要求**
+
+- **主表配置**：必须包含 subList 数组属性
+- **子表配置**：标准格式，不包含 subList 属性
+- **表名规范**：所有表必须属于同一模块，遵循 4 段式命名
+
 ---
 
 ## 📋 配置文件结构
