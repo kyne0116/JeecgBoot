@@ -68,16 +68,27 @@ class CodeGenValidator:
         if not table_type_valid:
             errors.extend(table_type_errors)
 
-        # 验证subList配置（如果存在）
-        if 'subList' in config:
-            sub_list_valid, sub_list_errors = self.validate_sub_list(config['subList'])
-            if not sub_list_valid:
-                errors.extend(sub_list_errors)
-
-            # 验证主子表一致性
-            consistency_valid, consistency_errors = self.validate_master_sub_consistency(config)
-            if not consistency_valid:
-                errors.extend(consistency_errors)
+        # 智能验证subList配置（根据表类型）
+        table_type = config.get('head', {}).get('tableType', 1)
+        has_sub_list = 'subList' in config
+        
+        if table_type == 1:  # 独立表
+            if has_sub_list:
+                errors.append("独立表不应包含subList配置")
+        elif table_type == 2:  # 主表
+            if has_sub_list:
+                # 主表可以有subList，但如果存在就需要验证
+                sub_list_valid, sub_list_errors = self.validate_sub_list_for_master_table(config['subList'])
+                if not sub_list_valid:
+                    errors.extend(sub_list_errors)
+                
+                # 验证主子表一致性
+                consistency_valid, consistency_errors = self.validate_master_sub_consistency(config)
+                if not consistency_valid:
+                    errors.extend(consistency_errors)
+        elif table_type == 3:  # 子表
+            if has_sub_list:
+                errors.append("子表不应包含subList配置")
 
         return len(errors) == 0, errors
 
@@ -187,8 +198,23 @@ JSON配置验证报告
 
         return report
 
+    def validate_sub_list_for_master_table(self, sub_list: List[Dict]) -> Tuple[bool, List[str]]:
+        """验证主表的subList配置 - 允许空数组"""
+        errors = []
+
+        if not isinstance(sub_list, list):
+            errors.append("subList必须是数组类型")
+            return False, errors
+
+        # 主表允许空的subList（表示暂时没有子表）
+        if len(sub_list) == 0:
+            return True, []
+
+        # 如果不为空，则使用标准验证逻辑
+        return self._validate_sub_list_content(sub_list)
+
     def validate_sub_list(self, sub_list: List[Dict]) -> Tuple[bool, List[str]]:
-        """验证subList配置的完整性"""
+        """验证subList配置的完整性 - 子表场景（不允许空数组）"""
         errors = []
 
         if not isinstance(sub_list, list):
@@ -198,6 +224,12 @@ JSON配置验证报告
         if len(sub_list) == 0:
             errors.append("subList不能为空数组")
             return False, errors
+
+        return self._validate_sub_list_content(sub_list)
+
+    def _validate_sub_list_content(self, sub_list: List[Dict]) -> Tuple[bool, List[str]]:
+        """验证subList内容的通用逻辑"""
+        errors = []
 
         # 验证必需字段
         required_fields = ['tableName', 'entityName', 'ftlDescription', 'id']

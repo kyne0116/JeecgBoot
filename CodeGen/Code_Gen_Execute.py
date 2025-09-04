@@ -52,10 +52,35 @@ class CodeGenExecutor:
         config = configparser.ConfigParser()
         try:
             config.read(self.config_file, encoding='utf-8')
+            # 应用环境变量覆盖
+            self._apply_environment_overrides(config)
             return config
         except Exception as e:
             print(f"配置文件加载失败: {e}")
             sys.exit(1)
+
+    def _apply_environment_overrides(self, config: configparser.ConfigParser):
+        """应用环境变量覆盖配置"""
+        # 环境变量映射表
+        env_mappings = {
+            'JEECG_PROJECT_ROOT': ('project', 'path_prefix'),
+            'JEECG_BASE_URL': ('server', 'base_url'),
+            'JEECG_USERNAME': ('server', 'username'),
+            'JEECG_PASSWORD': ('server', 'password'),
+            'JEECG_DATABASE_TYPE': ('database_execution', 'type'),
+            'JEECG_DATABASE_URL': ('database_execution', 'url'),
+            'JEECG_DATABASE_USERNAME': ('database_execution', 'username'),
+            'JEECG_DATABASE_PASSWORD': ('database_execution', 'password'),
+        }
+
+        # 应用环境变量覆盖
+        for env_var, (section, key) in env_mappings.items():
+            env_value = os.getenv(env_var)
+            if env_value:
+                if not config.has_section(section):
+                    config.add_section(section)
+                config.set(section, key, env_value)
+                print(f"🔧 环境变量覆盖: {env_var} -> [{section}] {key} = {env_value}")
     
     def get_config_value(self, section: str, key: str, fallback: str = None) -> str:
         """获取配置值，支持变量替换"""
@@ -72,8 +97,8 @@ class CodeGenExecutor:
 
     def _retry_request(self, func, *args, **kwargs):
         """重试机制"""
-        max_attempts = int(self.get_config_value('api', 'retry.max_attempts', '3'))
-        delay_seconds = int(self.get_config_value('api', 'retry.delay_seconds', '2'))
+        max_attempts = int(self.get_config_value('api_error_handling', 'retry_max_attempts', '3'))
+        delay_seconds = int(self.get_config_value('api_error_handling', 'retry_delay_seconds', '2'))
 
         for attempt in range(max_attempts):
             try:
@@ -86,7 +111,7 @@ class CodeGenExecutor:
     
     def login(self) -> bool:
         """用户登录认证"""
-        login_url = self.get_config_value('api', 'login.url')
+        login_url = self.get_config_value('api', 'login_url')
         username = self.get_config_value('server', 'username')
         password = self.get_config_value('server', 'password')
         timeout = int(self.get_config_value('timeouts', 'login', '30'))
@@ -185,7 +210,7 @@ class CodeGenExecutor:
     
     def create_form(self, config_data: Dict) -> Optional[str]:
         """创建在线表单"""
-        url = self.get_config_value('api', 'form.addall.url')
+        url = self.get_config_value('api', 'form_addall_url')
         if not url:
             print("❌ 缺少表单创建API配置")
             return None
@@ -208,7 +233,7 @@ class CodeGenExecutor:
     
     def get_form_id(self, table_name: str) -> Optional[str]:
         """获取表单ID"""
-        url = self.get_config_value('api', 'form.list.url')
+        url = self.get_config_value('api', 'form_list_url')
         timeout = int(self.get_config_value('timeouts', 'list', '15'))
         page_no = int(self.get_config_value('query', 'page_no', '1'))
         page_size = int(self.get_config_value('query', 'page_size', '10'))
@@ -231,15 +256,20 @@ class CodeGenExecutor:
         return None
     
     def sync_database(self, form_id: str) -> bool:
-        """同步数据库"""
-        url = self.get_config_value('api', 'database.sync.url')
-        if not url:
-            print("❌ 缺少数据库同步API配置")
+        """同步数据库 - 使用正确的API路径格式"""
+        base_url = self.get_config_value('server', 'base_url')
+        base_path = self.get_config_value('api', 'database_sync_base_path', '/online/cgform/api/doDbSynch')
+        
+        if not base_url:
+            print("❌ 缺少服务器基础URL配置")
             return False
         
         try:
-            data = {"id": form_id}
-            response = self.session.post(url, json=data, timeout=60)
+            # 使用配置文件中的路径构建完整URL：{base_url}{base_path}/{form_id}/normal
+            url = f"{base_url}{base_path}/{form_id}/normal"
+            print(f"🔗 数据库同步URL: {url}")
+            
+            response = self.session.post(url, timeout=60)
             if response.status_code == 200:
                 result = response.json()
                 if result.get('success'):
@@ -256,13 +286,13 @@ class CodeGenExecutor:
     
     def generate_code(self, form_id: str, config_data: Dict) -> bool:
         """生成代码"""
-        url = self.get_config_value('api', 'codegen.generate.url')
+        url = self.get_config_value('api', 'codegen_generate_url')
         if not url:
             print("❌ 缺少代码生成API配置")
             return False
         
         # 构建代码生成参数
-        project_path = self.get_config_value('paths', 'project_root')
+        project_path = self.get_config_value('project', 'path_prefix')
         business_entity = config_data.get('head', {}).get('business_entity')
         table_type = config_data.get('head', {}).get('tableType', 1)
         
@@ -280,14 +310,38 @@ class CodeGenExecutor:
         package_style = self.get_config_value('codegen', 'package_style', 'service')
         vue_style = self.get_config_value('codegen', 'vue_style', 'vue3')
 
+        # 基于历史版本的完整参数构建
+        table_name = config_data.get('head', {}).get('tableName', '')
+        table_description = config_data.get('head', {}).get('tableTxt', '')
+        
+        # 解析模块信息
+        if table_name.startswith('us_'):
+            parts = table_name.split('_')
+            if len(parts) >= 4:
+                module_name = parts[1]
+                submodule_name = parts[2] 
+                base_package = f"org.jeecg.modules.{module_name}"
+            else:
+                base_package = "org.jeecg.modules.system"
+                submodule_name = "system"
+        else:
+            base_package = "org.jeecg.modules.system" 
+            submodule_name = "system"
+        
         data = {
-            "id": form_id,
             "projectPath": project_path,
-            "entityName": business_entity,
             "jspMode": jsp_mode,
+            "ftlDescription": table_description,
             "jformType": jform_type,
+            "tableName_tmp": table_name,
+            "entityName": business_entity,
+            "entityPackage": submodule_name,
+            "bussiPackage": base_package,
             "packageStyle": package_style,
-            "vueStyle": vue_style
+            "vueStyle": vue_style,
+            "codeTypes": "controller,service,dao,mapper,entity,vue",
+            "code": form_id,
+            "tableName": table_name
         }
         
         if sub_list:
@@ -312,40 +366,375 @@ class CodeGenExecutor:
         return False
     
     def migrate_frontend_code(self, config_data: Dict):
-        """迁移前端代码"""
+        """迁移前端代码 - 基于历史版本的高级路径解析和容错机制"""
         try:
-            # 获取模块信息
-            metadata = config_data.get('metadata', {})
-            generation_info = metadata.get('generation_info', {})
-            module_name = generation_info.get('module_name')
+            # 获取前端迁移配置
+            migration_config = {}
+            if hasattr(self.config, 'has_section') and self.config.has_section('frontend_migration'):
+                migration_config = dict(self.config['frontend_migration'])
+                # 转换字符串类型的布尔值
+                if 'enabled' in migration_config:
+                    migration_config['enabled'] = migration_config['enabled'].lower() == 'true'
+                if 'cleanup_source' in migration_config:
+                    migration_config['cleanup_source'] = migration_config['cleanup_source'].lower() == 'true'
             
-            if not module_name:
-                print("⚠️ 无法获取模块名，跳过前端代码迁移")
+            if not migration_config.get('enabled', True):
+                print("⏭️ 前端代码迁移功能已禁用，跳过迁移步骤")
                 return
             
-            # 构建路径
-            project_root = self.get_config_value('paths', 'project_root')
-            backend_vue_path = os.path.join(project_root, 'jeecg-module-system', 'jeecg-system-biz', 'src', 'main', 'resources', 'jeecg', module_name, 'vue3')
-            frontend_target_path = os.path.join(project_root, 'jeecgboot-vue3', 'src', 'views', module_name)
+            print(f"\n{'='*50}")
+            print("[FOLDER] 开始前端代码目录迁移和重组...")
             
-            if os.path.exists(backend_vue_path):
-                # 确保目标目录存在
-                os.makedirs(os.path.dirname(frontend_target_path), exist_ok=True)
+            # 1. 从配置数据解析表名和模块信息
+            table_name = config_data.get('head', {}).get('tableName', '')
+            if not table_name:
+                print("[FAIL] 无法获取表名，跳过前端代码迁移")
+                return
+            
+            components = self._parse_table_name_components(table_name, config_data)
+            module_name = components['module_name']
+            sub_module = components['sub_module']
+            entity_name = components['entity_name'].lower()
+            
+            print(f"[LIST] 模块信息:")
+            print(f"   表名: {table_name}")
+            print(f"   模块名: {module_name}")
+            print(f"   子模块: {sub_module}")
+            print(f"   实体名: {entity_name}")
+            
+            # 2. 构建多个可能的源路径（容错机制）
+            project_root = self.get_config_value('project', 'path_prefix')
+            
+            possible_source_paths = [
+                # JeecgBoot实际生成路径：根据实际观察到的生成位置
+                Path(project_root) / 'src' / 'main' / 'java' / '{{PACKAGE_NAME}}' / sub_module / 'vue3',
+                # 标准JeecgBoot模块路径
+                Path(project_root) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / entity_name / 'vue3',
+                Path(project_root) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}' / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3',
+                # 备用路径：system模块
+                Path(project_root) / 'jeecg-module-system' / 'jeecg-system-biz' / 'src' / 'main' / 'resources' / 'jeecg' / module_name / 'vue3',
+                Path(project_root) / 'jeecg-module-system' / 'jeecg-system-biz' / 'src' / 'main' / 'resources' / 'jeecg' / sub_module / 'vue3',
+                # 直接在项目根目录的src中
+                Path(project_root) / 'src' / 'main' / 'java' / 'org' / 'jeecg' / 'modules' / module_name / sub_module / 'vue3',
+            ]
+            
+            # 找到实际存在的源路径
+            source_vue3_dir = None
+            for path in possible_source_paths:
+                if path.exists():
+                    source_vue3_dir = path
+                    print(f"[OK] 找到实际的vue3源路径: {source_vue3_dir}")
+                    break
+            
+            if not source_vue3_dir:
+                print(f"[WARN] 在预定义路径中未找到vue3目录，启动容错搜索...")
                 
-                # 移动目录
-                if os.path.exists(frontend_target_path):
-                    shutil.rmtree(frontend_target_path)
-                shutil.move(backend_vue_path, frontend_target_path)
+                # 容错搜索机制：在多个模块目录中搜索vue3目录
+                search_base_paths = [
+                    Path(project_root) / 'src',  # 项目根目录src（实际生成位置）
+                    Path(project_root) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}',
+                    Path(project_root) / 'jeecg-module-system',
+                    Path(project_root) / 'jeecg-boot' / 'jeecg-boot-module' / 'jeecg-module-system',
+                ]
                 
-                print(f"✅ 前端代码迁移成功: {frontend_target_path}")
-            else:
-                print("⚠️ 未找到生成的前端代码")
-                
+                for base_path in search_base_paths:
+                    if base_path.exists():
+                        vue3_dirs = list(base_path.glob('**/vue3'))
+                        print(f"[SEARCH] 在 {base_path.name} 中找到 {len(vue3_dirs)} 个vue3目录")
+                        
+                        for vue3_dir in vue3_dirs:
+                            vue_files = list(vue3_dir.glob('*.vue'))
+                            ts_files = list(vue3_dir.glob('*.ts'))
+                            js_files = list(vue3_dir.glob('*.js'))
+                            
+                            if vue_files or ts_files or js_files:
+                                print(f"[OK] 找到包含前端文件的vue3目录: {vue3_dir}")
+                                print(f"   包含: {len(vue_files)} 个Vue文件，{len(ts_files)} 个TS文件，{len(js_files)} 个JS文件")
+                                source_vue3_dir = vue3_dir
+                                break
+                    
+                    if source_vue3_dir:
+                        break
+            
+            # 检查前端项目中是否已存在同模块文件
+            target_base_path = self.get_config_value('frontend_migration', 'target_base_path', 'jeecgboot-vue3/src/views')
+            target_views_base = Path(project_root) / target_base_path
+            frontend_module_dir = target_views_base / sub_module
+            
+            if frontend_module_dir.exists():
+                existing_files = list(frontend_module_dir.glob('*.vue')) + list(frontend_module_dir.glob('*.ts')) + list(frontend_module_dir.glob('*.js'))
+                if existing_files:
+                    print(f"[OK] 发现前端项目中已存在同模块文件: {frontend_module_dir}")
+                    print(f"   已有 {len(existing_files)} 个前端文件")
+                    print("   这可能是同一模块的多个表单，新生成的前端代码应该已经直接生成到正确位置")
+                    return
+            
+            if not source_vue3_dir:
+                print(f"[FAIL] 在所有位置都未找到vue3前端文件目录")
+                return
+            
+            # 3. 验证源目录包含前端文件
+            vue_files = list(source_vue3_dir.glob('*.vue'))
+            ts_files = list(source_vue3_dir.glob('*.ts'))
+            js_files = list(source_vue3_dir.glob('*.js'))
+            
+            if not (vue_files or ts_files or js_files):
+                print(f"[FAIL] 源目录中未找到前端文件: {source_vue3_dir}")
+                return
+            
+            print(f"[OK] 源目录验证通过，找到 {len(vue_files)} 个Vue文件，{len(ts_files)} 个TS文件，{len(js_files)} 个JS文件")
+            
+            # 4. 构建目标路径
+            final_target_dir = target_views_base / sub_module
+            
+            print(f"[SYMBOL] 路径信息:")
+            print(f"   源vue3目录: {source_vue3_dir}")
+            print(f"   最终目标: {final_target_dir}")
+            
+            # 5. 执行迁移操作
+            self._execute_frontend_migration(source_vue3_dir, final_target_dir, migration_config)
+            
         except Exception as e:
             print(f"⚠️ 前端代码迁移异常: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _parse_table_name_components(self, table_name: str, config_data: Dict) -> Dict:
+        """解析表名组件"""
+        if not table_name or not table_name.startswith('us_'):
+            raise ValueError(f"表名格式错误: {table_name}")
+        
+        parts = table_name.split('_')
+        if len(parts) < 4:
+            raise ValueError(f"表名格式错误，至少需要4段: {table_name}")
+        
+        module_name = parts[1]
+        sub_module = parts[2]
+        business_scenario = '_'.join(parts[3:])  # 支持多段业务场景
+        
+        # 从配置获取实体名，或者基于业务场景生成
+        business_entity = config_data.get('head', {}).get('business_entity', '')
+        if not business_entity:
+            business_entity = ''.join(word.capitalize() for word in business_scenario.split('_'))
+        
+        return {
+            'module_name': module_name,
+            'sub_module': sub_module,
+            'business_scenario': business_scenario,
+            'entity_name': business_entity
+        }
+    
+    def _execute_frontend_migration(self, source_dir: Path, target_dir: Path, migration_config: Dict):
+        """执行前端文件迁移操作"""
+        try:
+            print(f"\n[REFRESH] 执行前端代码迁移操作...")
+            
+            # 确保目标目录存在
+            target_dir.parent.mkdir(parents=True, exist_ok=True)
+            
+            # 如果目标目录已存在，根据配置决定是否清理
+            if target_dir.exists():
+                if migration_config.get('cleanup_source', False):
+                    print(f"   清理已存在的目标目录: {target_dir}")
+                    shutil.rmtree(target_dir)
+                else:
+                    print(f"   目标目录已存在，将合并文件: {target_dir}")
+                    # 创建备份
+                    backup_dir = target_dir.parent / f"{target_dir.name}_backup_{int(time.time())}"
+                    shutil.copytree(target_dir, backup_dir)
+                    print(f"   创建备份: {backup_dir}")
+            
+            # 执行移动操作
+            if not target_dir.exists():
+                shutil.move(str(source_dir), str(target_dir))
+                print(f"[OK] 前端代码迁移成功: {target_dir}")
+            else:
+                # 合并文件（如果目标目录已存在）
+                for item in source_dir.iterdir():
+                    target_item = target_dir / item.name
+                    if item.is_file():
+                        if target_item.exists():
+                            print(f"   覆盖文件: {item.name}")
+                        shutil.copy2(item, target_item)
+                    elif item.is_dir():
+                        if target_item.exists():
+                            shutil.rmtree(target_item)
+                        shutil.copytree(item, target_item)
+                
+                # 清理源目录
+                shutil.rmtree(source_dir)
+                print(f"[OK] 前端代码合并完成: {target_dir}")
+            
+            # 验证迁移结果
+            migrated_files = list(target_dir.glob('*.vue')) + list(target_dir.glob('*.ts')) + list(target_dir.glob('*.js'))
+            print(f"[OK] 迁移完成，目标目录包含 {len(migrated_files)} 个前端文件")
+            
+        except Exception as e:
+            print(f"[FAIL] 前端代码迁移操作失败: {e}")
+            raise
+
+    def delete_forms(self, form_ids: List[str], flag: int = 1) -> bool:
+        """
+        删除在线表单（批量删除）
+        
+        Args:
+            form_ids (List[str]): 要删除的表单ID列表
+            flag (int): 删除标志，默认为1
+            
+        Returns:
+            bool: 删除是否成功
+        """
+        if not form_ids:
+            print("❌ 表单ID列表为空，无法执行删除操作")
+            return False
+        
+        delete_url = self.get_config_value('api', 'form_delete_batch_url')
+        if not delete_url:
+            print("❌ 缺少表单删除API配置")
+            return False
+        
+        # 构建请求参数
+        ids_str = ','.join(form_ids)
+        request_data = {
+            "ids": ids_str,
+            "flag": flag
+        }
+        
+        try:
+            print(f"🗑️ 开始删除表单，ID列表: {ids_str}")
+            # 构建URL参数（URL编码）
+            import urllib.parse
+            ids_encoded = urllib.parse.quote(ids_str, safe='')
+            url_with_params = f"{delete_url}?ids={ids_encoded}&flag={flag}"
+            
+            # JeecgBoot删除接口使用DELETE方法
+            response = self.session.delete(url_with_params, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success'):
+                    print(f"✅ 表单删除成功，删除了 {len(form_ids)} 个表单")
+                    return True
+                else:
+                    print(f"❌ 表单删除失败: {result.get('message', '未知错误')}")
+                    return False
+            else:
+                print(f"❌ 表单删除请求失败: HTTP {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ 表单删除异常: {e}")
+            return False
+    
+    def delete_forms_by_table_names(self, table_names: List[str], flag: int = 1) -> bool:
+        """
+        根据表名删除在线表单
+        
+        Args:
+            table_names (List[str]): 要删除的表名列表
+            flag (int): 删除标志，默认为1
+            
+        Returns:
+            bool: 删除是否成功
+        """
+        if not table_names:
+            print("❌ 表名列表为空，无法执行删除操作")
+            return False
+        
+        print(f"🔍 开始查找表单ID，表名列表: {', '.join(table_names)}")
+        
+        # 获取所有表单ID
+        form_ids = []
+        for table_name in table_names:
+            form_id = self.get_form_id(table_name)
+            if form_id:
+                form_ids.append(form_id)
+                print(f"   找到表单 {table_name} -> ID: {form_id}")
+            else:
+                print(f"   ⚠️ 未找到表 {table_name} 对应的表单")
+        
+        if not form_ids:
+            print("❌ 未找到任何有效的表单ID，删除操作终止")
+            return False
+        
+        # 执行批量删除
+        return self.delete_forms(form_ids, flag)
+    
+    def delete_form_by_table_name(self, table_name: str, flag: int = 1) -> bool:
+        """
+        根据单个表名删除在线表单
+        
+        Args:
+            table_name (str): 要删除的表名
+            flag (int): 删除标志，默认为1
+            
+        Returns:
+            bool: 删除是否成功
+        """
+        return self.delete_forms_by_table_names([table_name], flag)
+    
+    def list_all_forms(self, page_no: int = 1, page_size: int = 50) -> List[Dict]:
+        """
+        列出所有在线表单
+        
+        Args:
+            page_no (int): 页码，默认为1
+            page_size (int): 每页大小，默认为50
+            
+        Returns:
+            List[Dict]: 表单列表
+        """
+        url = self.get_config_value('api', 'form_list_url')
+        if not url:
+            print("❌ 缺少表单查询API配置")
+            return []
+        
+        try:
+            params = {'pageNo': page_no, 'pageSize': page_size}
+            response = self.session.get(url, params=params, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success'):
+                    records = result.get('result', {}).get('records', [])
+                    print(f"📋 查询到 {len(records)} 个表单")
+                    return records
+                else:
+                    print(f"❌ 表单查询失败: {result.get('message', '未知错误')}")
+            else:
+                print(f"❌ 表单查询请求失败: HTTP {response.status_code}")
+                
+        except Exception as e:
+            print(f"❌ 表单查询异常: {e}")
+        
+        return []
+    
+    def find_forms_by_pattern(self, pattern: str) -> List[Dict]:
+        """
+        根据模式查找表单（支持模糊匹配）
+        
+        Args:
+            pattern (str): 搜索模式（表名模糊匹配）
+            
+        Returns:
+            List[Dict]: 匹配的表单列表
+        """
+        all_forms = self.list_all_forms()
+        matching_forms = []
+        
+        for form in all_forms:
+            table_name = form.get('tableName', '')
+            if pattern in table_name:
+                matching_forms.append(form)
+        
+        print(f"🔍 找到 {len(matching_forms)} 个匹配 '{pattern}' 的表单")
+        for form in matching_forms:
+            print(f"   - {form.get('tableName')} (ID: {form.get('id')})")
+        
+        return matching_forms
 
     def _replace_template_variables(self, config_data: Dict, project_path: str, module_name: str, submodule_name: str, business_entity: str) -> Dict:
-        """替换模板中的变量占位符"""
+        """替换模板中的变量占位符 - 增强版本支持类型感知"""
 
         # 计算派生变量
         table_name = f"us_{module_name}_{submodule_name}_{business_entity.lower()}"
@@ -363,36 +752,75 @@ class CodeGenExecutor:
         inference_strategy = "独立表场景"
         semantic_analysis = f"{business_entity}管理系统，独立表结构"
 
-        # 变量映射表
+        # 类型感知的变量映射表
         variables = {
-            "{{PROJECT_PATH}}": project_path,
-            "{{MODULE_NAME}}": module_name,
-            "{{SUBMODULE_NAME}}": submodule_name,
-            "{{BUSINESS_ENTITY}}": business_entity,
-            "{{TABLE_NAME}}": table_name,
-            "{{PACKAGE_NAME}}": package_name,
-            "{{TABLE_SUFFIX}}": table_suffix,
-            "{{URL_PATH}}": url_path,
-            "{{FRONTEND_PATH}}": frontend_path,
-            "{{TABLE_DESCRIPTION}}": table_description,
-            "{{TABLE_TYPE}}": table_type,
-            "{{RELATION_TYPE}}": relation_type,
-            "{{TAB_ORDER_NUM}}": tab_order_num,
-            "{{SUB_TABLE_STR}}": sub_table_str,
-            "{{INFERENCE_STRATEGY}}": inference_strategy,
-            "{{SEMANTIC_ANALYSIS}}": semantic_analysis
+            "{{PROJECT_PATH}}": {"value": project_path, "type": "string"},
+            "{{MODULE_NAME}}": {"value": module_name, "type": "string"},
+            "{{SUBMODULE_NAME}}": {"value": submodule_name, "type": "string"},
+            "{{BUSINESS_ENTITY}}": {"value": business_entity, "type": "string"},
+            "{{TABLE_NAME}}": {"value": table_name, "type": "string"},
+            "{{PACKAGE_NAME}}": {"value": package_name, "type": "string"},
+            "{{TABLE_SUFFIX}}": {"value": table_suffix, "type": "string"},
+            "{{URL_PATH}}": {"value": url_path, "type": "string"},
+            "{{FRONTEND_PATH}}": {"value": frontend_path, "type": "string"},
+            "{{TABLE_DESCRIPTION}}": {"value": table_description, "type": "string"},
+            "{{TABLE_TYPE}}": {"value": table_type, "type": "integer"},
+            "{{RELATION_TYPE}}": {"value": relation_type, "type": "null"},
+            "{{TAB_ORDER_NUM}}": {"value": tab_order_num, "type": "null"},
+            "{{SUB_TABLE_STR}}": {"value": sub_table_str, "type": "null"},
+            "{{INFERENCE_STRATEGY}}": {"value": inference_strategy, "type": "string"},
+            "{{SEMANTIC_ANALYSIS}}": {"value": semantic_analysis, "type": "string"}
         }
 
-        # 递归替换JSON中的所有变量
-        replaced_config = self._recursive_replace(config_data, variables)
+        # 类型感知的递归替换
+        replaced_config = self._type_aware_recursive_replace(config_data, variables)
 
         # 生成字段配置
         replaced_config = self._generate_fields(replaced_config, module_name, submodule_name, business_entity)
 
         return replaced_config
 
+    def _type_aware_recursive_replace(self, obj, variables: Dict) -> any:
+        """类型感知的递归替换对象中的变量"""
+        if isinstance(obj, dict):
+            return {key: self._type_aware_recursive_replace(value, variables) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._type_aware_recursive_replace(item, variables) for item in obj]
+        elif isinstance(obj, str):
+            # 检查是否是完全匹配的变量占位符
+            if obj in variables:
+                var_info = variables[obj]
+                var_type = var_info["type"]
+                var_value = var_info["value"]
+                
+                if var_type == "null":
+                    return None
+                elif var_type == "integer":
+                    return var_value
+                elif var_type == "string":
+                    return var_value
+                else:
+                    return var_value
+            
+            # 否则进行字符串内的变量替换
+            result = obj
+            for var, var_info in variables.items():
+                var_value = var_info["value"]
+                var_type = var_info["type"]
+                
+                if var in result:
+                    if var_type == "null":
+                        # 对于null类型，如果是字符串中的一部分，替换为"null"字符串
+                        # 如果是完全匹配，上面已经处理了
+                        result = result.replace(var, "null")
+                    else:
+                        result = result.replace(var, str(var_value))
+            return result
+        else:
+            return obj
+    
     def _recursive_replace(self, obj, variables: Dict) -> any:
-        """递归替换对象中的变量"""
+        """递归替换对象中的变量 - 保留兼容性"""
         if isinstance(obj, dict):
             return {key: self._recursive_replace(value, variables) for key, value in obj.items()}
         elif isinstance(obj, list):
@@ -425,13 +853,23 @@ class CodeGenExecutor:
         business_fields = self._generate_business_fields(business_entity, len(system_fields))
         fields.extend(business_fields)
 
-        # 更新配置
+        # 更新配置 - 场景驱动的智能配置生成
         config_data['fields'] = fields
-        config_data['subList'] = []
+        
+        # 场景识别：根据表类型智能配置
+        table_type = config_data.get('head', {}).get('tableType', 1)
+        
+        if table_type == 1:  # 独立表场景
+            # 独立表不应包含 subList 属性
+            if 'subList' in config_data:
+                del config_data['subList']
+        
+        # 初始化必需的数组属性
         config_data['indexs'] = []
         config_data['deleteFieldIds'] = []
         config_data['deleteIndexIds'] = []
-
+        
+        # 类型感知的替换机制已经确保了正确的数据类型，无需额外修复
         return config_data
 
     def _create_system_field(self, field_name: str, order_num: int) -> Dict:
@@ -713,30 +1151,130 @@ class CodeGenExecutor:
 
 def main():
     """主函数"""
-    if len(sys.argv) < 5:
-        print("用法: python3 Code_Gen_Execute.py <PROJECT_PATH> <MODULE_NAME> <SUBMODULE_NAME> <BUSINESS_ENTITY>")
+    if len(sys.argv) < 2:
+        print("""
+JeecgBoot 代码生成和管理工具
+=========================================
+用法:
+1. 代码生成:
+   python3 Code_Gen_Execute.py generate <PROJECT_PATH> <MODULE_NAME> <SUBMODULE_NAME> <BUSINESS_ENTITY>
+   
+2. 表单管理:
+   python3 Code_Gen_Execute.py list_forms                           # 列出所有表单
+   python3 Code_Gen_Execute.py search_forms <pattern>               # 搜索匹配的表单
+   python3 Code_Gen_Execute.py delete_form <table_name>             # 根据表名删除单个表单
+   python3 Code_Gen_Execute.py delete_forms <name1> <name2> ...     # 根据表名批量删除
+   python3 Code_Gen_Execute.py delete_form_by_id <form_id>          # 根据ID删除单个表单
+   python3 Code_Gen_Execute.py delete_forms_by_ids <id1> <id2> ...  # 根据ID批量删除
+    
+示例:
+   python3 Code_Gen_Execute.py generate /Users/admin/Work/Github/JeecgBoot finance invoice InvoiceHeader
+   python3 Code_Gen_Execute.py list_forms
+   python3 Code_Gen_Execute.py search_forms us_finance
+   python3 Code_Gen_Execute.py delete_form us_finance_payment_paymentrecord
+   python3 Code_Gen_Execute.py delete_forms us_finance_report_reportdata us_finance_transaction_transactionrecord
+   python3 Code_Gen_Execute.py delete_form_by_id 3d447fa919b64f6883a834036c14aa67
+   python3 Code_Gen_Execute.py delete_forms_by_ids 3d447fa919b64f6883a834036c14aa67 41de7884bf9a42b7a2c5918f9f765dff
+        """)
         sys.exit(1)
     
-    project_path, module_name, submodule_name, business_entity = sys.argv[1:5]
+    command = sys.argv[1]
     
     # 创建执行器
     executor = CodeGenExecutor()
     
-    # 加载模板配置
-    template_path = os.path.join(os.path.dirname(__file__), 'Code_Gen_Template.json')
-    try:
-        with open(template_path, 'r', encoding='utf-8') as f:
-            config_data = json.load(f)
-    except Exception as e:
-        print(f"❌ 模板加载失败: {e}")
+    if command == "generate":
+        # 代码生成命令
+        if len(sys.argv) < 6:
+            print("❌ 代码生成需要4个参数: <PROJECT_PATH> <MODULE_NAME> <SUBMODULE_NAME> <BUSINESS_ENTITY>")
+            sys.exit(1)
+        
+        project_path, module_name, submodule_name, business_entity = sys.argv[2:6]
+        
+        # 加载模板配置
+        template_path = os.path.join(os.path.dirname(__file__), 'Code_Gen_Template.json')
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+        except Exception as e:
+            print(f"❌ 模板加载失败: {e}")
+            sys.exit(1)
+        
+        # 替换变量
+        config_data = executor._replace_template_variables(config_data, project_path, module_name, submodule_name, business_entity)
+        
+        # 执行工作流
+        success = executor.execute_workflow(config_data)
+        sys.exit(0 if success else 1)
+    
+    # 表单管理命令需要登录
+    if not executor.login():
+        print("❌ 登录失败，无法执行表单管理操作")
         sys.exit(1)
     
-    # 替换变量
-    config_data = executor._replace_template_variables(config_data, project_path, module_name, submodule_name, business_entity)
+    if command == "list_forms":
+        # 列出所有表单
+        forms = executor.list_all_forms()
+        if forms:
+            print(f"\n📋 共找到 {len(forms)} 个在线表单:")
+            print("-" * 80)
+            for i, form in enumerate(forms, 1):
+                print(f"{i:2d}. 表名: {form.get('tableName', 'N/A')}")
+                print(f"    ID: {form.get('id', 'N/A')}")
+                print(f"    描述: {form.get('tableTxt', 'N/A')}")
+                print(f"    创建时间: {form.get('createTime', 'N/A')}")
+                print("-" * 80)
+        else:
+            print("📋 没有找到任何在线表单")
     
-    # 执行工作流
-    success = executor.execute_workflow(config_data)
-    sys.exit(0 if success else 1)
+    elif command == "search_forms":
+        if len(sys.argv) < 3:
+            print("❌ 请提供搜索模式")
+            sys.exit(1)
+        
+        pattern = sys.argv[2]
+        matching_forms = executor.find_forms_by_pattern(pattern)
+        
+    elif command == "delete_form":
+        if len(sys.argv) < 3:
+            print("❌ 请提供要删除的表名")
+            sys.exit(1)
+        
+        table_name = sys.argv[2]
+        success = executor.delete_form_by_table_name(table_name)
+        sys.exit(0 if success else 1)
+    
+    elif command == "delete_forms":
+        if len(sys.argv) < 3:
+            print("❌ 请提供要删除的表名列表")
+            sys.exit(1)
+        
+        table_names = sys.argv[2:]
+        success = executor.delete_forms_by_table_names(table_names)
+        sys.exit(0 if success else 1)
+    
+    elif command == "delete_form_by_id":
+        if len(sys.argv) < 3:
+            print("❌ 请提供要删除的表单ID")
+            sys.exit(1)
+        
+        form_id = sys.argv[2]
+        success = executor.delete_forms([form_id])
+        sys.exit(0 if success else 1)
+    
+    elif command == "delete_forms_by_ids":
+        if len(sys.argv) < 3:
+            print("❌ 请提供要删除的表单ID列表")
+            sys.exit(1)
+        
+        form_ids = sys.argv[2:]
+        success = executor.delete_forms(form_ids)
+        sys.exit(0 if success else 1)
+    
+    else:
+        print(f"❌ 未知命令: {command}")
+        print("使用 'python3 Code_Gen_Execute.py' 查看所有可用命令")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
