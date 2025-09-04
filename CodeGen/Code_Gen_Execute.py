@@ -186,24 +186,37 @@ class CodeGenExecutor:
         if not self.validate_config(config_data):
             return False
         
-        # 2. 登录认证
+        # 2. 确保模块存在（任务一：Maven模块创建和pom.xml修改）
+        components = self._parse_table_name_components(
+            config_data.get('head', {}).get('tableName', ''), 
+            config_data
+        )
+        module_name = components['module_name']
+        
+        if not self.ensure_module_exists(module_name):
+            print("⚠️ 模块创建失败，但继续执行代码生成...")
+        
+        # 3. 登录认证
         if not self.login():
             return False
         
-        # 3. 创建表单
+        # 4. 创建表单
         form_id = self.create_form(config_data)
         if not form_id:
             return False
         
-        # 4. 同步数据库
+        # 5. 同步数据库
         if not self.sync_database(form_id):
             return False
         
-        # 5. 生成代码（根据表类型决定）
+        # 6. 生成代码（根据表类型决定）
         table_type = config_data.get('head', {}).get('tableType', 1)
         if table_type != 3:  # 子表不生成代码
             if not self.generate_code(form_id, config_data):
                 return False
+            
+            # 7. 处理占位变量（任务二：动态处理占位变量参数）
+            self.process_placeholder_variables(config_data)
         
         print("🎉 代码生成流程完成")
         return True
@@ -732,6 +745,388 @@ class CodeGenExecutor:
             print(f"   - {form.get('tableName')} (ID: {form.get('id')})")
         
         return matching_forms
+    
+    def create_maven_module(self, module_name: str) -> bool:
+        """使用Maven archetype创建新模块"""
+        print(f"[BUILD] 创建Maven模块: jeecg-module-{module_name}")
+        
+        # 获取路径前缀
+        project_prefix = self.get_config_value('project', 'path_prefix')
+        
+        # 构建Maven命令
+        maven_cmd = [
+            'mvn', 'archetype:generate',
+            '-DgroupId=org.jeecgframework.boot',
+            f'-DartifactId=jeecg-module-{module_name}',
+            '-Dversion=3.8.2',
+            '-DarchetypeGroupId=org.jeecgframework.archetype',
+            '-DarchetypeArtifactId=jeecg-boot-gen',
+            '-DarchetypeVersion=2.0',
+            '-DinteractiveMode=false'  # 非交互模式
+        ]
+        
+        # 构建执行目录路径
+        exec_dir = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module'
+        
+        print(f"   执行目录: {exec_dir.absolute()}")
+        print(f"   Maven命令: {' '.join(maven_cmd)}")
+        
+        try:
+            # 确保在正确的目录下执行
+            if not exec_dir.exists():
+                print(f"[FAIL] 执行目录不存在: {exec_dir.absolute()}")
+                return False
+            
+            # 执行Maven命令
+            import subprocess
+            result = subprocess.run(
+                maven_cmd,
+                cwd=exec_dir,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5分钟超时
+            )
+            
+            if result.returncode == 0:
+                print("[OK] Maven模块创建成功")
+                return True
+            else:
+                print(f"[FAIL] Maven模块创建失败")
+                print(f"   错误码: {result.returncode}")
+                print(f"   错误信息: {result.stderr}")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            print("[FAIL] Maven命令执行超时")
+            return False
+        except Exception as e:
+            print(f"[FAIL] Maven命令执行异常: {e}")
+            return False
+    
+    def update_module_registry_pom(self, module_name: str) -> bool:
+        """更新模块注册表pom.xml添加新模块"""
+        project_prefix = self.get_config_value('project', 'path_prefix')
+        pom_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / 'pom.xml'
+        
+        print(f"[NOTE] 更新模块注册表pom.xml: {pom_path.absolute()}")
+        
+        if not pom_path.exists():
+            print(f"[FAIL] 模块注册表pom.xml不存在: {pom_path}")
+            return False
+        
+        try:
+            # 读取原始文件内容
+            with open(pom_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # 检查模块是否已存在
+            module_artifact_id = f"jeecg-module-{module_name}"
+            if f"<module>{module_artifact_id}</module>" in content:
+                print(f"[OK] 模块已存在于模块注册表中: {module_artifact_id}")
+                return True
+            
+            # 查找 </modules> 标签的位置
+            modules_end_pos = content.find('</modules>')
+            if modules_end_pos == -1:
+                modules_end_pos = content.find('</ns0:modules>')
+            if modules_end_pos == -1:
+                print("[FAIL] 未找到modules节点")
+                return False
+            
+            # 在 </modules> 前插入新模块
+            new_module_entry = f"        <module>{module_artifact_id}</module>\n    "
+            new_content = content[:modules_end_pos] + new_module_entry + content[modules_end_pos:]
+            
+            # 写回文件
+            with open(pom_path, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+            
+            print(f"[OK] 已添加模块到模块注册表: {module_name}")
+            return True
+            
+        except Exception as e:
+            print(f"[FAIL] 更新模块注册表pom.xml失败: {e}")
+            return False
+    
+    def update_system_start_pom(self, module_name: str) -> bool:
+        """更新启动项目pom.xml添加新模块依赖"""
+        project_prefix = self.get_config_value('project', 'path_prefix')
+        pom_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-module-system' / 'jeecg-system-start' / 'pom.xml'
+        
+        print(f"[NOTE] 更新启动项目pom.xml: {pom_path.absolute()}")
+        
+        if not pom_path.exists():
+            print(f"[FAIL] 启动项目pom.xml不存在: {pom_path}")
+            return False
+        
+        try:
+            # 读取原始文件内容
+            with open(pom_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # 检查依赖是否已存在
+            artifact_id = f"jeecg-module-{module_name}"
+            if f"<artifactId>{artifact_id}</artifactId>" in content:
+                print(f"[OK] 依赖已存在于启动项目pom.xml中: {artifact_id}")
+                return True
+            
+            # 查找合适的位置插入新依赖（在 jeecg-system-biz 依赖之后）
+            system_biz_pos = content.find('<artifactId>jeecg-system-biz</artifactId>')
+            if system_biz_pos == -1:
+                # 如果找不到 jeecg-system-biz，就在第一个 </dependency> 后插入
+                first_dep_end = content.find('</dependency>')
+                if first_dep_end == -1:
+                    print("[FAIL] 无法找到合适的位置插入依赖")
+                    return False
+                insert_pos = first_dep_end + len('</dependency>')
+            else:
+                # 找到 jeecg-system-biz 依赖的结束位置
+                dep_end_pos = content.find('</dependency>', system_biz_pos)
+                if dep_end_pos == -1:
+                    print("[FAIL] 无法找到 jeecg-system-biz 依赖的结束位置")
+                    return False
+                insert_pos = dep_end_pos + len('</dependency>')
+            
+            # 构建新的依赖项
+            new_dependency = f"""
+
+        <dependency>
+            <groupId>org.jeecgframework.boot</groupId>
+            <artifactId>{artifact_id}</artifactId>
+            <version>${{jeecgboot.version}}</version>
+        </dependency>"""
+            
+            # 插入新依赖
+            new_content = content[:insert_pos] + new_dependency + content[insert_pos:]
+            
+            # 写回文件
+            with open(pom_path, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+            
+            print(f"[OK] 已添加依赖到启动项目pom.xml: {artifact_id}")
+            return True
+            
+        except Exception as e:
+            print(f"[FAIL] 更新启动项目pom.xml失败: {e}")
+            return False
+    
+    def check_module_exists(self, module_name: str) -> bool:
+        """检查模块是否存在"""
+        project_prefix = self.get_config_value('project', 'path_prefix')
+        module_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}'
+        return module_path.exists()
+    
+    def ensure_module_exists(self, module_name: str) -> bool:
+        """确保模块存在，如果不存在则创建并配置"""
+        print(f"\n[TOOL] 模块管理: {module_name}")
+        print("=" * 40)
+        
+        # 1. 检查模块是否存在
+        if self.check_module_exists(module_name):
+            print(f"[OK] 模块已存在，跳过创建步骤")
+            return True
+        
+        # 2. 创建模块
+        print(f"[PACKAGE] 模块不存在，开始创建...")
+        if not self.create_maven_module(module_name):
+            return False
+        
+        # 3. 更新模块注册表pom.xml
+        if not self.update_module_registry_pom(module_name):
+            return False
+        
+        # 4. 更新启动项目pom.xml
+        if not self.update_system_start_pom(module_name):
+            return False
+        
+        print(f"[OK] 模块 {module_name} 创建和配置完成")
+        return True
+    
+    def process_placeholder_variables(self, config_data: Dict) -> bool:
+        """代码生成后处理占位变量参数"""
+        print(f"\n{'='*50}")
+        print("[TEMPLATE] 开始处理占位变量参数...")
+        
+        try:
+            # 获取表名和模块信息
+            table_name = config_data.get('head', {}).get('tableName', '')
+            if not table_name:
+                print("[FAIL] 无法获取表名，跳过占位变量处理")
+                return False
+            
+            components = self._parse_table_name_components(table_name, config_data)
+            module_name = components['module_name']
+            sub_module = components['sub_module']
+            business_entity = components['entity_name']
+            
+            print(f"[LIST] 占位变量信息:")
+            print(f"   表名: {table_name}")
+            print(f"   模块名: {module_name}")
+            print(f"   子模块: {sub_module}")
+            print(f"   业务实体: {business_entity}")
+            
+            # 获取项目路径
+            project_prefix = self.get_config_value('project', 'path_prefix')
+            
+            # 1. 处理生成的源代码目录中的占位变量
+            source_base_path = Path(project_prefix) / 'src' / 'main' / 'java'
+            if source_base_path.exists():
+                self._process_placeholder_in_directory(source_base_path, components, project_prefix)
+            
+            # 2. 处理模块目录中的占位变量
+            module_path = Path(project_prefix) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}'
+            if module_path.exists():
+                self._process_placeholder_in_directory(module_path, components, project_prefix)
+            
+            print("[OK] 占位变量处理完成")
+            return True
+            
+        except Exception as e:
+            print(f"[FAIL] 占位变量处理异常: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _process_placeholder_in_directory(self, base_path: Path, components: Dict, project_prefix: str):
+        """在指定目录中处理占位变量"""
+        module_name = components['module_name']
+        sub_module = components['sub_module']
+        business_entity = components['entity_name']
+        
+        # 查找包含占位变量的目录
+        template_dirs = list(base_path.rglob("*{{PACKAGE_NAME}}*"))
+        if template_dirs:
+            print(f"[SEARCH] 发现 {len(template_dirs)} 个包含{{PACKAGE_NAME}}的目录")
+            self._fix_placeholder_directories(template_dirs, components)
+        
+        # 查找包含占位变量的文件
+        template_files = []
+        for pattern in ['{{PROJECT_PATH}}', '{{BUSINESS_ENTITY}}', '{{PACKAGE_NAME}}']:
+            files = self._find_files_with_placeholder(base_path, pattern)
+            template_files.extend(files)
+        
+        if template_files:
+            print(f"[SEARCH] 发现 {len(set(template_files))} 个包含占位变量的文件")
+            self._fix_placeholder_files(list(set(template_files)), components, project_prefix)
+    
+    def _find_files_with_placeholder(self, base_path: Path, placeholder: str) -> List[Path]:
+        """查找包含特定占位变量的文件"""
+        files = []
+        for file_path in base_path.rglob("*"):
+            if file_path.is_file() and file_path.suffix in ['.java', '.xml', '.properties', '.yml', '.yaml', '.sql']:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        if placeholder in content:
+                            files.append(file_path)
+                except Exception:
+                    continue
+        return files
+    
+    def _fix_placeholder_directories(self, template_dirs: List[Path], components: Dict):
+        """修复包含占位变量的目录名"""
+        module_name = components['module_name']
+        sub_module = components['sub_module']
+        
+        for template_dir in template_dirs:
+            try:
+                # 构建正确的包路径
+                base_package_path = f"org/jeecg/modules/{module_name}/{sub_module}"
+                
+                # 替换目录名中的占位变量
+                correct_path_str = str(template_dir).replace("{{PACKAGE_NAME}}", base_package_path)
+                correct_path = Path(correct_path_str)
+                
+                print(f"[FOLDER] 重命名目录:")
+                print(f"   从: {template_dir}")
+                print(f"   到: {correct_path}")
+                
+                # 确保父目录存在
+                correct_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                # 移动目录内容
+                if template_dir.exists() and template_dir.is_dir():
+                    if correct_path.exists():
+                        # 目标目录已存在，合并内容
+                        self._merge_directories(template_dir, correct_path)
+                    else:
+                        # 直接移动目录
+                        shutil.move(str(template_dir), str(correct_path))
+                        
+            except Exception as e:
+                print(f"[FAIL] 处理目录失败 {template_dir}: {e}")
+    
+    def _merge_directories(self, source_dir: Path, target_dir: Path):
+        """合并两个目录的内容"""
+        for item in source_dir.iterdir():
+            target_item = target_dir / item.name
+            if item.is_dir():
+                if not target_item.exists():
+                    shutil.move(str(item), str(target_item))
+                else:
+                    # 递归合并子目录
+                    self._merge_directories(item, target_item)
+            else:
+                if not target_item.exists():
+                    shutil.move(str(item), str(target_item))
+        
+        # 删除空的源目录
+        try:
+            source_dir.rmdir()
+        except:
+            pass
+    
+    def _fix_placeholder_files(self, template_files: List[Path], components: Dict, project_prefix: str):
+        """修复包含占位变量的文件内容"""
+        module_name = components['module_name']
+        sub_module = components['sub_module']
+        business_entity = components['entity_name']
+        
+        # 构建替换变量映射
+        replacements = {
+            '{{PROJECT_PATH}}': f"{project_prefix}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}",
+            '{{BUSINESS_ENTITY}}': business_entity,
+            '{{PACKAGE_NAME}}': f"org.jeecg.modules.{module_name}.{sub_module}",
+            '{{MODULE_NAME}}': module_name,
+            '{{SUBMODULE_NAME}}': sub_module,
+        }
+        
+        fixed_files = 0
+        for file_path in template_files:
+            try:
+                # 读取文件内容
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # 检查是否包含占位变量
+                original_content = content
+                template_fixed = False
+                
+                # 替换所有占位变量
+                for placeholder, replacement in replacements.items():
+                    if placeholder in content:
+                        content = content.replace(placeholder, replacement)
+                        template_fixed = True
+                
+                # 修复重复包名问题
+                duplicate_package = f"org.jeecg.modules.{module_name}.{sub_module}.{module_name}.{sub_module}"
+                if duplicate_package in content:
+                    correct_package = f"org.jeecg.modules.{module_name}.{sub_module}"
+                    content = content.replace(duplicate_package, correct_package)
+                    template_fixed = True
+                
+                # 如果有修改，写回文件
+                if template_fixed:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    
+                    print(f"   [REFRESH] 已修复文件: {file_path.relative_to(file_path.parent.parent.parent)}")
+                    fixed_files += 1
+                    
+            except Exception as e:
+                print(f"   [FAIL] 处理文件失败 {file_path}: {e}")
+        
+        print(f"[OK] 共修复 {fixed_files} 个文件中的占位变量")
 
     def _replace_template_variables(self, config_data: Dict, project_path: str, module_name: str, submodule_name: str, business_entity: str) -> Dict:
         """替换模板中的变量占位符 - 增强版本支持类型感知"""
@@ -1153,11 +1548,13 @@ def main():
     """主函数"""
     if len(sys.argv) < 2:
         print("""
-JeecgBoot 代码生成和管理工具
-=========================================
+JeecgBoot 代码生成和管理工具 (支持Maven模块创建和占位变量处理)
+==============================================================================
 用法:
 1. 代码生成:
    python3 Code_Gen_Execute.py generate <PROJECT_PATH> <MODULE_NAME> <SUBMODULE_NAME> <BUSINESS_ENTITY>
+   python3 Code_Gen_Execute.py generate_from_json <json_file_path>  # 使用JSON配置文件生成
+   python3 Code_Gen_Execute.py test_finance_invoice                 # 使用财务发票JSON测试完整流程
    
 2. 表单管理:
    python3 Code_Gen_Execute.py list_forms                           # 列出所有表单
@@ -1169,12 +1566,21 @@ JeecgBoot 代码生成和管理工具
     
 示例:
    python3 Code_Gen_Execute.py generate /Users/admin/Work/Github/JeecgBoot finance invoice InvoiceHeader
+   python3 Code_Gen_Execute.py generate_from_json /path/to/config.json
+   python3 Code_Gen_Execute.py test_finance_invoice
    python3 Code_Gen_Execute.py list_forms
    python3 Code_Gen_Execute.py search_forms us_finance
    python3 Code_Gen_Execute.py delete_form us_finance_payment_paymentrecord
    python3 Code_Gen_Execute.py delete_forms us_finance_report_reportdata us_finance_transaction_transactionrecord
    python3 Code_Gen_Execute.py delete_form_by_id 3d447fa919b64f6883a834036c14aa67
    python3 Code_Gen_Execute.py delete_forms_by_ids 3d447fa919b64f6883a834036c14aa67 41de7884bf9a42b7a2c5918f9f765dff
+
+新功能特性:
+✅ Maven模块自动创建 (mvn archetype:generate)
+✅ 自动更新jeecg-boot-module和jeecg-system-start的pom.xml
+✅ 占位变量动态处理 ({{PROJECT_PATH}}, {{BUSINESS_ENTITY}})
+✅ 完整的前后端代码生成和迁移
+✅ 在线表单生命周期管理
         """)
         sys.exit(1)
     
@@ -1269,6 +1675,55 @@ JeecgBoot 代码生成和管理工具
         
         form_ids = sys.argv[2:]
         success = executor.delete_forms(form_ids)
+        sys.exit(0 if success else 1)
+    
+    elif command == "generate_from_json":
+        # 使用JSON配置文件生成代码
+        if len(sys.argv) < 3:
+            print("❌ 请提供JSON配置文件路径")
+            sys.exit(1)
+        
+        json_file_path = sys.argv[2]
+        
+        # 加载JSON配置
+        try:
+            with open(json_file_path, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+        except Exception as e:
+            print(f"❌ JSON配置文件加载失败: {e}")
+            sys.exit(1)
+        
+        print(f"📄 使用JSON配置文件: {json_file_path}")
+        
+        # 执行完整工作流（包含Maven模块创建和占位变量处理）
+        success = executor.execute_workflow(config_data)
+        sys.exit(0 if success else 1)
+    
+    elif command == "test_finance_invoice":
+        # 使用finance_invoice_InvoiceHeader_20250905001615.json进行完整测试
+        json_file_path = "/Users/admin/Work/Github/JeecgBoot/finance_invoice_InvoiceHeader_20250905001615.json"
+        
+        # 加载JSON配置
+        try:
+            with open(json_file_path, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+        except Exception as e:
+            print(f"❌ JSON配置文件加载失败: {e}")
+            sys.exit(1)
+        
+        print(f"📄 使用财务发票管理JSON配置进行完整测试")
+        print(f"📄 配置文件: {json_file_path}")
+        
+        # 执行完整工作流（包含Maven模块创建和占位变量处理）
+        success = executor.execute_workflow(config_data)
+        
+        if success:
+            print("\n🎯 测试完成，现在演示删除表单功能")
+            table_name = config_data.get('head', {}).get('tableName', '')
+            if table_name:
+                print(f"🗑️ 删除刚创建的表单: {table_name}")
+                executor.delete_form_by_table_name(table_name)
+        
         sys.exit(0 if success else 1)
     
     else:
