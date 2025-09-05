@@ -23,7 +23,18 @@
         },
         "tableType": {
           "type": "integer",
-          "enum": [1]
+          "enum": [1, 2, 3],
+          "description": "表类型：1=独立表，2=主表，3=子表"
+        },
+        "relationType": {
+          "type": ["integer", "null"],
+          "enum": [null, 0, 1],
+          "description": "关联类型：null=无关联，0=一对多，1=一对一"
+        },
+        "tabOrderNum": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "子表显示顺序，仅子表使用"
         },
         "formCategory": {
           "type": "string",
@@ -56,6 +67,27 @@
             "type": "integer",
             "minimum": 0,
             "description": "必须从0开始严格连续递增"
+          },
+          "queryMode": {
+            "type": "string",
+            "maxLength": 10,
+            "enum": ["single", "range", "like", "in", "between"],
+            "description": "查询模式，最大10字符"
+          },
+          "fieldShowType": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "显示类型，最大20字符"
+          },
+          "queryShowType": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "查询显示类型，最大50字符"
+          },
+          "fieldValidType": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "字段验证类型，最大300字符"
           }
         },
         "additionalProperties": true

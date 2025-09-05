@@ -7,5 +7,8 @@ requests>=2.25.0
 # MySQL database connector
 mysql-connector-python>=8.0.0
 
+# JSON schema validation
+jsonschema>=4.0.0
+
 # Installation:
 # pip install -r requirements.txt

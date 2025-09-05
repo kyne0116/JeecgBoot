@@ -1,0 +1,638 @@
+{
+  "_schema_info": {
+    "version": "3.0",
+    "title": "JeecgBoot 代码生成系统 - 增强JSON配置规范",
+    "description": "基于AI友好设计的完整配置规范，支持独立表和主子表场景",
+    "compatible_versions": ["JeecgBoot 3.8.2+"],
+    "last_updated": "2025-01-04",
+    "specification_type": "enhanced_json"
+  },
+
+  "_ai_generation_context": {
+    "template_type": "enhanced_json_with_ai_hints",
+    "validation_level": "strict",
+    "error_prevention_strategy": "constraint_driven",
+    "ai_guidance": {
+      "variable_inference": "从用户业务需求中推断三核心变量",
+      "entity_extraction": "提取最核心的业务实体作为BUSINESS_ENTITY",
+      "field_generation": "确保orderNum从0开始严格连续递增",
+      "constraint_compliance": "严格遵守字段长度和格式约束",
+      "scenario_detection": "自动识别独立表vs主子表场景"
+    },
+    "common_pitfalls": {
+      "orderNum_discontinuity": "orderNum必须连续，不能跳号",
+      "field_length_overflow": "queryMode≤10字符，fieldShowType≤20字符",
+      "table_name_format": "必须符合us_{module}_{submodule}_{entity}格式",
+      "system_fields_missing": "前7个字段必须是标准系统字段"
+    }
+  },
+
+  "core_variables": {
+    "_description": "三核心变量系统定义",
+    "MODULE_NAME": {
+      "value": "{{MODULE_NAME}}",
+      "_type": "string",
+      "_format": "lowercase",
+      "_pattern": "^[a-z]+$",
+      "_ai_hint": "业务系统模块名，如finance、hrms、crm、education",
+      "_examples": ["finance", "hrms", "crm", "education", "inventory"],
+      "_derivation_source": "从用户业务需求推断"
+    },
+    "SUBMODULE_NAME": {
+      "value": "{{SUBMODULE_NAME}}",
+      "_type": "string", 
+      "_format": "lowercase",
+      "_pattern": "^[a-z]+$",
+      "_ai_hint": "功能子模块名，如invoice、employee、customer、student",
+      "_examples": ["invoice", "employee", "customer", "student", "product"],
+      "_derivation_source": "从业务功能领域推断"
+    },
+    "BUSINESS_ENTITY": {
+      "value": "{{BUSINESS_ENTITY}}",
+      "_type": "string",
+      "_format": "PascalCase", 
+      "_pattern": "^[A-Z][a-zA-Z]*$",
+      "_ai_hint": "核心业务实体名，如CustomerProfile、InvoiceInfo、EmployeeRecord",
+      "_examples": ["CustomerProfile", "InvoiceInfo", "EmployeeRecord", "StudentInfo"],
+      "_derivation_source": "从具体业务对象提取",
+      "_constraint": "避免使用Management、Info等通用词汇，要具体化"
+    }
+  },
+
+  "derived_formats": {
+    "_description": "从核心变量自动派生的格式",
+    "TABLE_SUFFIX": {
+      "value": "{{TABLE_SUFFIX}}",
+      "_derivation": "BUSINESS_ENTITY转为全小写连续字符",
+      "_transformation": "PascalCase → lowercase",
+      "_example": "CustomerProfile → customerprofile"
+    },
+    "URL_PATH": {
+      "value": "{{URL_PATH}}",
+      "_derivation": "BUSINESS_ENTITY转为kebab-case格式",
+      "_transformation": "PascalCase → kebab-case",
+      "_example": "CustomerProfile → customer-profile"
+    },
+    "FRONTEND_PATH": {
+      "value": "{{FRONTEND_PATH}}",
+      "_derivation": "MODULE_NAME/TABLE_SUFFIX路径格式",
+      "_transformation": "组合路径",
+      "_example": "finance/customerprofile"
+    },
+    "PACKAGE_NAME": {
+      "value": "org.jeecg.modules.{{MODULE_NAME}}.{{SUBMODULE_NAME}}",
+      "_derivation": "标准Java包名格式",
+      "_transformation": "固定前缀+模块路径",
+      "_example": "org.jeecg.modules.finance.invoice"
+    }
+  },
+
+  "scenarios": {
+    "_description": "不同场景的配置模板",
+    
+    "independent_table": {
+      "_scenario_type": "独立表",
+      "_api_strategy": "full_workflow",
+      "_description": "独立业务表，无关联关系",
+      
+      "head": {
+        "tableName": "us_{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{TABLE_SUFFIX}}",
+        "_tableName_type": "string",
+        "_tableName_pattern": "^us_[a-z]+_[a-z]+_[a-z]+$",
+        "_tableName_ai_hint": "4段式命名：us_模块_子模块_实体，全小写下划线分隔",
+        
+        "tableTxt": "{{BUSINESS_DESCRIPTION}}",
+        "_tableTxt_type": "string",
+        "_tableTxt_ai_hint": "业务功能描述，如'客户档案信息'、'发票管理信息'",
+        
+        "business_entity": "{{BUSINESS_ENTITY}}",
+        "_business_entity_type": "string",
+        "_business_entity_format": "PascalCase",
+        "_business_entity_ai_hint": "核心业务实体，避免使用Management等通用词",
+        
+        "tableType": 1,
+        "_tableType_type": "integer",
+        "_tableType_enum": [1, 2, 3],
+        "_tableType_ai_hint": "1=独立表, 2=主表, 3=子表",
+        "_tableType_constraint": "独立表场景固定为1",
+        
+        "relationType": null,
+        "_relationType_ai_hint": "独立表无关联关系，固定为null",
+        
+        "tabOrderNum": null,
+        "_tabOrderNum_ai_hint": "独立表不需要排序，固定为null",
+        
+        "formCategory": "temp",
+        "idType": "UUID",
+        "isCheckbox": "Y",
+        "themeTemplate": "normal",
+        "formTemplate": "1",
+        "scroll": 1,
+        "isPage": "Y",
+        "isTree": "N",
+        "isDesForm": "N",
+        "desFormCode": ""
+      },
+      
+      "subList": [],
+      "_subList_ai_hint": "独立表场景subList为空数组"
+    },
+
+    "main_table": {
+      "_scenario_type": "主表",
+      "_api_strategy": "main_table_workflow", 
+      "_description": "主子表关系中的主表，包含subList配置",
+      
+      "head": {
+        "tableName": "us_{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{TABLE_SUFFIX}}",
+        "tableTxt": "{{BUSINESS_DESCRIPTION}}",
+        "business_entity": "{{BUSINESS_ENTITY}}",
+        
+        "tableType": 2,
+        "_tableType_constraint": "主表场景固定为2",
+        
+        "relationType": null,
+        "_relationType_ai_hint": "主表无关联关系，固定为null",
+        
+        "tabOrderNum": null,
+        "_tabOrderNum_ai_hint": "主表不需要排序，固定为null",
+        
+        "subTableStr": "{{SUB_TABLE_LIST}}",
+        "_subTableStr_type": "string",
+        "_subTableStr_format": "逗号分隔的子表名列表",
+        "_subTableStr_ai_hint": "子表表名列表，如'us_education_student_parents,us_education_student_classmate'",
+        
+        "formCategory": "temp",
+        "idType": "UUID", 
+        "isCheckbox": "Y",
+        "themeTemplate": "normal",
+        "formTemplate": "1",
+        "scroll": 1,
+        "isPage": "Y",
+        "isTree": "N",
+        "isDesForm": "N",
+        "desFormCode": ""
+      },
+      
+      "subList": [
+        {
+          "_subList_template": "子表配置模板",
+          "tableName": "us_{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{SUB_TABLE_SUFFIX}}",
+          "_tableName_ai_hint": "子表表名，必须与主表同模块",
+          
+          "entityName": "{{SUB_ENTITY_NAME}}",
+          "_entityName_type": "string",
+          "_entityName_format": "PascalCase",
+          "_entityName_ai_hint": "子表实体名，如StudentParents、StudentClassmate",
+          
+          "ftlDescription": "{{SUB_TABLE_DESCRIPTION}}",
+          "_ftlDescription_type": "string",
+          "_ftlDescription_ai_hint": "子表业务描述，如'学生家长信息表'",
+          
+          "id": "row_{{SUB_ID}}",
+          "_id_type": "string",
+          "_id_pattern": "^row_[0-9]{4}$",
+          "_id_start_value": "row_1020",
+          "_id_increment_rule": "从row_1020开始递增：row_1020, row_1021, row_1022...",
+          "_id_ai_hint": "子表ID，从row_1020开始递增"
+        }
+      ]
+    },
+
+    "sub_table": {
+      "_scenario_type": "子表",
+      "_api_strategy": "sub_table_workflow",
+      "_description": "主子表关系中的子表，只创建数据库表不生成代码",
+      
+      "head": {
+        "tableName": "us_{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{TABLE_SUFFIX}}",
+        "tableTxt": "{{BUSINESS_DESCRIPTION}}",
+        "business_entity": "{{BUSINESS_ENTITY}}",
+        
+        "tableType": 3,
+        "_tableType_constraint": "子表场景固定为3",
+        
+        "relationType": 0,
+        "_relationType_type": "integer",
+        "_relationType_constraint": "子表一对多关系固定为0",
+        "_relationType_ai_hint": "0=一对多关系(1:N)",
+        
+        "tabOrderNum": "{{TAB_ORDER}}",
+        "_tabOrderNum_type": "integer",
+        "_tabOrderNum_start_value": 1,
+        "_tabOrderNum_ai_hint": "子表显示顺序，从1开始递增：1,2,3...",
+        
+        "formCategory": "temp",
+        "idType": "UUID",
+        "isCheckbox": "Y", 
+        "themeTemplate": "normal",
+        "formTemplate": "1",
+        "scroll": 1,
+        "isPage": "Y",
+        "isTree": "N",
+        "isDesForm": "N",
+        "desFormCode": ""
+      },
+      
+      "subList": [],
+      "_subList_ai_hint": "子表场景subList为空数组"
+    }
+  },
+
+  "field_templates": {
+    "_description": "字段配置模板",
+
+    "system_fields": {
+      "_description": "7个标准系统字段，orderNum: 0-6，必须严格连续",
+      "_ai_instruction": "以下7个系统字段必须完全复制，不能修改",
+      "_orderNum_constraint": "系统字段orderNum必须0-6连续，不能跳号",
+
+      "fields": [
+        {
+          "_field_type": "system_field",
+          "_field_index": 0,
+          "dbFieldName": "id",
+          "dbFieldTxt": "主键",
+          "dbType": "string",
+          "dbLength": 36,
+          "dbIsNull": "0",
+          "dbIsPersist": "1",
+          "fieldShowType": "text",
+          "isShowForm": "0",
+          "isShowList": "0",
+          "orderNum": 0,
+          "_orderNum_constraint": "系统字段ID，orderNum固定为0"
+        },
+        {
+          "_field_type": "system_field",
+          "_field_index": 1,
+          "dbFieldName": "create_by",
+          "dbFieldTxt": "创建人",
+          "dbType": "string",
+          "dbLength": 50,
+          "dbIsNull": "1",
+          "dbIsPersist": "1",
+          "fieldShowType": "text",
+          "isShowForm": "0",
+          "isShowList": "0",
+          "orderNum": 1,
+          "_orderNum_constraint": "系统字段创建人，orderNum固定为1"
+        },
+        {
+          "_field_type": "system_field",
+          "_field_index": 2,
+          "dbFieldName": "create_time",
+          "dbFieldTxt": "创建日期",
+          "dbType": "Date",
+          "dbLength": 20,
+          "dbIsNull": "1",
+          "dbIsPersist": "1",
+          "fieldShowType": "datetime",
+          "isShowForm": "0",
+          "isShowList": "0",
+          "orderNum": 2,
+          "_orderNum_constraint": "系统字段创建时间，orderNum固定为2"
+        },
+        {
+          "_field_type": "system_field",
+          "_field_index": 3,
+          "dbFieldName": "update_by",
+          "dbFieldTxt": "更新人",
+          "dbType": "string",
+          "dbLength": 50,
+          "dbIsNull": "1",
+          "dbIsPersist": "1",
+          "fieldShowType": "text",
+          "isShowForm": "0",
+          "isShowList": "0",
+          "orderNum": 3,
+          "_orderNum_constraint": "系统字段更新人，orderNum固定为3"
+        },
+        {
+          "_field_type": "system_field",
+          "_field_index": 4,
+          "dbFieldName": "update_time",
+          "dbFieldTxt": "更新日期",
+          "dbType": "Date",
+          "dbLength": 20,
+          "dbIsNull": "1",
+          "dbIsPersist": "1",
+          "fieldShowType": "datetime",
+          "isShowForm": "0",
+          "isShowList": "0",
+          "orderNum": 4,
+          "_orderNum_constraint": "系统字段更新时间，orderNum固定为4"
+        },
+        {
+          "_field_type": "system_field",
+          "_field_index": 5,
+          "dbFieldName": "sys_org_code",
+          "dbFieldTxt": "所属部门",
+          "dbType": "string",
+          "dbLength": 64,
+          "dbIsNull": "1",
+          "dbIsPersist": "1",
+          "fieldShowType": "text",
+          "isShowForm": "0",
+          "isShowList": "0",
+          "orderNum": 5,
+          "_orderNum_constraint": "系统字段组织编码，orderNum固定为5"
+        },
+        {
+          "_field_type": "system_field",
+          "_field_index": 6,
+          "dbFieldName": "del_flag",
+          "dbFieldTxt": "删除状态",
+          "dbType": "string",
+          "dbLength": 1,
+          "dbIsNull": "1",
+          "dbIsPersist": "1",
+          "fieldShowType": "text",
+          "isShowForm": "0",
+          "isShowList": "0",
+          "orderNum": 6,
+          "_orderNum_constraint": "系统字段删除标志，orderNum固定为6"
+        }
+      ]
+    },
+
+    "business_field_template": {
+      "_description": "业务字段模板",
+      "_ai_instruction": "业务字段从orderNum=7开始，必须连续递增",
+      "_orderNum_start": 7,
+      "_orderNum_constraint": "业务字段orderNum从7开始连续递增，不能跳号",
+
+      "template": {
+        "_field_type": "business_field",
+        "dbFieldName": "{{FIELD_NAME}}",
+        "_dbFieldName_type": "string",
+        "_dbFieldName_pattern": "^[a-z][a-z0-9_]*$",
+        "_dbFieldName_ai_hint": "字段名，小写字母开头，可包含数字和下划线",
+
+        "dbFieldTxt": "{{FIELD_DESCRIPTION}}",
+        "_dbFieldTxt_type": "string",
+        "_dbFieldTxt_ai_hint": "字段中文描述，如'客户姓名'、'发票金额'",
+
+        "dbType": "{{FIELD_TYPE}}",
+        "_dbType_type": "string",
+        "_dbType_enum": ["string", "int", "BigDecimal", "Date", "Datetime", "text"],
+        "_dbType_ai_hint": "字段数据类型，常用string、int、BigDecimal、Date",
+
+        "dbLength": "{{FIELD_LENGTH}}",
+        "_dbLength_type": "integer",
+        "_dbLength_default": 100,
+        "_dbLength_ai_hint": "字段长度，string类型常用100，int类型可省略",
+
+        "dbIsNull": "1",
+        "_dbIsNull_type": "string",
+        "_dbIsNull_enum": ["0", "1"],
+        "_dbIsNull_ai_hint": "是否可空：0=不可空，1=可空，业务字段通常为1",
+
+        "dbIsPersist": "1",
+        "_dbIsPersist_type": "string",
+        "_dbIsPersist_constraint": "必须为1，表示字段持久化到数据库",
+
+        "fieldShowType": "{{SHOW_TYPE}}",
+        "_fieldShowType_type": "string",
+        "_fieldShowType_max_length": 20,
+        "_fieldShowType_enum": ["text", "textarea", "number", "date", "select", "radio", "checkbox"],
+        "_fieldShowType_ai_hint": "显示类型，最大20字符，常用text、select、date",
+
+        "isShowForm": "1",
+        "_isShowForm_type": "string",
+        "_isShowForm_enum": ["0", "1"],
+        "_isShowForm_ai_hint": "是否在表单中显示：0=不显示，1=显示",
+
+        "isShowList": "1",
+        "_isShowList_type": "string",
+        "_isShowList_enum": ["0", "1"],
+        "_isShowList_ai_hint": "是否在列表中显示：0=不显示，1=显示",
+
+        "queryMode": "{{QUERY_MODE}}",
+        "_queryMode_type": "string",
+        "_queryMode_max_length": 10,
+        "_queryMode_enum": ["single", "range", "like", "in", "between"],
+        "_queryMode_ai_hint": "查询模式，最大10字符，推荐single/range/like",
+        "_queryMode_constraint": "禁用group_range、date_range等超长值",
+
+        "orderNum": "{{ORDER_NUM}}",
+        "_orderNum_type": "integer",
+        "_orderNum_start": 7,
+        "_orderNum_constraint": "从7开始连续递增，不能跳号",
+        "_orderNum_ai_hint": "字段排序号，从7开始：7,8,9,10..."
+      }
+    }
+  },
+
+  "metadata_structure": {
+    "_description": "元数据结构定义",
+
+    "generation_info": {
+      "module_name": "{{MODULE_NAME}}",
+      "_module_name_type": "string",
+      "_module_name_format": "lowercase",
+      "_module_name_ai_hint": "业务系统模块名，如finance、hrms、crm",
+
+      "submodule_name": "{{SUBMODULE_NAME}}",
+      "_submodule_name_type": "string",
+      "_submodule_name_format": "lowercase",
+      "_submodule_name_ai_hint": "功能子模块名，如invoice、employee、customer",
+
+      "business_entity": "{{BUSINESS_ENTITY}}",
+      "_business_entity_type": "string",
+      "_business_entity_format": "PascalCase",
+      "_business_entity_ai_hint": "核心业务实体，如CustomerProfile、InvoiceInfo",
+
+      "inference_strategy": "{{INFERENCE_STRATEGY}}",
+      "_inference_strategy_ai_hint": "AI推理策略说明，记录推理过程",
+
+      "semantic_analysis": "{{SEMANTIC_ANALYSIS}}",
+      "_semantic_analysis_ai_hint": "语义分析结果，记录业务理解"
+    },
+
+    "derived_formats": {
+      "table_suffix": "{{TABLE_SUFFIX}}",
+      "_table_suffix_derivation": "BUSINESS_ENTITY转为全小写",
+
+      "url_path": "{{URL_PATH}}",
+      "_url_path_derivation": "BUSINESS_ENTITY转为kebab-case",
+
+      "frontend_path": "{{FRONTEND_PATH}}",
+      "_frontend_path_derivation": "MODULE_NAME/TABLE_SUFFIX",
+
+      "package_name": "{{PACKAGE_NAME}}",
+      "_package_name_derivation": "org.jeecg.modules.MODULE_NAME.SUBMODULE_NAME"
+    }
+  },
+
+  "validation_rules": {
+    "_description": "配置文件验证规则",
+
+    "critical_constraints": {
+      "_description": "致命约束，违反将导致API失败",
+
+      "orderNum_continuity": {
+        "rule": "orderNum必须从0开始严格连续递增",
+        "pattern": "^(0|[1-9][0-9]*)$",
+        "validation": "检查是否存在跳号：0,1,2,3,4...",
+        "error_example": "❌ 0,1,2,5,6 (跳过3,4)",
+        "correct_example": "✅ 0,1,2,3,4 (严格连续)",
+        "_ai_hint": "这是JeecgBoot API的强制要求，违反会导致API调用失败"
+      },
+
+      "system_fields_integrity": {
+        "rule": "前7个字段必须是标准系统字段",
+        "required_fields": ["id", "create_by", "create_time", "update_by", "update_time", "sys_org_code", "del_flag"],
+        "required_orderNums": [0, 1, 2, 3, 4, 5, 6],
+        "_ai_hint": "系统字段配置不能修改，必须完全复制模板"
+      },
+
+      "table_name_format": {
+        "rule": "表名必须符合4段式格式",
+        "pattern": "^us_[a-z]+_[a-z]+_[a-z]+$",
+        "format": "us_{MODULE_NAME}_{SUBMODULE_NAME}_{TABLE_SUFFIX}",
+        "error_example": "❌ us_finance_invoice (只有3段)",
+        "correct_example": "✅ us_finance_invoice_customerprofile (4段)",
+        "_ai_hint": "表名格式是JeecgBoot的强制要求"
+      }
+    },
+
+    "field_length_limits": {
+      "_description": "字段长度限制，基于JeecgBoot数据库表结构",
+
+      "queryMode": {
+        "max_length": 10,
+        "recommended_values": ["single", "range", "like", "in", "between"],
+        "forbidden_values": ["group_range", "date_range", "multi_select"],
+        "auto_correction": {
+          "group_range": "range",
+          "date_range": "range",
+          "multi_select": "single"
+        },
+        "_ai_hint": "queryMode最大10字符，超长值会被自动修正"
+      },
+
+      "fieldShowType": {
+        "max_length": 20,
+        "recommended_values": ["text", "textarea", "number", "date", "select", "radio", "checkbox"],
+        "_ai_hint": "fieldShowType最大20字符"
+      },
+
+      "queryShowType": {
+        "max_length": 50,
+        "recommended_values": ["text", "date", "select", "number"],
+        "_ai_hint": "queryShowType最大50字符，通常不会超限"
+      },
+
+      "fieldValidType": {
+        "max_length": 300,
+        "recommended_values": ["mobile", "email", "n,p", "url"],
+        "_ai_hint": "fieldValidType最大300字符，通常不会超限"
+      }
+    },
+
+    "business_rules": {
+      "_description": "业务规则验证",
+
+      "entity_naming": {
+        "rule": "BUSINESS_ENTITY必须具体化，避免通用词汇",
+        "forbidden_patterns": ["Management", "Info", "Data", "System"],
+        "recommended_patterns": ["Profile", "Record", "Detail", "Config"],
+        "examples": {
+          "bad": ["CustomerManagement", "UserInfo", "ProductData"],
+          "good": ["CustomerProfile", "UserRecord", "ProductDetail"]
+        },
+        "_ai_hint": "使用具体的业务实体名，避免Management等通用词"
+      },
+
+      "module_consistency": {
+        "rule": "主子表必须属于同一模块",
+        "validation": "主表和所有子表的MODULE_NAME和SUBMODULE_NAME必须一致",
+        "_ai_hint": "主子表关联时，所有表必须在同一业务模块下"
+      }
+    }
+  },
+
+  "api_integration": {
+    "_description": "JeecgBoot API集成配置",
+
+    "request_structure": {
+      "_description": "API请求结构定义",
+
+      "addAll_request": {
+        "method": "POST",
+        "path": "/online/cgform/api/addAll",
+        "content_type": "application/json",
+        "required_fields": ["head", "fields"],
+        "optional_fields": ["subList", "metadata", "indexs", "deleteFieldIds", "deleteIndexIds"],
+        "body_structure": {
+          "head": "表基本信息对象",
+          "fields": "字段定义数组",
+          "subList": "子表配置数组(主表场景)",
+          "metadata": "元数据信息对象",
+          "indexs": "索引配置数组",
+          "deleteFieldIds": "删除字段ID数组",
+          "deleteIndexIds": "删除索引ID数组"
+        }
+      },
+
+      "codeGenerate_request": {
+        "method": "POST",
+        "path": "/online/cgform/api/codeGenerate",
+        "content_type": "application/json",
+        "required_fields": ["id", "projectPath", "entityName"],
+        "optional_fields": ["subList", "jspMode", "jformType"],
+        "body_structure": {
+          "id": "表单ID",
+          "projectPath": "项目路径",
+          "entityName": "实体名称",
+          "subList": "子表列表(主表场景)",
+          "jspMode": "JSP模式(one/jvxe)",
+          "jformType": "表单类型(1/2)"
+        }
+      }
+    },
+
+    "response_structure": {
+      "_description": "API响应结构定义",
+
+      "standard_response": {
+        "success": "boolean - 请求是否成功",
+        "message": "string - 响应消息",
+        "result": "object - 响应数据",
+        "timestamp": "number - 响应时间戳"
+      },
+
+      "error_response": {
+        "success": false,
+        "message": "错误信息描述",
+        "code": "错误代码",
+        "timestamp": "响应时间戳"
+      }
+    },
+
+    "workflow_strategies": {
+      "_description": "不同场景的API调用策略",
+
+      "independent_table": {
+        "steps": ["login", "addAll", "list", "sync", "generate"],
+        "description": "独立表完整流程",
+        "api_calls": 5
+      },
+
+      "main_table": {
+        "steps": ["login", "addAll", "list", "sync", "generate"],
+        "special_params": ["subList", "jspMode=jvxe", "jformType=2"],
+        "description": "主表流程，包含子表关联",
+        "api_calls": 5
+      },
+
+      "sub_table": {
+        "steps": ["login", "addAll", "list", "sync"],
+        "skip_generate": true,
+        "description": "子表流程，只创建数据库表",
+        "api_calls": 4
+      }
+    }
+  }
+}

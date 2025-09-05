@@ -61,22 +61,34 @@ class CodeGenValidator:
         errors.extend(self._validate_order_num(config))
         errors.extend(self._validate_system_fields(config))
         errors.extend(self._validate_table_name(config))
+        errors.extend(self._validate_field_length_limits(config))
 
         # 验证表类型参数
         table_type_valid, table_type_errors = self.validate_table_type_params(config)
         if not table_type_valid:
             errors.extend(table_type_errors)
 
-        # 验证subList配置（如果存在）
-        if 'subList' in config:
-            sub_list_valid, sub_list_errors = self.validate_sub_list(config['subList'])
-            if not sub_list_valid:
-                errors.extend(sub_list_errors)
-
-            # 验证主子表一致性
-            consistency_valid, consistency_errors = self.validate_master_sub_consistency(config)
-            if not consistency_valid:
-                errors.extend(consistency_errors)
+        # 智能验证subList配置（根据表类型）
+        table_type = config.get('head', {}).get('tableType', 1)
+        has_sub_list = 'subList' in config
+        
+        if table_type == 1:  # 独立表
+            if has_sub_list:
+                errors.append("独立表不应包含subList配置")
+        elif table_type == 2:  # 主表
+            if has_sub_list:
+                # 主表可以有subList，但如果存在就需要验证
+                sub_list_valid, sub_list_errors = self.validate_sub_list_for_master_table(config['subList'])
+                if not sub_list_valid:
+                    errors.extend(sub_list_errors)
+                
+                # 验证主子表一致性
+                consistency_valid, consistency_errors = self.validate_master_sub_consistency(config)
+                if not consistency_valid:
+                    errors.extend(consistency_errors)
+        elif table_type == 3:  # 子表
+            if has_sub_list:
+                errors.append("子表不应包含subList配置")
 
         return len(errors) == 0, errors
 
@@ -136,6 +148,29 @@ class CodeGenValidator:
             errors.append("表名必须至少是4段式: us_module_submodule_entity（支持更多段）")
 
         return errors
+
+    def _validate_field_length_limits(self, config: Dict) -> List[str]:
+        """验证字段长度限制"""
+        errors = []
+        fields = config.get('fields', [])
+
+        # 字段长度限制定义
+        length_limits = {
+            'queryMode': 10,
+            'fieldShowType': 20,
+            'queryShowType': 50,
+            'fieldValidType': 300
+        }
+
+        for i, field in enumerate(fields):
+            for field_name, max_length in length_limits.items():
+                if field_name in field:
+                    value = field[field_name]
+                    if isinstance(value, str) and len(value) > max_length:
+                        errors.append(f"🚨 字段{i+1}的{field_name}超长: {len(value)}字符 > {max_length}字符限制")
+
+        return errors
+
     def generate_validation_report(self, config_file: str) -> str:
         """生成验证报告"""
         is_valid, errors = self.validate_config(config_file)
@@ -163,8 +198,23 @@ JSON配置验证报告
 
         return report
 
+    def validate_sub_list_for_master_table(self, sub_list: List[Dict]) -> Tuple[bool, List[str]]:
+        """验证主表的subList配置 - 允许空数组"""
+        errors = []
+
+        if not isinstance(sub_list, list):
+            errors.append("subList必须是数组类型")
+            return False, errors
+
+        # 主表允许空的subList（表示暂时没有子表）
+        if len(sub_list) == 0:
+            return True, []
+
+        # 如果不为空，则使用标准验证逻辑
+        return self._validate_sub_list_content(sub_list)
+
     def validate_sub_list(self, sub_list: List[Dict]) -> Tuple[bool, List[str]]:
-        """验证subList配置的完整性"""
+        """验证subList配置的完整性 - 子表场景（不允许空数组）"""
         errors = []
 
         if not isinstance(sub_list, list):
@@ -174,6 +224,12 @@ JSON配置验证报告
         if len(sub_list) == 0:
             errors.append("subList不能为空数组")
             return False, errors
+
+        return self._validate_sub_list_content(sub_list)
+
+    def _validate_sub_list_content(self, sub_list: List[Dict]) -> Tuple[bool, List[str]]:
+        """验证subList内容的通用逻辑"""
+        errors = []
 
         # 验证必需字段
         required_fields = ['tableName', 'entityName', 'ftlDescription', 'id']
