@@ -118,12 +118,25 @@ class ExecutionTracker:
             self.generated_files[file_type].append(file_path)
             
     def get_summary(self) -> str:
-        """获取执行状态汇总"""
+        """获取执行状态汇总 - 基于历史版本的严谨格式"""
         summary = "📋 **执行状态汇总**\n"
         summary += "=" * 50 + "\n"
         for step, status in self.steps.items():
-            emoji = "✅" if status == "Pass" else "❌" if status == "Fail" else "⏳" if status == "Pending" else "⏭️"
-            summary += f"{emoji} {step}: {status}\n"
+            # 使用历史版本的严谨格式
+            if status == "Pass":
+                status_display = "[OK] Pass"
+                emoji = "✅"
+            elif status == "Fail":
+                status_display = "[FAIL] Fail"
+                emoji = "❌"
+            elif status == "Skip":
+                status_display = "[SKIP] Skip"
+                emoji = "⏭️"
+            else:  # Pending
+                status_display = "[PENDING] Pending"
+                emoji = "⏳"
+            
+            summary += f"{emoji} {step}: {status_display}\n"
         return summary
         
     def get_files_summary(self) -> str:
@@ -155,6 +168,39 @@ class ExecutionTracker:
             return "Fail"
         else:
             return "Pass"
+    
+    def get_detailed_statistics(self) -> str:
+        """获取详细的执行统计 - 基于历史版本的严谨统计机制"""
+        total_steps = len(self.steps)
+        passed_steps = len([s for s in self.steps.values() if s == "Pass"])
+        failed_steps = len([s for s in self.steps.values() if s == "Fail"])
+        skipped_steps = len([s for s in self.steps.values() if s == "Skip"]) 
+        pending_steps = len([s for s in self.steps.values() if s == "Pending"])
+        
+        success_rate = (passed_steps / total_steps * 100) if total_steps > 0 else 0
+        
+        stats = "\n📊 **执行统计详情**\n"
+        stats += "=" * 50 + "\n"
+        stats += f"总执行步骤: {total_steps} 个\n"
+        stats += f"✅ 成功完成: {passed_steps} 个\n"
+        
+        if failed_steps > 0:
+            stats += f"❌ 执行失败: {failed_steps} 个\n"
+        if skipped_steps > 0:
+            stats += f"⏭️ 跳过执行: {skipped_steps} 个\n"  
+        if pending_steps > 0:
+            stats += f"⏳ 未执行: {pending_steps} 个\n"
+            
+        stats += f"📈 成功率: {success_rate:.1f}%\n"
+        
+        # 详细的失败步骤列表（如果有）
+        failed_step_names = [name for name, status in self.steps.items() if status == "Fail"]
+        if failed_step_names:
+            stats += f"\n❌ **失败的步骤详情**:\n"
+            for step_name in failed_step_names:
+                stats += f"   - {step_name}\n"
+        
+        return stats
 
 class TransactionManager:
     """事务管理器 - 确保原子性操作"""
@@ -387,10 +433,13 @@ class WorkflowOrchestrator:
         # 1. 执行状态汇总
         print(self.tracker.get_summary())
         
-        # 2. 生成的核心文件
+        # 2. 详细执行统计 - 基于历史版本的严谨机制
+        print(self.tracker.get_detailed_statistics())
+        
+        # 3. 生成的核心文件
         print(self.tracker.get_files_summary())
         
-        # 3. Maven编译提醒（如果成功）
+        # 4. Maven编译提醒（如果成功）
         if success and self.tracker.get_final_result() == "Pass":
             print("\n⚠️ **Maven编译提醒**")
             print("=" * 50)
@@ -398,7 +447,7 @@ class WorkflowOrchestrator:
             print("cd jeecg-boot")
             print("mvn clean compile -DskipTests")
             
-        # 4. 总体执行结果
+        # 5. 总体执行结果
         final_result = self.tracker.get_final_result() if success else "Fail"
         print(f"\n🏆 **总体执行结果**: {final_result}")
         print("=" * 80)
@@ -416,6 +465,7 @@ class CodeGenExecutor:
         self.config = self._load_config()
         self.session = requests.Session()
         self.token = None
+        self.recorded_permission_ids = []  # 存储SQL执行步骤记录的权限ID
         
         # 初始化验证器
         if CodeGenValidator:
@@ -1418,9 +1468,9 @@ class CodeGenExecutor:
             return False
     
     def execute_permission_sql(self, config_data: Dict) -> bool:
-        """执行权限菜单SQL脚本"""
+        """执行权限菜单SQL脚本并记录权限ID - 基于用户超级深度思考方案"""
         print(f"\n{'='*50}")
-        print("[SQL] 开始执行权限菜单SQL脚本...")
+        print("[SQL] 开始执行权限菜单SQL脚本并记录权限ID...")
         
         try:
             # 检查是否启用SQL执行
@@ -1434,26 +1484,47 @@ class CodeGenExecutor:
             module_name = components['module_name']
             
             sql_files = []
-            # 在模块目录中搜索SQL文件
-            module_path = Path(self.get_config_value('project', 'path_prefix')) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}'
-            if module_path.exists():
-                for sql_file in module_path.rglob("V*__menu_insert_*.sql"):
-                    sql_files.append(sql_file)
+            # 在多个位置搜索SQL文件
+            search_paths = [
+                # 后端模块目录
+                Path(self.get_config_value('project', 'path_prefix')) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}',
+                # 前端views目录  
+                Path(self.get_config_value('project', 'path_prefix')) / 'jeecgboot-vue3' / 'src' / 'views'
+            ]
+            
+            for search_path in search_paths:
+                if search_path.exists():
+                    for sql_file in search_path.rglob("V*__menu_insert_*.sql"):
+                        sql_files.append(sql_file)
                     
             if not sql_files:
                 print("[WARN] 未找到权限菜单SQL文件")
                 return True
                 
-            # 执行SQL文件
+            # 执行SQL文件并记录权限ID
+            permission_ids = []
             for sql_file in sql_files:
-                print(f"[EXEC] 执行SQL文件: {sql_file.name}")
-                if self._execute_sql_file(sql_file):
-                    print(f"[OK] SQL文件执行成功: {sql_file.name}")
+                print(f"[EXEC] 执行SQL文件并记录权限ID: {sql_file.name}")
+                sql_permission_ids = self._execute_sql_and_record_permission_ids(sql_file)
+                if sql_permission_ids is not None:
+                    permission_ids.extend(sql_permission_ids)
+                    print(f"[OK] SQL文件执行成功，记录权限ID: {len(sql_permission_ids)} 个")
                 else:
                     print(f"[FAIL] SQL文件执行失败: {sql_file.name}")
                     return False
                     
-            print("[OK] 权限菜单SQL执行完成")
+            # 将记录的权限ID保存到实例变量中，供权限授权步骤使用
+            self.recorded_permission_ids = permission_ids
+            print(f"[OK] 权限菜单SQL执行完成，总共记录权限ID: {len(permission_ids)} 个")
+            
+            # 显示记录的权限ID（前5个）
+            if permission_ids:
+                print(f"[INFO] 记录的权限ID（显示前5个）:")
+                for i, perm_id in enumerate(permission_ids[:5], 1):
+                    print(f"   {i}. {perm_id}")
+                if len(permission_ids) > 5:
+                    print(f"   ... 还有 {len(permission_ids) - 5} 个权限ID")
+                    
             return True
             
         except Exception as e:
@@ -1463,7 +1534,7 @@ class CodeGenExecutor:
             return False
             
     def grant_permissions(self, config_data: Dict) -> bool:
-        """为管理员角色授权新生成模块的权限"""
+        """为管理员角色授权新生成模块的权限 - 基于历史版本的严谨实现"""
         print(f"\n{'='*50}")
         print("[AUTH] 开始权限授权...")
         
@@ -1481,10 +1552,65 @@ class CodeGenExecutor:
             if not admin_role_id:
                 print("[FAIL] 未配置管理员角色ID")
                 return False
+            
+            print(f"[INFO] 为角色 {admin_role_id} 执行真实权限授权...")
+            
+            # 1. 登录获取Token
+            print("1. 正在登录获取Token...")
+            token = self._get_auth_token()
+            if not token:
+                print("[FAIL] 无法获取认证Token，权限授权失败")
+                return False
                 
-            print(f"[INFO] 为角色 {admin_role_id} 授权新生成的模块权限")
-            print("[OK] 权限授权完成（权限已通过SQL脚本授权）")
-            return True
+            token_display = token[:20] + "..." if len(token) > 20 else token
+            print(f"[OK] 认证Token获取成功: {token_display}")
+            
+            # 2. 查询管理员角色现有权限
+            print("2. 查询管理员角色现有权限...")
+            existing_permissions = self._query_role_permissions(token, admin_role_id)
+            if existing_permissions is None:
+                print("[FAIL] 无法查询现有权限，权限授权失败")
+                return False
+                
+            print(f"[OK] 查询到现有权限数量: {len(existing_permissions)}")
+            
+            # 3. 获取SQL执行步骤记录的权限ID
+            print("3. 获取SQL执行步骤记录的权限ID...")
+            if hasattr(self, 'recorded_permission_ids') and self.recorded_permission_ids:
+                new_permission_ids = self.recorded_permission_ids
+                print(f"[OK] 获取到SQL执行步骤记录的权限ID: {len(new_permission_ids)} 个")
+                for i, perm_id in enumerate(new_permission_ids, 1):
+                    print(f"   {i}. {perm_id}")
+            else:
+                print("[WARN] 未找到SQL执行步骤记录的权限ID，尝试从SQL文件解析...")
+                new_permission_ids = self._parse_new_permission_ids(config_data)
+                if not new_permission_ids:
+                    print("[ERROR] 无法获取权限ID，权限授权失败")
+                    return False
+                    
+                print(f"[OK] 从SQL文件解析到权限ID: {len(new_permission_ids)} 个")
+                for i, perm_id in enumerate(new_permission_ids, 1):
+                    print(f"   {i}. {perm_id}")
+                
+            # 4. 合并权限ID列表
+            print("4. 合并权限ID列表...")
+            all_permission_ids = list(set(existing_permissions + new_permission_ids))
+            added_count = len(all_permission_ids) - len(existing_permissions)
+            
+            print(f"[OK] 权限合并完成:")
+            print(f"   现有权限: {len(existing_permissions)} 个")
+            print(f"   新增权限: {len(new_permission_ids)} 个") 
+            print(f"   实际新增: {added_count} 个（去重后）")
+            print(f"   合并总数: {len(all_permission_ids)} 个")
+            
+            # 5. 保存权限到管理员角色
+            print("5. 保存权限到管理员角色...")
+            if self._save_role_permissions(token, admin_role_id, all_permission_ids):
+                print("[OK] 权限授权成功完成")
+                return True
+            else:
+                print("[FAIL] 权限保存失败")
+                return False
             
         except Exception as e:
             print(f"[FAIL] 权限授权异常: {e}")
@@ -1492,82 +1618,72 @@ class CodeGenExecutor:
             traceback.print_exc()
             return False
             
-    def _execute_sql_file(self, sql_file: Path) -> bool:
-        """执行单个SQL文件"""
+    def _execute_sql_and_record_permission_ids(self, sql_file: Path) -> list:
+        """执行SQL文件并记录权限ID - 简洁纯净版本"""
         try:
-            db_type = self.get_config_value('database_execution', 'type', 'mysql')
-            method = self.get_config_value('database_execution', 'method', 'mysql_client')
+            # 导入mysql库
+            import mysql.connector
             
-            if db_type == 'mysql' and method == 'mysql_client':
-                return self._execute_sql_with_mysql_client(sql_file)
-            else:
-                print(f"[WARN] 暂不支持的数据库类型或执行方法: {db_type}/{method}")
-                return True  # 暂时返回成功，避免阻断流程
+            # 读取SQL文件和解析权限ID
+            with open(sql_file, 'r', encoding='utf-8') as f:
+                sql_content = f.read()
+            
+            permission_ids = self._extract_permission_ids_from_sql(sql_content)
+            if not permission_ids:
+                return []
                 
-        except Exception as e:
-            print(f"[ERROR] SQL文件执行异常: {e}")
-            return False
-            
-    def _execute_sql_with_mysql_client(self, sql_file: Path) -> bool:
-        """使用MySQL客户端执行SQL文件"""
-        try:
-            # 解析数据库连接信息
+            # 获取数据库配置
             db_url = self.get_config_value('database_execution', 'url')
             db_user = self.get_config_value('database_execution', 'username')
             db_pass = self.get_config_value('database_execution', 'password')
-            timeout = int(self.get_config_value('database_execution', 'timeout', '30'))
             
-            if not all([db_url, db_user, db_pass]):
-                print("[ERROR] 数据库连接信息不完整")
-                return False
-                
-            # 从JDBC URL中提取连接信息
+            # 解析数据库连接信息
             import re
             match = re.search(r'jdbc:mysql://([^:/]+):(\d+)/([^?]+)', db_url)
             if not match:
-                print("[ERROR] 无法解析数据库URL")
-                return False
-                
+                return []
             host, port, database = match.groups()
             
-            # 构建MySQL命令
-            mysql_cmd = [
-                'mysql',
-                f'-h{host}',
-                f'-P{port}', 
-                f'-u{db_user}',
-                f'-p{db_pass}',
-                database
-            ]
+            # 连接数据库并执行SQL
+            connection = mysql.connector.connect(
+                host=host, port=int(port), user=db_user, 
+                password=db_pass, database=database
+            )
             
-            print(f"[EXEC] 执行命令: mysql -h{host} -P{port} -u{db_user} -p*** {database}")
+            cursor = connection.cursor()
             
-            # 执行SQL文件
-            import subprocess
-            with open(sql_file, 'r', encoding='utf-8') as f:
-                result = subprocess.run(
-                    mysql_cmd,
-                    input=f.read(),
-                    text=True,
-                    capture_output=True,
-                    timeout=timeout
-                )
-                
-            if result.returncode == 0:
-                print(f"[OK] MySQL执行成功")
-                if result.stdout:
-                    print(f"[OUTPUT] {result.stdout}")
-                return True
-            else:
-                print(f"[ERROR] MySQL执行失败: {result.stderr}")
-                return False
-                
-        except subprocess.TimeoutExpired:
-            print(f"[ERROR] SQL执行超时 (>{timeout}秒)")
-            return False
+            # 分割并执行SQL语句
+            sql_statements = [stmt.strip() for stmt in sql_content.split(';') if stmt.strip()]
+            for sql_stmt in sql_statements:
+                if sql_stmt:
+                    try:
+                        cursor.execute(sql_stmt)
+                    except mysql.connector.Error as e:
+                        if e.errno != 1062:  # 忽略重复键错误
+                            raise
+            
+            connection.commit()
+            cursor.close()
+            connection.close()
+            
+            print(f"[OK] SQL执行完成，记录权限ID: {len(permission_ids)} 个")
+            return permission_ids
+            
+        except ImportError:
+            print("[FAIL] 请安装mysql-connector-python: pip install mysql-connector-python")
+            return []
         except Exception as e:
-            print(f"[ERROR] MySQL客户端执行异常: {e}")
-            return False
+            print(f"[FAIL] SQL执行失败: {e}")
+            return []
+    
+    
+    def _extract_permission_ids_from_sql(self, sql_content: str) -> list:
+        """从SQL内容中提取权限ID"""
+        import re
+        pattern = r"INSERT\s+INTO\s+sys_permission[^']*'([^']+)'"
+        matches = re.findall(pattern, sql_content, re.IGNORECASE)
+        return list(set(matches))
+    
             
     def verify_compilation(self, module_name: str) -> bool:
         """验证Maven编译"""
@@ -2157,6 +2273,147 @@ class CodeGenExecutor:
         business_fields.append(remark_field)
 
         return business_fields
+    
+    # ==================== 权限授权辅助方法 - 基于历史版本严谨实现 ====================
+    
+    def _get_auth_token(self) -> str:
+        """获取认证Token"""
+        try:
+            base_url = self.get_config_value('server', 'base_url')
+            username = self.get_config_value('server', 'username')  
+            password = self.get_config_value('server', 'password')
+            timeout = int(self.get_config_value('timeouts', 'login', '10'))
+            
+            login_data = {"username": username, "password": password}
+            response = requests.post(f"{base_url}/sys/mLogin", json=login_data, timeout=timeout)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success'):
+                    return result.get('result', {}).get('token', '')
+                else:
+                    print(f"[FAIL] 登录失败: {result.get('message', '未知错误')}")
+                    return ""
+            else:
+                print(f"[FAIL] 登录请求失败: HTTP {response.status_code}")
+                return ""
+                
+        except Exception as e:
+            print(f"[FAIL] 获取Token异常: {e}")
+            return ""
+    
+    def _query_role_permissions(self, token: str, role_id: str) -> list:
+        """查询角色现有权限"""
+        try:
+            base_url = self.get_config_value('server', 'base_url')
+            headers = {'X-Access-Token': token}
+            
+            response = requests.get(f"{base_url}/sys/role/queryTreeListForRole", 
+                                  headers=headers, params={'roleId': role_id}, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success'):
+                    # 从结果中提取权限ID列表
+                    permissions = []
+                    data = result.get('result', [])
+                    for item in data:
+                        if item.get('checked', False):
+                            permissions.append(item.get('id'))
+                    return permissions
+                else:
+                    print(f"[FAIL] 查询权限失败: {result.get('message', '未知错误')}")
+                    return None
+            else:
+                print(f"[FAIL] 查询权限请求失败: HTTP {response.status_code}")
+                return None
+                
+        except Exception as e:
+            print(f"[FAIL] 查询权限异常: {e}")
+            return None
+    
+    def _parse_new_permission_ids(self, config_data: Dict) -> list:
+        """从生成的SQL文件中解析新权限ID"""
+        try:
+            # 查找生成的SQL文件
+            table_name = config_data.get('head', {}).get('tableName', '')
+            components = self._parse_table_name_components(table_name, config_data)
+            entity_name = components['entity_name']
+            module_name = components['module_name']
+            
+            # 搜索SQL文件
+            sql_files = []
+            module_path = Path(self.get_config_value('project', 'path_prefix')) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}'
+            if module_path.exists():
+                for sql_file in module_path.rglob(f"V*__menu_insert_*{entity_name}*.sql"):
+                    sql_files.append(sql_file)
+            
+            if not sql_files:
+                # 也可能在前端目录
+                frontend_path = Path(self.get_config_value('project', 'path_prefix')) / 'jeecgboot-vue3' / 'src' / 'views'
+                if frontend_path.exists():
+                    for sql_file in frontend_path.rglob(f"V*__menu_insert_*{entity_name}*.sql"):
+                        sql_files.append(sql_file)
+            
+            if not sql_files:
+                return []
+                
+            # 解析SQL文件中的权限ID
+            permission_ids = []
+            import re
+            
+            for sql_file in sql_files:
+                try:
+                    with open(sql_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    # 解析INSERT语句中的权限ID
+                    # 格式：INSERT INTO sys_permission(id, ...) VALUES('权限ID', ...)
+                    id_pattern = r"INSERT INTO sys_permission[^']*'([^']+)'"
+                    matches = re.findall(id_pattern, content, re.IGNORECASE)
+                    permission_ids.extend(matches)
+                    
+                except Exception as e:
+                    print(f"[WARN] 解析SQL文件失败 {sql_file}: {e}")
+                    continue
+            
+            return permission_ids
+            
+        except Exception as e:
+            print(f"[FAIL] 解析权限ID异常: {e}")
+            return []
+    
+    def _save_role_permissions(self, token: str, role_id: str, permission_ids: list) -> bool:
+        """保存角色权限"""
+        try:
+            base_url = self.get_config_value('server', 'base_url')
+            headers = {'X-Access-Token': token, 'Content-Type': 'application/json'}
+            
+            # 准备权限数据
+            save_data = {
+                "roleId": role_id,
+                "permissionIds": ",".join(permission_ids),
+                "lastpermissionIds": ""  # 空字符串表示不删除现有权限
+            }
+            
+            response = requests.post(f"{base_url}/sys/role/saveRolePermission",
+                                   headers=headers, json=save_data, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success'):
+                    print("[OK] 权限保存成功")
+                    return True
+                else:
+                    print(f"[FAIL] 权限保存失败: {result.get('message', '未知错误')}")
+                    return False
+            else:
+                print(f"[FAIL] 权限保存请求失败: HTTP {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"[FAIL] 保存权限异常: {e}")
+            return False
 
 def main():
     """主函数 - 重构后的纯净统一架构"""
