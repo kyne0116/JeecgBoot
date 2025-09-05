@@ -1565,17 +1565,8 @@ class CodeGenExecutor:
             token_display = token[:20] + "..." if len(token) > 20 else token
             print(f"[OK] 认证Token获取成功: {token_display}")
             
-            # 2. 查询管理员角色现有权限
-            print("2. 查询管理员角色现有权限...")
-            existing_permissions = self._query_role_permissions(token, admin_role_id)
-            if existing_permissions is None:
-                print("[FAIL] 无法查询现有权限，权限授权失败")
-                return False
-                
-            print(f"[OK] 查询到现有权限数量: {len(existing_permissions)}")
-            
-            # 3. 获取SQL执行步骤记录的权限ID
-            print("3. 获取SQL执行步骤记录的权限ID...")
+            # 2. 获取SQL执行步骤记录的权限ID（简化版本 - 避免查询权限API导致的HTTP 404错误）
+            print("2. 获取SQL执行步骤记录的权限ID...")
             if hasattr(self, 'recorded_permission_ids') and self.recorded_permission_ids:
                 new_permission_ids = self.recorded_permission_ids
                 print(f"[OK] 获取到SQL执行步骤记录的权限ID: {len(new_permission_ids)} 个")
@@ -1592,19 +1583,17 @@ class CodeGenExecutor:
                 for i, perm_id in enumerate(new_permission_ids, 1):
                     print(f"   {i}. {perm_id}")
                 
-            # 4. 合并权限ID列表
-            print("4. 合并权限ID列表...")
-            all_permission_ids = list(set(existing_permissions + new_permission_ids))
-            added_count = len(all_permission_ids) - len(existing_permissions)
+            # 3. 直接保存新权限（简化版本 - 不查询现有权限，避免HTTP 404错误）
+            print("3. 为管理员角色添加新权限...")
+            all_permission_ids = new_permission_ids
+            added_count = len(new_permission_ids)
             
-            print(f"[OK] 权限合并完成:")
-            print(f"   现有权限: {len(existing_permissions)} 个")
-            print(f"   新增权限: {len(new_permission_ids)} 个") 
-            print(f"   实际新增: {added_count} 个（去重后）")
-            print(f"   合并总数: {len(all_permission_ids)} 个")
+            print(f"[OK] 权限处理完成:")
+            print(f"   新增权限: {len(new_permission_ids)} 个")
+            print(f"   准备保存: {len(all_permission_ids)} 个")
             
-            # 5. 保存权限到管理员角色
-            print("5. 保存权限到管理员角色...")
+            # 4. 保存权限到管理员角色
+            print("4. 保存权限到管理员角色...")
             if self._save_role_permissions(token, admin_role_id, all_permission_ids):
                 print("[OK] 权限授权成功完成")
                 return True
@@ -2303,12 +2292,13 @@ class CodeGenExecutor:
             return ""
     
     def _query_role_permissions(self, token: str, role_id: str) -> list:
-        """查询角色现有权限"""
+        """查询角色现有权限 - 使用正确的JeecgBoot API"""
         try:
             base_url = self.get_config_value('server', 'base_url')
             headers = {'X-Access-Token': token}
             
-            response = requests.get(f"{base_url}/sys/role/queryTreeListForRole", 
+            # 使用正确的JeecgBoot权限查询API
+            response = requests.get(f"{base_url}/sys/permission/queryTreeList", 
                                   headers=headers, params={'roleId': role_id}, timeout=30)
             
             if response.status_code == 200:
@@ -2317,20 +2307,36 @@ class CodeGenExecutor:
                     # 从结果中提取权限ID列表
                     permissions = []
                     data = result.get('result', [])
-                    for item in data:
-                        if item.get('checked', False):
-                            permissions.append(item.get('id'))
+                    self._extract_permission_ids_from_tree(data, permissions)
                     return permissions
                 else:
                     print(f"[FAIL] 查询权限失败: {result.get('message', '未知错误')}")
                     return None
             else:
-                print(f"[FAIL] 查询权限请求失败: HTTP {response.status_code}")
+                print(f"[FAIL] 查询权限请求失败: HTTP {response.status_code} - {response.text[:100]}")
                 return None
                 
         except Exception as e:
             print(f"[FAIL] 查询权限异常: {e}")
             return None
+    
+    def _extract_permission_ids_from_tree(self, nodes: list, permissions: list):
+        """从权限树中递归提取已选中的权限ID"""
+        if not nodes:
+            return
+            
+        for node in nodes:
+            if isinstance(node, dict):
+                # 如果节点被选中，添加到权限列表
+                if node.get('checked', False):
+                    node_id = node.get('id') or node.get('key')
+                    if node_id:
+                        permissions.append(node_id)
+                
+                # 递归处理子节点
+                children = node.get('children') or node.get('child')
+                if children:
+                    self._extract_permission_ids_from_tree(children, permissions)
     
     def _parse_new_permission_ids(self, config_data: Dict) -> list:
         """从生成的SQL文件中解析新权限ID"""
@@ -2396,7 +2402,8 @@ class CodeGenExecutor:
                 "lastpermissionIds": ""  # 空字符串表示不删除现有权限
             }
             
-            response = requests.post(f"{base_url}/sys/role/saveRolePermission",
+            # 使用正确的JeecgBoot权限保存API
+            response = requests.post(f"{base_url}/sys/permission/saveRolePermission",
                                    headers=headers, json=save_data, timeout=30)
             
             if response.status_code == 200:
