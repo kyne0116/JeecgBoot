@@ -17,8 +17,11 @@ import sys
 import subprocess
 import shutil
 import configparser
-from typing import Dict, List, Tuple, Optional
+import glob
+from typing import Dict, List, Tuple, Optional, Union
 from pathlib import Path
+from abc import ABC, abstractmethod
+from enum import Enum
 
 # 导入验证器
 try:
@@ -27,8 +30,236 @@ except ImportError:
     print("警告: 无法导入Code_Gen_Validator，将跳过配置验证")
     CodeGenValidator = None
 
+# ===== 新架构组件 =====
+
+class ScenarioType(Enum):
+    """场景类型枚举"""
+    INDEPENDENT_TABLE = "independent_table"
+    MAIN_SUB_TABLES = "main_sub_tables"
+
+class APICallStrategy(ABC):
+    """API调用策略抽象基类"""
+    
+    @abstractmethod
+    def should_generate_code(self, table_type: int) -> bool:
+        """判断是否应该生成代码"""
+        pass
+
+class IndependentTableStrategy(APICallStrategy):
+    """独立表API调用策略"""
+    
+    def should_generate_code(self, table_type: int) -> bool:
+        return table_type == 1  # 独立表生成代码
+
+class MainSubTablesStrategy(APICallStrategy):
+    """主子表API调用策略"""
+    
+    def should_generate_code(self, table_type: int) -> bool:
+        return table_type == 2  # 只有主表生成代码
+
+class ConfigurationSet:
+    """配置集合管理器"""
+    
+    def __init__(self, configs: List[Dict]):
+        self.configs = configs
+        self.main_config: Optional[Dict] = None
+        self.sub_configs: List[Dict] = []
+        self.scenario: ScenarioType = self._detect_scenario()
+        self._organize_configs()
+        
+    def _detect_scenario(self) -> ScenarioType:
+        """自动检测场景类型"""
+        table_types = [cfg.get('head', {}).get('tableType', 1) for cfg in self.configs]
+        
+        if 2 in table_types and 3 in table_types:  # 有主表和子表
+            return ScenarioType.MAIN_SUB_TABLES
+        elif len(table_types) == 1 and table_types[0] == 1:  # 单个独立表
+            return ScenarioType.INDEPENDENT_TABLE
+        else:
+            raise ValueError(f"无法识别的场景类型: {table_types}")
+    
+    def _organize_configs(self):
+        """组织配置：分离主表和子表配置"""
+        for config in self.configs:
+            table_type = config.get('head', {}).get('tableType', 1)
+            if table_type == 2:  # 主表
+                self.main_config = config
+            elif table_type == 3:  # 子表
+                self.sub_configs.append(config)
+
+class TransactionManager:
+    """事务管理器 - 确保原子性操作"""
+    
+    def __init__(self):
+        self.created_forms: List[str] = []  # 跟踪创建的表单ID
+        self.created_files: List[str] = []  # 跟踪生成的文件
+        self.is_active = False
+        self.executor = None  # 将在使用时设置
+        
+    def __enter__(self):
+        self.is_active = True
+        self.created_forms.clear()
+        self.created_files.clear()
+        print("🔄 开始事务")
+        return self
+        
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            # 发生异常，执行回滚
+            self._rollback()
+        else:
+            # 成功完成，提交事务
+            self._commit()
+        self.is_active = False
+        
+    def add_form(self, form_id: str):
+        """添加已创建的表单ID到事务中"""
+        if form_id:
+            self.created_forms.append(form_id)
+            
+    def add_file(self, file_path: str):
+        """添加已创建的文件到事务中"""
+        if file_path and os.path.exists(file_path):
+            self.created_files.append(file_path)
+            
+    def _commit(self):
+        """提交事务 - 确认所有操作"""
+        print(f"✅ 事务提交成功")
+        print(f"   创建表单: {len(self.created_forms)} 个")
+        print(f"   生成文件: {len(self.created_files)} 个")
+        
+    def _rollback(self):
+        """回滚事务 - 清理所有已创建的资源"""
+        print("🔴 事务回滚，清理资源...")
+        
+        # 删除已创建的表单
+        for form_id in reversed(self.created_forms):
+            try:
+                if self.executor:
+                    self.executor.delete_forms([form_id])
+                    print(f"   删除表单: {form_id}")
+            except Exception as e:
+                print(f"   ⚠️ 删除表单失败 {form_id}: {e}")
+        
+        # 删除已生成的文件
+        for file_path in reversed(self.created_files):
+            try:
+                if os.path.exists(file_path):
+                    if os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                    else:
+                        os.remove(file_path)
+                    print(f"   删除文件: {file_path}")
+            except Exception as e:
+                print(f"   ⚠️ 删除文件失败 {file_path}: {e}")
+
+class WorkflowOrchestrator:
+    """工作流编排器 - 核心调度器"""
+    
+    def __init__(self, executor: 'CodeGenExecutor'):
+        self.executor = executor
+        self.transaction_manager = TransactionManager()
+        self.transaction_manager.executor = executor
+        
+    def execute(self, config_set: ConfigurationSet) -> bool:
+        """执行完整工作流"""
+        strategy = self._select_strategy(config_set.scenario)
+        
+        try:
+            with self.transaction_manager:
+                return self._execute_with_strategy(config_set, strategy)
+        except Exception as e:
+            print(f"❌ 工作流执行失败: {e}")
+            return False
+    
+    def _select_strategy(self, scenario: ScenarioType) -> APICallStrategy:
+        """选择执行策略"""
+        if scenario == ScenarioType.INDEPENDENT_TABLE:
+            return IndependentTableStrategy()
+        elif scenario == ScenarioType.MAIN_SUB_TABLES:
+            return MainSubTablesStrategy()
+        else:
+            raise ValueError(f"不支持的场景类型: {scenario}")
+    
+    def _execute_with_strategy(self, config_set: ConfigurationSet, 
+                              strategy: APICallStrategy) -> bool:
+        """使用指定策略执行工作流"""
+        if isinstance(strategy, IndependentTableStrategy):
+            return self._execute_independent_table(config_set)
+        elif isinstance(strategy, MainSubTablesStrategy):
+            return self._execute_main_sub_tables(config_set)
+        
+    def _execute_independent_table(self, config_set: ConfigurationSet) -> bool:
+        """执行独立表工作流"""
+        config = config_set.configs[0]
+        print(f"🔧 执行独立表工作流: {config.get('head', {}).get('tableName')}")
+        
+        # 创建表单
+        form_id = self.executor.create_form(config)
+        if not form_id:
+            return False
+        self.transaction_manager.add_form(form_id)
+        
+        # 同步数据库
+        if not self.executor.sync_database(form_id):
+            return False
+            
+        # 生成代码
+        if not self.executor.generate_code(form_id, config):
+            return False
+            
+        # 后续处理
+        self.executor.migrate_frontend_code(config)
+        self.executor.process_placeholder_variables(config)
+        
+        return True
+    
+    def _execute_main_sub_tables(self, config_set: ConfigurationSet) -> bool:
+        """执行主子表工作流"""
+        print(f"🔧 执行主子表工作流: {len(config_set.sub_configs)} 个子表 + 1 个主表")
+        
+        # 1. 先处理所有子表（只创建表单和同步数据库）
+        for i, sub_config in enumerate(config_set.sub_configs, 1):
+            table_name = sub_config.get('head', {}).get('tableName')
+            print(f"   处理子表 {i}/{len(config_set.sub_configs)}: {table_name}")
+            
+            form_id = self.executor.create_form(sub_config)
+            if not form_id:
+                return False
+            self.transaction_manager.add_form(form_id)
+            
+            if not self.executor.sync_database(form_id):
+                return False
+        
+        # 2. 处理主表（完整流程）
+        main_config = config_set.main_config
+        if not main_config:
+            print("❌ 未找到主表配置")
+            return False
+            
+        main_table_name = main_config.get('head', {}).get('tableName')
+        print(f"   处理主表: {main_table_name}")
+        
+        form_id = self.executor.create_form(main_config)
+        if not form_id:
+            return False
+        self.transaction_manager.add_form(form_id)
+        
+        if not self.executor.sync_database(form_id):
+            return False
+            
+        # 只有主表生成代码
+        if not self.executor.generate_code(form_id, main_config):
+            return False
+        
+        # 3. 后续处理（基于主表配置）
+        self.executor.migrate_frontend_code(main_config)
+        self.executor.process_placeholder_variables(main_config)
+        
+        return True
+
 class CodeGenExecutor:
-    """JeecgBoot代码生成执行器"""
+    """JeecgBoot代码生成执行器 - 重构为纯净统一架构"""
     
     def __init__(self, config_file: str = None):
         """初始化执行器"""
@@ -46,6 +277,85 @@ class CodeGenExecutor:
             self.validator = CodeGenValidator()
         else:
             self.validator = None
+        
+        # 新增组件
+        self.orchestrator = WorkflowOrchestrator(self)
+    
+    # ===== 新的统一API =====
+    
+    def execute_code_generation(self, inputs: Union[str, List[str], Dict, List[Dict]]) -> bool:
+        """
+        统一的代码生成入口 - 自动处理所有场景
+        
+        Args:
+            inputs: 可以是以下任意类型：
+                - str: 单个JSON配置文件路径
+                - List[str]: 多个JSON配置文件路径
+                - Dict: 单个配置字典
+                - List[Dict]: 多个配置字典
+                
+        Returns:
+            bool: 执行成功返回True，失败返回False
+        """
+        try:
+            # 统一输入格式为配置列表
+            configs = self._normalize_inputs(inputs)
+            
+            # 创建配置集合（自动场景识别）
+            config_set = ConfigurationSet(configs)
+            print(f"🎯 检测到场景类型: {config_set.scenario.value}")
+            
+            # 确保模块存在
+            module_name = self._extract_module_name(config_set)
+            if not self.ensure_module_exists(module_name):
+                print("⚠️ 模块创建失败，但继续执行代码生成...")
+            
+            # 登录认证
+            if not self.login():
+                return False
+            
+            # 执行工作流（自动选择策略）
+            return self.orchestrator.execute(config_set)
+            
+        except Exception as e:
+            print(f"❌ 代码生成失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _normalize_inputs(self, inputs) -> List[Dict]:
+        """将各种输入格式统一为配置字典列表"""
+        if isinstance(inputs, str):
+            # 单个文件路径
+            with open(inputs, 'r', encoding='utf-8') as f:
+                return [json.load(f)]
+                
+        elif isinstance(inputs, list) and all(isinstance(x, str) for x in inputs):
+            # 多个文件路径
+            configs = []
+            for file_path in inputs:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    configs.append(json.load(f))
+            return configs
+            
+        elif isinstance(inputs, dict):
+            # 单个配置字典
+            return [inputs]
+            
+        elif isinstance(inputs, list) and all(isinstance(x, dict) for x in inputs):
+            # 多个配置字典
+            return inputs
+            
+        else:
+            raise ValueError(f"不支持的输入类型: {type(inputs)}")
+    
+    def _extract_module_name(self, config_set: ConfigurationSet) -> str:
+        """从配置集合中提取模块名"""
+        sample_config = config_set.configs[0]
+        table_name = sample_config.get('head', {}).get('tableName', '')
+        if table_name.startswith('us_'):
+            return table_name.split('_')[1]
+        raise ValueError(f"无法从表名中提取模块名: {table_name}")
     
     def _load_config(self) -> configparser.ConfigParser:
         """加载配置文件"""
@@ -179,47 +489,7 @@ class CodeGenExecutor:
             if os.path.exists(temp_file):
                 os.remove(temp_file)
     
-    def execute_workflow(self, config_data: Dict) -> bool:
-        """执行完整的代码生成工作流"""
-        
-        # 1. 验证配置
-        if not self.validate_config(config_data):
-            return False
-        
-        # 2. 确保模块存在（任务一：Maven模块创建和pom.xml修改）
-        components = self._parse_table_name_components(
-            config_data.get('head', {}).get('tableName', ''), 
-            config_data
-        )
-        module_name = components['module_name']
-        
-        if not self.ensure_module_exists(module_name):
-            print("⚠️ 模块创建失败，但继续执行代码生成...")
-        
-        # 3. 登录认证
-        if not self.login():
-            return False
-        
-        # 4. 创建表单
-        form_id = self.create_form(config_data)
-        if not form_id:
-            return False
-        
-        # 5. 同步数据库
-        if not self.sync_database(form_id):
-            return False
-        
-        # 6. 生成代码（根据表类型决定）
-        table_type = config_data.get('head', {}).get('tableType', 1)
-        if table_type != 3:  # 子表不生成代码
-            if not self.generate_code(form_id, config_data):
-                return False
-            
-            # 7. 处理占位变量（任务二：动态处理占位变量参数）
-            self.process_placeholder_variables(config_data)
-        
-        print("🎉 代码生成流程完成")
-        return True
+    # ===== 原有execute_workflow方法已被新架构替代 =====
     
     def create_form(self, config_data: Dict) -> Optional[str]:
         """创建在线表单"""
@@ -305,9 +575,25 @@ class CodeGenExecutor:
             return False
         
         # 构建代码生成参数
-        project_path = self.get_config_value('project', 'path_prefix')
+        base_path = self.get_config_value('project', 'path_prefix')
         business_entity = config_data.get('head', {}).get('business_entity')
         table_type = config_data.get('head', {}).get('tableType', 1)
+        
+        # 解析表名获取模块信息
+        table_name = config_data.get('head', {}).get('tableName', '')
+        if table_name.startswith('us_'):
+            parts = table_name.split('_')
+            if len(parts) >= 4:
+                module_name = parts[1]
+                # 构建正确的模块路径：/base_path/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}
+                project_path = f"{base_path}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
+                print(f"🎯 代码生成路径: {project_path}")
+            else:
+                project_path = base_path
+                print(f"⚠️ 表名格式异常，使用默认路径: {project_path}")
+        else:
+            project_path = base_path
+            print(f"⚠️ 非标准表名，使用默认路径: {project_path}")
         
         # 根据表类型设置参数
         if table_type == 2:  # 主表
@@ -324,10 +610,9 @@ class CodeGenExecutor:
         vue_style = self.get_config_value('codegen', 'vue_style', 'vue3')
 
         # 基于历史版本的完整参数构建
-        table_name = config_data.get('head', {}).get('tableName', '')
         table_description = config_data.get('head', {}).get('tableTxt', '')
         
-        # 解析模块信息
+        # 解析模块信息（重用前面的解析结果）
         if table_name.startswith('us_'):
             parts = table_name.split('_')
             if len(parts) >= 4:
@@ -1545,18 +1830,26 @@ class CodeGenExecutor:
         return business_fields
 
 def main():
-    """主函数"""
+    """主函数 - 重构后的纯净统一架构"""
     if len(sys.argv) < 2:
         print("""
-JeecgBoot 代码生成和管理工具 (支持Maven模块创建和占位变量处理)
-==============================================================================
+JeecgBoot 代码生成系统 v2.0 - 纯净统一架构
+======================================================
+
 用法:
-1. 代码生成:
-   python3 Code_Gen_Execute.py generate <PROJECT_PATH> <MODULE_NAME> <SUBMODULE_NAME> <BUSINESS_ENTITY>
-   python3 Code_Gen_Execute.py generate_from_json <json_file_path>  # 使用JSON配置文件生成
-   python3 Code_Gen_Execute.py test_finance_invoice                 # 使用财务发票JSON测试完整流程
+1. 统一代码生成（自动识别独立表/主子表场景）:
+   python3 Code_Gen_Execute.py generate <config_file_1> [config_file_2] [config_file_3] ...
+   python3 Code_Gen_Execute.py generate_dir <config_directory>
    
-2. 表单管理:
+2. 传统参数生成（保持兼容）:
+   python3 Code_Gen_Execute.py generate_legacy <PROJECT_PATH> <MODULE_NAME> <SUBMODULE_NAME> <BUSINESS_ENTITY>
+   
+3. 测试命令:
+   python3 Code_Gen_Execute.py test_main_sub_tables                # 测试主子表场景（使用education配置）
+   python3 Code_Gen_Execute.py generate_from_json <json_file>      # 单个JSON文件生成
+   python3 Code_Gen_Execute.py test_finance_invoice                # 测试财务发票场景
+   
+4. 表单管理:
    python3 Code_Gen_Execute.py list_forms                           # 列出所有表单
    python3 Code_Gen_Execute.py search_forms <pattern>               # 搜索匹配的表单
    python3 Code_Gen_Execute.py delete_form <table_name>             # 根据表名删除单个表单
@@ -1565,22 +1858,28 @@ JeecgBoot 代码生成和管理工具 (支持Maven模块创建和占位变量处
    python3 Code_Gen_Execute.py delete_forms_by_ids <id1> <id2> ...  # 根据ID批量删除
     
 示例:
-   python3 Code_Gen_Execute.py generate /Users/admin/Work/Github/JeecgBoot finance invoice InvoiceHeader
-   python3 Code_Gen_Execute.py generate_from_json /path/to/config.json
-   python3 Code_Gen_Execute.py test_finance_invoice
-   python3 Code_Gen_Execute.py list_forms
-   python3 Code_Gen_Execute.py search_forms us_finance
-   python3 Code_Gen_Execute.py delete_form us_finance_payment_paymentrecord
-   python3 Code_Gen_Execute.py delete_forms us_finance_report_reportdata us_finance_transaction_transactionrecord
-   python3 Code_Gen_Execute.py delete_form_by_id 3d447fa919b64f6883a834036c14aa67
-   python3 Code_Gen_Execute.py delete_forms_by_ids 3d447fa919b64f6883a834036c14aa67 41de7884bf9a42b7a2c5918f9f765dff
+   # 单个独立表
+   python3 Code_Gen_Execute.py generate student_info.json
+   
+   # 主子表批量处理（自动识别场景）
+   python3 Code_Gen_Execute.py generate student_main.json student_parent.json student_classmate.json
+   
+   # 目录批量处理
+   python3 Code_Gen_Execute.py generate_dir /path/to/config_files/
+   
+   # 传统方式（向后兼容）
+   python3 Code_Gen_Execute.py generate_legacy /Users/admin/Work/Github/JeecgBoot finance invoice InvoiceHeader
+   
+   # 测试主子表场景
+   python3 Code_Gen_Execute.py test_main_sub_tables
 
-新功能特性:
-✅ Maven模块自动创建 (mvn archetype:generate)
-✅ 自动更新jeecg-boot-module和jeecg-system-start的pom.xml
-✅ 占位变量动态处理 ({{PROJECT_PATH}}, {{BUSINESS_ENTITY}})
-✅ 完整的前后端代码生成和迁移
-✅ 在线表单生命周期管理
+v2.0 新特性:
+✅ 场景自动识别（独立表 vs 主子表）
+✅ 批量配置处理
+✅ 事务性操作（失败自动回滚）
+✅ 统一的错误处理
+✅ 纯净的架构设计
+✅ 完整的子表API调用支持
         """)
         sys.exit(1)
     
@@ -1590,9 +1889,36 @@ JeecgBoot 代码生成和管理工具 (支持Maven模块创建和占位变量处
     executor = CodeGenExecutor()
     
     if command == "generate":
-        # 代码生成命令
+        # 新的统一生成命令
+        if len(sys.argv) < 3:
+            print("❌ 请提供配置文件路径")
+            sys.exit(1)
+            
+        # 支持单个或多个配置文件
+        config_inputs = sys.argv[2:]
+        success = executor.execute_code_generation(config_inputs)
+        sys.exit(0 if success else 1)
+        
+    elif command == "generate_dir":
+        # 目录批量处理
+        if len(sys.argv) < 3:
+            print("❌ 请提供配置目录路径")
+            sys.exit(1)
+            
+        config_dir = sys.argv[2]
+        json_files = glob.glob(os.path.join(config_dir, "*.json"))
+        
+        if not json_files:
+            print(f"❌ 在目录 {config_dir} 中未找到JSON配置文件")
+            sys.exit(1)
+            
+        success = executor.execute_code_generation(json_files)
+        sys.exit(0 if success else 1)
+    
+    elif command == "generate_legacy":
+        # 传统参数生成（向后兼容）
         if len(sys.argv) < 6:
-            print("❌ 代码生成需要4个参数: <PROJECT_PATH> <MODULE_NAME> <SUBMODULE_NAME> <BUSINESS_ENTITY>")
+            print("❌ 传统生成需要4个参数: <PROJECT_PATH> <MODULE_NAME> <SUBMODULE_NAME> <BUSINESS_ENTITY>")
             sys.exit(1)
         
         project_path, module_name, submodule_name, business_entity = sys.argv[2:6]
@@ -1609,8 +1935,34 @@ JeecgBoot 代码生成和管理工具 (支持Maven模块创建和占位变量处
         # 替换变量
         config_data = executor._replace_template_variables(config_data, project_path, module_name, submodule_name, business_entity)
         
-        # 执行工作流
-        success = executor.execute_workflow(config_data)
+        # 使用新架构执行
+        success = executor.execute_code_generation(config_data)
+        sys.exit(0 if success else 1)
+    
+    elif command == "test_main_sub_tables":
+        # 测试主子表场景（使用当前生成的education配置文件）
+        config_files = [
+            "/Users/admin/Work/Github/JeecgBoot/CodeGen/education_student_StudentInfo_20250905080503.json",
+            "/Users/admin/Work/Github/JeecgBoot/CodeGen/education_student_ParentInfo_20250905080503.json", 
+            "/Users/admin/Work/Github/JeecgBoot/CodeGen/education_student_ClassmateRelation_20250905080503.json"
+        ]
+        
+        print("🧪 开始测试主子表场景")
+        print(f"📋 配置文件:")
+        for i, file_path in enumerate(config_files, 1):
+            if os.path.exists(file_path):
+                print(f"   {i}. ✅ {os.path.basename(file_path)}")
+            else:
+                print(f"   {i}. ❌ {os.path.basename(file_path)} (文件不存在)")
+        
+        # 只处理存在的配置文件
+        existing_files = [f for f in config_files if os.path.exists(f)]
+        if not existing_files:
+            print("❌ 没有找到有效的配置文件")
+            sys.exit(1)
+            
+        success = executor.execute_code_generation(existing_files)
+        print(f"\n🎯 主子表测试结果: {'成功' if success else '失败'}")
         sys.exit(0 if success else 1)
     
     # 表单管理命令需要登录
@@ -1695,8 +2047,8 @@ JeecgBoot 代码生成和管理工具 (支持Maven模块创建和占位变量处
         
         print(f"📄 使用JSON配置文件: {json_file_path}")
         
-        # 执行完整工作流（包含Maven模块创建和占位变量处理）
-        success = executor.execute_workflow(config_data)
+        # 执行完整工作流（使用新架构）
+        success = executor.execute_code_generation(config_data)
         sys.exit(0 if success else 1)
     
     elif command == "test_finance_invoice":
@@ -1714,8 +2066,8 @@ JeecgBoot 代码生成和管理工具 (支持Maven模块创建和占位变量处
         print(f"📄 使用财务发票管理JSON配置进行完整测试")
         print(f"📄 配置文件: {json_file_path}")
         
-        # 执行完整工作流（包含Maven模块创建和占位变量处理）
-        success = executor.execute_workflow(config_data)
+        # 执行完整工作流（使用新架构）
+        success = executor.execute_code_generation(config_data)
         
         if success:
             print("\n🎯 测试完成，现在演示删除表单功能")
