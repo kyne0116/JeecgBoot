@@ -2438,258 +2438,56 @@ class CodeGenExecutor:
             return False
 
 def main():
-    """主函数 - 重构后的纯净统一架构"""
-    if len(sys.argv) < 2:
+    """主函数 - 纯净统一架构：有且只有一种方式完成代码生成工作流"""
+    if len(sys.argv) != 5:
         print("""
-JeecgBoot 代码生成系统 v2.0 - 纯净统一架构
+JeecgBoot 代码生成系统 v3.0 - 纯净统一架构
 ======================================================
 
 用法:
-1. 统一代码生成（自动识别独立表/主子表场景）:
-   python3 Code_Gen_Execute.py generate <config_file_1> [config_file_2] [config_file_3] ...
-   python3 Code_Gen_Execute.py generate_dir <config_directory>
-   
-2. 传统参数生成（保持兼容）:
-   python3 Code_Gen_Execute.py generate_legacy <PROJECT_PATH> <MODULE_NAME> <SUBMODULE_NAME> <BUSINESS_ENTITY>
-   
-3. 测试命令:
-   python3 Code_Gen_Execute.py test_main_sub_tables                # 测试主子表场景（使用education配置）
-   python3 Code_Gen_Execute.py generate_from_json <json_file>      # 单个JSON文件生成
-   python3 Code_Gen_Execute.py test_finance_invoice                # 测试财务发票场景
-   
-4. 表单管理:
-   python3 Code_Gen_Execute.py list_forms                           # 列出所有表单
-   python3 Code_Gen_Execute.py search_forms <pattern>               # 搜索匹配的表单
-   python3 Code_Gen_Execute.py delete_form <table_name>             # 根据表名删除单个表单
-   python3 Code_Gen_Execute.py delete_forms <name1> <name2> ...     # 根据表名批量删除
-   python3 Code_Gen_Execute.py delete_form_by_id <form_id>          # 根据ID删除单个表单
-   python3 Code_Gen_Execute.py delete_forms_by_ids <id1> <id2> ...  # 根据ID批量删除
-    
-示例:
-   # 单个独立表
-   python3 Code_Gen_Execute.py generate student_info.json
-   
-   # 主子表批量处理（自动识别场景）
-   python3 Code_Gen_Execute.py generate student_main.json student_parent.json student_classmate.json
-   
-   # 目录批量处理
-   python3 Code_Gen_Execute.py generate_dir /path/to/config_files/
-   
-   # 传统方式（向后兼容）
-   python3 Code_Gen_Execute.py generate_legacy /Users/admin/Work/Github/JeecgBoot finance invoice InvoiceHeader
-   
-   # 测试主子表场景
-   python3 Code_Gen_Execute.py test_main_sub_tables
+python3 Code_Gen_Execute.py PROJECT_PATH MODULE_NAME SUBMODULE_NAME BUSINESS_ENTITY
 
-v2.0 新特性:
-✅ 场景自动识别（独立表 vs 主子表）
-✅ 批量配置处理
-✅ 事务性操作（失败自动回滚）
-✅ 统一的错误处理
-✅ 纯净的架构设计
-✅ 完整的子表API调用支持
+参数说明:
+- PROJECT_PATH     : JeecgBoot项目根目录绝对路径
+- MODULE_NAME      : 业务模块名称（小写字母）
+- SUBMODULE_NAME   : 子模块名称（小写字母）  
+- BUSINESS_ENTITY  : 业务实体名称（PascalCase）
+
+示例:
+python3 Code_Gen_Execute.py /Users/admin/Work/Github/JeecgBoot crm customer CustomerProfile
+python3 Code_Gen_Execute.py /Users/admin/Work/Github/JeecgBoot finance invoice InvoiceHeader
+
+功能特性:
+✅ 自动场景识别（独立表/主子表）
+✅ 完整代码生成工作流
+✅ 前端文件迁移
+✅ SQL文件执行
+✅ 权限授权
+✅ 变量替换
         """)
         sys.exit(1)
     
-    command = sys.argv[1]
+    # 获取参数
+    project_path, module_name, submodule_name, business_entity = sys.argv[1:5]
     
     # 创建执行器
     executor = CodeGenExecutor()
     
-    if command == "generate":
-        # 新的统一生成命令
-        if len(sys.argv) < 3:
-            print("❌ 请提供配置文件路径")
-            sys.exit(1)
-            
-        # 支持单个或多个配置文件
-        config_inputs = sys.argv[2:]
-        success = executor.execute_code_generation(config_inputs)
-        sys.exit(0 if success else 1)
-        
-    elif command == "generate_dir":
-        # 目录批量处理
-        if len(sys.argv) < 3:
-            print("❌ 请提供配置目录路径")
-            sys.exit(1)
-            
-        config_dir = sys.argv[2]
-        json_files = glob.glob(os.path.join(config_dir, "*.json"))
-        
-        if not json_files:
-            print(f"❌ 在目录 {config_dir} 中未找到JSON配置文件")
-            sys.exit(1)
-            
-        success = executor.execute_code_generation(json_files)
-        sys.exit(0 if success else 1)
-    
-    elif command == "generate_legacy":
-        # 传统参数生成（向后兼容）
-        if len(sys.argv) < 6:
-            print("❌ 传统生成需要4个参数: <PROJECT_PATH> <MODULE_NAME> <SUBMODULE_NAME> <BUSINESS_ENTITY>")
-            sys.exit(1)
-        
-        project_path, module_name, submodule_name, business_entity = sys.argv[2:6]
-        
-        # 加载模板配置
-        template_path = os.path.join(os.path.dirname(__file__), 'Code_Gen_Template.json')
-        try:
-            with open(template_path, 'r', encoding='utf-8') as f:
-                config_data = json.load(f)
-        except Exception as e:
-            print(f"❌ 模板加载失败: {e}")
-            sys.exit(1)
-        
-        # 替换变量
-        config_data = executor._replace_template_variables(config_data, project_path, module_name, submodule_name, business_entity)
-        
-        # 使用新架构执行
-        success = executor.execute_code_generation(config_data)
-        sys.exit(0 if success else 1)
-    
-    elif command == "test_main_sub_tables":
-        # 测试主子表场景（使用当前生成的education配置文件）
-        config_files = [
-            "/Users/admin/Work/Github/JeecgBoot/CodeGen/education_student_StudentInfo_20250905080503.json",
-            "/Users/admin/Work/Github/JeecgBoot/CodeGen/education_student_ParentInfo_20250905080503.json", 
-            "/Users/admin/Work/Github/JeecgBoot/CodeGen/education_student_ClassmateRelation_20250905080503.json"
-        ]
-        
-        print("🧪 开始测试主子表场景")
-        print(f"📋 配置文件:")
-        for i, file_path in enumerate(config_files, 1):
-            if os.path.exists(file_path):
-                print(f"   {i}. ✅ {os.path.basename(file_path)}")
-            else:
-                print(f"   {i}. ❌ {os.path.basename(file_path)} (文件不存在)")
-        
-        # 只处理存在的配置文件
-        existing_files = [f for f in config_files if os.path.exists(f)]
-        if not existing_files:
-            print("❌ 没有找到有效的配置文件")
-            sys.exit(1)
-            
-        success = executor.execute_code_generation(existing_files)
-        print(f"\n🎯 主子表测试结果: {'成功' if success else '失败'}")
-        sys.exit(0 if success else 1)
-    
-    # 表单管理命令需要登录
-    if not executor.login():
-        print("❌ 登录失败，无法执行表单管理操作")
+    # 加载模板配置
+    template_path = os.path.join(os.path.dirname(__file__), 'Code_Gen_Template.json')
+    try:
+        with open(template_path, 'r', encoding='utf-8') as f:
+            config_data = json.load(f)
+    except Exception as e:
+        print(f"❌ 模板加载失败: {e}")
         sys.exit(1)
     
-    if command == "list_forms":
-        # 列出所有表单
-        forms = executor.list_all_forms()
-        if forms:
-            print(f"\n📋 共找到 {len(forms)} 个在线表单:")
-            print("-" * 80)
-            for i, form in enumerate(forms, 1):
-                print(f"{i:2d}. 表名: {form.get('tableName', 'N/A')}")
-                print(f"    ID: {form.get('id', 'N/A')}")
-                print(f"    描述: {form.get('tableTxt', 'N/A')}")
-                print(f"    创建时间: {form.get('createTime', 'N/A')}")
-                print("-" * 80)
-        else:
-            print("📋 没有找到任何在线表单")
+    # 替换模板变量
+    config_data = executor._replace_template_variables(config_data, project_path, module_name, submodule_name, business_entity)
     
-    elif command == "search_forms":
-        if len(sys.argv) < 3:
-            print("❌ 请提供搜索模式")
-            sys.exit(1)
-        
-        pattern = sys.argv[2]
-        matching_forms = executor.find_forms_by_pattern(pattern)
-        
-    elif command == "delete_form":
-        if len(sys.argv) < 3:
-            print("❌ 请提供要删除的表名")
-            sys.exit(1)
-        
-        table_name = sys.argv[2]
-        success = executor.delete_form_by_table_name(table_name)
-        sys.exit(0 if success else 1)
-    
-    elif command == "delete_forms":
-        if len(sys.argv) < 3:
-            print("❌ 请提供要删除的表名列表")
-            sys.exit(1)
-        
-        table_names = sys.argv[2:]
-        success = executor.delete_forms_by_table_names(table_names)
-        sys.exit(0 if success else 1)
-    
-    elif command == "delete_form_by_id":
-        if len(sys.argv) < 3:
-            print("❌ 请提供要删除的表单ID")
-            sys.exit(1)
-        
-        form_id = sys.argv[2]
-        success = executor.delete_forms([form_id])
-        sys.exit(0 if success else 1)
-    
-    elif command == "delete_forms_by_ids":
-        if len(sys.argv) < 3:
-            print("❌ 请提供要删除的表单ID列表")
-            sys.exit(1)
-        
-        form_ids = sys.argv[2:]
-        success = executor.delete_forms(form_ids)
-        sys.exit(0 if success else 1)
-    
-    elif command == "generate_from_json":
-        # 使用JSON配置文件生成代码
-        if len(sys.argv) < 3:
-            print("❌ 请提供JSON配置文件路径")
-            sys.exit(1)
-        
-        json_file_path = sys.argv[2]
-        
-        # 加载JSON配置
-        try:
-            with open(json_file_path, 'r', encoding='utf-8') as f:
-                config_data = json.load(f)
-        except Exception as e:
-            print(f"❌ JSON配置文件加载失败: {e}")
-            sys.exit(1)
-        
-        print(f"📄 使用JSON配置文件: {json_file_path}")
-        
-        # 执行完整工作流（使用新架构）
-        success = executor.execute_code_generation(config_data)
-        sys.exit(0 if success else 1)
-    
-    elif command == "test_finance_invoice":
-        # 使用finance_invoice_InvoiceHeader_20250905001615.json进行完整测试
-        json_file_path = "/Users/admin/Work/Github/JeecgBoot/finance_invoice_InvoiceHeader_20250905001615.json"
-        
-        # 加载JSON配置
-        try:
-            with open(json_file_path, 'r', encoding='utf-8') as f:
-                config_data = json.load(f)
-        except Exception as e:
-            print(f"❌ JSON配置文件加载失败: {e}")
-            sys.exit(1)
-        
-        print(f"📄 使用财务发票管理JSON配置进行完整测试")
-        print(f"📄 配置文件: {json_file_path}")
-        
-        # 执行完整工作流（使用新架构）
-        success = executor.execute_code_generation(config_data)
-        
-        if success:
-            print("\n🎯 测试完成，现在演示删除表单功能")
-            table_name = config_data.get('head', {}).get('tableName', '')
-            if table_name:
-                print(f"🗑️ 删除刚创建的表单: {table_name}")
-                executor.delete_form_by_table_name(table_name)
-        
-        sys.exit(0 if success else 1)
-    
-    else:
-        print(f"❌ 未知命令: {command}")
-        print("使用 'python3 Code_Gen_Execute.py' 查看所有可用命令")
-        sys.exit(1)
+    # 执行完整代码生成工作流
+    success = executor.execute_code_generation(config_data)
+    sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
     main()
