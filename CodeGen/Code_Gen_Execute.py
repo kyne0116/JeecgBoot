@@ -552,41 +552,56 @@ class CodeGenExecutor:
             return table_name.split('_')[1]
         raise ValueError(f"无法从表名中提取模块名: {table_name}")
     
+    def _load_required_environment_variables(self) -> Dict[Tuple[str, str], str]:
+        """加载8个必需的环境变量，缺失时直接退出程序"""
+        required_env_vars = {
+            'JEECG_PROJECT_ROOT': ('project', 'path_prefix'),
+            'JEECG_BASE_URL': ('server', 'base_url'),
+            'JEECG_USERNAME': ('server', 'username'), 
+            'JEECG_PASSWORD': ('server', 'password'),
+            'JEECG_DATABASE_TYPE': ('database_execution', 'type'),
+            'JEECG_DATABASE_URL': ('database_execution', 'url'),
+            'JEECG_DATABASE_USERNAME': ('database_execution', 'username'),
+            'JEECG_DATABASE_PASSWORD': ('database_execution', 'password')
+        }
+        
+        missing_vars = []
+        env_values = {}
+        
+        for env_var, (section, key) in required_env_vars.items():
+            env_value = os.getenv(env_var)
+            if not env_value:
+                missing_vars.append(env_var)
+            else:
+                env_values[(section, key)] = env_value
+        
+        if missing_vars:
+            print(f"❌ 缺少必需的环境变量: {', '.join(missing_vars)}")
+            print("程序退出。")
+            sys.exit(1)
+        
+        return env_values
+
     def _load_config(self) -> configparser.ConfigParser:
-        """加载配置文件"""
+        """加载配置文件并集成环境变量"""
         config = configparser.ConfigParser()
         try:
             config.read(self.config_file, encoding='utf-8')
-            # 应用环境变量覆盖
-            self._apply_environment_overrides(config)
+            
+            # 加载必需的环境变量
+            env_values = self._load_required_environment_variables()
+            
+            # 将环境变量值集成到config中
+            for (section, key), value in env_values.items():
+                if not config.has_section(section):
+                    config.add_section(section)
+                config.set(section, key, value)
+                
             return config
         except Exception as e:
             print(f"配置文件加载失败: {e}")
             sys.exit(1)
 
-    def _apply_environment_overrides(self, config: configparser.ConfigParser):
-        """应用环境变量覆盖配置"""
-        # 环境变量映射表
-        env_mappings = {
-            'JEECG_PROJECT_ROOT': ('project', 'path_prefix'),
-            'JEECG_BASE_URL': ('server', 'base_url'),
-            'JEECG_USERNAME': ('server', 'username'),
-            'JEECG_PASSWORD': ('server', 'password'),
-            'JEECG_DATABASE_TYPE': ('database_execution', 'type'),
-            'JEECG_DATABASE_URL': ('database_execution', 'url'),
-            'JEECG_DATABASE_USERNAME': ('database_execution', 'username'),
-            'JEECG_DATABASE_PASSWORD': ('database_execution', 'password'),
-        }
-
-        # 应用环境变量覆盖
-        for env_var, (section, key) in env_mappings.items():
-            env_value = os.getenv(env_var)
-            if env_value:
-                if not config.has_section(section):
-                    config.add_section(section)
-                config.set(section, key, env_value)
-                print(f"🔧 环境变量覆盖: {env_var} -> [{section}] {key} = {env_value}")
-    
     def get_config_value(self, section: str, key: str, fallback: str = None) -> str:
         """获取配置值，支持变量替换"""
         try:

@@ -65,9 +65,10 @@ JeecgBoot CodeGen 是一个企业级的智能代码生成系统，通过 AI 驱�
 **Code_Gen_Config.properties** - 系统配置文件
 
 - JeecgBoot API 接口地址配置
-- 服务器连接和认证信息
 - 超时时间和重试策略设置
-- 路径配置和环境变量支持
+- 编译和前端迁移配置
+- 权限授权和路径配置
+- **注意**：核心的8个环境变量不再从此文件读取
 
 **Code_Gen_Spec.json** - AI 友好的增强规范
 
@@ -271,18 +272,62 @@ cd CodeGen
 pip install -r requirements.txt
 ```
 
-#### 3. 配置文件设置
+#### 3. 必需环境变量设置
 
-编辑 `Code_Gen_Config.properties`：
+**⚠️ 重要提醒：以下8个环境变量是系统运行的必需条件，缺少任何一个都会导致程序直接退出。**
 
-```properties
-# JeecgBoot服务器配置
-server.base_url=http://localhost:8080/jeecg-boot
-server.username=admin
-server.password=123456
+```bash
+# JeecgBoot 项目和服务器配置（必需）
+export JEECG_PROJECT_ROOT=/Users/admin/Work/Github/JeecgBoot
+export JEECG_BASE_URL=http://localhost:8080/jeecg-boot
+export JEECG_USERNAME=admin
+export JEECG_PASSWORD=123456
 
-# 项目路径配置
-project.path_prefix=/path/to/your/JeecgBoot
+# 数据库连接配置（必需）
+export JEECG_DATABASE_TYPE=mysql
+export JEECG_DATABASE_URL=jdbc:mysql://localhost:30004/jeecg-boot
+export JEECG_DATABASE_USERNAME=root
+export JEECG_DATABASE_PASSWORD=Best@2008
+```
+
+**环境变量说明：**
+
+| 环境变量 | 必需性 | 说明 | 示例值 |
+|---------|-------|------|--------|
+| `JEECG_PROJECT_ROOT` | ✅ **必需** | JeecgBoot项目根目录绝对路径 | `/Users/admin/Work/Github/JeecgBoot` |
+| `JEECG_BASE_URL` | ✅ **必需** | JeecgBoot后端服务基础URL | `http://localhost:8080/jeecg-boot` |
+| `JEECG_USERNAME` | ✅ **必需** | JeecgBoot管理员用户名 | `admin` |
+| `JEECG_PASSWORD` | ✅ **必需** | JeecgBoot管理员密码 | `123456` |
+| `JEECG_DATABASE_TYPE` | ✅ **必需** | 数据库类型 | `mysql`/`postgresql`/`oracle` |
+| `JEECG_DATABASE_URL` | ✅ **必需** | 数据库连接URL | `jdbc:mysql://localhost:30004/jeecg-boot` |
+| `JEECG_DATABASE_USERNAME` | ✅ **必需** | 数据库用户名 | `root` |
+| `JEECG_DATABASE_PASSWORD` | ✅ **必需** | 数据库密码 | `Best@2008` |
+
+**设置方法：**
+
+1. **临时设置（当前会话）**：
+```bash
+# 直接在终端执行上述export命令
+```
+
+2. **永久设置（推荐）**：
+```bash
+# 添加到 ~/.bashrc 或 ~/.zshrc
+echo 'export JEECG_PROJECT_ROOT=/Users/admin/Work/Github/JeecgBoot' >> ~/.bashrc
+echo 'export JEECG_BASE_URL=http://localhost:8080/jeecg-boot' >> ~/.bashrc
+# ... 添加其他7个变量
+
+# 重新加载配置
+source ~/.bashrc
+```
+
+3. **验证设置**：
+```bash
+# 检查所有必需环境变量
+env | grep JEECG
+
+# 测试程序启动（会立即检查环境变量）
+python3 Code_Gen_Execute.py
 ```
 
 ### 使用示例
@@ -390,21 +435,24 @@ mvn clean compile -DskipTests
 
 ### 环境变量配置
 
-支持通过环境变量覆盖配置：
+**系统采用环境变量优先的配置策略**：
+
+- **核心配置**：8个必需环境变量完全来自环境变量，无默认值
+- **其他配置**：通过 `Code_Gen_Config.properties` 提供默认值
+- **配置优先级**：环境变量 > 配置文件默认值
+
+**必需环境变量（详见"快速开始"章节）**：
 
 ```bash
-# JeecgBoot 服务器配置
-export JEECG_PROJECT_ROOT=/Users/admin/Work/Github/JeecgBoot
-export JEECG_BASE_URL=http://localhost:8080/jeecg-boot
-export JEECG_USERNAME=admin
-export JEECG_PASSWORD=123456
-
-# 数据库连接配置
-export JEECG_DATABASE_TYPE=mysql
-export JEECG_DATABASE_URL=jdbc:mysql://localhost:30004/jeecg-boot
-export JEECG_DATABASE_USERNAME=root
-export JEECG_DATABASE_PASSWORD=Best@2008
+# 这8个变量必须设置，程序启动时会检查
+JEECG_PROJECT_ROOT, JEECG_BASE_URL, JEECG_USERNAME, JEECG_PASSWORD
+JEECG_DATABASE_TYPE, JEECG_DATABASE_URL, JEECG_DATABASE_USERNAME, JEECG_DATABASE_PASSWORD
 ```
+
+**缺失检查**：
+- 程序启动时自动检查所有必需环境变量
+- 任何变量缺失都会显示错误并立即退出
+- 不再显示"环境变量覆盖"的日志信息
 
 ### 批量代码生成
 
@@ -472,13 +520,15 @@ def custom_business_validation(self, config: Dict) -> List[str]:
 **核心配置项**：
 
 ```properties
-# JeecgBoot服务器配置
-server.base_url=http://localhost:8080/jeecg-boot
-server.username=admin
-server.password=123456
+# 注意：核心的8个环境变量已移除，必须通过环境变量设置
+# JEECG_PROJECT_ROOT, JEECG_BASE_URL, JEECG_USERNAME, JEECG_PASSWORD
+# JEECG_DATABASE_TYPE, JEECG_DATABASE_URL, JEECG_DATABASE_USERNAME, JEECG_DATABASE_PASSWORD
 
-# 项目路径配置
-project.path_prefix=/Users/admin/Work/Github/JeecgBoot
+# 数据库执行配置
+database_execution.enabled=true
+database_execution.method=mysql_client
+database_execution.timeout=30
+database_execution.auto_commit=true
 
 # API超时配置
 timeouts.login=10
@@ -489,6 +539,11 @@ timeouts.codegen=60
 # 代码生成配置
 codegen.package_style=service
 codegen.vue_style=vue3
+
+# 前端代码迁移配置
+frontend_migration.enabled=true
+frontend_migration.target_base_path=jeecgboot-vue3/src/views
+frontend_migration.cleanup_source=false
 ```
 
 ### 验证配置 (`Code_Gen_Schema.json`)
@@ -547,14 +602,32 @@ codegen.vue_style=vue3
 
 ### 常见问题
 
-#### 1. API 调用失败
+#### 1. 环境变量缺失
+
+**问题**：程序启动时提示"❌ 缺少必需的环境变量"
+**解决**：
+
+```bash
+# 1. 检查当前环境变量设置
+env | grep JEECG
+
+# 2. 设置缺失的环境变量（参考快速开始章节）
+export JEECG_PROJECT_ROOT=/your/project/path
+export JEECG_BASE_URL=http://localhost:8080/jeecg-boot
+# ... 设置其他6个变量
+
+# 3. 验证设置成功
+python3 Code_Gen_Execute.py
+```
+
+#### 2. API 调用失败
 
 **问题**：登录失败或 API 超时
 **解决**：
 
-- 检查`Code_Gen_Config.properties`中的服务器配置
+- 检查环境变量`JEECG_BASE_URL`、`JEECG_USERNAME`、`JEECG_PASSWORD`
 - 确认 JeecgBoot 服务正常运行
-- 验证用户名密码正确
+- 验证网络连接和防火墙设置
 
 #### 2. 配置验证失败
 
