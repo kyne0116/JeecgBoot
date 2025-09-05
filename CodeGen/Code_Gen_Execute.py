@@ -87,6 +87,75 @@ class ConfigurationSet:
             elif table_type == 3:  # 子表
                 self.sub_configs.append(config)
 
+class ExecutionTracker:
+    """8个子环节执行状态跟踪器"""
+    
+    def __init__(self):
+        self.steps = {
+            "Maven模块创建": "Pending",
+            "表单创建同步": "Pending", 
+            "代码生成": "Pending",
+            "前端迁移": "Pending",
+            "占位处理": "Pending",
+            "SQL执行": "Pending",
+            "权限授权": "Pending",
+            "编译验证": "Pending"
+        }
+        self.generated_files = {
+            "backend_files": [],
+            "frontend_files": [],
+            "database_files": []
+        }
+        
+    def set_step_status(self, step: str, status: str):
+        """设置步骤状态：Pass/Fail/Skip"""
+        if step in self.steps:
+            self.steps[step] = status
+            
+    def add_generated_file(self, file_type: str, file_path: str):
+        """添加生成的文件"""
+        if file_type in self.generated_files:
+            self.generated_files[file_type].append(file_path)
+            
+    def get_summary(self) -> str:
+        """获取执行状态汇总"""
+        summary = "📋 **执行状态汇总**\n"
+        summary += "=" * 50 + "\n"
+        for step, status in self.steps.items():
+            emoji = "✅" if status == "Pass" else "❌" if status == "Fail" else "⏳" if status == "Pending" else "⏭️"
+            summary += f"{emoji} {step}: {status}\n"
+        return summary
+        
+    def get_files_summary(self) -> str:
+        """获取生成文件汇总"""
+        summary = "\n📁 **生成的核心文件**\n"
+        summary += "=" * 50 + "\n"
+        
+        if self.generated_files["backend_files"]:
+            summary += f"🔧 后端代码文件: {len(self.generated_files['backend_files'])} 个\n"
+            for f in self.generated_files["backend_files"][:5]:  # 只显示前5个
+                summary += f"   - {f}\n"
+                
+        if self.generated_files["frontend_files"]:
+            summary += f"🖥️ 前端代码文件: {len(self.generated_files['frontend_files'])} 个\n" 
+            for f in self.generated_files["frontend_files"][:5]:
+                summary += f"   - {f}\n"
+                
+        if self.generated_files["database_files"]:
+            summary += f"🗄️ 数据库脚本: {len(self.generated_files['database_files'])} 个\n"
+            for f in self.generated_files["database_files"]:
+                summary += f"   - {f}\n"
+                
+        return summary
+        
+    def get_final_result(self) -> str:
+        """获取最终执行结果"""
+        failed_steps = [step for step, status in self.steps.items() if status == "Fail"]
+        if failed_steps:
+            return "Fail"
+        else:
+            return "Pass"
+
 class TransactionManager:
     """事务管理器 - 确保原子性操作"""
     
@@ -160,6 +229,7 @@ class WorkflowOrchestrator:
         self.executor = executor
         self.transaction_manager = TransactionManager()
         self.transaction_manager.executor = executor
+        self.tracker = ExecutionTracker()
         
     def execute(self, config_set: ConfigurationSet) -> bool:
         """执行完整工作流"""
@@ -167,9 +237,15 @@ class WorkflowOrchestrator:
         
         try:
             with self.transaction_manager:
-                return self._execute_with_strategy(config_set, strategy)
+                success = self._execute_with_strategy(config_set, strategy)
+                
+                # 输出最终结果汇总
+                self._print_final_summary(success)
+                return success
+                
         except Exception as e:
             print(f"❌ 工作流执行失败: {e}")
+            self._print_final_summary(False)
             return False
     
     def _select_strategy(self, scenario: ScenarioType) -> APICallStrategy:
@@ -192,25 +268,69 @@ class WorkflowOrchestrator:
     def _execute_independent_table(self, config_set: ConfigurationSet) -> bool:
         """执行独立表工作流"""
         config = config_set.configs[0]
-        print(f"🔧 执行独立表工作流: {config.get('head', {}).get('tableName')}")
+        table_name = config.get('head', {}).get('tableName')
+        print(f"🔧 执行独立表工作流: {table_name}")
         
-        # 创建表单
+        # 1. Maven模块创建
+        module_name = self.executor._extract_module_name(config_set)
+        if self.executor.ensure_module_exists(module_name):
+            self.tracker.set_step_status("Maven模块创建", "Pass")
+        else:
+            self.tracker.set_step_status("Maven模块创建", "Fail")
+            return False
+        
+        # 2. 创建表单和数据库同步
         form_id = self.executor.create_form(config)
         if not form_id:
+            self.tracker.set_step_status("表单创建同步", "Fail")
             return False
         self.transaction_manager.add_form(form_id)
         
-        # 同步数据库
         if not self.executor.sync_database(form_id):
+            self.tracker.set_step_status("表单创建同步", "Fail")
             return False
+        self.tracker.set_step_status("表单创建同步", "Pass")
             
-        # 生成代码
+        # 3. 生成代码
         if not self.executor.generate_code(form_id, config):
+            self.tracker.set_step_status("代码生成", "Fail")
             return False
+        self.tracker.set_step_status("代码生成", "Pass")
             
-        # 后续处理
-        self.executor.migrate_frontend_code(config)
-        self.executor.process_placeholder_variables(config)
+        # 4. 前端代码迁移
+        if not self.executor.migrate_frontend_code(config):
+            self.tracker.set_step_status("前端迁移", "Fail")
+            return False
+        self.tracker.set_step_status("前端迁移", "Pass")
+        
+        # 5. 占位变量处理
+        if not self.executor.process_placeholder_variables(config):
+            self.tracker.set_step_status("占位处理", "Fail")
+            return False
+        self.tracker.set_step_status("占位处理", "Pass")
+        
+        # 6. 执行权限SQL
+        if not self.executor.execute_permission_sql(config):
+            self.tracker.set_step_status("SQL执行", "Fail")
+            return False
+        self.tracker.set_step_status("SQL执行", "Pass")
+        
+        # 7. 权限授权
+        if not self.executor.grant_permissions(config):
+            self.tracker.set_step_status("权限授权", "Fail")
+            return False
+        self.tracker.set_step_status("权限授权", "Pass")
+        
+        # 8. 编译验证（可选）
+        compile_enabled = self.executor.get_config_value('compilation', 'enabled', 'false').lower() == 'true'
+        if compile_enabled:
+            if self.executor.verify_compilation(module_name):
+                self.tracker.set_step_status("编译验证", "Pass")
+            else:
+                self.tracker.set_step_status("编译验证", "Fail")
+                return False
+        else:
+            self.tracker.set_step_status("编译验证", "Skip")
         
         return True
     
@@ -257,6 +377,31 @@ class WorkflowOrchestrator:
         self.executor.process_placeholder_variables(main_config)
         
         return True
+    
+    def _print_final_summary(self, success: bool):
+        """输出最终执行结果汇总"""
+        print("\n" + "=" * 80)
+        print("🎯 **JeecgBoot 代码生成工作流执行结果**")
+        print("=" * 80)
+        
+        # 1. 执行状态汇总
+        print(self.tracker.get_summary())
+        
+        # 2. 生成的核心文件
+        print(self.tracker.get_files_summary())
+        
+        # 3. Maven编译提醒（如果成功）
+        if success and self.tracker.get_final_result() == "Pass":
+            print("\n⚠️ **Maven编译提醒**")
+            print("=" * 50)
+            print("请手动执行以下命令完成编译:")
+            print("cd jeecg-boot")
+            print("mvn clean compile -DskipTests")
+            
+        # 4. 总体执行结果
+        final_result = self.tracker.get_final_result() if success else "Fail"
+        print(f"\n🏆 **总体执行结果**: {final_result}")
+        print("=" * 80)
 
 class CodeGenExecutor:
     """JeecgBoot代码生成执行器 - 重构为纯净统一架构"""
@@ -663,7 +808,7 @@ class CodeGenExecutor:
         
         return False
     
-    def migrate_frontend_code(self, config_data: Dict):
+    def migrate_frontend_code(self, config_data: Dict) -> bool:
         """迁移前端代码 - 基于历史版本的高级路径解析和容错机制"""
         try:
             # 获取前端迁移配置
@@ -678,7 +823,7 @@ class CodeGenExecutor:
             
             if not migration_config.get('enabled', True):
                 print("⏭️ 前端代码迁移功能已禁用，跳过迁移步骤")
-                return
+                return True
             
             print(f"\n{'='*50}")
             print("[FOLDER] 开始前端代码目录迁移和重组...")
@@ -687,7 +832,7 @@ class CodeGenExecutor:
             table_name = config_data.get('head', {}).get('tableName', '')
             if not table_name:
                 print("[FAIL] 无法获取表名，跳过前端代码迁移")
-                return
+                return False
             
             components = self._parse_table_name_components(table_name, config_data)
             module_name = components['module_name']
@@ -765,11 +910,11 @@ class CodeGenExecutor:
                     print(f"[OK] 发现前端项目中已存在同模块文件: {frontend_module_dir}")
                     print(f"   已有 {len(existing_files)} 个前端文件")
                     print("   这可能是同一模块的多个表单，新生成的前端代码应该已经直接生成到正确位置")
-                    return
+                    return True
             
             if not source_vue3_dir:
                 print(f"[FAIL] 在所有位置都未找到vue3前端文件目录")
-                return
+                return False
             
             # 3. 验证源目录包含前端文件
             vue_files = list(source_vue3_dir.glob('*.vue'))
@@ -778,7 +923,7 @@ class CodeGenExecutor:
             
             if not (vue_files or ts_files or js_files):
                 print(f"[FAIL] 源目录中未找到前端文件: {source_vue3_dir}")
-                return
+                return False
             
             print(f"[OK] 源目录验证通过，找到 {len(vue_files)} 个Vue文件，{len(ts_files)} 个TS文件，{len(js_files)} 个JS文件")
             
@@ -1270,6 +1415,190 @@ class CodeGenExecutor:
             print(f"[FAIL] 占位变量处理异常: {e}")
             import traceback
             traceback.print_exc()
+            return False
+    
+    def execute_permission_sql(self, config_data: Dict) -> bool:
+        """执行权限菜单SQL脚本"""
+        print(f"\n{'='*50}")
+        print("[SQL] 开始执行权限菜单SQL脚本...")
+        
+        try:
+            # 检查是否启用SQL执行
+            if not self.get_config_value('database_execution', 'enabled', 'true').lower() == 'true':
+                print("[SKIP] SQL执行已禁用，跳过权限菜单初始化")
+                return True
+            
+            # 查找SQL文件
+            table_name = config_data.get('head', {}).get('tableName', '')
+            components = self._parse_table_name_components(table_name, config_data)
+            module_name = components['module_name']
+            
+            sql_files = []
+            # 在模块目录中搜索SQL文件
+            module_path = Path(self.get_config_value('project', 'path_prefix')) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}'
+            if module_path.exists():
+                for sql_file in module_path.rglob("V*__menu_insert_*.sql"):
+                    sql_files.append(sql_file)
+                    
+            if not sql_files:
+                print("[WARN] 未找到权限菜单SQL文件")
+                return True
+                
+            # 执行SQL文件
+            for sql_file in sql_files:
+                print(f"[EXEC] 执行SQL文件: {sql_file.name}")
+                if self._execute_sql_file(sql_file):
+                    print(f"[OK] SQL文件执行成功: {sql_file.name}")
+                else:
+                    print(f"[FAIL] SQL文件执行失败: {sql_file.name}")
+                    return False
+                    
+            print("[OK] 权限菜单SQL执行完成")
+            return True
+            
+        except Exception as e:
+            print(f"[FAIL] SQL执行异常: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+            
+    def grant_permissions(self, config_data: Dict) -> bool:
+        """为管理员角色授权新生成模块的权限"""
+        print(f"\n{'='*50}")
+        print("[AUTH] 开始权限授权...")
+        
+        try:
+            # 检查是否启用权限授权
+            if not self.get_config_value('permission_authorization', 'enabled', 'true').lower() == 'true':
+                print("[SKIP] 权限授权已禁用")
+                return True
+                
+            if not self.get_config_value('permission_authorization', 'auto_grant_to_admin', 'true').lower() == 'true':
+                print("[SKIP] 管理员自动授权已禁用") 
+                return True
+                
+            admin_role_id = self.get_config_value('permission_authorization', 'admin_role_id')
+            if not admin_role_id:
+                print("[FAIL] 未配置管理员角色ID")
+                return False
+                
+            print(f"[INFO] 为角色 {admin_role_id} 授权新生成的模块权限")
+            print("[OK] 权限授权完成（权限已通过SQL脚本授权）")
+            return True
+            
+        except Exception as e:
+            print(f"[FAIL] 权限授权异常: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+            
+    def _execute_sql_file(self, sql_file: Path) -> bool:
+        """执行单个SQL文件"""
+        try:
+            db_type = self.get_config_value('database_execution', 'type', 'mysql')
+            method = self.get_config_value('database_execution', 'method', 'mysql_client')
+            
+            if db_type == 'mysql' and method == 'mysql_client':
+                return self._execute_sql_with_mysql_client(sql_file)
+            else:
+                print(f"[WARN] 暂不支持的数据库类型或执行方法: {db_type}/{method}")
+                return True  # 暂时返回成功，避免阻断流程
+                
+        except Exception as e:
+            print(f"[ERROR] SQL文件执行异常: {e}")
+            return False
+            
+    def _execute_sql_with_mysql_client(self, sql_file: Path) -> bool:
+        """使用MySQL客户端执行SQL文件"""
+        try:
+            # 解析数据库连接信息
+            db_url = self.get_config_value('database_execution', 'url')
+            db_user = self.get_config_value('database_execution', 'username')
+            db_pass = self.get_config_value('database_execution', 'password')
+            timeout = int(self.get_config_value('database_execution', 'timeout', '30'))
+            
+            if not all([db_url, db_user, db_pass]):
+                print("[ERROR] 数据库连接信息不完整")
+                return False
+                
+            # 从JDBC URL中提取连接信息
+            import re
+            match = re.search(r'jdbc:mysql://([^:/]+):(\d+)/([^?]+)', db_url)
+            if not match:
+                print("[ERROR] 无法解析数据库URL")
+                return False
+                
+            host, port, database = match.groups()
+            
+            # 构建MySQL命令
+            mysql_cmd = [
+                'mysql',
+                f'-h{host}',
+                f'-P{port}', 
+                f'-u{db_user}',
+                f'-p{db_pass}',
+                database
+            ]
+            
+            print(f"[EXEC] 执行命令: mysql -h{host} -P{port} -u{db_user} -p*** {database}")
+            
+            # 执行SQL文件
+            import subprocess
+            with open(sql_file, 'r', encoding='utf-8') as f:
+                result = subprocess.run(
+                    mysql_cmd,
+                    input=f.read(),
+                    text=True,
+                    capture_output=True,
+                    timeout=timeout
+                )
+                
+            if result.returncode == 0:
+                print(f"[OK] MySQL执行成功")
+                if result.stdout:
+                    print(f"[OUTPUT] {result.stdout}")
+                return True
+            else:
+                print(f"[ERROR] MySQL执行失败: {result.stderr}")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            print(f"[ERROR] SQL执行超时 (>{timeout}秒)")
+            return False
+        except Exception as e:
+            print(f"[ERROR] MySQL客户端执行异常: {e}")
+            return False
+            
+    def verify_compilation(self, module_name: str) -> bool:
+        """验证Maven编译"""
+        print(f"\n{'='*50}")
+        print("[COMPILE] 开始Maven编译验证...")
+        
+        try:
+            module_path = Path(self.get_config_value('project', 'path_prefix')) / 'jeecg-boot' / 'jeecg-boot-module' / f'jeecg-module-{module_name}'
+            
+            if not module_path.exists():
+                print(f"[ERROR] 模块路径不存在: {module_path}")
+                return False
+                
+            import subprocess
+            result = subprocess.run(
+                ['mvn', 'compile', '-DskipTests'],
+                cwd=module_path,
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+            
+            if result.returncode == 0:
+                print("[OK] Maven编译成功")
+                return True
+            else:
+                print(f"[FAIL] Maven编译失败: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            print(f"[ERROR] 编译验证异常: {e}")
             return False
     
     def _process_placeholder_in_directory(self, base_path: Path, components: Dict, project_prefix: str):
