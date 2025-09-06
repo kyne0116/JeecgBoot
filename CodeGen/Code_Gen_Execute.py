@@ -1285,15 +1285,16 @@ class PermissionManager:
                     logger.log_step("权限授权", "FAILED", "缺少必要的模块信息")
                 return False
             
-            # 获取表名和菜单ID
+            # 获取表名和菜单名称
             table_name = config_data.get('head', {}).get('tableName', '')
-            if not table_name:
+            table_txt = config_data.get('head', {}).get('tableTxt', '')
+            if not table_name or not table_txt:
                 if logger:
-                    logger.log_step("权限授权", "FAILED", "缺少表名信息")
+                    logger.log_step("权限授权", "FAILED", "缺少表名或菜单名称信息")
                 return False
             
-            # 先查找新创建的菜单ID
-            menu_ids = self._find_menu_ids_by_table_name(table_name)
+            # 先查找新创建的菜单ID - 使用中文菜单名称查询
+            menu_ids = self._find_menu_ids_by_menu_name(table_txt, table_name)
             if not menu_ids:
                 if logger:
                     logger.log_step("权限授权", "FAILED", f"未找到表 {table_name} 对应的菜单ID")
@@ -1344,8 +1345,8 @@ class PermissionManager:
             traceback.print_exc()
             return False
     
-    def _find_menu_ids_by_table_name(self, table_name: str) -> List[str]:
-        """根据表名查找对应的菜单ID"""
+    def _find_menu_ids_by_menu_name(self, menu_name: str, table_name: str) -> List[str]:
+        """根据菜单名称查找对应的菜单ID"""
         try:
             # 调用JeecgBoot的菜单查询API
             base_url = self.config.get_config_value('server', 'base_url', 'http://localhost:8080/jeecg-boot')
@@ -1356,10 +1357,11 @@ class PermissionManager:
                 return []
             
             headers = {'X-Access-Token': self.api_manager.token}
+            # 首先尝试用中文菜单名称查询
             params = {
                 'pageNo': 1,
                 'pageSize': 100,
-                'menuName': table_name  # 根据表名搜索菜单
+                'menuName': menu_name  # 使用中文菜单名称搜索
             }
             
             response = self.api_manager.session.get(menu_list_url, headers=headers, params=params, timeout=30)
@@ -1368,8 +1370,23 @@ class PermissionManager:
                 if result.get('success'):
                     records = result.get('result', {}).get('records', [])
                     menu_ids = [record.get('id') for record in records if record.get('id')]
-                    print(f"✅ 找到 {len(menu_ids)} 个菜单ID: {menu_ids}")
-                    return menu_ids
+                    if menu_ids:
+                        print(f"✅ 通过菜单名称'{menu_name}'找到 {len(menu_ids)} 个菜单ID: {menu_ids}")
+                        return menu_ids
+                    else:
+                        print(f"⚠️ 通过菜单名称'{menu_name}'未找到菜单，尝试用表名'{table_name}'查询")
+                        # 备用方案：使用表名查询
+                        params['menuName'] = table_name
+                        response2 = self.api_manager.session.get(menu_list_url, headers=headers, params=params, timeout=30)
+                        if response2.status_code == 200:
+                            result2 = response2.json()
+                            if result2.get('success'):
+                                records2 = result2.get('result', {}).get('records', [])
+                                menu_ids2 = [record.get('id') for record in records2 if record.get('id')]
+                                if menu_ids2:
+                                    print(f"✅ 通过表名'{table_name}'找到 {len(menu_ids2)} 个菜单ID: {menu_ids2}")
+                                    return menu_ids2
+                        print(f"❌ 通过表名'{table_name}'也未找到对应菜单")
                 else:
                     print(f"❌ 菜单查询失败: {result.get('message')}")
             else:
