@@ -12,17 +12,28 @@
     "template_type": "enhanced_json_with_ai_hints",
     "validation_level": "strict",
     "error_prevention_strategy": "constraint_driven",
+    "api_compatibility": {
+      "target_api": "JeecgBoot online/cgform/api/codeGenerate",
+      "critical_parameters": {
+        "code": "表单ID，代码生成时作为'code'参数传递",
+        "entityPackage": "实体包名，通常是SUBMODULE_NAME",
+        "ftlDescription": "必须从tableTxt获取，代码生成API必需参数",
+        "tableName_tmp": "临时表名，与tableName相同，代码生成API必需参数",
+        "subList_entityName_format": "必须是完整复合格式：主表实体名+子表实体名"
+      }
+    },
     "ai_guidance": {
       "variable_inference": "从用户业务需求中推断三核心变量",
       "entity_extraction": "提取最核心的业务实体作为BUSINESS_ENTITY",
       "field_generation": "确保orderNum从0开始严格连续递增",
       "constraint_compliance": "严格遵守字段长度和格式约束",
-      "scenario_detection": "自动识别独立表vs主子表场景"
+      "scenario_detection": "自动识别独立表vs主子表场景",
+      "sublist_entity_naming": "subList中entityName必须生成完整复合格式，避免JeecgBoot API空指针异常"
     },
     "common_pitfalls": {
       "orderNum_discontinuity": "orderNum必须连续，不能跳号",
-      "field_length_overflow": "queryMode≤10字符，fieldShowType≤20字符",
-      "table_name_format": "必须符合us_{module}_{submodule}_{entity}格式",
+      "field_length_overflow": "dbFieldName≤32字符，queryMode≤10字符，fieldShowType≤20字符",
+      "table_name_format": "必须符合{module}_{submodule}_{entity}格式",
       "system_fields_missing": "前7个字段必须是标准系统字段"
     }
   },
@@ -96,10 +107,10 @@
       "_description": "独立业务表，无关联关系",
       
       "head": {
-        "tableName": "us_{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{TABLE_SUFFIX}}",
+        "tableName": "{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{TABLE_SUFFIX}}",
         "_tableName_type": "string",
-        "_tableName_pattern": "^us_[a-z]+_[a-z]+_[a-z]+$",
-        "_tableName_ai_hint": "4段式命名：us_模块_子模块_实体，全小写下划线分隔",
+        "_tableName_pattern": "^[a-z]+_[a-z]+_[a-z]+$",
+        "_tableName_ai_hint": "3段式命名：模块_子模块_实体，全小写下划线分隔",
         
         "tableTxt": "{{BUSINESS_DESCRIPTION}}",
         "_tableTxt_type": "string",
@@ -144,7 +155,7 @@
       "_description": "主子表关系中的主表，包含subList配置",
       
       "head": {
-        "tableName": "us_{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{TABLE_SUFFIX}}",
+        "tableName": "{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{TABLE_SUFFIX}}",
         "tableTxt": "{{BUSINESS_DESCRIPTION}}",
         "business_entity": "{{BUSINESS_ENTITY}}",
         
@@ -160,7 +171,7 @@
         "subTableStr": "{{SUB_TABLE_LIST}}",
         "_subTableStr_type": "string",
         "_subTableStr_format": "逗号分隔的子表名列表",
-        "_subTableStr_ai_hint": "子表表名列表，如'us_education_student_parents,us_education_student_classmate'",
+        "_subTableStr_ai_hint": "子表表名列表，如'education_student_parentinfo,education_student_classmateinfo'",
         
         "formCategory": "temp",
         "idType": "UUID", 
@@ -177,13 +188,16 @@
       "subList": [
         {
           "_subList_template": "子表配置模板",
-          "tableName": "us_{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{SUB_TABLE_SUFFIX}}",
+          "tableName": "{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{SUB_TABLE_SUFFIX}}",
           "_tableName_ai_hint": "子表表名，必须与主表同模块",
           
-          "entityName": "{{SUB_ENTITY_NAME}}",
-          "_entityName_type": "string",
+          "entityName": "{{MAIN_ENTITY}}{{SUB_ENTITY_NAME}}",
+          "_entityName_type": "string", 
           "_entityName_format": "PascalCase",
-          "_entityName_ai_hint": "子表实体名，如StudentParents、StudentClassmate",
+          "_entityName_pattern": "主表实体名+子表实体名的复合格式",
+          "_entityName_ai_hint": "子表实体名必须为完整格式：主表实体名+子表实体名，如StudentInfoParentInfo、StudentInfoClassmateInfo",
+          "_entityName_examples": ["StudentInfoParentInfo", "StudentInfoClassmateInfo", "CustomerProfileContactInfo"],
+          "_entityName_critical_note": "⚠️ JeecgBoot API要求subList中entityName必须是完整复合格式，不能是简化格式",
           
           "ftlDescription": "{{SUB_TABLE_DESCRIPTION}}",
           "_ftlDescription_type": "string",
@@ -205,7 +219,7 @@
       "_description": "主子表关系中的子表，只创建数据库表不生成代码",
       
       "head": {
-        "tableName": "us_{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{TABLE_SUFFIX}}",
+        "tableName": "{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{TABLE_SUFFIX}}",
         "tableTxt": "{{BUSINESS_DESCRIPTION}}",
         "business_entity": "{{BUSINESS_ENTITY}}",
         
@@ -367,7 +381,9 @@
         "dbFieldName": "{{FIELD_NAME}}",
         "_dbFieldName_type": "string",
         "_dbFieldName_pattern": "^[a-z][a-z0-9_]*$",
-        "_dbFieldName_ai_hint": "字段名，小写字母开头，可包含数字和下划线",
+        "_dbFieldName_max_length": 32,
+        "_dbFieldName_constraint": "字段名最大长度32字符，对应数据库表onl_cgform_field.db_field_name字段限制",
+        "_dbFieldName_ai_hint": "字段名，小写字母开头，可包含数字和下划线，最大32字符",
 
         "dbFieldTxt": "{{FIELD_DESCRIPTION}}",
         "_dbFieldTxt_type": "string",
@@ -488,17 +504,28 @@
       },
 
       "table_name_format": {
-        "rule": "表名必须符合4段式格式",
-        "pattern": "^us_[a-z]+_[a-z]+_[a-z]+$",
-        "format": "us_{MODULE_NAME}_{SUBMODULE_NAME}_{TABLE_SUFFIX}",
-        "error_example": "❌ us_finance_invoice (只有3段)",
-        "correct_example": "✅ us_finance_invoice_customerprofile (4段)",
+        "rule": "表名必须符合3段式格式",
+        "pattern": "^[a-z]+_[a-z]+_[a-z]+$",
+        "format": "{MODULE_NAME}_{SUBMODULE_NAME}_{TABLE_SUFFIX}",
+        "error_example": "❌ finance_invoice (只有2段)",
+        "correct_example": "✅ finance_invoice_customerprofile (3段)",
         "_ai_hint": "表名格式是JeecgBoot的强制要求"
       }
     },
 
     "field_length_limits": {
       "_description": "字段长度限制，基于JeecgBoot数据库表结构",
+
+      "dbFieldName": {
+        "max_length": 32,
+        "pattern": "^[a-z][a-z0-9_]*$",
+        "description": "字段名，对应数据库表onl_cgform_field.db_field_name字段",
+        "auto_correction": {
+          "truncate_strategy": "优先保留关键词，如customer_profile_info -> cust_profile_info",
+          "abbreviation_strategy": "使用标准缩写，如information->info, profile->prof"
+        },
+        "_ai_hint": "dbFieldName最大32字符，超长将导致数据库插入失败"
+      },
 
       "queryMode": {
         "max_length": 10,

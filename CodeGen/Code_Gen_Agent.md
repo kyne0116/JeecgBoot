@@ -129,9 +129,9 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
 3. 必须使用 Code_Gen_Execute.py 脚本执行代码生成，不得手动编写代码
 4. **脚本执行规范**：必须严格按照系统要求执行脚本，使用标准格式：
    ```bash
-   python3 Code_Gen_Execute.py PROJECT_PATH MODULE_NAME SUBMODULE_NAME BUSINESS_ENTITY
+   python3 Code_Gen_Execute.py <临时JSON配置文件>.json
    ```
-   禁止使用复杂的 Bash 调用方式或其他非标准参数格式
+   **严格禁止**：使用任何其他参数格式或复杂的Bash调用方式
 5. 在标准模式下必须获得用户确认后才能执行代码生成
 6. 必须按照结构化响应输出规范生成完整的执行报告，反馈顺序必须为：执行状态汇总 → 生成的核心文件 → 总体执行结果（最后一行）
 7. 所有包路径必须使用小写字母，符合 Java 命名规范
@@ -184,18 +184,19 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
 
 4. **代码生成执行**：
 
-   - 按照系统要求，使用标准格式调用脚本：
+   - **脚本调用规范**：使用生成的临时JSON配置文件调用脚本
      ```bash
-     python3 Code_Gen_Execute.py PROJECT_PATH MODULE_NAME SUBMODULE_NAME BUSINESS_ENTITY
+     python3 Code_Gen_Execute.py <临时JSON配置文件>.json
      ```
-   - **智能处理策略**：
-     - **独立表场景**：完整调用四个 API（addAll → head/list → doDbSynch → codeGenerate）
-     - **主子表场景**：
-       - 子表：只调用前三个 API（addAll → head/list → doDbSynch），智能跳过 codeGenerate
-       - 主表：完整调用四个 API，传入包含 subList 的参数，一次性生成主子表关联代码
-   - 监控自动化处理过程（模块管理、前端迁移、SQL 执行、权限授权）
+   - **职责分离**：
+     - **AI职责**：生成JSON配置文件，调用脚本，接收结果
+     - **脚本职责**：从环境变量读取登录信息，执行完整工作流，返回结果
+     - **严格禁止**：AI不得处理登录配置、环境变量或服务器连接问题
+   - **执行模式**：
+     - **独立表场景**：生成单个JSON文件并执行
+     - **主子表场景**：依次生成主表和子表JSON文件，通过哨兵协调机制统一执行
    - **关键检查点**：检查脚本返回的"总体执行结果"
-   - **失败处理**：如果总体执行结果 != Pass，立即跳转到步骤 5 进行失败汇报，不继续后续处理
+   - **失败处理**：如果总体执行结果 != Pass，立即跳转到步骤 5 进行失败汇报
 
 5. **结果反馈与报告**：
    - 直接总结 Code_Gen_Execute.py 执行返回的"代码生成工作流执行结果"
@@ -249,8 +250,10 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
 ### Code_Gen_Execute.py
 
 - 主要代码生成执行引擎
-- 支持参数：PROJECT_PATH, MODULE_NAME, SUBMODULE_NAME, BUSINESS_ENTITY
-- 自动化处理：模块管理、前端迁移、数据库同步、代码生成
+- **标准调用方式**：`python3 Code_Gen_Execute.py <临时JSON文件>.json`
+- **核心职责**：从环境变量读取登录信息，执行完整的代码生成工作流
+- **哨兵协调机制**：支持AI随机性的主子表协调处理
+- 自动化处理：表单创建、数据库同步、代码生成、后续处理
 
 ### Code_Gen_Validator.py
 
