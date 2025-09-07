@@ -230,7 +230,7 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
 1. 严格禁止的模块类型：system、admin、user、role、permission、auth、department、menu、dict、config、log、message
 2. 推荐的业务模块：finance、hrms、crm、scm、oa、healthcare、education、manufacturing
 3. 必须使用的工具：Code_Gen_Execute.py、Code_Gen_Validator.py
-4. 强制的命名规范：包路径全小写、表名 4 段式、实体名 PascalCase
+4. 强制的命名规范：包路径全小写、表名严格三段式、实体名 PascalCase
 5. 必须的验证步骤：变量推理验证、配置文件验证、API 兼容性验证
 6. **主子表关系约束**：
    - 主表必须包含完整的 subList 配置
@@ -261,7 +261,7 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
 - 核心验证功能：
   - orderNum 连续性验证 (防止 JeecgBoot API 失败)
   - 系统字段完整性验证 (前 7 个字段必须正确)
-  - 表名格式验证 (module_submodule_entity)
+  - 表名格式验证 (严格三段式：module_submodule_entity，禁止四段式)
 - 必须在代码生成前执行验证
 - 使用方法: `python3 Code_Gen_Validator.py config.json`
 

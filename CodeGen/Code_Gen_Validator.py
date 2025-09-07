@@ -163,12 +163,38 @@ class CodeGenValidator:
         return errors
 
     def _validate_table_name(self, config: Dict) -> List[str]:
-        """验证表名格式"""
+        """验证表名格式 - 严格三段式"""
         errors = []
         table_name = config.get('head', {}).get('tableName', '')
-
-        if table_name.count('_') < 2:
-            errors.append("表名必须至少是3段式: module_submodule_entity（支持更多段）")
+        
+        # 严格三段式验证：必须正好有3段，不允许4段式或更多段式
+        segments = table_name.split('_')
+        
+        if len(segments) != 3:
+            errors.append(f"❌ 表名格式错误: '{table_name}' 必须严格为三段式格式 {{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{ENTITY_SUFFIX}}，当前为{len(segments)}段式")
+            return errors
+        
+        module_name, submodule_name, entity_suffix = segments
+        
+        # 验证各段格式
+        if not re.match(r'^[a-z]+$', module_name):
+            errors.append(f"❌ MODULE_NAME格式错误: '{module_name}' 必须为纯小写字母")
+        
+        if not re.match(r'^[a-z]+$', submodule_name):
+            errors.append(f"❌ SUBMODULE_NAME格式错误: '{submodule_name}' 必须为纯小写字母")
+        
+        if not re.match(r'^[a-z0-9]+$', entity_suffix):
+            errors.append(f"❌ ENTITY_SUFFIX格式错误: '{entity_suffix}' 必须为小写字母和数字组合")
+            
+        # 检查常见的四段式错误模式
+        invalid_patterns = [
+            "crm_customer_customer_profile",
+            "education_student_student_info", 
+            "finance_invoice_invoice_header"
+        ]
+        
+        if table_name in invalid_patterns:
+            errors.append(f"❌ 禁止使用四段式表名: '{table_name}' 应简化为三段式，如 'crm_customer_profile'")
 
         return errors
 
@@ -283,11 +309,35 @@ JSON配置验证报告
                 if field not in sub_table or not sub_table[field]:
                     errors.append(f"subList[{i}]缺少必需字段: {field}")
 
-            # 验证表名格式
+            # 验证子表表名格式 - 严格三段式
             table_name = sub_table.get('tableName', '')
             if table_name:
-                if not re.match(r'^[a-z0-9_]+$', table_name):
-                    errors.append(f"subList[{i}]表名格式错误: {table_name}，应为小写字母、数字和下划线格式")
+                # 严格三段式验证
+                segments = table_name.split('_')
+                if len(segments) != 3:
+                    errors.append(f"❌ subList[{i}]表名格式错误: '{table_name}' 必须严格为三段式格式 {{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{ENTITY_SUFFIX}}，当前为{len(segments)}段式")
+                else:
+                    module_name, submodule_name, entity_suffix = segments
+                    
+                    # 验证各段格式
+                    if not re.match(r'^[a-z]+$', module_name):
+                        errors.append(f"❌ subList[{i}] MODULE_NAME格式错误: '{module_name}' 必须为纯小写字母")
+                    
+                    if not re.match(r'^[a-z]+$', submodule_name):
+                        errors.append(f"❌ subList[{i}] SUBMODULE_NAME格式错误: '{submodule_name}' 必须为纯小写字母")
+                    
+                    if not re.match(r'^[a-z0-9]+$', entity_suffix):
+                        errors.append(f"❌ subList[{i}] ENTITY_SUFFIX格式错误: '{entity_suffix}' 必须为小写字母和数字组合")
+                
+                # 检查禁用的四段式表名
+                invalid_patterns = [
+                    "crm_customer_customer_profile",
+                    "education_student_student_info", 
+                    "finance_invoice_invoice_header"
+                ]
+                
+                if table_name in invalid_patterns:
+                    errors.append(f"❌ subList[{i}]禁止使用四段式表名: '{table_name}' 应简化为三段式")
 
                 if table_name in used_table_names:
                     errors.append(f"subList[{i}]表名重复: {table_name}")

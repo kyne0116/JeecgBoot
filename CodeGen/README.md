@@ -255,6 +255,29 @@ TABLE_NAME: crm_customer_customerinfo
 子表2: education/student/AwardRecord
 ```
 
+### 📋 表名格式约束
+
+**严格三段式要求**：
+
+- **格式**: `{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_SUFFIX}`
+- **段数**: 必须正好3段，不允许4段式或更多段式
+- **分隔符**: 使用下划线 `_` 分隔
+- **字符集**: 仅包含小写字母、数字、下划线
+
+**❌ 禁止的四段式表名**：
+```
+crm_customer_customer_profile     # 错误：4段式
+education_student_student_info    # 错误：4段式  
+finance_invoice_invoice_header    # 错误：4段式
+```
+
+**✅ 正确的三段式表名**：
+```
+crm_customer_profile              # 正确：3段式
+education_student_info            # 正确：3段式
+finance_invoice_header            # 正确：3段式
+```
+
 ## 🚀 快速开始指南
 
 ### 环境准备

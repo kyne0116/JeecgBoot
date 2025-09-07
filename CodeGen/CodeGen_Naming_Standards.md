@@ -18,8 +18,8 @@
 
 - **字符集**: 仅包含小写字母、数字、下划线
 - **分隔符**: 使用下划线 `_` 分隔各部分
-- **最小段数**: 3段（模块 + 子模块 + 实体）
-- **可扩展性**: 支持超过3段的命名
+- **严格段数**: 必须正好3段（模块 + 子模块 + 实体）
+- **不可扩展**: 不支持4段式或更多段式命名
 
 ### 1.3 实际示例
 
@@ -34,8 +34,8 @@ education_student_studentinfo
 # 子表示例
 education_student_parentinfo
 education_student_classmateinfo
-alumni_members_member_education
-alumni_members_member_career
+alumni_members_education
+alumni_members_career
 ```
 
 ### 1.4 派生规则
@@ -291,6 +291,7 @@ student_academic_performance_evaluation → stud_acad_perf_eval
 3. **保持模块一致性**: 主子表必须在同一模块下
 4. **orderNum连续性**: 必须从0开始严格连续递增
 5. **表名简洁性**: 使用3段式结构，实体后缀采用全小写连续字符
+6. **严禁四段式**: 禁止使用如 `crm_customer_customer_profile`、`education_student_student_info`、`finance_invoice_invoice_header` 等四段式表名
 
 ### 9.3 实施建议
 

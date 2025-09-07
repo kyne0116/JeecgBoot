@@ -712,7 +712,7 @@ class JeecgBootAPIManager:
             "code": form_id,  # ✅ 修复: 使用code而不是id
             "projectPath": project_path,
             "entityName": business_entity,
-            "entityPackage": submodule_name,  # ✅ 新增: 实体包名
+            "entityPackage": "",  # 🔧 修复: 避免重复包名，让API自动处理
             "jspMode": jsp_mode,
             "jformType": jform_type,
             "ftlDescription": config_data.get('head', {}).get('tableTxt', ''),  # ✅ 新增: 表描述
@@ -846,7 +846,7 @@ class FrontendMigrator:
         self.config = config_manager
     
     def migrate_frontend_code(self, config_data: Dict, logger: 'CodeGenLogger' = None) -> bool:
-        """迁移前端代码到正确位置"""
+        """迁移前端代码到正确位置 - 重构版：使用mv操作，简化路径结构"""
         try:
             if logger:
                 logger.log_step("前端代码迁移", "IN_PROGRESS", "开始迁移Vue3前端代码")
@@ -861,7 +861,6 @@ class FrontendMigrator:
             # 获取路径信息
             project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
             target_base_path = self.config.get_config_value('frontend_migration', 'target_base_path', 'jeecgboot-vue3/src/views')
-            target_base_full = f"{project_root}/{target_base_path}"
             
             # 从metadata获取模块信息
             metadata = config_data.get('metadata', {})
@@ -869,18 +868,17 @@ class FrontendMigrator:
             
             module_name = generation_info.get('module_name', '')
             submodule_name = generation_info.get('submodule_name', '')
-            business_entity = generation_info.get('business_entity', '')
             
-            if not all([module_name, submodule_name]):
+            if not submodule_name:
                 if logger:
-                    logger.log_step("前端代码迁移", "FAILED", "缺少模块信息")
+                    logger.log_step("前端代码迁移", "FAILED", "缺少submodule_name信息")
                 return False
             
-            # 源路径：生成的Vue3代码位置（处理包重命名后的路径）
-            source_vue_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}/src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/{submodule_name}/vue3"
+            # 源路径：生成的Vue3代码位置（实际的占位符路径）
+            source_vue_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}/src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/{{{{PACKAGE_NAME}}}}/vue3"
             
-            # 目标路径：前端项目中的位置
-            target_module_dir = f"{target_base_full}/{module_name}/{submodule_name}"
+            # 目标路径：前端项目中的位置（只保留submodule层级）
+            target_dir = f"{project_root}/{target_base_path}/{submodule_name}"
             
             # 检查源路径是否存在
             if not os.path.exists(source_vue_path):
@@ -888,60 +886,22 @@ class FrontendMigrator:
                     logger.log_step("前端代码迁移", "FAILED", f"源路径不存在: {source_vue_path}")
                 return False
             
-            # 创建目标目录
-            os.makedirs(target_module_dir, exist_ok=True)
+            # 确保目标目录存在
+            os.makedirs(target_dir, exist_ok=True)
             
-            # 迁移文件
-            migrated_files = []
-            failed_files = []
+            # 移动vue3目录下的所有内容到目标位置
+            for item in os.listdir(source_vue_path):
+                source_item = os.path.join(source_vue_path, item)
+                target_item = os.path.join(target_dir, item)
+                shutil.move(source_item, target_item)
             
-            for file_name in os.listdir(source_vue_path):
-                source_file = os.path.join(source_vue_path, file_name)
-                target_file = os.path.join(target_module_dir, file_name)
-                
-                if os.path.isfile(source_file) and file_name.endswith(('.vue', '.ts', '.js')):
-                    try:
-                        # 验证文件复制是否成功
-                        shutil.copy2(source_file, target_file)
-                        
-                        # 验证目标文件是否存在且大小相同
-                        if os.path.exists(target_file) and os.path.getsize(source_file) == os.path.getsize(target_file):
-                            migrated_files.append(file_name)
-                        else:
-                            failed_files.append(file_name)
-                            
-                    except Exception as e:
-                        failed_files.append(f"{file_name} (错误: {str(e)})")
-            
-            # 根据实际结果判断成功或失败
-            if migrated_files and not failed_files:
-                if logger:
-                    logger.log_step("前端代码迁移", "SUCCESS", 
-                                   f"成功迁移 {len(migrated_files)} 个文件到 {target_module_dir}",
-                                   f"文件: {', '.join(migrated_files)}")
-                return True
-            elif migrated_files and failed_files:
-                if logger:
-                    logger.log_step("前端代码迁移", "SUCCESS", 
-                                   f"部分成功: 迁移 {len(migrated_files)} 个文件，{len(failed_files)} 个失败",
-                                   f"成功: {migrated_files}, 失败: {failed_files}")
-                return True  # 部分成功也算成功
-            elif not migrated_files and not failed_files:
-                if logger:
-                    logger.log_step("前端代码迁移", "SKIPPED", "源目录中没有找到需要迁移的前端文件")
-                return True  # 没有文件需要迁移，算作成功
-            else:
-                if logger:
-                    logger.log_step("前端代码迁移", "FAILED", 
-                                   f"所有文件迁移都失败: {failed_files}")
-                return False
+            if logger:
+                logger.log_step("前端代码迁移", "SUCCESS", f"成功迁移前端代码到 {target_dir}")
+            return True
             
         except Exception as e:
             if logger:
-                logger.log_step("前端代码迁移", "FAILED", f"异常: {str(e)}")
-            print(f"❌ 前端代码迁移失败: {e}")
-            import traceback
-            traceback.print_exc()
+                logger.log_step("前端代码迁移", "FAILED", f"迁移异常: {str(e)}")
             return False
 
 class PlaceholderProcessor:
@@ -1036,6 +996,12 @@ class PlaceholderProcessor:
             # 替换所有占位变量
             for placeholder, value in placeholders.items():
                 content = content.replace(placeholder, value)
+            
+            # 修复Java包路径中的连续点号问题（如：org.jeecg.modules.crm.customer..entity -> org.jeecg.modules.crm.customer.entity）
+            if file_path.endswith('.java'):
+                import re
+                # 使用正则表达式替换连续的点号为单个点号
+                content = re.sub(r'\.{2,}', '.', content)
             
             # 如果内容有变化才写回文件
             if content != original_content:
