@@ -229,7 +229,7 @@ python3 Code_Gen_Execute.py /Users/admin/Work/Github/JeecgBoot crm customer Cust
 ### 派生变量规则
 
 ```
-TABLE_NAME = us_{MODULE_NAME}_{SUBMODULE_NAME}_{BUSINESS_ENTITY.toLowerCase()}
+TABLE_NAME = {MODULE_NAME}_{SUBMODULE_NAME}_{BUSINESS_ENTITY.toLowerCase()}
 PACKAGE_NAME = org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}
 FRONTEND_PATH = {MODULE_NAME}/{SUBMODULE_NAME}/{BUSINESS_ENTITY}
 ```
@@ -243,7 +243,7 @@ FRONTEND_PATH = {MODULE_NAME}/{SUBMODULE_NAME}/{BUSINESS_ENTITY}
 MODULE_NAME: crm
 SUBMODULE_NAME: customer
 BUSINESS_ENTITY: CustomerInfo
-TABLE_NAME: us_crm_customer_customerinfo
+TABLE_NAME: crm_customer_customerinfo
 ```
 
 **主子表场景**：
@@ -354,7 +354,7 @@ python3 Code_Gen_Execute.py /path/to/project crm customer CustomerInfo
 
 - 后端代码：`jeecg-module-crm/`
 - 前端代码：`jeecgboot-vue3/src/views/crm/customer/`
-- 数据库表：`us_crm_customer_customerinfo`
+- 数据库表：`crm_customer_customerinfo`
 
 #### 示例 2：主子表生成
 

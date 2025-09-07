@@ -64,7 +64,7 @@ class A2AProtocolServer:
             'forbidden_modules': ['system', 'admin', 'user', 'role', 'permission', 'auth'],
             'recommended_modules': ['finance', 'hrms', 'crm', 'scm', 'oa', 'healthcare'],
             'naming_patterns': {
-                'table_name': 'us_{module}_{submodule}_{entity}',
+                'table_name': '{module}_{submodule}_{entity}',
                 'package_name': 'org.jeecg.modules.{module}.{submodule}'
             }
         }
@@ -302,7 +302,7 @@ class A2AProtocolServer:
         config = self.guide_template.copy()
         
         # 替换变量
-        table_name = f"us_{variables['MODULE_NAME']}_{variables['SUBMODULE_NAME']}_{variables['BUSINESS_ENTITY'].lower()}"
+        table_name = f"{variables['MODULE_NAME']}_{variables['SUBMODULE_NAME']}_{variables['BUSINESS_ENTITY'].lower()}"
         
         config['head']['tableName'] = table_name
         config['head']['tableTxt'] = f"{variables['BUSINESS_ENTITY']}管理"

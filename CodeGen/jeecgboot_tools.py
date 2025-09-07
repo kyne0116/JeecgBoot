@@ -118,9 +118,9 @@ class FormQuery(JeecgBootClient):
         """筛选education.student相关表单"""
         education_forms = []
         target_tables = [
-            'us_education_student_student_info',
-            'us_education_student_parent_info', 
-            'us_education_student_classmate_relation'
+            'education_student_studentinfo',
+            'education_student_parentinfo', 
+            'education_student_classmaterelation'
         ]
         
         for form in all_forms:
@@ -524,9 +524,9 @@ class FormDeleter(JeecgBootClient):
                     # 筛选需要删除的表单
                     target_forms = []
                     target_patterns = [
-                        'us_education_student_student_info',
-                        'us_education_student_parent_info',
-                        'us_education_student_classmate_relation'
+                        'education_student_studentinfo',
+                        'education_student_parentinfo',
+                        'education_student_classmaterelation'
                     ]
                     
                     for record in records:

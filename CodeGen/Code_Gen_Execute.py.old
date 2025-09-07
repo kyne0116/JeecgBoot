@@ -548,8 +548,9 @@ class CodeGenExecutor:
         """从配置集合中提取模块名"""
         sample_config = config_set.configs[0]
         table_name = sample_config.get('head', {}).get('tableName', '')
-        if table_name.startswith('us_'):
-            return table_name.split('_')[1]
+        table_parts = table_name.split('_')
+        if len(table_parts) >= 3:
+            return table_parts[0]
         raise ValueError(f"无法从表名中提取模块名: {table_name}")
     
     def _load_required_environment_variables(self) -> Dict[Tuple[str, str], str]:
@@ -791,8 +792,8 @@ class CodeGenExecutor:
         
         # 解析表名获取模块信息
         table_name = config_data.get('head', {}).get('tableName', '')
-        if table_name.startswith('us_'):
-            parts = table_name.split('_')
+        table_parts = table_name.split('_')
+        if len(table_parts) >= 3:
             if len(parts) >= 4:
                 module_name = parts[1]
                 # 构建正确的模块路径：/base_path/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}
@@ -823,8 +824,8 @@ class CodeGenExecutor:
         table_description = config_data.get('head', {}).get('tableTxt', '')
         
         # 解析模块信息（重用前面的解析结果）
-        if table_name.startswith('us_'):
-            parts = table_name.split('_')
+        table_parts = table_name.split('_')
+        if len(table_parts) >= 3:
             if len(parts) >= 4:
                 module_name = parts[1]
                 submodule_name = parts[2] 
@@ -1009,7 +1010,7 @@ class CodeGenExecutor:
     
     def _parse_table_name_components(self, table_name: str, config_data: Dict) -> Dict:
         """解析表名组件"""
-        if not table_name or not table_name.startswith('us_'):
+        if not table_name or len(table_name.split('_')) < 3:
             raise ValueError(f"表名格式错误: {table_name}")
         
         parts = table_name.split('_')
@@ -1866,7 +1867,7 @@ class CodeGenExecutor:
         """替换模板中的变量占位符 - 增强版本支持类型感知"""
 
         # 计算派生变量
-        table_name = f"us_{module_name}_{submodule_name}_{business_entity.lower()}"
+        table_name = f"{module_name}_{submodule_name}_{business_entity.lower()}"
         package_name = f"org.jeecg.modules.{module_name}.{submodule_name}"
         table_suffix = business_entity.lower()
         url_path = f"{module_name}-{submodule_name}"

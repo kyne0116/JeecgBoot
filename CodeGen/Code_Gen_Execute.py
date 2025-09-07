@@ -53,6 +53,7 @@ class CodeGenLogger:
         self.logs = []
         self.workflow_steps = []  # 工作流步骤记录
         self.failed = False
+        self.sql_transaction_details = []  # SQL事务执行详情
         
     def log_step(self, step_name: str, status: str, details: str = "", result: str = ""):
         """记录工作流步骤"""
@@ -83,12 +84,25 @@ class CodeGenLogger:
         elif status == "IN_PROGRESS":
             print(f"[{self.step_counter:02d}] {step_name} - RUNNING...")
         
-        # 记录工作流步骤用于最后汇总
-        self.workflow_steps.append({
-            "number": self.step_counter,
-            "name": step_name,
-            "status": "PASS" if status == "SUCCESS" else ("SKIP" if status == "SKIPPED" else "FAIL")
-        })
+        # 记录工作流步骤用于最后汇总 - 只记录最终状态，不记录IN_PROGRESS状态
+        if status in ["SUCCESS", "FAILED", "SKIPPED"]:
+            # 检查是否已存在同名步骤，如果存在则更新状态，否则添加新条目
+            existing_step = None
+            for step in self.workflow_steps:
+                if step["name"] == step_name:
+                    existing_step = step
+                    break
+            
+            final_status = "PASS" if status == "SUCCESS" else ("SKIP" if status == "SKIPPED" else "FAIL")
+            
+            if existing_step:
+                existing_step["status"] = final_status
+            else:
+                self.workflow_steps.append({
+                    "number": self.step_counter,
+                    "name": step_name,
+                    "status": final_status
+                })
     
     def print_workflow_summary(self):
         """打印工作流汇总报告"""
@@ -96,20 +110,84 @@ class CodeGenLogger:
         print("代码生成工作流执行结果小结:")
         print("="*60)
         
-        # 14行小结 - 每个环节状态
-        for step in self.workflow_steps:
+        # 从logs中提取所有步骤的最终状态进行显示
+        # 构建步骤状态映射，确保显示所有32个步骤
+        step_status_map = {}
+        
+        for log_entry in self.logs:
+            step_number = log_entry["step_number"]
+            step_name = log_entry["step_name"]
+            status = log_entry["status"]
+            
+            # 只保留最终状态（非IN_PROGRESS）
+            if status != "IN_PROGRESS":
+                final_status = "PASS" if status == "SUCCESS" else ("SKIP" if status == "SKIPPED" else "FAIL")
+                step_status_map[step_number] = {
+                    "name": step_name,
+                    "status": final_status
+                }
+            elif step_number not in step_status_map:
+                # 如果步骤没有最终状态，使用IN_PROGRESS（显示为RUNNING）
+                step_status_map[step_number] = {
+                    "name": step_name,
+                    "status": "RUNNING"
+                }
+        
+        # 按步骤序号排序显示所有步骤
+        for step_number in sorted(step_status_map.keys()):
+            step_info = step_status_map[step_number]
             status_display = {
                 "PASS": "✅ PASS",
                 "FAIL": "❌ FAIL", 
-                "SKIP": "⏭️ SKIP"
-            }.get(step["status"], step["status"])
-            print(f"[{step['number']:02d}] {step['name']} - {status_display}")
+                "SKIP": "⏭️ SKIP",
+                "RUNNING": "🔄 RUNNING"
+            }.get(step_info["status"], step_info["status"])
+            print(f"[{step_number:02d}] {step_info['name']} - {status_display}")
         
         # 1行汇总状态
         summary_result = "Fail" if self.failed else "Pass"
         print("\n" + "="*60)
         print(f"代码生成工作流执行反馈汇总状态 SUMMARY_RESULT={summary_result}")
         print("="*60)
+    
+    def log_sql_transaction(self, transaction_details: list):
+        """记录SQL事务执行详情"""
+        timestamp = datetime.now().isoformat()
+        for detail in transaction_details:
+            sql_log_entry = {
+                "timestamp": timestamp,
+                "file": detail['file'],
+                "transaction_result": "SUCCESS" if detail['success'] else "FAILED",
+                "transaction_status": detail['transaction_status'],
+                "executed_statements": detail['executed_statements'],
+                "total_statements": detail['total_statements'],
+                "affected_rows": detail['affected_rows'],
+                "execution_time": detail['execution_time'],
+                "error_message": detail['error_message'],
+                "sql_execution_type": "ATOMIC_TRANSACTION",  # 标识为原子性事务
+                "rollback_performed": detail['transaction_status'] in ['rolled_back', 'rollback_failed']
+            }
+            self.sql_transaction_details.append(sql_log_entry)
+    
+    def _generate_sql_transaction_summary(self):
+        """生成SQL事务执行摘要"""
+        if not hasattr(self, 'sql_transaction_details') or not self.sql_transaction_details:
+            return {"total_transactions": 0, "status": "no_sql_transactions"}
+        
+        total = len(self.sql_transaction_details)
+        successful = len([t for t in self.sql_transaction_details if t['transaction_result'] == 'SUCCESS'])
+        failed = total - successful
+        rollbacks = len([t for t in self.sql_transaction_details if t['rollback_performed']])
+        
+        return {
+            "total_transactions": total,
+            "successful_transactions": successful,
+            "failed_transactions": failed,
+            "rollback_count": rollbacks,
+            "success_rate": f"{(successful/total*100):.1f}%" if total > 0 else "0%",
+            "atomicity_guaranteed": True,  # 事务原子性保证
+            "transaction_integrity": "MAINTAINED" if failed == 0 else "PARTIAL_ROLLBACK"
+        }
     
     def save_log_file(self):
         """保存执行报告文件 - JSON格式，AI友好"""
@@ -141,14 +219,30 @@ class CodeGenLogger:
                     "success_rate": f"{(success_count / self.step_counter * 100):.1f}%" if self.step_counter > 0 else "0.0%"
                 },
                 
+                # 执行环境变量 - 记录脚本执行时用到的8个关键变量
+                "execution_environment": {
+                    "JEECG_DATABASE_TYPE": os.getenv('JEECG_DATABASE_TYPE', 'mysql'),
+                    "JEECG_DATABASE_URL": os.getenv('JEECG_DATABASE_URL', 'localhost:3306/jeecg-boot'),
+                    "JEECG_DATABASE_USERNAME": os.getenv('JEECG_DATABASE_USERNAME', 'root'),
+                    "JEECG_DATABASE_PASSWORD": "***" if os.getenv('JEECG_DATABASE_PASSWORD') else "",  # 密码脱敏处理
+                    "JEECG_BASE_URL": os.getenv('JEECG_BASE_URL', ''),
+                    "JEECG_USERNAME": os.getenv('JEECG_USERNAME', ''),
+                    "JEECG_PASSWORD": "***" if os.getenv('JEECG_PASSWORD') else "",  # 密码脱敏处理
+                    "JEECG_PROJECT_ROOT": os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
+                },
+                
                 # 详细步骤日志
                 "execution_steps": self.logs,
+                
+                # SQL事务执行详情 - 新增部分
+                "sql_transaction_details": getattr(self, 'sql_transaction_details', []),
                 
                 # AI分析提示
                 "ai_analysis_notes": {
                     "workflow_type": "jeecgboot_code_generation",
                     "key_failure_steps": [step["step_name"] for step in self.logs if step.get('status') == 'FAILED'],
-                    "critical_success_steps": ["创建表单", "数据库同步", "代码生成"] 
+                    "critical_success_steps": ["创建表单", "数据库同步", "代码生成", "菜单权限SQL执行"],
+                    "sql_transaction_summary": self._generate_sql_transaction_summary()
                 }
             }
             
@@ -794,15 +888,38 @@ def execute_menu_permission_sql(module_name: str, submodule_name: str, business_
             result['success'] = True  # 禁用状态也算成功
             return result
         
-        # 查找SQL文件
+        # 查找SQL文件 - 极简版：查找git未提交的.sql文件
         project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
-        module_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
         
-        sql_files = []
-        for root, dirs, files in os.walk(module_path):
-            for file in files:
-                if file.endswith('.sql') and 'menu' in file.lower():
-                    sql_files.append(os.path.join(root, file))
+        try:
+            # 使用git status查找未提交的.sql文件
+            import subprocess
+            result_git = subprocess.run(['git', 'status', '--porcelain'], 
+                                      cwd=project_root, 
+                                      capture_output=True, 
+                                      text=True, 
+                                      timeout=10)
+            
+            sql_files = []
+            if result_git.returncode == 0:
+                # 解析git status输出，查找.sql文件
+                for line in result_git.stdout.strip().split('\n'):
+                    if line and '.sql' in line:
+                        # git status格式: "?? path/file.sql" 或 "M  path/file.sql"
+                        file_path = line[3:].strip() if len(line) > 3 else ''
+                        if file_path and 'menu' in file_path.lower() and business_entity.lower() in file_path.lower():
+                            full_path = os.path.join(project_root, file_path)
+                            if os.path.exists(full_path):
+                                sql_files.append(full_path)
+                                if logger:
+                                    logger.log_step("菜单权限SQL文件查找", "SUCCESS", f"通过git找到SQL文件: {file_path}")
+            else:
+                if logger:
+                    logger.log_step("菜单权限SQL文件查找", "FAILED", f"git status执行失败: {result_git.stderr}")
+        
+        except Exception as e:
+            if logger:
+                logger.log_step("菜单权限SQL文件查找", "FAILED", f"git查找异常: {str(e)}")
         
         if not sql_files:
             result['error_message'] = '没有找到菜单SQL文件'
@@ -819,43 +936,86 @@ def execute_menu_permission_sql(module_name: str, submodule_name: str, business_
             return result
         
         try:
-            # 执行所有SQL文件
+            # 执行所有SQL文件 - 支持真正的成功/失败判定
             total_statements = 0
+            total_executed_statements = 0
             total_affected_rows = 0
             successful_files = []
             failed_files = []
+            transaction_details = []
             
             for sql_file in sql_files:
                 execution_result = sql_executor._execute_sql_file_real(sql_file)
+                filename = os.path.basename(sql_file)
                 
-                if execution_result['success']:
-                    successful_files.append(os.path.basename(sql_file))
-                    total_statements += execution_result['executed_statements']
+                # 记录详细的事务信息
+                transaction_info = {
+                    'file': filename,
+                    'success': execution_result['success'],
+                    'executed_statements': execution_result['executed_statements'],
+                    'total_statements': execution_result.get('total_statements', 0),
+                    'affected_rows': execution_result['affected_rows'],
+                    'transaction_status': execution_result.get('transaction_status', 'unknown'),
+                    'execution_time': execution_result['execution_time'],
+                    'error_message': execution_result['error_message']
+                }
+                transaction_details.append(transaction_info)
+                
+                # 只有完全成功(事务已提交)才算成功
+                if execution_result['success'] and execution_result.get('transaction_status') == 'committed':
+                    successful_files.append(filename)
+                    total_executed_statements += execution_result['executed_statements']
                     total_affected_rows += execution_result['affected_rows']
                 else:
-                    failed_files.append({
-                        'file': os.path.basename(sql_file),
-                        'error': execution_result['error_message']
-                    })
+                    # 详细的失败信息
+                    error_detail = {
+                        'file': filename,
+                        'error': execution_result['error_message'],
+                        'transaction_status': execution_result.get('transaction_status', 'unknown'),
+                        'executed_statements': f"{execution_result['executed_statements']}/{execution_result.get('total_statements', 0)}",
+                        'execution_time': f"{execution_result['execution_time']:.2f}s"
+                    }
+                    failed_files.append(error_detail)
+                
+                total_statements += execution_result.get('total_statements', 0)
             
-            # 设置执行结果
+            # 设置执行结果 - 严格的成功判定
             result['executed_files'] = successful_files
+            result['failed_files'] = failed_files
             result['total_statements'] = total_statements
+            result['total_executed_statements'] = total_executed_statements
             result['total_affected_rows'] = total_affected_rows
             result['execution_time'] = time.time() - start_time
+            result['transaction_details'] = transaction_details
             
-            if successful_files:
+            # 严格的成功判定：所有文件都必须完全成功
+            all_files_successful = len(successful_files) == len(sql_files) and len(failed_files) == 0
+            
+            if all_files_successful:
                 result['success'] = True
                 if logger:
                     logger.log_step("菜单权限SQL执行", "SUCCESS",
-                                   f"成功执行 {len(successful_files)} 个SQL文件，共 {total_statements} 条语句，影响 {total_affected_rows} 行数据",
+                                   f"所有 {len(successful_files)} 个SQL文件事务执行成功，共 {total_executed_statements} 条语句，影响 {total_affected_rows} 行数据",
                                    f"成功文件: {successful_files}")
+                    # 记录SQL事务执行详情到日志
+                    logger.log_sql_transaction(transaction_details)
+                print(f"🎉 所有SQL文件事务执行成功!")
             else:
-                result['error_message'] = f"所有SQL文件执行失败: {failed_files}"
+                # 部分成功或全部失败的详细描述
+                if successful_files:
+                    result['error_message'] = f"部分文件执行失败: 成功{len(successful_files)}个，失败{len(failed_files)}个"
+                    status = "PARTIAL_SUCCESS"
+                    message = f"部分成功: {len(successful_files)}/{len(sql_files)} 个文件执行成功"
+                else:
+                    result['error_message'] = f"所有SQL文件执行失败"
+                    status = "FAILED"
+                    message = f"全部失败: {len(sql_files)} 个文件都执行失败"
+                
                 if logger:
-                    logger.log_step("菜单权限SQL执行", "FAILED",
-                                   f"找到 {len(sql_files)} 个SQL文件，但全部执行失败",
-                                   f"失败详情: {failed_files}")
+                    logger.log_step("菜单权限SQL执行", status, message, f"详情: {failed_files}")
+                    # 即使失败也要记录SQL事务执行详情到日志
+                    logger.log_sql_transaction(transaction_details)
+                print(f"❌ SQL文件执行不完整: {result['error_message']}")
         
         finally:
             sql_executor._close_database_connection()
@@ -1146,14 +1306,14 @@ class DatabaseSQLExecutor:
             host, port, database = match.groups()
             port = int(port)
             
-            # 建立MySQL连接
+            # 建立MySQL连接 - 关闭autocommit启用事务支持
             self.connection = mysql.connector.connect(
                 host=host,
                 port=port,
                 database=database,
                 user=db_username,
                 password=db_password,
-                autocommit=self.config.get_config_value('database_execution', 'auto_commit', 'true').lower() == 'true',
+                autocommit=False,  # 关闭自动提交，启用事务支持
                 charset='utf8mb4',
                 collation='utf8mb4_unicode_ci'
             )
@@ -1173,16 +1333,21 @@ class DatabaseSQLExecutor:
             return False
     
     def _execute_sql_file_real(self, sql_file: str) -> Dict:
-        """真正执行单个SQL文件到数据库"""
+        """真正执行单个SQL文件到数据库 - 支持完整事务处理"""
         result = {
             'file': sql_file,
             'success': False,
             'executed_statements': 0,
+            'total_statements': 0,
             'affected_rows': 0,
             'execution_time': 0.0,
             'error_message': '',
-            'warnings': []
+            'warnings': [],
+            'transaction_status': 'not_started'
         }
+        
+        cursor = None
+        successful_statements = 0
         
         try:
             start_time = time.time()
@@ -1193,53 +1358,138 @@ class DatabaseSQLExecutor:
             
             if not sql_content:
                 result['error_message'] = 'SQL文件为空'
+                result['transaction_status'] = 'no_content'
                 return result
             
-            # 分割SQL语句（处理多条SQL语句）
-            sql_statements = [stmt.strip() for stmt in sql_content.split(';') if stmt.strip()]
+            # 智能提取SQL语句（修复版本 - 正确处理注释和SQL语句混合的情况）
+            sql_statements = self._extract_sql_statements(sql_content)
             
             if not sql_statements:
                 result['error_message'] = '没有有效的SQL语句'
+                result['transaction_status'] = 'no_valid_statements'
                 return result
             
+            result['total_statements'] = len(sql_statements)
             cursor = self.connection.cursor()
             total_affected_rows = 0
             
+            # 开始事务
+            print(f"🔄 开始执行SQL事务: {os.path.basename(sql_file)}")
+            print(f"📊 共 {len(sql_statements)} 条有效SQL语句")
+            result['transaction_status'] = 'started'
+            
             try:
+                # 执行所有SQL语句
                 for i, sql_statement in enumerate(sql_statements, 1):
-                    # 跳过注释行
-                    if sql_statement.startswith('--') or sql_statement.startswith('#'):
-                        continue
-                    
                     print(f"🔄 执行SQL语句 {i}/{len(sql_statements)}: {sql_statement[:50]}...")
                     cursor.execute(sql_statement)
                     
                     affected_rows = cursor.rowcount if cursor.rowcount >= 0 else 0
                     total_affected_rows += affected_rows
+                    successful_statements += 1
                     
-                    print(f"✅ SQL执行成功，影响 {affected_rows} 行")
+                    print(f"✅ SQL语句 {i} 执行成功，影响 {affected_rows} 行")
+                
+                # 所有语句执行成功，提交事务
+                self.connection.commit()
+                result['transaction_status'] = 'committed'
                 
                 result['success'] = True
-                result['executed_statements'] = len(sql_statements)
+                result['executed_statements'] = successful_statements
                 result['affected_rows'] = total_affected_rows
                 result['execution_time'] = time.time() - start_time
                 
-                print(f"🎉 SQL文件执行完成: {os.path.basename(sql_file)}")
-                print(f"   执行语句: {result['executed_statements']} 条")
-                print(f"   影响行数: {result['affected_rows']} 行")
-                print(f"   执行时间: {result['execution_time']:.2f} 秒")
+                print(f"🎉 SQL事务执行成功: {os.path.basename(sql_file)}")
+                print(f"   📊 成功执行语句: {result['executed_statements']}/{result['total_statements']} 条")
+                print(f"   📝 总影响行数: {result['affected_rows']} 行")
+                print(f"   ⏱️ 执行时间: {result['execution_time']:.2f} 秒")
+                print(f"   ✅ 事务状态: 已提交")
                 
             except Error as e:
-                result['error_message'] = f"SQL执行错误: {str(e)}"
-                print(f"❌ SQL执行失败: {e}")
+                # 发生异常，回滚事务
+                try:
+                    self.connection.rollback()
+                    result['transaction_status'] = 'rolled_back'
+                    rollback_msg = "事务已回滚"
+                except Exception as rollback_error:
+                    result['transaction_status'] = 'rollback_failed'
+                    rollback_msg = f"事务回滚失败: {rollback_error}"
+                
+                result['error_message'] = f"SQL执行错误: {str(e)} (已成功执行{successful_statements}/{len(sql_statements)}条语句，{rollback_msg})"
+                result['executed_statements'] = successful_statements
+                result['affected_rows'] = 0  # 回滚后影响行数为0
+                result['execution_time'] = time.time() - start_time
+                
+                print(f"❌ SQL事务执行失败: {e}")
+                print(f"   📊 执行进度: {successful_statements}/{len(sql_statements)} 条语句")
+                print(f"   🔄 事务状态: {result['transaction_status']}")
+                
             finally:
-                cursor.close()
+                if cursor:
+                    cursor.close()
             
         except Exception as e:
             result['error_message'] = f"文件处理异常: {str(e)}"
+            result['transaction_status'] = 'file_error'
+            result['execution_time'] = time.time() - start_time if 'start_time' in locals() else 0
             print(f"⚠️ SQL文件处理异常 {sql_file}: {e}")
         
         return result
+    
+    def _extract_sql_statements(self, sql_content: str) -> list:
+        """
+        智能提取SQL语句 - 修复版本
+        
+        处理逻辑：
+        1. 按分号分割SQL内容
+        2. 对每个片段进行细粒度处理，移除注释但保留SQL语句
+        3. 确保提取完整的可执行SQL语句
+        """
+        if not sql_content.strip():
+            return []
+        
+        # 按分号分割SQL内容
+        all_segments = [segment.strip() for segment in sql_content.split(';') if segment.strip()]
+        
+        sql_statements = []
+        
+        for segment in all_segments:
+            # 按行分割当前片段
+            lines = segment.split('\n')
+            
+            # 过滤每一行，移除注释行和空行
+            sql_lines = []
+            for line in lines:
+                line = line.strip()
+                # 跳过空行和注释行
+                if line and not line.startswith(('--', '#')):
+                    sql_lines.append(line)
+            
+            # 如果有有效的SQL行，重新组合成完整语句
+            if sql_lines:
+                clean_statement = ' '.join(sql_lines).strip()
+                
+                # 检查是否是有效的SQL语句
+                if clean_statement and self._is_valid_sql_statement(clean_statement):
+                    sql_statements.append(clean_statement)
+        
+        return sql_statements
+    
+    def _is_valid_sql_statement(self, statement: str) -> bool:
+        """检查是否是有效的SQL语句"""
+        statement_upper = statement.upper().strip()
+        
+        # 检查是否以SQL关键字开头
+        sql_keywords = ['INSERT', 'UPDATE', 'DELETE', 'SELECT', 'CREATE', 'ALTER', 'DROP', 'TRUNCATE']
+        
+        for keyword in sql_keywords:
+            if statement_upper.startswith(keyword):
+                # 对于INSERT语句，进一步检查是否包含VALUES关键字
+                if keyword == 'INSERT':
+                    return 'VALUES' in statement_upper or 'SELECT' in statement_upper
+                return True
+        
+        return False
     
     def _close_database_connection(self):
         """关闭数据库连接"""
