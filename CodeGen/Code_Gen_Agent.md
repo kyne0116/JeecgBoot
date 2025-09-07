@@ -47,6 +47,7 @@ tags: ["JeecgBoot", "CodeGen", "Java", "Vue3", "CRUD", "Enterprise"]
      - 主附关系：合同-合同条款、产品-产品规格、文档-附件
      - 父子关系：菜单-子菜单、区域-下级区域、账户-子账户
 4. 智能推理出三个核心变量：MODULE_NAME、SUBMODULE_NAME、BUSINESS_ENTITY
+   - **ENTITY_SUFFIX派生规则**：从BUSINESS_ENTITY去驼峰转换（如：CustomerProfile → customerprofile）
 5. **场景分类决策**：
    - **独立表场景**：无 1 对多关联关系，生成单独的 JSON 配置
    - **主子表场景**：存在 1 对多关联，主表包含 subList，子表独立配置

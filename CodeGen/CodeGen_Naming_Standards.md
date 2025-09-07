@@ -12,7 +12,7 @@
 
 - **模块名**: `{MODULE_NAME}` - 业务系统模块名，小写字母
 - **子模块名**: `{SUBMODULE_NAME}` - 功能子模块名，小写字母  
-- **实体后缀**: `{ENTITY_SUFFIX}` - 业务实体后缀，小写字母
+- **实体后缀**: `{ENTITY_SUFFIX}` - 领域对象的实体类英文去驼峰后的全称，小写字母
 
 ### 1.2 命名规则
 
@@ -42,11 +42,11 @@ alumni_members_career
 
 - **MODULE_NAME**: `alumni`, `education`, `finance`, `hrms`
 - **SUBMODULE_NAME**: `members`, `student`, `invoice`, `employee`
-- **ENTITY_SUFFIX**: 从 `BUSINESS_ENTITY` 转换而来
-  - `MemberProfile` → `memberprofile`
+- **ENTITY_SUFFIX**: 从 `BUSINESS_ENTITY` 去驼峰转换而来（实体类英文全称转小写）
+  - `CustomerProfile` → `customerprofile`
   - `StudentInfo` → `studentinfo`
-  - `ParentInfo` → `parentinfo`
-  - `ClassmateInfo` → `classmateinfo`
+  - `InvoiceHeader` → `invoiceheader`
+  - `EmployeeProfile` → `employeeprofile`
 
 ## 2. Java实体类名命名规范
 

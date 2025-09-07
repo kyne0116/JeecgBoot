@@ -874,8 +874,8 @@ class FrontendMigrator:
                     logger.log_step("前端代码迁移", "FAILED", "缺少submodule_name信息")
                 return False
             
-            # 源路径：生成的Vue3代码位置（实际的占位符路径）
-            source_vue_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}/src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/{{{{PACKAGE_NAME}}}}/vue3"
+            # 源路径：生成的Vue3代码位置（占位符处理后的实际路径）
+            source_vue_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}/src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/vue3"
             
             # 目标路径：前端项目中的位置（只保留submodule层级）
             target_dir = f"{project_root}/{target_base_path}/{submodule_name}"

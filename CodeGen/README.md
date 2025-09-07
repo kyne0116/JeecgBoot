@@ -229,7 +229,8 @@ python3 Code_Gen_Execute.py /Users/admin/Work/Github/JeecgBoot crm customer Cust
 ### 派生变量规则
 
 ```
-TABLE_NAME = {MODULE_NAME}_{SUBMODULE_NAME}_{BUSINESS_ENTITY.toLowerCase()}
+TABLE_NAME = {MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_SUFFIX}
+# 其中 ENTITY_SUFFIX = BUSINESS_ENTITY.toLowerCase() （去驼峰转小写）
 PACKAGE_NAME = org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}
 FRONTEND_PATH = {MODULE_NAME}/{SUBMODULE_NAME}/{BUSINESS_ENTITY}
 ```
@@ -242,8 +243,9 @@ FRONTEND_PATH = {MODULE_NAME}/{SUBMODULE_NAME}/{BUSINESS_ENTITY}
 用户需求: "客户信息管理系统"
 MODULE_NAME: crm
 SUBMODULE_NAME: customer
-BUSINESS_ENTITY: CustomerInfo
-TABLE_NAME: crm_customer_customerinfo
+BUSINESS_ENTITY: CustomerProfile
+ENTITY_SUFFIX: customerprofile (CustomerProfile去驼峰转小写)
+TABLE_NAME: crm_customer_customerprofile
 ```
 
 **主子表场景**：
@@ -260,6 +262,7 @@ TABLE_NAME: crm_customer_customerinfo
 **严格三段式要求**：
 
 - **格式**: `{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_SUFFIX}`
+- **ENTITY_SUFFIX定义**: 领域对象实体类英文去驼峰后的全称（如：CustomerProfile → customerprofile）
 - **段数**: 必须正好3段，不允许4段式或更多段式
 - **分隔符**: 使用下划线 `_` 分隔
 - **字符集**: 仅包含小写字母、数字、下划线

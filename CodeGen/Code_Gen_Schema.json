@@ -12,7 +12,7 @@
         "tableName": {
           "type": "string",
           "pattern": "^[a-z]+_[a-z]+_[a-z0-9]+$",
-          "description": "表名必须严格为三段式格式: {MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_SUFFIX}，不允许四段式或更多段式"
+          "description": "表名必须严格为三段式格式: {MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_SUFFIX}，其中ENTITY_SUFFIX为实体类英文去驼峰后的全称，不允许四段式或更多段式"
         },
         "tableTxt": {
           "type": "string",
@@ -129,7 +129,7 @@
           "tableName": {
             "type": "string",
             "pattern": "^[a-z]+_[a-z]+_[a-z0-9]+$",
-            "description": "子表的表名，必须严格为三段式命名结构: {MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_SUFFIX}"
+            "description": "子表的表名，必须严格为三段式命名结构: {MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_SUFFIX}，其中ENTITY_SUFFIX为实体类英文去驼峰后的全称"
           },
           "entityName": {
             "type": "string",
