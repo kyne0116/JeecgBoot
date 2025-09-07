@@ -122,7 +122,7 @@ def agent_card():
                 "database_synchronization": True,
                 "code_generation": True,
                 "module_management": True,
-                "permission_authorization": True
+                "permission_authorization": False
             },
             "variable_extraction": {
                 "module_name_inference": True,

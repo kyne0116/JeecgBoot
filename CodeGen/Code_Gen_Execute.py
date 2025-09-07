@@ -834,201 +834,6 @@ class JeecgBootAPIManager:
 # 独立的可复用菜单权限SQL执行函数
 # ===============================================================================
 
-def execute_menu_permission_sql(module_name: str, submodule_name: str, business_entity: str, 
-                                config_manager=None, logger: 'CodeGenLogger' = None) -> Dict:
-    """
-    独立的可复用菜单权限SQL执行函数
-    
-    Args:
-        module_name: 模块名称 (如: finance)
-        submodule_name: 子模块名称 (如: invoice)
-        business_entity: 业务实体名称 (如: InvoiceHeader)
-        config_manager: 配置管理器实例
-        logger: 日志记录器实例
-    
-    Returns:
-        Dict: 执行结果
-        {
-            'success': bool,
-            'executed_files': List[str],
-            'total_statements': int,
-            'total_affected_rows': int,
-            'execution_time': float,
-            'error_message': str
-        }
-    """
-    result = {
-        'success': False,
-        'executed_files': [],
-        'total_statements': 0,
-        'total_affected_rows': 0,
-        'execution_time': 0.0,
-        'error_message': ''
-    }
-    
-    start_time = time.time()
-    
-    try:
-        if logger:
-            logger.log_step("菜单权限SQL执行", "IN_PROGRESS", f"开始为 {module_name}.{submodule_name}.{business_entity} 执行菜单权限SQL")
-        
-        # 创建数据库执行器实例（如果没有提供config_manager，使用默认配置）
-        if not config_manager:
-            from Code_Gen_Execute import JeecgBootAPIManager
-            config_manager = JeecgBootAPIManager()
-        
-        sql_executor = DatabaseSQLExecutor(config_manager)
-        
-        # 检查是否启用SQL执行
-        enabled = config_manager.get_config_value('database_execution', 'enabled', 'true').lower() == 'true'
-        if not enabled:
-            result['error_message'] = 'SQL执行已在配置中禁用'
-            if logger:
-                logger.log_step("菜单权限SQL执行", "SKIPPED", "SQL执行已禁用")
-            result['success'] = True  # 禁用状态也算成功
-            return result
-        
-        # 查找SQL文件 - 极简版：查找git未提交的.sql文件
-        project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
-        
-        try:
-            # 使用git status查找未提交的.sql文件
-            import subprocess
-            result_git = subprocess.run(['git', 'status', '--porcelain'], 
-                                      cwd=project_root, 
-                                      capture_output=True, 
-                                      text=True, 
-                                      timeout=10)
-            
-            sql_files = []
-            if result_git.returncode == 0:
-                # 解析git status输出，查找.sql文件
-                for line in result_git.stdout.strip().split('\n'):
-                    if line and '.sql' in line:
-                        # git status格式: "?? path/file.sql" 或 "M  path/file.sql"
-                        file_path = line[3:].strip() if len(line) > 3 else ''
-                        if file_path and 'menu' in file_path.lower() and business_entity.lower() in file_path.lower():
-                            full_path = os.path.join(project_root, file_path)
-                            if os.path.exists(full_path):
-                                sql_files.append(full_path)
-                                if logger:
-                                    logger.log_step("菜单权限SQL文件查找", "SUCCESS", f"通过git找到SQL文件: {file_path}")
-            else:
-                if logger:
-                    logger.log_step("菜单权限SQL文件查找", "FAILED", f"git status执行失败: {result_git.stderr}")
-        
-        except Exception as e:
-            if logger:
-                logger.log_step("菜单权限SQL文件查找", "FAILED", f"git查找异常: {str(e)}")
-        
-        if not sql_files:
-            result['error_message'] = '没有找到菜单SQL文件'
-            if logger:
-                logger.log_step("菜单权限SQL执行", "SKIPPED", "没有找到菜单SQL文件")
-            result['success'] = True  # 没有文件也算成功（可能不需要菜单）
-            return result
-        
-        # 建立数据库连接
-        if not sql_executor._connect_database():
-            result['error_message'] = '数据库连接失败'
-            if logger:
-                logger.log_step("菜单权限SQL执行", "FAILED", "数据库连接失败")
-            return result
-        
-        try:
-            # 执行所有SQL文件 - 支持真正的成功/失败判定
-            total_statements = 0
-            total_executed_statements = 0
-            total_affected_rows = 0
-            successful_files = []
-            failed_files = []
-            transaction_details = []
-            
-            for sql_file in sql_files:
-                execution_result = sql_executor._execute_sql_file_real(sql_file)
-                filename = os.path.basename(sql_file)
-                
-                # 记录详细的事务信息
-                transaction_info = {
-                    'file': filename,
-                    'success': execution_result['success'],
-                    'executed_statements': execution_result['executed_statements'],
-                    'total_statements': execution_result.get('total_statements', 0),
-                    'affected_rows': execution_result['affected_rows'],
-                    'transaction_status': execution_result.get('transaction_status', 'unknown'),
-                    'execution_time': execution_result['execution_time'],
-                    'error_message': execution_result['error_message']
-                }
-                transaction_details.append(transaction_info)
-                
-                # 只有完全成功(事务已提交)才算成功
-                if execution_result['success'] and execution_result.get('transaction_status') == 'committed':
-                    successful_files.append(filename)
-                    total_executed_statements += execution_result['executed_statements']
-                    total_affected_rows += execution_result['affected_rows']
-                else:
-                    # 详细的失败信息
-                    error_detail = {
-                        'file': filename,
-                        'error': execution_result['error_message'],
-                        'transaction_status': execution_result.get('transaction_status', 'unknown'),
-                        'executed_statements': f"{execution_result['executed_statements']}/{execution_result.get('total_statements', 0)}",
-                        'execution_time': f"{execution_result['execution_time']:.2f}s"
-                    }
-                    failed_files.append(error_detail)
-                
-                total_statements += execution_result.get('total_statements', 0)
-            
-            # 设置执行结果 - 严格的成功判定
-            result['executed_files'] = successful_files
-            result['failed_files'] = failed_files
-            result['total_statements'] = total_statements
-            result['total_executed_statements'] = total_executed_statements
-            result['total_affected_rows'] = total_affected_rows
-            result['execution_time'] = time.time() - start_time
-            result['transaction_details'] = transaction_details
-            
-            # 严格的成功判定：所有文件都必须完全成功
-            all_files_successful = len(successful_files) == len(sql_files) and len(failed_files) == 0
-            
-            if all_files_successful:
-                result['success'] = True
-                if logger:
-                    logger.log_step("菜单权限SQL执行", "SUCCESS",
-                                   f"所有 {len(successful_files)} 个SQL文件事务执行成功，共 {total_executed_statements} 条语句，影响 {total_affected_rows} 行数据",
-                                   f"成功文件: {successful_files}")
-                    # 记录SQL事务执行详情到日志
-                    logger.log_sql_transaction(transaction_details)
-                print(f"🎉 所有SQL文件事务执行成功!")
-            else:
-                # 部分成功或全部失败的详细描述
-                if successful_files:
-                    result['error_message'] = f"部分文件执行失败: 成功{len(successful_files)}个，失败{len(failed_files)}个"
-                    status = "PARTIAL_SUCCESS"
-                    message = f"部分成功: {len(successful_files)}/{len(sql_files)} 个文件执行成功"
-                else:
-                    result['error_message'] = f"所有SQL文件执行失败"
-                    status = "FAILED"
-                    message = f"全部失败: {len(sql_files)} 个文件都执行失败"
-                
-                if logger:
-                    logger.log_step("菜单权限SQL执行", status, message, f"详情: {failed_files}")
-                    # 即使失败也要记录SQL事务执行详情到日志
-                    logger.log_sql_transaction(transaction_details)
-                print(f"❌ SQL文件执行不完整: {result['error_message']}")
-        
-        finally:
-            sql_executor._close_database_connection()
-    
-    except Exception as e:
-        result['error_message'] = f"执行异常: {str(e)}"
-        if logger:
-            logger.log_step("菜单权限SQL执行", "FAILED", f"执行异常: {str(e)}")
-        print(f"❌ 菜单权限SQL执行异常: {e}")
-        import traceback
-        traceback.print_exc()
-    
-    return result
 
 # ===============================================================================
 # 其他功能模块 (从old版本借鉴核心功能)
@@ -1253,35 +1058,115 @@ class DatabaseSQLExecutor:
         self.execution_stats = {'executed': 0, 'failed': 0, 'total_affected_rows': 0}
     
     def execute_permission_sql(self, config_data: Dict, logger: 'CodeGenLogger' = None) -> bool:
-        """执行权限菜单SQL脚本 - 使用独立的可复用函数"""
+        """菜单权限授权 - 统一的权限授权处理"""
         try:
-            # 提取模块信息
-            metadata = config_data.get('metadata', {})
-            generation_info = metadata.get('generation_info', {})
-            module_name = generation_info.get('module_name', '')
-            submodule_name = generation_info.get('submodule_name', '')
-            business_entity = generation_info.get('business_entity', '')
+            if logger:
+                logger.log_step("菜单权限授权", "IN_PROGRESS", "开始执行菜单权限授权")
             
-            if not all([module_name, submodule_name, business_entity]):
+            # 步骤1：从环境变量读取数据库连接信息
+            db_type = os.getenv('JEECG_DATABASE_TYPE', 'mysql')
+            db_url = os.getenv('JEECG_DATABASE_URL', 'localhost:3306/jeecg-boot')
+            db_username = os.getenv('JEECG_DATABASE_USERNAME', 'root')
+            db_password = os.getenv('JEECG_DATABASE_PASSWORD', '')
+            
+            if not all([db_url, db_username]):
                 if logger:
-                    logger.log_step("SQL脚本执行", "FAILED", "缺少必要的模块信息")
+                    logger.log_step("菜单权限授权", "FAILED", "数据库连接信息不完整")
                 return False
             
-            # 调用独立的可复用函数
-            result = execute_menu_permission_sql(
-                module_name=module_name,
-                submodule_name=submodule_name,
-                business_entity=business_entity,
-                config_manager=self.config,
-                logger=logger
-            )
+            # 步骤2：使用git查找新增的.sql文件
+            project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
+            sql_files = []
             
-            return result['success']
+            try:
+                import subprocess
+                result_git = subprocess.run(['git', 'status', '--porcelain'], 
+                                          cwd=project_root, 
+                                          capture_output=True, 
+                                          text=True, 
+                                          timeout=10)
+                
+                if result_git.returncode == 0:
+                    for line in result_git.stdout.strip().split('\n'):
+                        if line.startswith('??'):
+                            file_path = line[3:].strip()  # 移除'?? '前缀
+                            full_path = os.path.join(project_root, file_path)
+                            
+                            # 如果是目录，搜索其中的.sql文件
+                            if os.path.isdir(full_path):
+                                import glob
+                                sql_pattern = os.path.join(full_path, '**', '*.sql')
+                                for sql_file in glob.glob(sql_pattern, recursive=True):
+                                    sql_files.append(sql_file)
+                                    rel_path = os.path.relpath(sql_file, project_root)
+                                    print(f"✅ 发现新增SQL文件: {rel_path}")
+                            # 如果直接是.sql文件
+                            elif file_path.endswith('.sql') and os.path.exists(full_path):
+                                sql_files.append(full_path)
+                                print(f"✅ 发现新增SQL文件: {file_path}")
+                else:
+                    if logger:
+                        logger.log_step("菜单权限授权", "FAILED", f"git status执行失败: {result_git.stderr}")
+                    return False
+                    
+            except Exception as e:
+                if logger:
+                    logger.log_step("菜单权限授权", "FAILED", f"git查找异常: {str(e)}")
+                return False
+            
+            if not sql_files:
+                if logger:
+                    logger.log_step("菜单权限授权", "SKIPPED", "没有发现新增的SQL文件")
+                return True  # 没有SQL文件不算失败
+            
+            # 步骤3：建立数据库连接并执行SQL文件
+            if not self._connect_database():
+                if logger:
+                    logger.log_step("菜单权限授权", "FAILED", "数据库连接失败")
+                return False
+            
+            # 执行所有SQL文件
+            successful_files = []
+            failed_files = []
+            total_statements = 0
+            total_affected_rows = 0
+            
+            for sql_file in sql_files:
+                execution_result = self._execute_sql_file_real(sql_file)
+                filename = os.path.basename(sql_file)
+                
+                if execution_result['success'] and execution_result.get('transaction_status') == 'committed':
+                    successful_files.append(filename)
+                    total_statements += execution_result.get('total_statements', 0)
+                    total_affected_rows += execution_result['affected_rows']
+                else:
+                    failed_files.append({
+                        'file': filename,
+                        'error': execution_result['error_message'],
+                        'transaction_status': execution_result.get('transaction_status', 'unknown')
+                    })
+            
+            # 关闭数据库连接
+            self._close_database_connection()
+            
+            # 判断执行结果
+            if len(successful_files) == len(sql_files):
+                if logger:
+                    logger.log_step("菜单权限授权", "SUCCESS", 
+                                   f"成功执行 {len(successful_files)} 个SQL文件，共 {total_statements} 条语句，影响 {total_affected_rows} 行数据",
+                                   f"成功文件: {successful_files}")
+                return True
+            else:
+                if logger:
+                    logger.log_step("菜单权限授权", "FAILED", 
+                                   f"部分文件执行失败: 成功{len(successful_files)}个，失败{len(failed_files)}个",
+                                   f"失败详情: {failed_files}")
+                return False
             
         except Exception as e:
             if logger:
-                logger.log_step("SQL脚本执行", "FAILED", f"调用独立函数异常: {str(e)}")
-            print(f"❌ SQL脚本执行失败: {e}")
+                logger.log_step("菜单权限授权", "FAILED", f"执行异常: {str(e)}")
+            print(f"❌ 菜单权限授权失败: {e}")
             return False
     
     def _connect_database(self) -> bool:
@@ -1500,185 +1385,6 @@ class DatabaseSQLExecutor:
         except Exception as e:
             print(f"⚠️ 关闭数据库连接时发生异常: {e}")
 
-class PermissionManager:
-    """真正的权限管理器 - 实现真正的权限分配"""
-    
-    def __init__(self, config_manager):
-        self.config = config_manager
-        self.api_manager = config_manager  # 复用API管理器的token和连接
-    
-    def grant_permissions(self, config_data: Dict, logger: 'CodeGenLogger' = None) -> bool:
-        """为管理员角色授权新生成模块的权限 - 真正实现"""
-        try:
-            if logger:
-                logger.log_step("权限授权", "IN_PROGRESS", "为管理员角色授权新模块权限")
-            
-            enabled = self.config.get_config_value('permission_authorization', 'enabled', 'true').lower() == 'true'
-            if not enabled:
-                if logger:
-                    logger.log_step("权限授权", "SKIPPED", "权限授权已禁用")
-                return True
-            
-            # 获取基本信息
-            admin_role_id = self.config.get_config_value('permission_authorization', 'admin_role_id', 'f6817f48af4fb3af11b9e8bf182f618b')
-            timeout = int(self.config.get_config_value('permission_authorization', 'timeout', '30'))
-            retry_attempts = int(self.config.get_config_value('permission_authorization', 'retry_attempts', '3'))
-            
-            # 获取模块信息
-            metadata = config_data.get('metadata', {})
-            generation_info = metadata.get('generation_info', {})
-            business_entity = generation_info.get('business_entity', '')
-            module_name = generation_info.get('module_name', '')
-            
-            if not all([business_entity, module_name]):
-                if logger:
-                    logger.log_step("权限授权", "FAILED", "缺少必要的模块信息")
-                return False
-            
-            # 获取表名和菜单名称
-            table_name = config_data.get('head', {}).get('tableName', '')
-            table_txt = config_data.get('head', {}).get('tableTxt', '')
-            if not table_name or not table_txt:
-                if logger:
-                    logger.log_step("权限授权", "FAILED", "缺少表名或菜单名称信息")
-                return False
-            
-            # 先查找新创建的菜单ID - 使用中文菜单名称查询
-            menu_ids = self._find_menu_ids_by_menu_name(table_txt, table_name)
-            if not menu_ids:
-                if logger:
-                    logger.log_step("权限授权", "FAILED", f"未找到表 {table_name} 对应的菜单ID")
-                return False
-            
-            # 为管理员角色授权
-            successful_grants = 0
-            total_grants = len(menu_ids)
-            
-            for menu_id in menu_ids:
-                for attempt in range(retry_attempts):
-                    if self._grant_menu_permission_to_role(admin_role_id, menu_id, timeout):
-                        successful_grants += 1
-                        break
-                    elif attempt < retry_attempts - 1:
-                        time.sleep(1)  # 重试间隔
-            
-            # 记录结果
-            if successful_grants == total_grants:
-                permission_info = {
-                    "admin_role_id": admin_role_id,
-                    "business_entity": business_entity,
-                    "table_name": table_name,
-                    "granted_menus": successful_grants,
-                    "total_menus": total_grants,
-                    "menu_ids": menu_ids
-                }
-                if logger:
-                    logger.log_step("权限授权", "SUCCESS",
-                                   f"成功为角色 {admin_role_id} 授权 {successful_grants}/{total_grants} 个菜单权限",
-                                   f"权限详情: {permission_info}")
-                return True
-            elif successful_grants > 0:
-                if logger:
-                    logger.log_step("权限授权", "SUCCESS",
-                                   f"部分成功: 为角色 {admin_role_id} 授权 {successful_grants}/{total_grants} 个菜单权限")
-                return True
-            else:
-                if logger:
-                    logger.log_step("权限授权", "FAILED", "所有权限授权尝试都失败")
-                return False
-            
-        except Exception as e:
-            if logger:
-                logger.log_step("权限授权", "FAILED", f"异常: {str(e)}")
-            print(f"❌ 权限授权失败: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-    
-    def _find_menu_ids_by_menu_name(self, menu_name: str, table_name: str) -> List[str]:
-        """根据菜单名称查找对应的菜单ID"""
-        try:
-            # 调用JeecgBoot的菜单查询API
-            base_url = self.config.get_config_value('server', 'base_url', 'http://localhost:8080/jeecg-boot')
-            menu_list_url = f"{base_url}/sys/permission/list"  # JeecgBoot菜单列表API
-            
-            if not self.api_manager.token:
-                print("❌ 未登录，无法查询菜单")
-                return []
-            
-            headers = {'X-Access-Token': self.api_manager.token}
-            # 首先尝试用中文菜单名称查询
-            params = {
-                'pageNo': 1,
-                'pageSize': 100,
-                'menuName': menu_name  # 使用中文菜单名称搜索
-            }
-            
-            response = self.api_manager.session.get(menu_list_url, headers=headers, params=params, timeout=30)
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    records = result.get('result', {}).get('records', [])
-                    menu_ids = [record.get('id') for record in records if record.get('id')]
-                    if menu_ids:
-                        print(f"✅ 通过菜单名称'{menu_name}'找到 {len(menu_ids)} 个菜单ID: {menu_ids}")
-                        return menu_ids
-                    else:
-                        print(f"⚠️ 通过菜单名称'{menu_name}'未找到菜单，尝试用表名'{table_name}'查询")
-                        # 备用方案：使用表名查询
-                        params['menuName'] = table_name
-                        response2 = self.api_manager.session.get(menu_list_url, headers=headers, params=params, timeout=30)
-                        if response2.status_code == 200:
-                            result2 = response2.json()
-                            if result2.get('success'):
-                                records2 = result2.get('result', {}).get('records', [])
-                                menu_ids2 = [record.get('id') for record in records2 if record.get('id')]
-                                if menu_ids2:
-                                    print(f"✅ 通过表名'{table_name}'找到 {len(menu_ids2)} 个菜单ID: {menu_ids2}")
-                                    return menu_ids2
-                        print(f"❌ 通过表名'{table_name}'也未找到对应菜单")
-                else:
-                    print(f"❌ 菜单查询失败: {result.get('message')}")
-            else:
-                print(f"❌ 菜单查询请求失败: {response.status_code}")
-        
-        except Exception as e:
-            print(f"❌ 查找菜单ID异常: {e}")
-        
-        return []
-    
-    def _grant_menu_permission_to_role(self, role_id: str, menu_id: str, timeout: int) -> bool:
-        """为角色授予指定菜单的权限"""
-        try:
-            base_url = self.config.get_config_value('server', 'base_url', 'http://localhost:8080/jeecg-boot')
-            permission_grant_url = f"{base_url}/sys/role/queryTreeList"  # JeecgBoot角色权限管理API
-            
-            if not self.api_manager.token:
-                print("❌ 未登录，无法授予权限")
-                return False
-            
-            headers = {'X-Access-Token': self.api_manager.token}
-            data = {
-                'roleId': role_id,
-                'permissionIds': menu_id,
-                'lastPermissionIds': ''  # 上次的权限ID列表
-            }
-            
-            response = self.api_manager.session.post(permission_grant_url, json=data, headers=headers, timeout=timeout)
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    print(f"✅ 成功为角色 {role_id} 授予菜单 {menu_id} 的权限")
-                    return True
-                else:
-                    print(f"❌ 权限授予失败: {result.get('message')}")
-            else:
-                print(f"❌ 权限授予请求失败: {response.status_code}")
-            
-        except Exception as e:
-            print(f"❌ 权限授予异常: {e}")
-        
-        return False
 
 # ===============================================================================
 # 模块管理器 - Maven模块创建和POM配置
@@ -1925,7 +1631,6 @@ class UnifiedTableExecutor:
         self.frontend_migrator = FrontendMigrator(self.api_manager)
         self.placeholder_processor = PlaceholderProcessor(self.api_manager)
         self.sql_executor = DatabaseSQLExecutor(self.api_manager)
-        self.permission_manager = PermissionManager(self.api_manager)
         self.validator = CodeGenValidator() if CodeGenValidator else None
         self.logger = None  # 初始化为None，在execute_table_workflow中创建
     
@@ -2187,7 +1892,7 @@ class UnifiedTableExecutor:
             
             # 占位变量处理 - 最重要，先执行
             success_count = 0
-            total_count = 4
+            total_count = 3
             
             if self.placeholder_processor.process_placeholder_variables(main_config, self.logger):
                 success_count += 1
@@ -2201,10 +1906,6 @@ class UnifiedTableExecutor:
             
             # SQL脚本执行
             if self.sql_executor.execute_permission_sql(main_config, self.logger):
-                success_count += 1
-            
-            # 菜单权限授权
-            if self.permission_manager.grant_permissions(main_config, self.logger):
                 success_count += 1
             
             # 3. 标记完成
@@ -2251,7 +1952,7 @@ class UnifiedTableExecutor:
             
             # 占位变量处理 - 最重要，先执行
             success_count = 0
-            total_count = 4
+            total_count = 3
             
             if self.placeholder_processor.process_placeholder_variables(config_data, self.logger):
                 success_count += 1
@@ -2265,10 +1966,6 @@ class UnifiedTableExecutor:
             
             # SQL脚本执行
             if self.sql_executor.execute_permission_sql(config_data, self.logger):
-                success_count += 1
-            
-            # 菜单权限授权
-            if self.permission_manager.grant_permissions(config_data, self.logger):
                 success_count += 1
             
             # 3. 记录整体结果
@@ -2310,14 +2007,17 @@ def test_menu_permission_sql_execution():
         # 创建测试配置管理器
         config_manager = JeecgBootAPIManager()
         
-        # 调用独立函数
-        result = execute_menu_permission_sql(
-            module_name=test_module,
-            submodule_name=test_submodule,
-            business_entity=test_entity,
-            config_manager=config_manager,
-            logger=None
-        )
+        # 创建数据库执行器并执行菜单权限授权
+        sql_executor = DatabaseSQLExecutor(config_manager)
+        result = {'success': sql_executor.execute_permission_sql({
+            'metadata': {
+                'generation_info': {
+                    'module_name': test_module,
+                    'submodule_name': test_submodule,
+                    'business_entity': test_entity
+                }
+            }
+        })}
         
         # 检查结果
         print(f"✅ 测试结果: {result['success']}")
@@ -2455,13 +2155,26 @@ def main():
         
         try:
             config_manager = JeecgBootAPIManager()
-            result = execute_menu_permission_sql(
-                module_name=module,
-                submodule_name=submodule,
-                business_entity=entity,
-                config_manager=config_manager,
-                logger=None
-            )
+            # 创建数据库执行器并执行菜单权限授权
+            sql_executor = DatabaseSQLExecutor(config_manager)
+            success = sql_executor.execute_permission_sql({
+                'metadata': {
+                    'generation_info': {
+                        'module_name': module,
+                        'submodule_name': submodule,
+                        'business_entity': entity
+                    }
+                }
+            })
+            
+            result = {
+                'success': success,
+                'executed_files': [],
+                'total_statements': 0,
+                'total_affected_rows': 0,
+                'execution_time': 0.0,
+                'error_message': '' if success else '菜单权限授权执行失败'
+            }
             
             print("\n📈 执行结果报告:")
             success_icon = '\u2705 成功' if result['success'] else '\u274c 失败'

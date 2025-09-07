@@ -220,7 +220,7 @@ AgentCard 端点 (`/.well-known/agent.json`) 完全符合 A2A 协议规范，提
       "database_synchronization": true,
       "code_generation": true,
       "module_management": true,
-      "permission_authorization": true
+      "permission_authorization": false
     },
     "variable_extraction": {
       "module_name_inference": true,
