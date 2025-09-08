@@ -57,52 +57,47 @@ class CodeGenLogger:
         
     def log_step(self, step_name: str, status: str, details: str = "", result: str = ""):
         """记录工作流步骤"""
-        self.step_counter += 1
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        log_entry = {
-            "step_number": self.step_counter,
-            "timestamp": timestamp,
-            "step_name": step_name,
-            "status": status,  # SUCCESS, FAILED, SKIPPED, IN_PROGRESS
-            "details": details,
-            "result": result
-        }
+        # 查找是否已有相同步骤名称的记录，如果有则更新，否则创建新的
+        existing_entry = None
+        for log_entry in self.logs:
+            if log_entry["step_name"] == step_name:
+                existing_entry = log_entry
+                break
         
-        self.logs.append(log_entry)
+        if existing_entry:
+            # 更新现有记录
+            existing_entry["timestamp"] = timestamp
+            existing_entry["status"] = status
+            existing_entry["details"] = details
+            existing_entry["result"] = result
+            step_number = existing_entry["step_number"]
+        else:
+            # 创建新记录
+            self.step_counter += 1
+            step_number = self.step_counter
+            log_entry = {
+                "step_number": step_number,
+                "timestamp": timestamp,
+                "step_name": step_name,
+                "status": status,  # SUCCESS, FAILED, SKIPPED, IN_PROGRESS
+                "details": details,
+                "result": result
+            }
+            self.logs.append(log_entry)
         
-        # 标准化工作流反馈格式 - 独占一行
+        # 只在最终状态时输出，不输出IN_PROGRESS状态
         if status == "FAILED":
             self.failed = True
-            print(f"[{self.step_counter:02d}] {step_name} - FAILED")
+            print(f"[{step_number:02d}] {step_name} - FAILED")
             if details:
                 print(f"     失败原因: {details}")
         elif status == "SUCCESS":
-            print(f"[{self.step_counter:02d}] {step_name} - PASS")
+            print(f"[{step_number:02d}] {step_name} - PASS")
         elif status == "SKIPPED":
-            print(f"[{self.step_counter:02d}] {step_name} - SKIP")
-        elif status == "IN_PROGRESS":
-            print(f"[{self.step_counter:02d}] {step_name} - RUNNING...")
-        
-        # 记录工作流步骤用于最后汇总 - 只记录最终状态，不记录IN_PROGRESS状态
-        if status in ["SUCCESS", "FAILED", "SKIPPED"]:
-            # 检查是否已存在同名步骤，如果存在则更新状态，否则添加新条目
-            existing_step = None
-            for step in self.workflow_steps:
-                if step["name"] == step_name:
-                    existing_step = step
-                    break
-            
-            final_status = "PASS" if status == "SUCCESS" else ("SKIP" if status == "SKIPPED" else "FAIL")
-            
-            if existing_step:
-                existing_step["status"] = final_status
-            else:
-                self.workflow_steps.append({
-                    "number": self.step_counter,
-                    "name": step_name,
-                    "status": final_status
-                })
+            print(f"[{step_number:02d}] {step_name} - SKIP")
+        # IN_PROGRESS状态不再输出，只记录
     
     def print_workflow_summary(self):
         """打印工作流汇总报告"""
@@ -110,7 +105,7 @@ class CodeGenLogger:
         print("执行状态汇总:")
         print("="*60)
         
-        # 从logs中提取所有步骤的最终状态进行显示
+        # 从logs中提取所有步骤的最终状态进行显示，每个环节只显示一次
         step_status_map = {}
         
         for log_entry in self.logs:
@@ -118,18 +113,12 @@ class CodeGenLogger:
             step_name = log_entry["step_name"]
             status = log_entry["status"]
             
-            # 只保留最终状态（非IN_PROGRESS）
+            # 只显示最终状态，跳过IN_PROGRESS状态
             if status != "IN_PROGRESS":
                 final_status = "PASS" if status == "SUCCESS" else ("SKIP" if status == "SKIPPED" else "FAIL")
                 step_status_map[step_number] = {
                     "name": step_name,
                     "status": final_status
-                }
-            elif step_number not in step_status_map:
-                # 如果步骤没有最终状态，使用IN_PROGRESS（显示为RUNNING）
-                step_status_map[step_number] = {
-                    "name": step_name,
-                    "status": "RUNNING"
                 }
         
         # 按步骤序号排序显示所有步骤，每个环节独占一行
@@ -137,11 +126,10 @@ class CodeGenLogger:
             step_info = step_status_map[step_number]
             print(f"{step_number}. {step_info['name']} {step_info['status']}")
         
-        # 1行汇总状态
-        summary_result = "Fail" if self.failed else "Pass"
         print("\n" + "="*60)
+        # 汇总状态作为最后一行，后续不再输出任何内容
+        summary_result = "Fail" if self.failed else "Pass"
         print(f"代码生成工作流执行反馈汇总状态 SUMMARY_RESULT={summary_result}")
-        print("="*60)
     
     def log_sql_transaction(self, transaction_details: list):
         """记录SQL事务执行详情"""
@@ -242,10 +230,10 @@ class CodeGenLogger:
             with open(self.log_file, 'w', encoding='utf-8') as f:
                 json.dump(log_data, f, indent=2, ensure_ascii=False)
             
-            print(f"📋 执行报告已保存: {self.log_file}")
+            # 不再在这里输出保存信息，保持汇总状态为最后一行
             return True
         except Exception as e:
-            print(f"❌ 执行报告保存失败: {e}")
+            # 不再在这里输出错误信息，保持汇总状态为最后一行
             return False
 
 # ===============================================================================
@@ -2177,11 +2165,10 @@ def main():
         executor = UnifiedTableExecutor()
         success = executor.execute_table_workflow(config_data)
         
+        # 不再输出额外的成功/失败消息，保持汇总状态为最后一行
         if success:
-            print("\n✅ 代码生成执行成功!")
             sys.exit(0)
         else:
-            print("\n❌ 代码生成执行失败!")
             sys.exit(1)
             
     except FileNotFoundError:
