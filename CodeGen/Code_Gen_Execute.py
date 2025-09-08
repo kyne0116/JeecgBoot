@@ -107,11 +107,10 @@ class CodeGenLogger:
     def print_workflow_summary(self):
         """打印工作流汇总报告"""
         print("\n" + "="*60)
-        print("代码生成工作流执行结果小结:")
+        print("执行状态汇总:")
         print("="*60)
         
         # 从logs中提取所有步骤的最终状态进行显示
-        # 构建步骤状态映射，确保显示所有32个步骤
         step_status_map = {}
         
         for log_entry in self.logs:
@@ -133,16 +132,10 @@ class CodeGenLogger:
                     "status": "RUNNING"
                 }
         
-        # 按步骤序号排序显示所有步骤
+        # 按步骤序号排序显示所有步骤，每个环节独占一行
         for step_number in sorted(step_status_map.keys()):
             step_info = step_status_map[step_number]
-            status_display = {
-                "PASS": "✅ PASS",
-                "FAIL": "❌ FAIL", 
-                "SKIP": "⏭️ SKIP",
-                "RUNNING": "🔄 RUNNING"
-            }.get(step_info["status"], step_info["status"])
-            print(f"[{step_number:02d}] {step_info['name']} - {status_display}")
+            print(f"{step_number}. {step_info['name']} {step_info['status']}")
         
         # 1行汇总状态
         summary_result = "Fail" if self.failed else "Pass"
@@ -286,7 +279,7 @@ class MasterSubTableSentinel:
     def __init__(self, module_name: str, submodule_name: str):
         self.module_name = module_name
         self.submodule_name = submodule_name
-        self.sentinel_file = f"sentinel_{module_name}_{submodule_name}.json"
+        self.sentinel_file = f"{module_name}_{submodule_name}_sentinel.json"
         self.sentinel_data = {}
         
     def get_or_create_sentinel(self, config_data: Dict) -> bool:
@@ -695,6 +688,12 @@ class JeecgBootAPIManager:
             print(f"✅ 解析3段式表名: {table_name} -> 模块: {module_name}, 子模块: {submodule_name}")
         else:
             print(f"⚠️ 非标准3段式表名格式: {table_name}")
+            # 尝试从metadata获取submodule_name作为备用方案
+            metadata = config_data.get('metadata', {})
+            generation_info = metadata.get('generation_info', {})
+            submodule_name = generation_info.get('submodule_name', 'common')  # 默认值为'common'
+            module_name = generation_info.get('module_name', 'system')  # 默认值为'system'
+            print(f"✅ 从metadata获取模块信息: 模块: {module_name}, 子模块: {submodule_name}")
             project_path = self.get_config_value('project', 'path_prefix', '/tmp')
         
         # 根据表类型设置参数
@@ -712,7 +711,7 @@ class JeecgBootAPIManager:
             "code": form_id,  # ✅ 修复: 使用code而不是id
             "projectPath": project_path,
             "entityName": business_entity,
-            "entityPackage": "",  # 🔧 修复: 避免重复包名，让API自动处理
+            "entityPackage": submodule_name,  # ✅ 关键修复: 明确指定子模块名作为包名，确保API正确生成包结构
             "jspMode": jsp_mode,
             "jformType": jform_type,
             "ftlDescription": config_data.get('head', {}).get('tableTxt', ''),  # ✅ 新增: 表描述
@@ -911,7 +910,7 @@ class PlaceholderProcessor:
         self.config = config_manager
     
     def process_placeholder_variables(self, config_data: Dict, logger: 'CodeGenLogger' = None) -> bool:
-        """处理占位变量替换"""
+        """处理占位变量替换 - 简化版：使用正确的包名模板避免重复"""
         try:
             if logger:
                 logger.log_step("占位变量处理", "IN_PROGRESS", "开始处理生成代码中的占位变量")
@@ -929,8 +928,20 @@ class PlaceholderProcessor:
                     logger.log_step("占位变量处理", "FAILED", "缺少必要的模块信息")
                 return False
             
+            # 查找生成的模块目录
+            project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
+            module_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
+            
+            if not os.path.exists(module_path):
+                if logger:
+                    logger.log_step("占位变量处理", "FAILED", f"模块目录不存在: {module_path}")
+                return False
+            
+            
+            
             # 构建包名和路径映射
-            package_name = f"org.jeecg.modules.{module_name}.{submodule_name}"
+            src_java_path = f"{module_path}/src/main/java"
+            package_name = f"org.jeecg.modules.{module_name}"
             package_path = package_name.replace('.', '/')
             
             # 定义占位变量映射
@@ -941,19 +952,10 @@ class PlaceholderProcessor:
                 '{{BUSINESS_ENTITY}}': business_entity
             }
             
-            # 查找生成的模块目录
-            project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
-            module_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
-            
-            if not os.path.exists(module_path):
-                if logger:
-                    logger.log_step("占位变量处理", "FAILED", f"模块目录不存在: {module_path}")
-                return False
-            
             # 处理文件夹重命名 - 先重命名包目录结构
-            src_java_path = f"{module_path}/src/main/java"
             old_package_path = f"{src_java_path}/{{{{PACKAGE_NAME}}}}"
             new_package_path = f"{src_java_path}/{package_path}"
+            
             
             if os.path.exists(old_package_path):
                 # 创建正确的包目录结构
@@ -975,6 +977,8 @@ class PlaceholderProcessor:
                 logger.log_step("占位变量处理", "SUCCESS", 
                                f"共处理 {replaced_count} 个文件", 
                                f"占位变量映射: {placeholders}")
+            
+            
             return True
             
         except Exception as e:
@@ -984,6 +988,8 @@ class PlaceholderProcessor:
             import traceback
             traceback.print_exc()
             return False
+    
+    
     
     def _replace_file_placeholders(self, file_path: str, placeholders: Dict[str, str]) -> bool:
         """替换单个文件中的占位变量"""
@@ -1966,9 +1972,9 @@ def test_menu_permission_sql_execution():
     
     try:
         # 模拟测试参数
-        test_module = "finance"
-        test_submodule = "invoice" 
-        test_entity = "InvoiceHeader"
+        test_module = "test"
+        test_submodule = "demo" 
+        test_entity = "TestEntity"
         
         # 创建测试配置管理器
         config_manager = JeecgBootAPIManager()
@@ -1987,7 +1993,6 @@ def test_menu_permission_sql_execution():
         
         # 检查结果
         print(f"✅ 测试结果: {result['success']}")
-        print(f"   执行文件: {result['executed_files']}")
         print(f"   总语句数: {result['total_statements']}")
         print(f"   影响行数: {result['total_affected_rows']}")
         print(f"   执行时间: {result['execution_time']:.2f}秒")
@@ -2110,7 +2115,7 @@ def main():
     elif sys.argv[1] == "--test-sql":
         if len(sys.argv) < 5:
             print("使用方法: python Code_Gen_Execute.py --test-sql <module> <submodule> <entity>")
-            print("例如: python Code_Gen_Execute.py --test-sql finance invoice InvoiceHeader")
+            print("例如: python Code_Gen_Execute.py --test-sql system user UserInfo")
             sys.exit(1)
         
         module = sys.argv[2]
@@ -2145,7 +2150,6 @@ def main():
             print("\n📈 执行结果报告:")
             success_icon = '\u2705 成功' if result['success'] else '\u274c 失败'
             print(f"   成功状态: {success_icon}")
-            print(f"   执行文件: {result['executed_files']}")
             print(f"   执行语句: {result['total_statements']} 条")
             print(f"   影响行数: {result['total_affected_rows']} 行")
             print(f"   执行时间: {result['execution_time']:.2f} 秒")
