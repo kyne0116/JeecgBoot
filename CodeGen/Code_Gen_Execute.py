@@ -90,13 +90,13 @@ class CodeGenLogger:
         # 只在最终状态时输出，不输出IN_PROGRESS状态
         if status == "FAILED":
             self.failed = True
-            print(f"[{step_number:02d}] {step_name} - FAILED")
+            print(f"[{step_number:02d}] {step_name} - fail")
             if details:
                 print(f"     失败原因: {details}")
         elif status == "SUCCESS":
-            print(f"[{step_number:02d}] {step_name} - PASS")
+            print(f"[{step_number:02d}] {step_name} - pass")
         elif status == "SKIPPED":
-            print(f"[{step_number:02d}] {step_name} - SKIP")
+            print(f"[{step_number:02d}] {step_name} - skip")
         # IN_PROGRESS状态不再输出，只记录
     
     def print_workflow_summary(self):
@@ -115,7 +115,7 @@ class CodeGenLogger:
             
             # 只显示最终状态，跳过IN_PROGRESS状态
             if status != "IN_PROGRESS":
-                final_status = "PASS" if status == "SUCCESS" else ("SKIP" if status == "SKIPPED" else "FAIL")
+                final_status = "pass" if status == "SUCCESS" else ("skip" if status == "SKIPPED" else "fail")
                 step_status_map[step_number] = {
                     "name": step_name,
                     "status": final_status
@@ -128,7 +128,7 @@ class CodeGenLogger:
         
         print("\n" + "="*60)
         # 汇总状态作为最后一行，后续不再输出任何内容
-        summary_result = "Fail" if self.failed else "Pass"
+        summary_result = "FAIL" if self.failed else "PASS"
         print(f"代码生成工作流执行反馈汇总状态 SUMMARY_RESULT={summary_result}")
     
     def log_sql_transaction(self, transaction_details: list):
@@ -196,7 +196,7 @@ class CodeGenLogger:
                     "success_count": success_count,
                     "failed_count": failed_count,
                     "skipped_count": skipped_count,
-                    "overall_result": "Fail" if self.failed else "Pass",
+                    "overall_result": "FAIL" if self.failed else "PASS",
                     "success_rate": f"{(success_count / self.step_counter * 100):.1f}%" if self.step_counter > 0 else "0.0%"
                 },
                 
