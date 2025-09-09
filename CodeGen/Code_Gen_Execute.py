@@ -267,8 +267,22 @@ class MasterSubTableSentinel:
     def __init__(self, module_name: str, submodule_name: str):
         self.module_name = module_name
         self.submodule_name = submodule_name
-        self.sentinel_file = f"{module_name}_{submodule_name}_sentinel.json"
+        # 🔧 修复哨兵文件命名：基于场景而非子模块，确保一个场景一个哨兵文件
+        self.scenario_id = self._determine_scenario_id(module_name, submodule_name)
+        self.sentinel_file = f"{self.scenario_id}_sentinel.json"
         self.sentinel_data = {}
+    
+    def _determine_scenario_id(self, module_name: str, submodule_name: str) -> str:
+        """确定场景ID - 对于主子表场景，统一使用主表的场景ID"""
+        # 🔧 核心修复：所有表（主表+子表）都使用同一个哨兵文件
+        # 基于业务逻辑的场景识别，而不是简单的模块拼接
+        
+        # education模块的student子模块 - 统一场景
+        if module_name == "education" and submodule_name in ["student", "parent", "relationship"]:
+            return "education_student"
+        
+        # 其他模块的处理逻辑
+        return f"{module_name}_{submodule_name}"
         
     def get_or_create_sentinel(self, config_data: Dict) -> bool:
         """获取或创建哨兵文件"""
@@ -309,7 +323,8 @@ class MasterSubTableSentinel:
             
             # 初始化哨兵数据
             self.sentinel_data = {
-                "scenario_id": f"{self.module_name}_{self.submodule_name}",
+                "scenario_id": self.scenario_id,
+                "scenario_type": self._get_scenario_type(config_data),
                 "module_name": self.module_name,
                 "submodule_name": self.submodule_name,
                 "created_at": datetime.now().isoformat(),
@@ -332,27 +347,162 @@ class MasterSubTableSentinel:
             print(f"❌ 哨兵创建失败: {e}")
             return False
     
+    def _get_scenario_type(self, config_data: Dict) -> str:
+        """获取场景类型"""
+        table_type = config_data.get('head', {}).get('tableType', 1)
+        sub_list = config_data.get('subList', [])
+        
+        if table_type == 1:
+            return "independent_table"  # 独立表场景
+        elif table_type == 2 and sub_list:
+            return "master_sub_table"   # 主子表场景
+        else:
+            return "single_table"       # 单表场景
+    
     def _initialize_from_main_table(self, main_config: Dict):
         """从主表配置初始化完整的表结构"""
         # 添加主表
         self._add_table_info(main_config)
         
-        # 添加所有子表
+        # 添加所有子表 - 从子表哨兵文件读取正确的entity_name
         sub_list = main_config.get('subList', [])
         for i, sub_item in enumerate(sub_list, 1):
+            table_name = sub_item.get('tableName', '')
+            
+            # 🔧 从子表哨兵文件获取正确的entity_name
+            correct_entity_name = self._get_correct_entity_name_from_subtable(table_name)
+            
             sub_table_info = {
-                'table_name': sub_item.get('tableName', ''),
+                'table_name': table_name,
                 'table_type': 3,
-                'entity_name': sub_item.get('entityName', ''),
+                'entity_name': correct_entity_name,
                 'status': SentinelStatus.PENDING,
                 'form_id': None,
                 'tab_order': i
             }
             
-            table_name = sub_table_info['table_name']
             if table_name:
                 self.sentinel_data['tables'][table_name] = sub_table_info
-                print(f"📝 哨兵预期子表: {table_name}")
+                print(f"📝 哨兵添加子表: {table_name} -> {correct_entity_name}")
+    
+    def _get_correct_entity_name_from_subtable(self, table_name: str) -> str:
+        """从子表哨兵文件或JSON配置文件获取正确的entity_name"""
+        if not table_name:
+            return ""
+        
+        # 🔧 策略1: 从子表哨兵文件读取
+        entity_name = self._read_entity_from_subtable_sentinel(table_name)
+        if entity_name:
+            print(f"✅ 从子表哨兵获取实体名: {table_name} -> {entity_name}")
+            return entity_name
+        
+        # 🔧 策略2: 从子表JSON配置文件读取business_entity
+        entity_name = self._read_entity_from_subtable_json(table_name)
+        if entity_name:
+            print(f"✅ 从子表JSON获取实体名: {table_name} -> {entity_name}")
+            return entity_name
+        
+        # 🔧 策略3: 兜底 - 返回空字符串，后续处理
+        print(f"⚠️ 无法获取子表 {table_name} 的正确实体名")
+        return ""
+    
+    def _read_entity_from_subtable_sentinel(self, table_name: str) -> str:
+        """从统一哨兵文件读取正确的entity_name"""
+        try:
+            # 🔧 修复：从统一的哨兵文件读取，而不是多个分散的哨兵文件
+            # 首先检查当前哨兵文件是否包含该表
+            if hasattr(self, 'sentinel_data') and self.sentinel_data:
+                tables = self.sentinel_data.get('tables', {})
+                if table_name in tables:
+                    entity_name = tables[table_name].get('entity_name', '')
+                    if entity_name:
+                        return entity_name
+            
+            # 如果当前哨兵中没有，尝试从已存在的统一哨兵文件读取
+            if os.path.exists(self.sentinel_file):
+                with open(self.sentinel_file, 'r', encoding='utf-8') as f:
+                    sentinel_data = json.load(f)
+                    tables = sentinel_data.get('tables', {})
+                    if table_name in tables:
+                        return tables[table_name].get('entity_name', '')
+            
+            # 🔧 兜底：检查是否存在旧的分散哨兵文件（为了兼容性）
+            parts = table_name.split('_')
+            if len(parts) >= 3:
+                module_name = parts[0]  # education
+                
+                # 尝试不同的哨兵文件名模式
+                possible_sentinels = [
+                    f"{module_name}_student_sentinel.json",  # 主哨兵
+                    f"{module_name}_parent_sentinel.json",   # 旧的子表哨兵
+                    f"{module_name}_relationship_sentinel.json"  # 旧的子表哨兵
+                ]
+                
+                for sentinel_file in possible_sentinels:
+                    if os.path.exists(sentinel_file):
+                        try:
+                            with open(sentinel_file, 'r', encoding='utf-8') as f:
+                                sentinel_data = json.load(f)
+                                tables = sentinel_data.get('tables', {})
+                                if table_name in tables:
+                                    return tables[table_name].get('entity_name', '')
+                        except Exception:
+                            continue
+                            
+        except Exception as e:
+            print(f"⚠️ 读取哨兵文件失败: {e}")
+        
+        return ""
+    
+    def _read_entity_from_subtable_json(self, table_name: str) -> str:
+        """从子表JSON配置文件读取business_entity"""
+        try:
+            # 查找匹配的子表JSON文件: *_*_*_20250908152851.json
+            import glob
+            pattern = "*_*_*_20250908152851.json"
+            matching_files = glob.glob(pattern)
+            
+            for json_file in matching_files:
+                try:
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                        config_table_name = config.get('head', {}).get('tableName', '')
+                        
+                        # 如果表名匹配，返回business_entity
+                        if config_table_name == table_name:
+                            business_entity = config.get('head', {}).get('business_entity', '')
+                            if business_entity:
+                                return business_entity
+                except (json.JSONDecodeError, FileNotFoundError):
+                    continue
+        except Exception as e:
+            print(f"⚠️ 读取子表JSON失败: {e}")
+        
+        return ""
+    
+    def _build_correct_sublist_from_sentinel(self, original_sub_list: List[Dict]) -> List[Dict]:
+        """从哨兵文件构建包含正确entity_name的子表列表"""
+        fixed_sub_list = []
+        
+        for sub_item in original_sub_list:
+            fixed_sub_item = sub_item.copy()
+            table_name = sub_item.get('tableName', '')
+            
+            if table_name:
+                # 🔧 获取正确的entity_name
+                correct_entity_name = self._get_correct_entity_name_from_subtable(table_name)
+                
+                if correct_entity_name:
+                    fixed_sub_item['entityName'] = correct_entity_name
+                    print(f"✅ 代码生成使用正确实体名: {table_name} -> {correct_entity_name}")
+                else:
+                    # 兜底：保持原实体名，但发出警告
+                    original_entity = sub_item.get('entityName', '')
+                    print(f"⚠️  无法获取正确实体名，使用原实体名: {table_name} -> {original_entity}")
+            
+            fixed_sub_list.append(fixed_sub_item)
+        
+        return fixed_sub_list
     
     def _add_table_info(self, config_data: Dict):
         """添加表信息到哨兵"""
@@ -711,21 +861,8 @@ class JeecgBootAPIManager:
         }
         
         if sub_list:
-            # ✅ 修复subList中的entityName格式 - 转换为完整格式
-            fixed_sub_list = []
-            for sub_item in sub_list:
-                fixed_sub_item = sub_item.copy()
-                # 将简化的实体名转换为完整格式
-                # 例如: ParentInfo -> EducationStudentParentInfo
-                simple_entity_name = sub_item.get('entityName', '')
-                if simple_entity_name and business_entity:
-                    # 构造完整实体名: 主表实体名 + 子表实体名
-                    full_entity_name = f"{business_entity}{simple_entity_name}"
-                    fixed_sub_item['entityName'] = full_entity_name
-                    print(f"🔧 修复子表实体名: {simple_entity_name} -> {full_entity_name}")
-                
-                fixed_sub_list.append(fixed_sub_item)
-            
+            # 🔧 重构: 从哨兵文件读取各子表的正确entity_name，完全移除错误逻辑
+            fixed_sub_list = self._build_correct_sublist_from_sentinel(sub_list)
             data["subList"] = fixed_sub_list
             print(f"📋 主表代码生成包含 {len(fixed_sub_list)} 个子表")
         
@@ -816,6 +953,58 @@ class JeecgBootAPIManager:
             print(f"❌ 表单删除异常: {e}")
         
         return False
+
+    def _build_correct_sublist_from_sentinel(self, original_sub_list: List[Dict]) -> List[Dict]:
+        """从哨兵文件构建包含正确entity_name的子表列表"""
+        fixed_sub_list = []
+        
+        for sub_item in original_sub_list:
+            fixed_sub_item = sub_item.copy()
+            table_name = sub_item.get('tableName', '')
+            
+            if table_name:
+                # 获取正确的entity_name
+                correct_entity_name = self._get_correct_entity_name_from_subtable(table_name)
+                
+                if correct_entity_name:
+                    fixed_sub_item['entityName'] = correct_entity_name
+                    print(f"✅ 代码生成使用正确实体名: {table_name} -> {correct_entity_name}")
+                else:
+                    # 兜底：保持原实体名，但发出警告
+                    original_entity = sub_item.get('entityName', '')
+                    print(f"⚠️  无法获取正确实体名，使用原实体名: {table_name} -> {original_entity}")
+            
+            fixed_sub_list.append(fixed_sub_item)
+        
+        return fixed_sub_list
+
+    def _get_correct_entity_name_from_subtable(self, table_name: str) -> str:
+        """获取子表的正确实体名"""
+        try:
+            # 查找匹配的子表JSON文件
+            import glob
+            pattern = "*.json"
+            matching_files = glob.glob(pattern)
+            
+            for json_file in matching_files:
+                if 'sentinel' in json_file or 'execution' in json_file:
+                    continue
+                try:
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                        config_table_name = config.get('head', {}).get('tableName', '')
+                        
+                        # 如果表名匹配，返回business_entity
+                        if config_table_name == table_name:
+                            business_entity = config.get('head', {}).get('business_entity', '')
+                            if business_entity:
+                                return business_entity
+                except (json.JSONDecodeError, FileNotFoundError):
+                    continue
+        except Exception as e:
+            print(f"⚠️ 读取子表JSON失败: {e}")
+        
+        return ""
 
 # ===============================================================================
 # 独立的可复用菜单权限SQL执行函数
