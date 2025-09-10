@@ -19,7 +19,7 @@
         "entityPackage": "实体包名，通常是SUBMODULE_NAME",
         "ftlDescription": "必须从tableTxt获取，代码生成API必需参数",
         "tableName_tmp": "临时表名，与tableName相同，代码生成API必需参数",
-        "subList_entityName_format": "必须是完整复合格式：主表实体名+子表实体名"
+        "subList_entityName_format": "使用简洁格式：子表实体名"
       }
     },
     "ai_guidance": {
@@ -28,7 +28,7 @@
       "field_generation": "确保orderNum从0开始严格连续递增",
       "constraint_compliance": "严格遵守字段长度和格式约束",
       "scenario_detection": "自动识别独立表vs主子表场景",
-      "sublist_entity_naming": "subList中entityName必须生成完整复合格式，避免JeecgBoot API空指针异常"
+      "sublist_entity_naming": "subList中entityName使用简洁格式，统一命名规范"
     },
     "common_pitfalls": {
       "orderNum_discontinuity": "orderNum必须连续，不能跳号",
@@ -191,13 +191,13 @@
           "tableName": "{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{SUB_TABLE_SUFFIX}}",
           "_tableName_ai_hint": "子表表名，必须与主表同模块",
           
-          "entityName": "{{MAIN_ENTITY}}{{SUB_ENTITY_NAME}}",
+          "entityName": "{{SUB_ENTITY_NAME}}",
           "_entityName_type": "string", 
           "_entityName_format": "PascalCase",
-          "_entityName_pattern": "主表实体名+子表实体名的复合格式",
-          "_entityName_ai_hint": "子表实体名必须为完整格式：主表实体名+子表实体名，如StudentInfoParentInfo、StudentInfoClassmateInfo",
-          "_entityName_examples": ["StudentInfoParentInfo", "StudentInfoClassmateInfo", "CustomerProfileContactInfo"],
-          "_entityName_critical_note": "⚠️ JeecgBoot API要求subList中entityName必须是完整复合格式，不能是简化格式",
+          "_entityName_pattern": "简洁的子表实体名格式",
+          "_entityName_ai_hint": "子表实体名使用简洁格式，如ParentInfo、ClassmateInfo、ContactInfo",
+          "_entityName_examples": ["ParentInfo", "ClassmateInfo", "ContactInfo"],
+          "_entityName_critical_note": "⚠️ 统一使用简洁格式，避免复合命名",
           
           "ftlDescription": "{{SUB_TABLE_DESCRIPTION}}",
           "_ftlDescription_type": "string",

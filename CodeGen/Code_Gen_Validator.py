@@ -351,13 +351,13 @@ JSON配置验证报告
                 if not re.match(r'^[A-Z][a-zA-Z0-9]*$', entity_name):
                     errors.append(f"subList[{i}]实体名格式错误: {entity_name}，应为PascalCase格式")
                 
-                # ✅ 新增：验证完整复合格式
+                # ✅ 新增：验证简洁格式
                 main_entity = config.get('head', {}).get('business_entity', '')
-                if main_entity and not entity_name.startswith(main_entity):
-                    errors.append(f"subList[{i}]实体名格式错误: {entity_name}，应为完整复合格式: {main_entity}XxxInfo")
-                    errors.append(f"⚠️ JeecgBoot API要求subList entityName必须为主表实体名+子表实体名的复合格式")
-                elif main_entity and entity_name == main_entity:
-                    errors.append(f"subList[{i}]实体名不能与主表相同: {entity_name}，应为: {main_entity}XxxInfo")
+                if main_entity and entity_name == main_entity:
+                    errors.append(f"subList[{i}]实体名不能与主表实体名相同: {entity_name}")
+                elif main_entity and entity_name.startswith(main_entity):
+                    errors.append(f"subList[{i}]实体名应使用简洁格式: {entity_name}，推荐去除主表前缀")
+                    errors.append(f"⚠️ 统一使用简洁格式，避免复合命名")
 
             # 验证ID格式
             sub_id = sub_table.get('id', '')

@@ -135,9 +135,9 @@
             "type": "string",
             "pattern": "^[A-Z][a-zA-Z0-9]*$",
             "minLength": 1,
-            "description": "子表的Java实体类名称，必须使用完整复合格式：主表实体名+子表实体名，如StudentInfoParentInfo",
-            "examples": ["StudentInfoParentInfo", "CustomerProfileContactInfo"],
-            "errorMessage": "entityName必须为完整复合格式，避免JeecgBoot API空指针异常"
+            "description": "子表的Java实体类名称，使用简洁格式，如ParentInfo、ContactInfo",
+            "examples": ["ParentInfo", "ContactInfo", "ClassmateInfo"],
+            "errorMessage": "entityName必须为简洁格式，统一命名规范"
           },
           "ftlDescription": {
             "type": "string",

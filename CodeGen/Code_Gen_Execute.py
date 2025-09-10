@@ -105,13 +105,19 @@ class CodeGenLogger:
         print("执行状态汇总:")
         print("="*60)
         
+        # 定义必需的关键步骤
+        critical_steps = ["系统初始化", "配置验证", "哨兵协调", "模块检查", "用户登录", 
+                         "创建表单", "表单验证", "数据库同步", "哨兵状态报告", "代码生成"]
+        
         # 从logs中提取所有步骤的最终状态进行显示，每个环节只显示一次
         step_status_map = {}
+        executed_steps = set()
         
         for log_entry in self.logs:
             step_number = log_entry["step_number"]
             step_name = log_entry["step_name"]
             status = log_entry["status"]
+            executed_steps.add(step_name)
             
             # 只显示最终状态，跳过IN_PROGRESS状态
             if status != "IN_PROGRESS":
@@ -121,14 +127,28 @@ class CodeGenLogger:
                     "status": final_status
                 }
         
+        # 检查缺失的关键步骤，标记为fail
+        missing_critical_steps = []
+        for critical_step in critical_steps:
+            if critical_step not in executed_steps:
+                missing_critical_steps.append(critical_step)
+        
         # 按步骤序号排序显示所有步骤，每个环节独占一行
         for step_number in sorted(step_status_map.keys()):
             step_info = step_status_map[step_number]
             print(f"{step_number}. {step_info['name']} {step_info['status']}")
         
+        # 输出缺失的关键步骤为fail
+        if missing_critical_steps:
+            next_step_number = max(step_status_map.keys()) + 1 if step_status_map else 1
+            for missing_step in missing_critical_steps:
+                print(f"{next_step_number}. {missing_step} fail")
+                next_step_number += 1
+        
         print("\n" + "="*60)
-        # 汇总状态作为最后一行，后续不再输出任何内容
-        summary_result = "FAIL" if self.failed else "PASS"
+        # 汇总状态判断逻辑：如果有任何失败或缺失关键步骤，则为ERROR
+        has_failures = self.failed or missing_critical_steps
+        summary_result = "ERROR" if has_failures else "SUCCESS"
         print(f"代码生成工作流执行反馈汇总状态 SUMMARY_RESULT={summary_result}")
     
     def log_sql_transaction(self, transaction_details: list):
@@ -196,7 +216,7 @@ class CodeGenLogger:
                     "success_count": success_count,
                     "failed_count": failed_count,
                     "skipped_count": skipped_count,
-                    "overall_result": "FAIL" if self.failed else "PASS",
+                    "overall_result": "ERROR" if self.failed else "SUCCESS",
                     "success_rate": f"{(success_count / self.step_counter * 100):.1f}%" if self.step_counter > 0 else "0.0%"
                 },
                 
@@ -457,9 +477,11 @@ class MasterSubTableSentinel:
     def _read_entity_from_subtable_json(self, table_name: str) -> str:
         """从子表JSON配置文件读取business_entity"""
         try:
-            # 查找匹配的子表JSON文件: *_*_*_20250908152851.json
+            # 查找匹配的子表JSON文件: 使用当日日期
             import glob
-            pattern = "*_*_*_20250908152851.json"
+            from datetime import datetime
+            today = datetime.now().strftime("%Y%m%d")
+            pattern = f"*{today}*.json"
             matching_files = glob.glob(pattern)
             
             for json_file in matching_files:
@@ -688,16 +710,22 @@ class JeecgBootAPIManager:
         
         return False
     
-    def create_form(self, config_data: Dict) -> Optional[str]:
-        """创建在线表单"""
+    def create_form(self, config_data: Dict) -> tuple[Optional[str], bool]:
+        """创建在线表单
+        
+        Returns:
+            tuple[Optional[str], bool]: (form_id, is_duplicate)
+            - form_id: 表单ID，如果失败则为None
+            - is_duplicate: 是否为重复表单
+        """
         url = self.get_config_value('api', 'form_addall_url')
         if not url:
             print("❌ 缺少表单创建API配置")
-            return None
+            return None, False
         
         if not self.token:
             print("❌ 未登录，无法创建表单")
-            return None
+            return None, False
         
         try:
             headers = {'X-Access-Token': self.token}
@@ -713,10 +741,10 @@ class JeecgBootAPIManager:
                     form_id = self.get_form_id(table_name)
                     if form_id:
                         print(f"✅ 获取到表单ID: {form_id}")
-                        return form_id
+                        return form_id, False  # 新创建的表单，不是重复
                     else:
                         print(f"❌ 无法获取表单ID: {table_name}")
-                        return None
+                        return None, False
                 else:
                     error_message = result.get('message', '')
                     if '数据库表' in error_message and '已存在' in error_message:
@@ -726,13 +754,13 @@ class JeecgBootAPIManager:
                         time.sleep(1)
                         form_id = self.get_form_id(table_name)
                         if form_id:
-                            print(f"✅ 找到已存在表单ID: {form_id}")
-                            return form_id
+                            print(f"⚠️ 发现重复表单ID: {form_id}")
+                            return form_id, True  # 返回重复标志
                         else:
                             print(f"❌ 无法找到已存在表单: {table_name}")
                             print(f"🔧 检测到数据不一致：数据库表存在但表单元数据缺失")
                             print(f"💡 建议手动删除数据库表: DROP TABLE {table_name}")
-                            return None
+                            return None, False
                     else:
                         print(f"❌ 表单创建失败: {error_message}")
             else:
@@ -742,7 +770,7 @@ class JeecgBootAPIManager:
             import traceback
             traceback.print_exc()
         
-        return None
+        return None, False
     
     def get_form_id(self, table_name: str) -> Optional[str]:
         """获取表单ID"""
@@ -979,30 +1007,43 @@ class JeecgBootAPIManager:
         return fixed_sub_list
 
     def _get_correct_entity_name_from_subtable(self, table_name: str) -> str:
-        """获取子表的正确实体名"""
+        """从哨兵文件获取子表的正确实体名"""
         try:
-            # 查找匹配的子表JSON文件
+            # 🔧 修复：直接从哨兵文件读取entity_name，不再依赖临时JSON文件
             import glob
-            pattern = "*.json"
-            matching_files = glob.glob(pattern)
+            sentinel_files = glob.glob("*sentinel*.json")
             
-            for json_file in matching_files:
-                if 'sentinel' in json_file or 'execution' in json_file:
-                    continue
+            for sentinel_file in sentinel_files:
                 try:
-                    with open(json_file, 'r', encoding='utf-8') as f:
-                        config = json.load(f)
-                        config_table_name = config.get('head', {}).get('tableName', '')
+                    with open(sentinel_file, 'r', encoding='utf-8') as f:
+                        sentinel_data = json.load(f)
+                        tables = sentinel_data.get('tables', {})
                         
-                        # 如果表名匹配，返回business_entity
-                        if config_table_name == table_name:
-                            business_entity = config.get('head', {}).get('business_entity', '')
-                            if business_entity:
-                                return business_entity
-                except (json.JSONDecodeError, FileNotFoundError):
+                        # 查找匹配的表名
+                        if table_name in tables:
+                            entity_name = tables[table_name].get('entity_name', '')
+                            if entity_name:
+                                print(f"✅ 从哨兵文件获取实体名: {table_name} -> {entity_name}")
+                                return entity_name
+                            
+                except (json.JSONDecodeError, FileNotFoundError, KeyError):
                     continue
+                    
         except Exception as e:
-            print(f"⚠️ 读取子表JSON失败: {e}")
+            print(f"⚠️ 读取哨兵文件失败: {e}")
+        
+        # 🔧 兜底机制：如果哨兵文件读取失败，尝试从表名推理
+        try:
+            parts = table_name.split('_')
+            if len(parts) >= 3:
+                # 从表名推理实体名：alumni_members_membercareer -> MemberCareer
+                entity_part = parts[2]  # membercareer
+                # 转换为PascalCase: membercareer -> MemberCareer
+                entity_name = ''.join(word.capitalize() for word in entity_part.split())
+                print(f"⚠️ 兜底机制：从表名推理实体名: {table_name} -> {entity_name}")
+                return entity_name
+        except Exception as e:
+            print(f"⚠️ 实体名推理失败: {e}")
         
         return ""
 
@@ -1971,11 +2012,17 @@ class UnifiedTableExecutor:
         
         # 2. 创建表单
         self.logger.log_step("创建表单", "IN_PROGRESS", "调用addAll API创建在线表单")
-        form_id = self.api_manager.create_form(config_data)
+        form_id, is_duplicate = self.api_manager.create_form(config_data)
         if not form_id:
             self.logger.log_step("创建表单", "FAILED", "表单创建失败")
             return False
-        self.logger.log_step("创建表单", "SUCCESS", f"表单创建成功，ID: {form_id}")
+        
+        if is_duplicate:
+            # 检测到重复表单，记录为失败
+            self.logger.log_step("创建表单", "FAILED", f"表单重复，检测到已存在表单: {form_id}")
+            return False
+        else:
+            self.logger.log_step("创建表单", "SUCCESS", f"表单创建成功，ID: {form_id}")
         
         # 3. 查询验证
         table_name = config_data.get('head', {}).get('tableName', '')

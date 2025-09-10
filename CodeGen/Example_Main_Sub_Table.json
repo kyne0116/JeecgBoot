@@ -380,13 +380,13 @@
   "subList": [
     {
       "tableName": "education_student_parentinfo",
-      "entityName": "StudentInfoParentInfo",
+      "entityName": "ParentInfo",
       "ftlDescription": "家长信息表",
       "id": "row_1020"
     },
     {
       "tableName": "education_student_classmateinfo", 
-      "entityName": "StudentInfoClassmateInfo",
+      "entityName": "ClassmateInfo",
       "ftlDescription": "同学信息表",
       "id": "row_1021"
     }
