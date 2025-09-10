@@ -290,6 +290,10 @@ logging:
   level:
     org.flywaydb: debug
     org.jeecg.modules.system.mapper: info
+
+#logback配置
+logback:
+  groupId: org.jeecg
 #cas单点登录
 cas:
   prefixUrl: http://cas.example.org:8443/cas

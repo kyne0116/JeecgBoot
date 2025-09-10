@@ -8,19 +8,170 @@
 
 | 定制时间   | 功能名称                          | 主要文件                                                                                                                                                   | 功能描述                                                                             | 状态 |
 | ---------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ---- |
+| 2025-09-08 | 统一SSO单点登录解决方案           | SsoLoginController.java<br/>GlobalSSOManager.ts<br/>ssoGuard.ts<br/>README.md<br/>main.ts<br/>user.ts | 企业级SSO解决方案，支持webauth(后端主导)和apiauth(前端主导)双模式，统一sso_data参数体系 | ✅   |
 | 2025-08-28 | 增强型 Redis 工具类               | SimbestRedisUtil.java                                                                                                                                      | 支持中文 Key 自动编码、应用前缀管理、分布式锁、双向转换的 Redis 工具类               | ✅   |
 | 2025-08-27 | 用户身份信息控制台显示功能        | user.ts                                                                                                                                                    | 登录成功后在浏览器控制台显示用户完整身份信息，包含用户基本信息、部门信息、权限代码等 | ✅   |
 | 2025-08-26 | OceanBase Oracle 兼容模式分页优化 | CustomPaginationInnerInterceptor.java<br/>MybatisPlusSaasConfig.java<br/>GlobalPaginationConfig.java                                                       | 解决 OceanBase Oracle 兼容模式下分页 SQL 语法不兼容问题（三层防护方案）              | ⚡   |
 | 2025-08-15 | MyBatis-Plus 升级及数据库优化     | pom.xml<br/>SysDepart.java<br/>SysUser.java<br/>SysDepartController.java                                                                                   | MyBatis-Plus 版本升级，添加数据库唯一索引，优化查询性能                              | ✅   |
 | 2025-08-14 | UUMS 组织用户同步功能             | SimbestAppToken.java<br/>UumsChangeOrgLogController.java<br/>UumsChangeUserLogController.java<br/>SyncUumsOrgScheduler.java<br/>SyncUumsUserScheduler.java | 第三方应用 Token 管理、组织用户变更日志记录、定时同步功能                            | ✅   |
 | 2025-08-14 | 启动配置信息打印功能              | JeecgSystemApplication.java                                                                                                                                | 应用启动时打印 Profile、数据库、Redis 等关键配置信息                                 | ✅   |
-| 2025-08-13 | 单点登录(SSO)功能                 | SsoLoginController.java<br/>useSso.ts<br/>permissionGuard.ts                                                                                               | 支持第三方系统通过用户名参数实现免密单点登录                                         | ✅   |
 | 2025-08-02 | 系统心跳检测功能                  | SysHealthController.java                                                                                                                                   | 提供系统健康状态检查接口，支持 HEAD 请求心跳检测                                     | ✅   |
 | 2025-07-31 | 日志生成规则定制                  | logback-spring.xml                                                                                                                                         | 按端口和日志级别分离的自定义日志配置                                                 | ✅   |
 
 ## 二、功能详细说明（按时间倒序）
 
 > 💡 **新增功能请在此部分顶部直接插入新的章节**
+
+### 2025-09-08：统一SSO单点登录解决方案
+
+**功能概述：** 企业级SSO单点登录解决方案，提供全面的用户身份集成能力。支持webauth(后端主导)和apiauth(前端主导)双模式，通过统一的参数体系和智能状态管理，实现高效、安全的用户身份认证。
+
+**需求背景：** 企业级应用集成场景中需要支持多种SSO接入方式，同时解决参数体系不统一、重复登录检测、会话管理等核心问题。要求实现开发阶段的纯净解决方案，不考虑向后兼容，完全统一参数体系。
+
+**技术创新：** 
+- **统一参数体系**：前后端完全统一使用sso_data参数，消除参数歧义
+- **全局状态管理**：单例模式集中管理SSO状态和用户会话
+- **智能防重复**：内置重复检测机制，确保系统稳定性
+- **无缝集成**：用户可从任意页面直接访问，提升使用便利性
+
+**涉及文件：**
+
+#### 后端文件
+
+**1.1 SsoLoginController.java（完全重构）**
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-biz/src/main/java/org/jeecg/modules/system/controller/SsoLoginController.java`
+- **功能摘要：** 统一SSO控制器，采用纯粹sso_data参数体系，支持双模式SSO登录
+- **核心特性：**
+  - **统一参数接收**：webauth和apiauth接口统一使用sso_data参数
+  - **统一URL构建**：生成标准格式的SSO重定向URL（sso=true&sso_mode=webauth&sso_data=token）
+  - **错误处理统一**：统一的错误URL格式和异常处理机制
+  - **向后兼容清理**：完全移除username参数支持，确保参数体系纯净
+
+**核心方法：**
+- `webauth(@RequestParam("sso_data"))` - webauth模式，纯sso_data参数
+- `apiauth(@RequestParam("sso_data"))` - apiauth模式，纯sso_data参数  
+- `buildUnifiedRedirectUrl()` - 构建统一格式重定向URL
+- `buildUnifiedErrorUrl()` - 构建统一格式错误URL
+
+#### 前端文件
+
+**1.2 GlobalSSOManager.ts（新增核心）**
+- **路径：** `jeecgboot-vue3/src/utils/sso/GlobalSSOManager.ts`
+- **功能摘要：** 全局SSO管理器，核心单例类，统一处理所有SSO模式和状态管理
+- **核心特性：**
+  - **单例模式**：全局统一SSO状态管理，避免数据不一致
+  - **智能参数检测**：自动检测和验证统一SSO参数格式
+  - **防重复处理**：3秒防重复间隔，避免重复执行SSO逻辑
+  - **模式分发**：根据sso_mode自动分发到对应处理器（webauth/apiauth）
+  - **会话管理**：生成和管理SSO会话ID，支持用户切换检测
+  - **URL清理**：登录完成后自动清理SSO参数
+
+**主要方法：**
+- `processSSOLogin()` - 统一SSO处理入口
+- `handleWebauth()` - webauth模式处理器  
+- `handleApiauth()` - apiauth模式处理器
+- `detectSSOParams()` - 智能SSO参数检测
+- `clearSession()` - SSO会话清理
+
+**1.3 ssoGuard.ts（重构）**
+- **路径：** `jeecgboot-vue3/src/router/guard/ssoGuard.ts`
+- **功能摘要：** SSO路由守卫，使用GlobalSSOManager统一处理SSO逻辑
+- **核心特性：**
+  - **全局监控**：对所有路由自动检测SSO参数
+  - **统一处理**：调用GlobalSSOManager.processSSOLogin()统一处理
+  - **异常容错**：SSO失败时不阻塞用户访问
+  - **智能跳过**：自动跳过登录页、API路径等特殊路由
+
+**1.4 README.md（新增文档）**
+- **路径：** `jeecgboot-vue3/src/utils/sso/README.md`
+- **功能摘要：** 完整的SSO技术文档，包含参数规范、使用方式、测试验证
+- **核心内容：**
+  - 统一参数体系定义和使用规则
+  - webauth/apiauth双模式详细说明
+  - sso_redirect参数使用规则（前端主导不需要，后端主导必需）
+  - 完整的使用示例和测试方法
+
+#### 集成文件
+
+**1.5 main.ts（修改）**
+- **路径：** `jeecgboot-vue3/src/main.ts`
+- **功能摘要：** 应用启动文件，集成GlobalSSOManager初始化
+- **核心变更：** 
+  - 移除旧的useSso().ssoLogin()调用
+  - 添加`await globalSSOManager.initialize()`初始化调用
+  - 确保SSO管理器在应用启动时正确初始化
+
+**1.6 user.ts（修改）**
+- **路径：** `jeecgboot-vue3/src/store/modules/user.ts`
+- **功能摘要：** 用户状态管理模块，集成SSO会话管理
+- **核心改进：**
+  - 集成globalSSOManager会话清理
+  - logout方法中添加`globalSSOManager.clearSession()`
+  - 优化用户状态和SSO状态的协调管理
+
+**技术架构：**
+
+**统一参数体系：**
+
+所有SSO操作统一使用以下参数格式：
+```bash
+?sso=true&sso_mode={mode}&sso_data={data}&sso_redirect={path}
+```
+
+| 参数 | 必需性 | 说明 | 使用场景 |
+|------|--------|------|----------|
+| `sso=true` | 必需 | SSO标识 | 所有模式 |
+| `sso_mode` | 必需 | SSO模式：webauth、apiauth | 所有模式 |
+| `sso_data` | 必需 | SSO数据：token、加密用户名 | 所有模式 |
+| `sso_redirect` | 可选 | 目标路径 | 仅webauth模式使用 |
+
+**双模式技术对比：**
+
+| 特性 | webauth模式（后端主导） | apiauth模式（前端主导） |
+|------|----------------------|----------------------|
+| **发起方式** | 第三方系统调用后端接口 | 用户直接访问前端页面 |
+| **参数需求** | 需要redirectUrl参数 | 无需sso_redirect参数 |
+| **处理流程** | 后端重定向→前端自动处理 | 前端检测→后端API→状态设置 |
+| **适用场景** | 传统系统快速集成 | SPA应用精确控制 |
+| **前端工作** | 零改造，路由守卫自动处理 | 路由守卫自动处理 |
+
+**核心技术流程：**
+
+**webauth模式：**
+```
+第三方系统调用 → /sys/sso/webauth?sso_data=encrypted&redirectUrl=frontendUrl
+     ↓
+后端验证用户 → 生成JWT token → 构建统一格式URL
+     ↓  
+重定向到前端 → ?sso=true&sso_mode=webauth&sso_data=jwt_token
+     ↓
+前端路由守卫 → GlobalSSOManager → 自动登录完成
+```
+
+**apiauth模式：**
+```
+用户直接访问 → frontendUrl?sso=true&sso_mode=apiauth&sso_data=encrypted
+     ↓
+前端路由守卫 → GlobalSSOManager → 调用/sys/sso/apiauth
+     ↓
+后端验证用户 → 返回用户信息 → 前端设置登录状态
+```
+
+**架构优势：**
+
+- **参数统一**：前后端完全统一的sso_data参数体系，消除歧义
+- **状态集中**：GlobalSSOManager单例模式，全局统一状态管理  
+- **智能处理**：自动检测SSO参数，智能防重复，无缝用户体验
+- **会话管理**：完整的SSO会话生命周期管理，支持用户切换
+- **零提示登录**：登录成功后无任何弹窗提示，直接进入页面
+- **调试友好**：详细的控制台日志，便于开发调试和问题排查
+
+**技术创新点：**
+
+- **纯净参数体系**：开发阶段不考虑向后兼容，完全统一使用sso_data
+- **单例架构**：避免多实例导致的状态混乱和重复处理
+- **智能检测**：3秒防重复间隔，用户切换检测，URL参数自动清理
+- **模式分发**：根据sso_mode自动路由到对应处理器，代码高内聚
 
 ### 2025-08-28：增强型 Redis 工具类
 
@@ -473,58 +624,6 @@ public class GlobalPaginationConfig implements BeanPostProcessor {
 - **CodeTemplateInitListener：** 负责代码生成器模板初始化
 - **区别定位：** 启动类负责配置信息展示，监听器负责具体业务初始化
 
-### 2025-08-13：单点登录(SSO)功能
-
-**功能概述：** 实现第三方系统通过用户名参数免密登录当前系统的单点登录功能。
-
-**涉及文件：**
-
-#### 后端文件
-
-**1.1 SsoLoginController.java**
-
-- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-biz/src/main/java/org/jeecg/modules/system/controller/SsoLoginController.java`
-- **功能摘要：** SSO 单点登录控制器，提供单一接口接受用户名参数，验证用户有效性，生成 JWT token，并重定向到前端系统
-- **核心方法：**
-  - `ssoLogin()` - 处理 SSO 登录请求
-  - `performSsoLogin()` - 执行 SSO 登录核心逻辑
-  - `getFrontendUrl()` - 获取前端系统 URL
-
-**1.2 SsoLoginModel.java**
-
-- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-biz/src/main/java/org/jeecg/modules/system/model/SsoLoginModel.java`
-- **功能摘要：** SSO 登录请求模型，定义单点登录所需的参数结构
-- **主要属性：** username（用户名）
-
-**1.3 ShiroConfig.java（修改）**
-
-- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/config/shiro/ShiroConfig.java`
-- **功能摘要：** 在 Shiro 安全配置中添加 SSO 接口白名单，允许匿名访问
-- **修改内容：** 添加 `/sys/sso/**` 路径到匿名访问列表
-
-#### 前端文件
-
-**1.4 useSso.ts（修改）**
-
-- **路径：** `jeecgboot-vue3/src/hooks/web/useSso.ts`
-- **功能摘要：** SSO 登录钩子函数，处理 URL 中的 token 参数，实现自动登录
-- **核心方法：**
-  - `ssoLogin()` - 检测 URL 中的 token 参数并设置到用户存储
-- **修改内容：** 增强 token 参数检测和处理逻辑
-
-**1.5 permissionGuard.ts（修改）**
-
-- **路径：** `jeecgboot-vue3/src/router/guard/permissionGuard.ts`
-- **功能摘要：** 权限路由守卫，负责路由权限验证和动态路由构建
-- **修改内容：**
-  - 移除重复的 token 处理逻辑，确保 SSO 登录流程的正确性
-  - 增加 error 参数检查，SSO 登录失败时清除缓存 token
-
-**1.6 user.ts（修改）**
-
-- **路径：** `jeecgboot-vue3/src/store/modules/user.ts`
-- **功能摘要：** 用户状态管理，处理用户信息和 token
-- **修改内容：** 优化 setToken 方法，token 为空时自动清除相关用户信息和缓存
 
 ### 2025-08-02：系统心跳检测功能
 
@@ -750,11 +849,135 @@ UUMS地址: http://10.92.82.161:8088/uums
 功能：便于开发人员快速确认系统配置状态
 ```
 
-### 单点登录(SSO)功能
+### 统一SSO单点登录解决方案
 
+#### 统一参数格式
+
+所有SSO操作统一使用标准参数格式：
+```bash
+?sso=true&sso_mode={mode}&sso_data={encrypted_data}&sso_redirect={path}
 ```
-访问URL：http://localhost:54009/dictd/sys/sso/login?username=19DCD18830DCF45F947157A66D64C155CBA7DC8BD8588AA4F76790A1690B2A162B33FA8867E852E25858102DE36CE16BAFE71B58CAD768EE6F29EA5B11F71664
-功能：验证用户并自动登录到系统首页
+
+**参数说明：**
+- `sso=true` - SSO标识（必需）
+- `sso_mode` - SSO模式：webauth、apiauth（必需）
+- `sso_data` - 加密数据：用户名或token（必需）
+- `sso_redirect` - 目标路径（webauth模式使用）
+
+#### webauth模式（后端主导）- 第三方系统集成
+
+```bash
+# 第三方系统调用后端接口（实际发起地址）
+http://localhost:54009/dictd/sys/sso/webauth?sso_data={加密用户名}&redirectUrl=http://localhost:3100/dashboard
+
+# 后端自动重定向到前端（用户浏览器跳转到此地址）
+http://localhost:3100/dashboard?sso=true&sso_mode=webauth&sso_data={jwt_token}
+
+# 前端路由守卫自动处理，用户无感知登录完成
+
+特点：
+- ✅ 零前端改造工作量，路由守卫自动处理
+- ✅ 第三方系统快速集成，无需前端开发
+- ✅ 支持跳转到任意前端页面
+- ✅ 统一参数体系，消除歧义
+
+使用场景：
+- 门户系统中的链接跳转
+- 传统网站页面跳转集成  
+- 第三方系统快速接入
+- OA系统、门户平台集成
+```
+
+#### apiauth模式（前端主导）- 直接页面访问
+
+```bash
+# 用户直接访问前端页面（推荐方式）
+http://localhost:3100/dashboard/analysis?sso=true&sso_mode=apiauth&sso_data={加密用户名}
+http://localhost:3100/chart-design?sso=true&sso_mode=apiauth&sso_data={加密用户名}
+http://localhost:3100/data-analysis?sso=true&sso_mode=apiauth&sso_data={加密用户名}
+
+# 前端路由守卫自动检测SSO参数
+# 自动调用后端API获取用户信息
+# 设置登录状态，用户停留在当前页面
+
+特点：
+- ✅ 用户体验最佳，停留在目标页面
+- ✅ 无需sso_redirect参数，简化集成
+- ✅ 路由守卫全局自动处理，无需手动集成
+- ✅ 支持任意页面直接访问
+- ✅ 零弹窗提示，无感知登录
+
+使用场景：
+- 单页应用（SPA）直接访问
+- 书签收藏的特定页面
+- 邮件链接、消息通知链接
+- 移动端应用内嵌页面
+```
+
+#### 系统架构优势
+
+```bash
+全局统一处理：
+- GlobalSSOManager单例模式，统一状态管理
+- ssoGuard路由守卫全局监控，自动处理所有页面
+- 无需手动集成组件，开箱即用
+
+智能特性：
+- 3秒防重复间隔，避免重复登录
+- 自动用户切换检测
+- URL参数自动清理
+- SSO会话生命周期管理
+
+调试友好：
+- 详细的控制台日志输出
+- 分阶段状态展示
+- 错误信息清晰可读
+- 支持开发模式调试
+
+技术特点：
+- 纯净参数体系：统一使用sso_data参数
+- 类型安全：完整的TypeScript类型定义
+- 异常容错：SSO失败不影响正常页面访问
+- 性能优化：仅在需要时执行SSO逻辑
+```
+
+#### 快速测试验证
+
+```bash
+# 测试webauth模式（第三方系统调用）
+http://localhost:54009/dictd/sys/sso/webauth?sso_data={加密用户名}&redirectUrl=http://localhost:3100/dashboard
+
+# 测试apiauth模式（直接页面访问）
+http://localhost:3100/dashboard/analysis?sso=true&sso_mode=apiauth&sso_data={加密用户名}
+
+# 测试后端接口
+curl "http://localhost:54009/dictd/sys/sso/apiauth?sso_data={加密用户名}"
+
+# 预期结果：
+1. 无任何弹窗或提示信息
+2. 用户自动登录成功
+3. 停留在目标页面
+4. 控制台显示SSO处理日志
+5. URL中SSO参数自动清理
+```
+
+#### 参数使用规则
+
+```bash
+前端主导（apiauth）：
+- 不需要sso_redirect参数
+- 登录后停留在当前访问页面
+- 适用于用户直接访问场景
+
+后端主导（webauth）：  
+- 必须提供redirectUrl参数
+- 后端生成包含sso_redirect的统一格式URL
+- 适用于第三方系统调用场景
+
+统一要求：
+- 所有模式都必须提供sso、sso_mode、sso_data参数
+- sso_data统一承载加密数据，无username参数
+- 前后端完全统一的参数体系
 ```
 
 ### 系统心跳检测功能
