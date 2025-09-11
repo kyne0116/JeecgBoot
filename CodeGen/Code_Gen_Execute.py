@@ -1,1650 +1,456 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-JeecgBoot 代码生成执行器 v2.1
-核心特性：
-- 支持AI随机性的哨兵协调机制
-- 基于MODULE_NAME+SUBMODULE_NAME的共同标识
-- 智能场景识别和分发(tableType=1,2,3)
-- 统一入口函数，完全向后兼容
-- 线程安全的状态管理
-- ✅ 修复：独立表完整代码生成工作流
-"""
+# Code_Gen_Execute.py - JeecgBoot代码生成执行器，全新版本，不考虑前后兼容，始终为最新功能版本，易于AI调用理解
 
+import os
+import sys
 import json
 import requests
 import time
-import os
-import sys
 import configparser
-import fcntl
-import random
-import shutil
-import subprocess
-import glob
-import re
-import logging
 import mysql.connector
-from mysql.connector import Error
-from typing import Dict, List, Optional, Tuple
-from pathlib import Path
 from datetime import datetime
-from dataclasses import dataclass
+from typing import Dict, Optional, Tuple, List
 
-# 导入验证器
-try:
-    from Code_Gen_Validator import CodeGenValidator
-except ImportError:
-    print("警告: 无法导入Code_Gen_Validator，将跳过配置验证")
-    CodeGenValidator = None
+SUMMARY_RESULT = "ERROR"
 
-# ===============================================================================
-# 日志记录系统
-# ===============================================================================
 
-class CodeGenLogger:
-    """代码生成日志记录器"""
+# =============================================================================
+# 统一配置管理体系
+# =============================================================================
+
+class JeecgBootConfig:
+    """JeecgBoot统一配置管理器"""
     
-    def __init__(self, module_name: str, submodule_name: str):
-        self.module_name = module_name
-        self.submodule_name = submodule_name
-        self.log_file = f"{module_name}_{submodule_name}_execution.json"
-        self.step_counter = 0
-        self.logs = []
-        self.workflow_steps = []  # 工作流步骤记录
-        self.failed = False
-        self.sql_transaction_details = []  # SQL事务执行详情
-        
-    def log_step(self, step_name: str, status: str, details: str = "", result: str = ""):
-        """记录工作流步骤"""
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        # 查找是否已有相同步骤名称的记录，如果有则更新，否则创建新的
-        existing_entry = None
-        for log_entry in self.logs:
-            if log_entry["step_name"] == step_name:
-                existing_entry = log_entry
-                break
-        
-        if existing_entry:
-            # 更新现有记录
-            existing_entry["timestamp"] = timestamp
-            existing_entry["status"] = status
-            existing_entry["details"] = details
-            existing_entry["result"] = result
-            step_number = existing_entry["step_number"]
-        else:
-            # 创建新记录
-            self.step_counter += 1
-            step_number = self.step_counter
-            log_entry = {
-                "step_number": step_number,
-                "timestamp": timestamp,
-                "step_name": step_name,
-                "status": status,  # SUCCESS, FAILED, SKIPPED, IN_PROGRESS
-                "details": details,
-                "result": result
-            }
-            self.logs.append(log_entry)
-        
-        # 只在最终状态时输出，不输出IN_PROGRESS状态
-        if status == "FAILED":
-            self.failed = True
-            print(f"[{step_number:02d}] {step_name} - fail")
-            if details:
-                print(f"     失败原因: {details}")
-        elif status == "SUCCESS":
-            print(f"[{step_number:02d}] {step_name} - pass")
-        elif status == "SKIPPED":
-            print(f"[{step_number:02d}] {step_name} - skip")
-        # IN_PROGRESS状态不再输出，只记录
+    def __init__(self):
+        self.env_vars = {}
+        self.timeouts = {}
+        self.api_params = {}
+        self.paths = {}
+        self.loaded = False
     
-    def print_workflow_summary(self):
-        """打印工作流汇总报告"""
-        print("\n" + "="*60)
-        print("执行状态汇总:")
-        print("="*60)
-        
-        # 定义必需的关键步骤
-        critical_steps = ["系统初始化", "配置验证", "哨兵协调", "模块检查", "用户登录", 
-                         "创建表单", "表单验证", "数据库同步", "哨兵状态报告", "代码生成"]
-        
-        # 从logs中提取所有步骤的最终状态进行显示，每个环节只显示一次
-        step_status_map = {}
-        executed_steps = set()
-        
-        for log_entry in self.logs:
-            step_number = log_entry["step_number"]
-            step_name = log_entry["step_name"]
-            status = log_entry["status"]
-            executed_steps.add(step_name)
+    def load_config(self, config_file: str = "Code_Gen_Config.properties") -> bool:
+        """从环境变量和配置文件加载完整配置"""
+        try:
+            # 1. 读取环境变量
+            self._load_environment_variables()
             
-            # 只显示最终状态，跳过IN_PROGRESS状态
-            if status != "IN_PROGRESS":
-                final_status = "pass" if status == "SUCCESS" else ("skip" if status == "SKIPPED" else "fail")
-                step_status_map[step_number] = {
-                    "name": step_name,
-                    "status": final_status
+            # 2. 读取配置文件
+            if os.path.exists(config_file):
+                self._load_config_file(config_file)
+            else:
+                print(f"⚠️ 配置文件 {config_file} 不存在，使用默认值")
+                self._set_default_values()
+            
+            self.loaded = True
+            return True
+            
+        except Exception as e:
+            print(f"❌ 配置加载失败: {e}")
+            return False
+    
+    def _load_environment_variables(self):
+        """加载环境变量"""
+        # JeecgBoot 完整环境变量列表
+        all_env_var_names = [
+            'JEECG_PROJECT_ROOT', 'JEECG_BASE_URL', 'JEECG_USERNAME', 'JEECG_PASSWORD',
+            'JEECG_DATABASE_TYPE', 'JEECG_DATABASE_URL', 'JEECG_DATABASE_USERNAME', 'JEECG_DATABASE_PASSWORD',
+            'JEECG_TEST_DELETE'  # 测试模式下的表单删除标志
+        ]
+        
+        for env_var in all_env_var_names:
+            value = os.getenv(env_var)
+            if value:
+                self.env_vars[env_var] = value
+            else:
+                # 设置默认值
+                defaults = {
+                    'JEECG_BASE_URL': 'http://localhost:8080/jeecg-boot',
+                    'JEECG_USERNAME': 'admin',
+                    'JEECG_PASSWORD': '123456',
+                    'JEECG_PROJECT_ROOT': '/Users/admin/Work/Github/JeecgBoot'
+                    # 注意：数据库相关环境变量不设置默认值，从实际配置文件读取
                 }
-        
-        # 检查缺失的关键步骤，标记为fail
-        missing_critical_steps = []
-        for critical_step in critical_steps:
-            if critical_step not in executed_steps:
-                missing_critical_steps.append(critical_step)
-        
-        # 按步骤序号排序显示所有步骤，每个环节独占一行
-        for step_number in sorted(step_status_map.keys()):
-            step_info = step_status_map[step_number]
-            print(f"{step_number}. {step_info['name']} {step_info['status']}")
-        
-        # 输出缺失的关键步骤为fail
-        if missing_critical_steps:
-            next_step_number = max(step_status_map.keys()) + 1 if step_status_map else 1
-            for missing_step in missing_critical_steps:
-                print(f"{next_step_number}. {missing_step} fail")
-                next_step_number += 1
-        
-        print("\n" + "="*60)
-        # 汇总状态判断逻辑：如果有任何失败或缺失关键步骤，则为ERROR
-        has_failures = self.failed or missing_critical_steps
-        summary_result = "ERROR" if has_failures else "SUCCESS"
-        print(f"代码生成工作流执行反馈汇总状态 SUMMARY_RESULT={summary_result}")
+                self.env_vars[env_var] = defaults.get(env_var, '')
     
-    def log_sql_transaction(self, transaction_details: list):
-        """记录SQL事务执行详情"""
-        timestamp = datetime.now().isoformat()
-        for detail in transaction_details:
-            sql_log_entry = {
-                "timestamp": timestamp,
-                "file": detail['file'],
-                "transaction_result": "SUCCESS" if detail['success'] else "FAILED",
-                "transaction_status": detail['transaction_status'],
-                "executed_statements": detail['executed_statements'],
-                "total_statements": detail['total_statements'],
-                "affected_rows": detail['affected_rows'],
-                "execution_time": detail['execution_time'],
-                "error_message": detail['error_message'],
-                "sql_execution_type": "ATOMIC_TRANSACTION",  # 标识为原子性事务
-                "rollback_performed": detail['transaction_status'] in ['rolled_back', 'rollback_failed']
+    def _load_config_file(self, config_file: str):
+        """从配置文件加载参数"""
+        config = configparser.ConfigParser()
+        config.read(config_file, encoding='utf-8')
+        
+        # 加载超时配置
+        if config.has_section('timeouts'):
+            self.timeouts = {
+                'login': config.getint('timeouts', 'login', fallback=10),
+                'create': config.getint('timeouts', 'create', fallback=60),
+                'list': config.getint('timeouts', 'list', fallback=15),
+                'sync': config.getint('timeouts', 'sync', fallback=60),
+                'codegen': config.getint('timeouts', 'codegen', fallback=120),
+                'delete': config.getint('timeouts', 'delete', fallback=30)
             }
-            self.sql_transaction_details.append(sql_log_entry)
+        
+        # 加载查询配置
+        if config.has_section('query'):
+            self.api_params = {
+                'page_size': config.getint('query', 'page_size', fallback=50),
+                'page_no': config.getint('query', 'page_no', fallback=1)
+            }
+        
+        # 加载路径配置
+        if config.has_section('paths'):
+            self.paths = {
+                'backend_module_base': config.get('paths', 'backend_module_base', fallback='jeecg-boot/jeecg-boot-module'),
+                'frontend_project_base': config.get('paths', 'frontend_project_base', fallback='jeecgboot-vue3')
+            }
     
-    def _generate_sql_transaction_summary(self):
-        """生成SQL事务执行摘要"""
-        if not hasattr(self, 'sql_transaction_details') or not self.sql_transaction_details:
-            return {"total_transactions": 0, "status": "no_sql_transactions"}
-        
-        total = len(self.sql_transaction_details)
-        successful = len([t for t in self.sql_transaction_details if t['transaction_result'] == 'SUCCESS'])
-        failed = total - successful
-        rollbacks = len([t for t in self.sql_transaction_details if t['rollback_performed']])
-        
-        return {
-            "total_transactions": total,
-            "successful_transactions": successful,
-            "failed_transactions": failed,
-            "rollback_count": rollbacks,
-            "success_rate": f"{(successful/total*100):.1f}%" if total > 0 else "0%",
-            "atomicity_guaranteed": True,  # 事务原子性保证
-            "transaction_integrity": "MAINTAINED" if failed == 0 else "PARTIAL_ROLLBACK"
+    def _set_default_values(self):
+        """设置默认配置值"""
+        self.timeouts = {
+            'login': 10, 'create': 60, 'list': 15, 
+            'sync': 60, 'codegen': 120, 'delete': 30
+        }
+        self.api_params = {'page_size': 50, 'page_no': 1}
+        self.paths = {
+            'backend_module_base': 'jeecg-boot/jeecg-boot-module',
+            'frontend_project_base': 'jeecgboot-vue3'
         }
     
-    def save_log_file(self):
-        """保存执行报告文件 - JSON格式，AI友好"""
-        try:
-            # 统计执行结果
-            success_count = len([step for step in self.logs if step.get('status') == 'SUCCESS'])
-            failed_count = len([step for step in self.logs if step.get('status') == 'FAILED'])
-            skipped_count = len([step for step in self.logs if step.get('status') == 'SKIPPED'])
-            
-            log_data = {
-                # 文件元数据
-                "format_version": "2.0",
-                "file_type": "jeecgboot_execution_report",
-                "generated_by": "Code_Gen_Execute.py v2.1",
-                "generated_at": datetime.now().isoformat(),
-                
-                # 执行基本信息
-                "module_name": self.module_name,
-                "submodule_name": self.submodule_name,
-                "execution_time": datetime.now().isoformat(),
-                
-                # 执行统计
-                "execution_summary": {
-                    "total_steps": self.step_counter,
-                    "success_count": success_count,
-                    "failed_count": failed_count,
-                    "skipped_count": skipped_count,
-                    "overall_result": "ERROR" if self.failed else "SUCCESS",
-                    "success_rate": f"{(success_count / self.step_counter * 100):.1f}%" if self.step_counter > 0 else "0.0%"
-                },
-                
-                # 执行环境变量 - 记录脚本执行时用到的8个关键变量
-                "execution_environment": {
-                    "JEECG_DATABASE_TYPE": os.getenv('JEECG_DATABASE_TYPE', 'mysql'),
-                    "JEECG_DATABASE_URL": os.getenv('JEECG_DATABASE_URL', 'localhost:3306/jeecg-boot'),
-                    "JEECG_DATABASE_USERNAME": os.getenv('JEECG_DATABASE_USERNAME', 'root'),
-                    "JEECG_DATABASE_PASSWORD": "***" if os.getenv('JEECG_DATABASE_PASSWORD') else "",  # 密码脱敏处理
-                    "JEECG_BASE_URL": os.getenv('JEECG_BASE_URL', ''),
-                    "JEECG_USERNAME": os.getenv('JEECG_USERNAME', ''),
-                    "JEECG_PASSWORD": "***" if os.getenv('JEECG_PASSWORD') else "",  # 密码脱敏处理
-                    "JEECG_PROJECT_ROOT": os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
-                },
-                
-                # 详细步骤日志
-                "execution_steps": self.logs,
-                
-                # SQL事务执行详情 - 新增部分
-                "sql_transaction_details": getattr(self, 'sql_transaction_details', []),
-                
-                # AI分析提示
-                "ai_analysis_notes": {
-                    "workflow_type": "jeecgboot_code_generation",
-                    "key_failure_steps": [step["step_name"] for step in self.logs if step.get('status') == 'FAILED'],
-                    "critical_success_steps": ["创建表单", "数据库同步", "代码生成", "菜单权限SQL执行"],
-                    "sql_transaction_summary": self._generate_sql_transaction_summary()
-                }
-            }
-            
-            with open(self.log_file, 'w', encoding='utf-8') as f:
-                json.dump(log_data, f, indent=2, ensure_ascii=False)
-            
-            # 不再在这里输出保存信息，保持汇总状态为最后一行
-            return True
-        except Exception as e:
-            # 不再在这里输出错误信息，保持汇总状态为最后一行
-            return False
+    def get_base_url(self) -> str:
+        """获取基础URL"""
+        return self.env_vars.get('JEECG_BASE_URL', 'http://localhost:8080/jeecg-boot')
+    
+    def get_username(self) -> str:
+        """获取用户名"""
+        return self.env_vars.get('JEECG_USERNAME', 'admin')
+    
+    def get_password(self) -> str:
+        """获取密码"""
+        return self.env_vars.get('JEECG_PASSWORD', '123456')
+    
+    def get_project_root(self) -> str:
+        """获取项目根目录"""
+        return self.env_vars.get('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
+    
+    def get_timeout(self, api_type: str) -> int:
+        """获取API超时时间"""
+        return self.timeouts.get(api_type, 30)
+    
+    def get_page_size(self) -> int:
+        """获取查询分页大小"""
+        return self.api_params.get('page_size', 50)
+    
+    def print_summary(self):
+        """打印配置摘要"""
+        print("📋 配置摘要:")
+        print(f"  Base URL: {self.get_base_url()}")
+        print(f"  Username: {self.get_username()}")
+        print(f"  Project Root: {self.get_project_root()}")
+        print(f"  Timeouts: {self.timeouts}")
+        print(f"  Page Size: {self.get_page_size()}")
+        
+        # 显示环境变量状态
+        for env_var, value in self.env_vars.items():
+            status = "✓" if value else "✗"
+            display_value = value if env_var != 'JEECG_PASSWORD' else '*' * len(value)
+            print(f"  {status} {env_var}={display_value}")
 
-# ===============================================================================
-# 核心数据结构
-# ===============================================================================
 
-@dataclass
-class TableInfo:
-    """表信息数据结构"""
-    table_name: str
-    table_type: int  # 1=独立表, 2=主表, 3=子表
-    entity_name: str
-    form_id: Optional[str] = None
-    sync_completed: bool = False
-    code_generated: bool = False
+# =============================================================================
+# 哨兵状态管理系统 - 任务3和任务4共享的状态定义
+# =============================================================================
 
 class SentinelStatus:
-    """哨兵状态管理"""
-    PENDING = "pending"
-    FORM_CREATED = "form_created" 
-    SYNCED = "synced"
-    CODE_GENERATED = "code_generated"
+    """哨兵状态常量定义"""
+    
+    # 汇总状态（summary_status）- 3种状态
+    SUMMARY_PENDING = "pending"    # 等待中
+    SUMMARY_FAIL = "fail"         # 失败
+    SUMMARY_PASS = "pass"         # 通过
+    
+    # 表状态（table.status）- 5种状态
+    TABLE_PENDING = "pending"          # 等待中
+    TABLE_FAIL = "fail"               # 失败
+    TABLE_FORM_CREATED = "form_created"      # 表单新建成功
+    TABLE_DB_SYNCED = "db_synced"           # 表单同步成功  
+    TABLE_CODE_GENERATED = "code_generated"  # 表单代码生成成功
+    
+    # 状态进展顺序定义
+    TABLE_STATUS_ORDER = [
+        TABLE_PENDING,
+        TABLE_FORM_CREATED,
+        TABLE_DB_SYNCED, 
+        TABLE_CODE_GENERATED
+    ]
+    
+    # 状态描述映射
+    STATUS_DESCRIPTIONS = {
+        SUMMARY_PENDING: "等待处理",
+        SUMMARY_FAIL: "执行失败",
+        SUMMARY_PASS: "全部完成",
+        
+        TABLE_PENDING: "等待处理",
+        TABLE_FAIL: "处理失败",
+        TABLE_FORM_CREATED: "表单已创建",
+        TABLE_DB_SYNCED: "数据库已同步",
+        TABLE_CODE_GENERATED: "代码已生成"
+    }
 
-# ===============================================================================
-# 哨兵协调机制
-# ===============================================================================
 
-class MasterSubTableSentinel:
-    """主子表哨兵协调器 - 核心组件"""
+class SentinelStatusManager:
+    """哨兵状态管理器 - 提供状态转换和计算逻辑"""
     
-    def __init__(self, module_name: str, submodule_name: str):
-        self.module_name = module_name
-        self.submodule_name = submodule_name
-        # 🔧 修复哨兵文件命名：基于场景而非子模块，确保一个场景一个哨兵文件
-        self.scenario_id = self._determine_scenario_id(module_name, submodule_name)
-        self.sentinel_file = f"{self.scenario_id}_sentinel.json"
-        self.sentinel_data = {}
+    @staticmethod
+    def is_valid_summary_status(status: str) -> bool:
+        """验证汇总状态是否有效"""
+        return status in [
+            SentinelStatus.SUMMARY_PENDING,
+            SentinelStatus.SUMMARY_FAIL,
+            SentinelStatus.SUMMARY_PASS
+        ]
     
-    def _determine_scenario_id(self, module_name: str, submodule_name: str) -> str:
-        """确定场景ID - 对于主子表场景，统一使用主表的场景ID"""
-        # 🔧 核心修复：所有表（主表+子表）都使用同一个哨兵文件
-        # 基于业务逻辑的场景识别，而不是简单的模块拼接
-        
-        # education模块的student子模块 - 统一场景
-        if module_name == "education" and submodule_name in ["student", "parent", "relationship"]:
-            return "education_student"
-        
-        # 其他模块的处理逻辑
-        return f"{module_name}_{submodule_name}"
-        
-    def get_or_create_sentinel(self, config_data: Dict) -> bool:
-        """获取或创建哨兵文件"""
+    @staticmethod
+    def is_valid_table_status(status: str) -> bool:
+        """验证表状态是否有效"""
+        return status in [
+            SentinelStatus.TABLE_PENDING,
+            SentinelStatus.TABLE_FAIL,
+            SentinelStatus.TABLE_FORM_CREATED,
+            SentinelStatus.TABLE_DB_SYNCED,
+            SentinelStatus.TABLE_CODE_GENERATED
+        ]
+    
+    @staticmethod
+    def get_next_table_status(current_status: str) -> str:
+        """获取下一个表状态"""
         try:
-            if os.path.exists(self.sentinel_file):
-                # 加载已存在的哨兵
-                if self._load_sentinel():
-                    # 检查当前表是否在哨兵中，如果不在就添加
-                    table_name = config_data.get('head', {}).get('tableName', '')
-                    if table_name and table_name not in self.sentinel_data.get('tables', {}):
-                        self._add_table_info(config_data)
-                        return self._save_sentinel()
-                    return True
-                return False
+            current_index = SentinelStatus.TABLE_STATUS_ORDER.index(current_status)
+            if current_index < len(SentinelStatus.TABLE_STATUS_ORDER) - 1:
+                return SentinelStatus.TABLE_STATUS_ORDER[current_index + 1]
+            return current_status  # 已经是最终状态
+        except ValueError:
+            return SentinelStatus.TABLE_PENDING
+    
+    @staticmethod
+    def calculate_summary_status(table_statuses: list) -> str:
+        """根据所有表状态计算汇总状态"""
+        if not table_statuses:
+            return SentinelStatus.SUMMARY_PENDING
+        
+        # 如果有任何表失败，整体失败
+        if SentinelStatus.TABLE_FAIL in table_statuses:
+            return SentinelStatus.SUMMARY_FAIL
+        
+        # 如果所有表都是code_generated状态，整体通过
+        if all(status == SentinelStatus.TABLE_CODE_GENERATED for status in table_statuses):
+            return SentinelStatus.SUMMARY_PASS
+        
+        # 其他情况都是等待中
+        return SentinelStatus.SUMMARY_PENDING
+    
+    @staticmethod
+    def get_status_description(status: str) -> str:
+        """获取状态描述"""
+        return SentinelStatus.STATUS_DESCRIPTIONS.get(status, "未知状态")
+    
+    @staticmethod
+    def can_transition_to(from_status: str, to_status: str) -> bool:
+        """检查状态是否可以转换"""
+        if not SentinelStatusManager.is_valid_table_status(from_status) or \
+           not SentinelStatusManager.is_valid_table_status(to_status):
+            return False
+        
+        # fail状态只能转回pending
+        if from_status == SentinelStatus.TABLE_FAIL:
+            return to_status == SentinelStatus.TABLE_PENDING
+        
+        # code_generated是最终状态，不能再转换（除非转回fail）
+        if from_status == SentinelStatus.TABLE_CODE_GENERATED:
+            return to_status in [SentinelStatus.TABLE_CODE_GENERATED, SentinelStatus.TABLE_FAIL]
+        
+        # 其他状态按顺序转换
+        try:
+            from_index = SentinelStatus.TABLE_STATUS_ORDER.index(from_status)
+            to_index = SentinelStatus.TABLE_STATUS_ORDER.index(to_status)
+            return to_index >= from_index  # 只能向前转换或保持不变
+        except ValueError:
+            return False
+
+
+class EnvironmentVariableTask:
+    """任务1：环境变量读取和配置中心初始化"""
+    
+    REQUIRED_ENV_VARS = [
+        'JEECG_PROJECT_ROOT', 'JEECG_BASE_URL', 'JEECG_USERNAME', 'JEECG_PASSWORD',
+        'JEECG_DATABASE_TYPE', 'JEECG_DATABASE_URL', 'JEECG_DATABASE_USERNAME', 'JEECG_DATABASE_PASSWORD'
+    ]
+    
+    def __init__(self):
+        self.task_id = 1
+        self.task_name = "配置中心初始化"
+        self.config = None
+        
+    def execute(self):
+        """初始化配置中心并验证环境变量"""
+        try:
+            # 1. 创建并加载配置
+            self.config = JeecgBootConfig()
+            config_loaded = self.config.load_config()
+            
+            if not config_loaded:
+                print("❌ 配置加载失败")
+                task_result = "fail"
+                summary = "配置中心初始化失败"
             else:
-                # 创建新的哨兵
-                return self._create_sentinel_from_config(config_data)
-        except Exception as e:
-            print(f"❌ 哨兵获取/创建失败: {e}")
-            return False
-    
-    def _load_sentinel(self) -> bool:
-        """加载哨兵文件"""
-        try:
-            with open(self.sentinel_file, 'r', encoding='utf-8') as f:
-                self.sentinel_data = json.load(f)
-            print(f"📋 加载已存在哨兵: {self.sentinel_file}")
-            return True
-        except Exception as e:
-            print(f"❌ 哨兵文件加载失败: {e}")
-            return False
-    
-    def _create_sentinel_from_config(self, config_data: Dict) -> bool:
-        """从配置创建哨兵"""
-        try:
-            table_type = config_data.get('head', {}).get('tableType', 1)
-            table_name = config_data.get('head', {}).get('tableName', '')
-            
-            # 初始化哨兵数据
-            self.sentinel_data = {
-                "scenario_id": self.scenario_id,
-                "scenario_type": self._get_scenario_type(config_data),
-                "module_name": self.module_name,
-                "submodule_name": self.submodule_name,
-                "created_at": datetime.now().isoformat(),
-                "last_updated": datetime.now().isoformat(),
-                "tables": {},
-                "version": 1
-            }
-            
-            # 如果是主表，从subList推断所有表
-            if table_type == 2:
-                self._initialize_from_main_table(config_data)
-            else:
-                # 子表或独立表，只添加当前表
-                self._add_table_info(config_data)
-            
-            # 保存哨兵文件
-            return self._save_sentinel()
-            
-        except Exception as e:
-            print(f"❌ 哨兵创建失败: {e}")
-            return False
-    
-    def _get_scenario_type(self, config_data: Dict) -> str:
-        """获取场景类型"""
-        table_type = config_data.get('head', {}).get('tableType', 1)
-        sub_list = config_data.get('subList', [])
-        
-        if table_type == 1:
-            return "independent_table"  # 独立表场景
-        elif table_type == 2 and sub_list:
-            return "master_sub_table"   # 主子表场景
-        else:
-            return "single_table"       # 单表场景
-    
-    def _initialize_from_main_table(self, main_config: Dict):
-        """从主表配置初始化完整的表结构"""
-        # 添加主表
-        self._add_table_info(main_config)
-        
-        # 添加所有子表 - 从子表哨兵文件读取正确的entity_name
-        sub_list = main_config.get('subList', [])
-        for i, sub_item in enumerate(sub_list, 1):
-            table_name = sub_item.get('tableName', '')
-            
-            # 🔧 从子表哨兵文件获取正确的entity_name
-            correct_entity_name = self._get_correct_entity_name_from_subtable(table_name)
-            
-            sub_table_info = {
-                'table_name': table_name,
-                'table_type': 3,
-                'entity_name': correct_entity_name,
-                'status': SentinelStatus.PENDING,
-                'form_id': None,
-                'tab_order': i
-            }
-            
-            if table_name:
-                self.sentinel_data['tables'][table_name] = sub_table_info
-                print(f"📝 哨兵添加子表: {table_name} -> {correct_entity_name}")
-    
-    def _get_correct_entity_name_from_subtable(self, table_name: str) -> str:
-        """从子表哨兵文件或JSON配置文件获取正确的entity_name"""
-        if not table_name:
-            return ""
-        
-        # 🔧 策略1: 从子表哨兵文件读取
-        entity_name = self._read_entity_from_subtable_sentinel(table_name)
-        if entity_name:
-            print(f"✅ 从子表哨兵获取实体名: {table_name} -> {entity_name}")
-            return entity_name
-        
-        # 🔧 策略2: 从子表JSON配置文件读取business_entity
-        entity_name = self._read_entity_from_subtable_json(table_name)
-        if entity_name:
-            print(f"✅ 从子表JSON获取实体名: {table_name} -> {entity_name}")
-            return entity_name
-        
-        # 🔧 策略3: 兜底 - 返回空字符串，后续处理
-        print(f"⚠️ 无法获取子表 {table_name} 的正确实体名")
-        return ""
-    
-    def _read_entity_from_subtable_sentinel(self, table_name: str) -> str:
-        """从统一哨兵文件读取正确的entity_name"""
-        try:
-            # 🔧 修复：从统一的哨兵文件读取，而不是多个分散的哨兵文件
-            # 首先检查当前哨兵文件是否包含该表
-            if hasattr(self, 'sentinel_data') and self.sentinel_data:
-                tables = self.sentinel_data.get('tables', {})
-                if table_name in tables:
-                    entity_name = tables[table_name].get('entity_name', '')
-                    if entity_name:
-                        return entity_name
-            
-            # 如果当前哨兵中没有，尝试从已存在的统一哨兵文件读取
-            if os.path.exists(self.sentinel_file):
-                with open(self.sentinel_file, 'r', encoding='utf-8') as f:
-                    sentinel_data = json.load(f)
-                    tables = sentinel_data.get('tables', {})
-                    if table_name in tables:
-                        return tables[table_name].get('entity_name', '')
-            
-            # 🔧 兜底：检查是否存在旧的分散哨兵文件（为了兼容性）
-            parts = table_name.split('_')
-            if len(parts) >= 3:
-                module_name = parts[0]  # education
+                # 2. 验证核心环境变量
+                success_count = 0
+                total_required = len(self.REQUIRED_ENV_VARS)
                 
-                # 尝试不同的哨兵文件名模式
-                possible_sentinels = [
-                    f"{module_name}_student_sentinel.json",  # 主哨兵
-                    f"{module_name}_parent_sentinel.json",   # 旧的子表哨兵
-                    f"{module_name}_relationship_sentinel.json"  # 旧的子表哨兵
-                ]
+                for env_var in self.REQUIRED_ENV_VARS:
+                    if self.config.env_vars.get(env_var):
+                        success_count += 1
+                    else:
+                        print(f"⚠️ {env_var}: 使用默认值")
                 
-                for sentinel_file in possible_sentinels:
-                    if os.path.exists(sentinel_file):
-                        try:
-                            with open(sentinel_file, 'r', encoding='utf-8') as f:
-                                sentinel_data = json.load(f)
-                                tables = sentinel_data.get('tables', {})
-                                if table_name in tables:
-                                    return tables[table_name].get('entity_name', '')
-                        except Exception:
-                            continue
-                            
-        except Exception as e:
-            print(f"⚠️ 读取哨兵文件失败: {e}")
-        
-        return ""
-    
-    def _read_entity_from_subtable_json(self, table_name: str) -> str:
-        """从子表JSON配置文件读取business_entity"""
-        try:
-            # 查找匹配的子表JSON文件: 使用当日日期
-            import glob
-            from datetime import datetime
-            today = datetime.now().strftime("%Y%m%d")
-            pattern = f"*{today}*.json"
-            matching_files = glob.glob(pattern)
-            
-            for json_file in matching_files:
-                try:
-                    with open(json_file, 'r', encoding='utf-8') as f:
-                        config = json.load(f)
-                        config_table_name = config.get('head', {}).get('tableName', '')
-                        
-                        # 如果表名匹配，返回business_entity
-                        if config_table_name == table_name:
-                            business_entity = config.get('head', {}).get('business_entity', '')
-                            if business_entity:
-                                return business_entity
-                except (json.JSONDecodeError, FileNotFoundError):
-                    continue
-        except Exception as e:
-            print(f"⚠️ 读取子表JSON失败: {e}")
-        
-        return ""
-    
-    def _build_correct_sublist_from_sentinel(self, original_sub_list: List[Dict]) -> List[Dict]:
-        """从哨兵文件构建包含正确entity_name的子表列表"""
-        fixed_sub_list = []
-        
-        for sub_item in original_sub_list:
-            fixed_sub_item = sub_item.copy()
-            table_name = sub_item.get('tableName', '')
-            
-            if table_name:
-                # 🔧 获取正确的entity_name
-                correct_entity_name = self._get_correct_entity_name_from_subtable(table_name)
+                # 3. 显示配置摘要
+                self.config.print_summary()
                 
-                if correct_entity_name:
-                    fixed_sub_item['entityName'] = correct_entity_name
-                    print(f"✅ 代码生成使用正确实体名: {table_name} -> {correct_entity_name}")
+                # 4. 判断任务结果
+                if success_count >= 4:  # 至少需要基本的4个环境变量
+                    task_result = "pass"
+                    summary = f"配置中心初始化成功({success_count}/{total_required}个环境变量)"
                 else:
-                    # 兜底：保持原实体名，但发出警告
-                    original_entity = sub_item.get('entityName', '')
-                    print(f"⚠️  无法获取正确实体名，使用原实体名: {table_name} -> {original_entity}")
-            
-            fixed_sub_list.append(fixed_sub_item)
+                    task_result = "fail" 
+                    summary = f"关键环境变量缺失({success_count}/{total_required})"
         
-        return fixed_sub_list
-    
-    def _add_table_info(self, config_data: Dict):
-        """添加表信息到哨兵"""
-        head = config_data.get('head', {})
-        table_name = head.get('tableName', '')
-        table_type = head.get('tableType', 1)
-        entity_name = head.get('business_entity', '')
-        
-        if table_name:
-            table_info = {
-                'table_name': table_name,
-                'table_type': table_type,
-                'entity_name': entity_name,
-                'status': SentinelStatus.PENDING,
-                'form_id': None,
-                'created_at': datetime.now().isoformat()
-            }
-            
-            # 子表额外信息
-            if table_type == 3:
-                table_info['tab_order'] = head.get('tabOrderNum', 1)
-            
-            self.sentinel_data['tables'][table_name] = table_info
-            print(f"📝 哨兵添加表: {table_name} (tableType={table_type})")
-    
-    def report_completion(self, table_name: str, status: str, form_id: str = None) -> bool:
-        """报告表完成状态"""
-        return self._safe_update_sentinel(lambda data: self._update_table_status(data, table_name, status, form_id))
-    
-    def _update_table_status(self, data: Dict, table_name: str, status: str, form_id: str = None):
-        """更新表状态"""
-        if table_name in data['tables']:
-            data['tables'][table_name]['status'] = status
-            data['tables'][table_name]['last_updated'] = datetime.now().isoformat()
-            if form_id:
-                data['tables'][table_name]['form_id'] = form_id
-        data['last_updated'] = datetime.now().isoformat()
-        data['version'] += 1
-        return data
-    
-    def is_all_completed(self) -> bool:
-        """检查是否所有表都完成了基础工作流"""
-        if not self.sentinel_data or 'tables' not in self.sentinel_data:
-            return False
-        
-        for table_name, table_info in self.sentinel_data['tables'].items():
-            status = table_info.get('status', SentinelStatus.PENDING)
-            if status not in [SentinelStatus.SYNCED, SentinelStatus.CODE_GENERATED]:
-                return False
-        
-        return True
-    
-    def get_main_table_info(self) -> Optional[Dict]:
-        """获取主表信息"""
-        for table_name, table_info in self.sentinel_data.get('tables', {}).items():
-            if table_info.get('table_type') == 2:
-                return table_info
-        return None
-    
-    def _safe_update_sentinel(self, update_func) -> bool:
-        """线程安全的哨兵更新"""
-        max_retries = 5
-        for attempt in range(max_retries):
-            try:
-                with open(self.sentinel_file, 'r+', encoding='utf-8') as f:
-                    fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    
-                    # 读取当前数据
-                    f.seek(0)
-                    current_data = json.load(f)
-                    
-                    # 执行更新
-                    updated_data = update_func(current_data)
-                    
-                    # 写回文件
-                    f.seek(0)
-                    f.truncate()
-                    json.dump(updated_data, f, indent=2, ensure_ascii=False)
-                    
-                    # 更新本地数据
-                    self.sentinel_data = updated_data
-                    return True
-                    
-            except (IOError, OSError):
-                if attempt == max_retries - 1:
-                    return False
-                time.sleep(random.uniform(0.1, 0.5))
-        
-        return False
-    
-    def _save_sentinel(self) -> bool:
-        """保存哨兵文件"""
-        try:
-            with open(self.sentinel_file, 'w', encoding='utf-8') as f:
-                json.dump(self.sentinel_data, f, indent=2, ensure_ascii=False)
-            print(f"✅ 哨兵文件保存成功: {self.sentinel_file}")
-            return True
         except Exception as e:
-            print(f"❌ 哨兵文件保存失败: {e}")
-            return False
+            task_result = "fail"
+            summary = f"配置中心初始化异常: {e}"
+            print(f"❌ {summary}")
+        
+        print(f"{self.task_id}--{self.task_name}--{summary}")
+        print(task_result)
+        
+        return f"{self.task_id}-{self.task_name}-{task_result}"
     
-    def cleanup(self):
-        """清理哨兵文件"""
-        try:
-            if os.path.exists(self.sentinel_file):
-                os.remove(self.sentinel_file)
-                print(f"🗑️ 清理哨兵文件: {self.sentinel_file}")
-        except Exception as e:
-            print(f"⚠️ 哨兵文件清理失败: {e}")
+    def get_config(self) -> JeecgBootConfig:
+        """获取配置实例"""
+        return self.config
+    
+    def get_env_value(self, key: str) -> str:
+        """获取环境变量值"""
+        if self.config:
+            return self.config.env_vars.get(key, '')
+        return ''
+    
+    def get_all_env_values(self) -> Dict:
+        """获取所有环境变量"""
+        if self.config:
+            return self.config.env_vars.copy()
+        return {}
 
-# ===============================================================================
-# JeecgBoot API 接口层
-# ===============================================================================
 
-class JeecgBootAPIManager:
-    """JeecgBoot API 接口管理器 - 从old版本借鉴"""
+class MavenModuleCreationTask:
+    """任务2：Maven原型创建新模块"""
     
-    def __init__(self, config_file: str = "Code_Gen_Config.properties"):
-        self.config_file = config_file
-        self.config = self._load_config()
-        self.session = requests.Session()
-        self.token = None
-        
-    def _load_config(self):
-        """加载配置文件"""
-        config = configparser.ConfigParser()
-        config.read(self.config_file, encoding='utf-8')
-        return config
+    def __init__(self, config: JeecgBootConfig = None):
+        self.task_id = 2
+        self.task_name = "Maven原型创建新模块"
+        self.config = config or JeecgBootConfig()
+        if not self.config.loaded:
+            self.config.load_config()
     
-    def get_config_value(self, section: str, key: str, fallback: str = None) -> str:
-        """获取配置值，优先从环境变量读取"""
+    def execute(self, config_data: Dict) -> str:
+        """执行Maven模块创建任务"""
         try:
-            # 优先从环境变量读取
-            env_mapping = {
-                ('server', 'base_url'): 'JEECG_BASE_URL',
-                ('server', 'username'): 'JEECG_USERNAME', 
-                ('server', 'password'): 'JEECG_PASSWORD',
-                ('project', 'path_prefix'): 'JEECG_PROJECT_ROOT'
-            }
-            
-            env_key = env_mapping.get((section, key))
-            if env_key:
-                env_val = os.getenv(env_key)
-                if env_val:
-                    return env_val
-            
-            # 从配置文件读取
-            return self.config.get(section, key, fallback=fallback)
-        except:
-            return fallback
-    
-    def login(self) -> bool:
-        """用户登录认证"""
-        login_url = self.get_config_value('api', 'login_url')
-        username = self.get_config_value('server', 'username')
-        password = self.get_config_value('server', 'password')
-        timeout = int(self.get_config_value('timeouts', 'login', '10'))
-        
-        if not all([login_url, username, password]):
-            print("❌ 登录配置不完整")
-            return False
-        
-        login_data = {"username": username, "password": password}
-        
-        try:
-            response = self.session.post(login_url, json=login_data, timeout=timeout)
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    token_info = result.get('result', {})
-                    self.token = token_info.get('token')
-                    if self.token:
-                        print("✅ 登录成功")
-                        return True
-                    else:
-                        print("❌ 未获取到token")
-                else:
-                    print(f"❌ 登录失败: {result.get('message')}")
+            # 1. 提取模块信息
+            module_info = self._extract_module_info(config_data)
+            if not module_info:
+                summary = "模块信息提取失败"
+                task_result = "fail"
             else:
-                print(f"❌ 登录请求失败: {response.status_code}")
-        except Exception as e:
-            print(f"❌ 登录异常: {e}")
-        
-        return False
-    
-    def create_form(self, config_data: Dict) -> tuple[Optional[str], bool]:
-        """创建在线表单
-        
-        Returns:
-            tuple[Optional[str], bool]: (form_id, is_duplicate)
-            - form_id: 表单ID，如果失败则为None
-            - is_duplicate: 是否为重复表单
-        """
-        url = self.get_config_value('api', 'form_addall_url')
-        if not url:
-            print("❌ 缺少表单创建API配置")
-            return None, False
-        
-        if not self.token:
-            print("❌ 未登录，无法创建表单")
-            return None, False
-        
-        try:
-            headers = {'X-Access-Token': self.token}
-            response = self.session.post(url, json=config_data, headers=headers, timeout=60)
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    table_name = config_data.get('head', {}).get('tableName')
-                    print(f"✅ 表单创建成功: {table_name}")
-                    
-                    # 创建成功后，通过查询API获取表单ID
-                    time.sleep(1)  # 等待一秒确保数据库写入完成
-                    form_id = self.get_form_id(table_name)
-                    if form_id:
-                        print(f"✅ 获取到表单ID: {form_id}")
-                        return form_id, False  # 新创建的表单，不是重复
-                    else:
-                        print(f"❌ 无法获取表单ID: {table_name}")
-                        return None, False
+                module_name = module_info['module_name']
+                
+                # 2. 检查模块是否已存在
+                if self._check_module_exists(module_name):
+                    summary = f"模块 {module_name} 已存在，跳过创建"
+                    task_result = "pass"
                 else:
-                    error_message = result.get('message', '')
-                    if '数据库表' in error_message and '已存在' in error_message:
-                        # 数据库表已存在，尝试查询现有表单
-                        table_name = config_data.get('head', {}).get('tableName')
-                        print(f"⚠️ 表单创建失败（表已存在），尝试查询现有表单: {table_name}")
-                        time.sleep(1)
-                        form_id = self.get_form_id(table_name)
-                        if form_id:
-                            print(f"⚠️ 发现重复表单ID: {form_id}")
-                            return form_id, True  # 返回重复标志
-                        else:
-                            print(f"❌ 无法找到已存在表单: {table_name}")
-                            print(f"🔧 检测到数据不一致：数据库表存在但表单元数据缺失")
-                            print(f"💡 建议手动删除数据库表: DROP TABLE {table_name}")
-                            return None, False
+                    # 3. 创建Maven模块
+                    if self._create_maven_module(module_name):
+                        summary = f"Maven模块 {module_name} 创建成功"
+                        task_result = "pass"
                     else:
-                        print(f"❌ 表单创建失败: {error_message}")
-            else:
-                print(f"❌ 表单创建请求失败: {response.status_code}")
+                        summary = f"Maven模块 {module_name} 创建失败"
+                        task_result = "fail"
+        
         except Exception as e:
-            print(f"❌ 表单创建异常: {e}")
-            import traceback
-            traceback.print_exc()
+            summary = f"Maven模块创建异常: {e}"
+            task_result = "fail"
+            print(f"❌ {summary}")
         
-        return None, False
+        print(f"{self.task_id}--{self.task_name}--{summary}")
+        print(task_result)
+        
+        return f"{self.task_id}-{self.task_name}-{task_result}"
     
-    def get_form_id(self, table_name: str) -> Optional[str]:
-        """获取表单ID"""
-        url = self.get_config_value('api', 'form_list_url')
-        timeout = int(self.get_config_value('timeouts', 'list', '15'))
-        page_size = int(self.get_config_value('query', 'page_size', '50'))
-        
-        if not self.token:
-            print("❌ 未登录，无法查询表单")
+    def _extract_module_info(self, config_data: Dict) -> Dict:
+        """提取模块信息"""
+        try:
+            metadata = config_data.get('metadata', {})
+            generation_info = metadata.get('generation_info', {})
+            
+            if generation_info:
+                module_name = generation_info.get('module_name')
+                submodule_name = generation_info.get('submodule_name')
+                
+                if module_name and submodule_name:
+                    return {
+                        'module_name': module_name,
+                        'submodule_name': submodule_name,
+                        'business_entity': generation_info.get('business_entity'),
+                        'inference_strategy': generation_info.get('inference_strategy'),
+                        'semantic_analysis': generation_info.get('semantic_analysis')
+                    }
+            
+            # 从表名推断模块信息
+            head = config_data.get('head', {})
+            table_name = head.get('tableName', '')
+            
+            if table_name and '_' in table_name:
+                parts = table_name.split('_')
+                if len(parts) >= 2:
+                    return {
+                        'module_name': parts[0],
+                        'submodule_name': parts[1],
+                        'business_entity': head.get('business_entity'),
+                        'inference_strategy': 'table_name_inference',
+                        'semantic_analysis': ''
+                    }
+            
             return None
-        
-        try:
-            headers = {'X-Access-Token': self.token}
-            params = {'tableName': table_name, 'pageNo': 1, 'pageSize': page_size}
-            response = self.session.get(url, params=params, headers=headers, timeout=timeout)
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    records = result.get('result', {}).get('records', [])
-                    for record in records:
-                        if record.get('tableName') == table_name:
-                            return record.get('id')
-        except Exception as e:
-            print(f"❌ 表单查询异常: {e}")
-        
-        return None
-    
-    def sync_database(self, form_id: str) -> bool:
-        """同步数据库"""
-        base_url = self.get_config_value('server', 'base_url')
-        base_path = self.get_config_value('api', 'database_sync_base_path', '/online/cgform/api/doDbSynch')
-        
-        if not base_url:
-            print("❌ 缺少服务器基础URL配置")
-            return False
-        
-        if not self.token:
-            print("❌ 未登录，无法同步数据库")
-            return False
-        
-        try:
-            headers = {'X-Access-Token': self.token}
-            url = f"{base_url}{base_path}/{form_id}/normal"
-            response = self.session.post(url, headers=headers, timeout=60)
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    print("✅ 数据库同步成功")
-                    return True
-                else:
-                    print(f"❌ 数据库同步失败: {result.get('message')}")
-            else:
-                print(f"❌ 数据库同步请求失败: {response.status_code}")
-        except Exception as e:
-            print(f"❌ 数据库同步异常: {e}")
-        
-        return False
-    
-    def generate_code(self, form_id: str, config_data: Dict) -> bool:
-        """生成代码 - 支持主子表统一生成"""
-        url = self.get_config_value('api', 'codegen_generate_url')
-        if not url:
-            print("❌ 缺少代码生成API配置")
-            return False
-        
-        if not self.token:
-            print("❌ 未登录，无法生成代码")
-            return False
-        
-        # 构建代码生成参数
-        table_name = config_data.get('head', {}).get('tableName', '')
-        table_type = config_data.get('head', {}).get('tableType', 1)
-        business_entity = config_data.get('head', {}).get('business_entity')
-        
-        # 解析表名获取模块信息 - 支持3段式命名
-        parts = table_name.split('_')
-        if len(parts) >= 3:
-            module_name = parts[0]  # 第一段是模块名
-            submodule_name = parts[1]  # 第二段是子模块名
-            project_path = f"/Users/admin/Work/Github/JeecgBoot/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
-            print(f"✅ 解析3段式表名: {table_name} -> 模块: {module_name}, 子模块: {submodule_name}")
-        else:
-            print(f"⚠️ 非标准3段式表名格式: {table_name}")
-            # 尝试从metadata获取submodule_name作为备用方案
-            metadata = config_data.get('metadata', {})
-            generation_info = metadata.get('generation_info', {})
-            submodule_name = generation_info.get('submodule_name', 'common')  # 默认值为'common'
-            module_name = generation_info.get('module_name', 'system')  # 默认值为'system'
-            print(f"✅ 从metadata获取模块信息: 模块: {module_name}, 子模块: {submodule_name}")
-            project_path = self.get_config_value('project', 'path_prefix', '/tmp')
-        
-        # 根据表类型设置参数
-        if table_type == 2:  # 主表
-            jsp_mode = "jvxe"
-            jform_type = "2"
-            sub_list = config_data.get('subList', [])
-        else:  # 独立表
-            jsp_mode = "one"
-            jform_type = "1"
-            sub_list = []
-        
-        # 构建请求数据
-        data = {
-            "code": form_id,  # ✅ 修复: 使用code而不是id
-            "projectPath": project_path,
-            "entityName": business_entity,
-            "entityPackage": submodule_name,  # ✅ 关键修复: 明确指定子模块名作为包名，确保API正确生成包结构
-            "jspMode": jsp_mode,
-            "jformType": jform_type,
-            "ftlDescription": config_data.get('head', {}).get('tableTxt', ''),  # ✅ 新增: 表描述
-            "tableName_tmp": table_name,  # ✅ 新增: 临时表名
-            "packageStyle": "service",
-            "vueStyle": "vue3",
-            "codeTypes": "controller,service,dao,mapper,entity,vue",
-            "tableName": table_name
-        }
-        
-        if sub_list:
-            # 🔧 重构: 从哨兵文件读取各子表的正确entity_name，完全移除错误逻辑
-            fixed_sub_list = self._build_correct_sublist_from_sentinel(sub_list)
-            data["subList"] = fixed_sub_list
-            print(f"📋 主表代码生成包含 {len(fixed_sub_list)} 个子表")
-        
-        # ✅ 调试输出：显示最终的代码生成参数
-        print("📋 **代码生成参数总览**")
-        print(f"   code: {data['code']}")
-        print(f"   entityName: {data['entityName']}")
-        print(f"   entityPackage: {data['entityPackage']}")
-        print(f"   ftlDescription: {data['ftlDescription']}")
-        print(f"   tableName: {data['tableName']}")
-        print(f"   tableName_tmp: {data['tableName_tmp']}")
-        if 'subList' in data:
-            print(f"   subList: {len(data['subList'])} 个子表")
-            for i, sub in enumerate(data['subList']):
-                print(f"     - {sub.get('tableName')} -> {sub.get('entityName')}")
-        
-        try:
-            headers = {'X-Access-Token': self.token}
-            response = self.session.post(url, json=data, headers=headers, timeout=120)
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    print("✅ 代码生成成功")
-                    return True
-                else:
-                    print(f"❌ 代码生成失败: {result.get('message')}")
-            else:
-                print(f"❌ 代码生成请求失败: {response.status_code}")
-        except Exception as e:
-            print(f"❌ 代码生成异常: {e}")
-        
-        return False
-    
-    def query_all_forms(self, page_size: int = 100) -> List[Dict]:
-        """查询所有表单"""
-        if not self.token:
-            print("❌ 未登录，无法查询表单")
-            return []
             
-        url = self.get_config_value('api', 'form_list_url')
-        headers = {'X-Access-Token': self.token}
-        params = {'pageNo': 1, 'pageSize': page_size}
-        
-        try:
-            response = self.session.get(url, headers=headers, params=params, timeout=30)
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    return result.get('result', {}).get('records', [])
-        except Exception as e:
-            print(f"❌ 查询表单异常: {e}")
-        
-        return []
-    
-    def delete_forms_batch(self, form_ids: List[str]) -> bool:
-        """批量删除表单"""
-        if not form_ids:
-            return True
-        
-        if not self.token:
-            print("❌ 未登录，无法删除表单")
-            return False
-            
-        url = self.get_config_value('api', 'form_delete_batch_url')
-        if not url:
-            print("❌ 缺少表单删除API配置")
-            return False
-        
-        try:
-            ids_str = ','.join(form_ids)
-            import urllib.parse
-            ids_encoded = urllib.parse.quote(ids_str, safe='')
-            url_with_params = f"{url}?ids={ids_encoded}&flag=table"
-            
-            headers = {'X-Access-Token': self.token}
-            response = self.session.delete(url_with_params, headers=headers, timeout=30)
-            
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    print(f"✅ 成功删除 {len(form_ids)} 个表单")
-                    return True
-                else:
-                    print(f"❌ 表单删除失败: {result.get('message')}")
-            else:
-                print(f"❌ 表单删除请求失败: {response.status_code}")
-        except Exception as e:
-            print(f"❌ 表单删除异常: {e}")
-        
-        return False
-
-    def _build_correct_sublist_from_sentinel(self, original_sub_list: List[Dict]) -> List[Dict]:
-        """从哨兵文件构建包含正确entity_name的子表列表"""
-        fixed_sub_list = []
-        
-        for sub_item in original_sub_list:
-            fixed_sub_item = sub_item.copy()
-            table_name = sub_item.get('tableName', '')
-            
-            if table_name:
-                # 获取正确的entity_name
-                correct_entity_name = self._get_correct_entity_name_from_subtable(table_name)
-                
-                if correct_entity_name:
-                    fixed_sub_item['entityName'] = correct_entity_name
-                    print(f"✅ 代码生成使用正确实体名: {table_name} -> {correct_entity_name}")
-                else:
-                    # 兜底：保持原实体名，但发出警告
-                    original_entity = sub_item.get('entityName', '')
-                    print(f"⚠️  无法获取正确实体名，使用原实体名: {table_name} -> {original_entity}")
-            
-            fixed_sub_list.append(fixed_sub_item)
-        
-        return fixed_sub_list
-
-    def _get_correct_entity_name_from_subtable(self, table_name: str) -> str:
-        """从哨兵文件获取子表的正确实体名"""
-        try:
-            # 🔧 修复：直接从哨兵文件读取entity_name，不再依赖临时JSON文件
-            import glob
-            sentinel_files = glob.glob("*sentinel*.json")
-            
-            for sentinel_file in sentinel_files:
-                try:
-                    with open(sentinel_file, 'r', encoding='utf-8') as f:
-                        sentinel_data = json.load(f)
-                        tables = sentinel_data.get('tables', {})
-                        
-                        # 查找匹配的表名
-                        if table_name in tables:
-                            entity_name = tables[table_name].get('entity_name', '')
-                            if entity_name:
-                                print(f"✅ 从哨兵文件获取实体名: {table_name} -> {entity_name}")
-                                return entity_name
-                            
-                except (json.JSONDecodeError, FileNotFoundError, KeyError):
-                    continue
-                    
-        except Exception as e:
-            print(f"⚠️ 读取哨兵文件失败: {e}")
-        
-        # 🔧 兜底机制：如果哨兵文件读取失败，尝试从表名推理
-        try:
-            parts = table_name.split('_')
-            if len(parts) >= 3:
-                # 从表名推理实体名：alumni_members_membercareer -> MemberCareer
-                entity_part = parts[2]  # membercareer
-                # 转换为PascalCase: membercareer -> MemberCareer
-                entity_name = ''.join(word.capitalize() for word in entity_part.split())
-                print(f"⚠️ 兜底机制：从表名推理实体名: {table_name} -> {entity_name}")
-                return entity_name
-        except Exception as e:
-            print(f"⚠️ 实体名推理失败: {e}")
-        
-        return ""
-
-# ===============================================================================
-# 独立的可复用菜单权限SQL执行函数
-# ===============================================================================
-
-
-# ===============================================================================
-# 其他功能模块 (从old版本借鉴核心功能)
-# ===============================================================================
-
-class FrontendMigrator:
-    """前端代码迁移器"""
-    
-    def __init__(self, config_manager):
-        self.config = config_manager
-    
-    def migrate_frontend_code(self, config_data: Dict, logger: 'CodeGenLogger' = None) -> bool:
-        """迁移前端代码到正确位置 - 重构版：使用mv操作，简化路径结构"""
-        try:
-            if logger:
-                logger.log_step("前端代码迁移", "IN_PROGRESS", "开始迁移Vue3前端代码")
-            
-            # 检查是否启用
-            enabled = self.config.get_config_value('frontend_migration', 'enabled', 'true').lower() == 'true'
-            if not enabled:
-                if logger:
-                    logger.log_step("前端代码迁移", "SKIPPED", "前端代码迁移已禁用")
-                return True
-            
-            # 获取路径信息
-            project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
-            target_base_path = self.config.get_config_value('frontend_migration', 'target_base_path', 'jeecgboot-vue3/src/views')
-            
-            # 从metadata获取模块信息
-            metadata = config_data.get('metadata', {})
-            generation_info = metadata.get('generation_info', {})
-            
-            module_name = generation_info.get('module_name', '')
-            submodule_name = generation_info.get('submodule_name', '')
-            
-            if not submodule_name:
-                if logger:
-                    logger.log_step("前端代码迁移", "FAILED", "缺少submodule_name信息")
-                return False
-            
-            # 源路径：生成的Vue3代码位置（占位符处理后的实际路径）
-            source_vue_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}/src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/vue3"
-            
-            # 目标路径：前端项目中的位置（只保留submodule层级）
-            target_dir = f"{project_root}/{target_base_path}/{submodule_name}"
-            
-            # 检查源路径是否存在
-            if not os.path.exists(source_vue_path):
-                if logger:
-                    logger.log_step("前端代码迁移", "FAILED", f"源路径不存在: {source_vue_path}")
-                return False
-            
-            # 确保目标目录存在
-            os.makedirs(target_dir, exist_ok=True)
-            
-            # 移动vue3目录下的所有内容到目标位置
-            for item in os.listdir(source_vue_path):
-                source_item = os.path.join(source_vue_path, item)
-                target_item = os.path.join(target_dir, item)
-                shutil.move(source_item, target_item)
-            
-            if logger:
-                logger.log_step("前端代码迁移", "SUCCESS", f"成功迁移前端代码到 {target_dir}")
-            return True
-            
-        except Exception as e:
-            if logger:
-                logger.log_step("前端代码迁移", "FAILED", f"迁移异常: {str(e)}")
-            return False
-
-class PlaceholderProcessor:
-    """占位变量处理器"""
-    
-    def __init__(self, config_manager):
-        self.config = config_manager
-    
-    def process_placeholder_variables(self, config_data: Dict, logger: 'CodeGenLogger' = None) -> bool:
-        """处理占位变量替换 - 简化版：使用正确的包名模板避免重复"""
-        try:
-            if logger:
-                logger.log_step("占位变量处理", "IN_PROGRESS", "开始处理生成代码中的占位变量")
-            
-            # 提取模块信息
-            metadata = config_data.get('metadata', {})
-            generation_info = metadata.get('generation_info', {})
-            
-            module_name = generation_info.get('module_name', '')
-            submodule_name = generation_info.get('submodule_name', '')
-            business_entity = generation_info.get('business_entity', '')
-            
-            if not all([module_name, submodule_name, business_entity]):
-                if logger:
-                    logger.log_step("占位变量处理", "FAILED", "缺少必要的模块信息")
-                return False
-            
-            # 查找生成的模块目录
-            project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
-            module_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
-            
-            if not os.path.exists(module_path):
-                if logger:
-                    logger.log_step("占位变量处理", "FAILED", f"模块目录不存在: {module_path}")
-                return False
-            
-            
-            
-            # 构建包名和路径映射
-            src_java_path = f"{module_path}/src/main/java"
-            package_name = f"org.jeecg.modules.{module_name}"
-            package_path = package_name.replace('.', '/')
-            
-            # 定义占位变量映射
-            placeholders = {
-                '{{PACKAGE_NAME}}': package_name,
-                '{{MODULE_NAME}}': module_name,
-                '{{SUBMODULE_NAME}}': submodule_name,
-                '{{BUSINESS_ENTITY}}': business_entity
-            }
-            
-            # 处理文件夹重命名 - 先重命名包目录结构
-            old_package_path = f"{src_java_path}/{{{{PACKAGE_NAME}}}}"
-            new_package_path = f"{src_java_path}/{package_path}"
-            
-            
-            if os.path.exists(old_package_path):
-                # 创建正确的包目录结构
-                os.makedirs(os.path.dirname(new_package_path), exist_ok=True)
-                shutil.move(old_package_path, new_package_path)
-                if logger:
-                    logger.log_step("文件夹重命名", "SUCCESS", f"包目录重命名: {{{{PACKAGE_NAME}}}} -> {package_path}")
-            
-            # 处理所有文件中的占位变量
-            replaced_count = 0
-            for root, dirs, files in os.walk(module_path):
-                for file in files:
-                    if file.endswith(('.java', '.xml', '.ts', '.vue', '.sql')):
-                        file_path = os.path.join(root, file)
-                        if self._replace_file_placeholders(file_path, placeholders):
-                            replaced_count += 1
-            
-            if logger:
-                logger.log_step("占位变量处理", "SUCCESS", 
-                               f"共处理 {replaced_count} 个文件", 
-                               f"占位变量映射: {placeholders}")
-            
-            
-            return True
-            
-        except Exception as e:
-            if logger:
-                logger.log_step("占位变量处理", "FAILED", f"异常: {str(e)}")
-            print(f"❌ 占位变量处理失败: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-    
-    
-    
-    def _replace_file_placeholders(self, file_path: str, placeholders: Dict[str, str]) -> bool:
-        """替换单个文件中的占位变量"""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            original_content = content
-            
-            # 替换所有占位变量
-            for placeholder, value in placeholders.items():
-                content = content.replace(placeholder, value)
-            
-            # 修复Java包路径中的连续点号问题（如：org.jeecg.modules.crm.customer..entity -> org.jeecg.modules.crm.customer.entity）
-            if file_path.endswith('.java'):
-                import re
-                # 使用正则表达式替换连续的点号为单个点号
-                content = re.sub(r'\.{2,}', '.', content)
-            
-            # 如果内容有变化才写回文件
-            if content != original_content:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                return True
-            
-            return False
-            
-        except Exception as e:
-            print(f"⚠️ 文件处理失败 {file_path}: {e}")
-            return False
-
-class DatabaseSQLExecutor:
-    """真正的数据库SQL执行器 - 支持MySQL客户端和JDBC连接"""
-    
-    def __init__(self, config_manager):
-        self.config = config_manager
-        self.connection = None
-        self.execution_stats = {'executed': 0, 'failed': 0, 'total_affected_rows': 0}
-    
-    def execute_permission_sql(self, config_data: Dict, logger: 'CodeGenLogger' = None) -> bool:
-        """菜单权限授权 - 统一的权限授权处理"""
-        try:
-            if logger:
-                logger.log_step("菜单权限授权", "IN_PROGRESS", "开始执行菜单权限授权")
-            
-            # 步骤1：从环境变量读取数据库连接信息
-            db_type = os.getenv('JEECG_DATABASE_TYPE', 'mysql')
-            db_url = os.getenv('JEECG_DATABASE_URL', 'localhost:3306/jeecg-boot')
-            db_username = os.getenv('JEECG_DATABASE_USERNAME', 'root')
-            db_password = os.getenv('JEECG_DATABASE_PASSWORD', '')
-            
-            if not all([db_url, db_username]):
-                if logger:
-                    logger.log_step("菜单权限授权", "FAILED", "数据库连接信息不完整")
-                return False
-            
-            # 步骤2：使用git查找新增的.sql文件
-            project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
-            sql_files = []
-            
-            try:
-                import subprocess
-                result_git = subprocess.run(['git', 'status', '--porcelain'], 
-                                          cwd=project_root, 
-                                          capture_output=True, 
-                                          text=True, 
-                                          timeout=10)
-                
-                if result_git.returncode == 0:
-                    for line in result_git.stdout.strip().split('\n'):
-                        if line.startswith('??'):
-                            file_path = line[3:].strip()  # 移除'?? '前缀
-                            full_path = os.path.join(project_root, file_path)
-                            
-                            # 如果是目录，搜索其中的.sql文件
-                            if os.path.isdir(full_path):
-                                import glob
-                                sql_pattern = os.path.join(full_path, '**', '*.sql')
-                                for sql_file in glob.glob(sql_pattern, recursive=True):
-                                    sql_files.append(sql_file)
-                                    rel_path = os.path.relpath(sql_file, project_root)
-                                    print(f"✅ 发现新增SQL文件: {rel_path}")
-                            # 如果直接是.sql文件
-                            elif file_path.endswith('.sql') and os.path.exists(full_path):
-                                sql_files.append(full_path)
-                                print(f"✅ 发现新增SQL文件: {file_path}")
-                else:
-                    if logger:
-                        logger.log_step("菜单权限授权", "FAILED", f"git status执行失败: {result_git.stderr}")
-                    return False
-                    
-            except Exception as e:
-                if logger:
-                    logger.log_step("菜单权限授权", "FAILED", f"git查找异常: {str(e)}")
-                return False
-            
-            if not sql_files:
-                if logger:
-                    logger.log_step("菜单权限授权", "SKIPPED", "没有发现新增的SQL文件")
-                return True  # 没有SQL文件不算失败
-            
-            # 步骤3：建立数据库连接并执行SQL文件
-            if not self._connect_database():
-                if logger:
-                    logger.log_step("菜单权限授权", "FAILED", "数据库连接失败")
-                return False
-            
-            # 执行所有SQL文件
-            successful_files = []
-            failed_files = []
-            total_statements = 0
-            total_affected_rows = 0
-            
-            for sql_file in sql_files:
-                execution_result = self._execute_sql_file_real(sql_file)
-                filename = os.path.basename(sql_file)
-                
-                if execution_result['success'] and execution_result.get('transaction_status') == 'committed':
-                    successful_files.append(filename)
-                    total_statements += execution_result.get('total_statements', 0)
-                    total_affected_rows += execution_result['affected_rows']
-                else:
-                    failed_files.append({
-                        'file': filename,
-                        'error': execution_result['error_message'],
-                        'transaction_status': execution_result.get('transaction_status', 'unknown')
-                    })
-            
-            # 关闭数据库连接
-            self._close_database_connection()
-            
-            # 判断执行结果
-            if len(successful_files) == len(sql_files):
-                if logger:
-                    logger.log_step("菜单权限授权", "SUCCESS", 
-                                   f"成功执行 {len(successful_files)} 个SQL文件，共 {total_statements} 条语句，影响 {total_affected_rows} 行数据",
-                                   f"成功文件: {successful_files}")
-                return True
-            else:
-                if logger:
-                    logger.log_step("菜单权限授权", "FAILED", 
-                                   f"部分文件执行失败: 成功{len(successful_files)}个，失败{len(failed_files)}个",
-                                   f"失败详情: {failed_files}")
-                return False
-            
-        except Exception as e:
-            if logger:
-                logger.log_step("菜单权限授权", "FAILED", f"执行异常: {str(e)}")
-            print(f"❌ 菜单权限授权失败: {e}")
-            return False
-    
-    def _connect_database(self) -> bool:
-        """建立数据库连接"""
-        try:
-            # 从环境变量读取数据库连接信息
-            db_type = os.getenv('JEECG_DATABASE_TYPE', 'mysql')
-            db_url = os.getenv('JEECG_DATABASE_URL', 'localhost:3306/jeecg-boot')
-            db_username = os.getenv('JEECG_DATABASE_USERNAME', 'root')
-            db_password = os.getenv('JEECG_DATABASE_PASSWORD', '')
-            
-            if not all([db_url, db_username]):
-                print("❌ 数据库连接信息不完整，请检查环境变量: JEECG_DATABASE_URL, JEECG_DATABASE_USERNAME, JEECG_DATABASE_PASSWORD")
-                return False
-            
-            # 解析JDBC数据库URL - 使用正确的正则表达式解析
-            import re
-            match = re.search(r'jdbc:mysql://([^:/]+):(\d+)/([^?]+)', db_url)
-            if not match:
-                print(f"❌ JDBC URL格式错误: {db_url}，应为 jdbc:mysql://host:port/database 格式")
-                return False
-            host, port, database = match.groups()
-            port = int(port)
-            
-            # 建立MySQL连接 - 关闭autocommit启用事务支持
-            self.connection = mysql.connector.connect(
-                host=host,
-                port=port,
-                database=database,
-                user=db_username,
-                password=db_password,
-                autocommit=False,  # 关闭自动提交，启用事务支持
-                charset='utf8mb4',
-                collation='utf8mb4_unicode_ci'
-            )
-            
-            if self.connection.is_connected():
-                print(f"✅ 数据库连接成功: {host}:{port}/{database}")
-                return True
-            else:
-                print("❌ 数据库连接失败")
-                return False
-                
-        except Error as e:
-            print(f"❌ 数据库连接异常: {e}")
-            return False
-        except Exception as e:
-            print(f"❌ 数据库连接配置异常: {e}")
-            return False
-    
-    def _execute_sql_file_real(self, sql_file: str) -> Dict:
-        """真正执行单个SQL文件到数据库 - 支持完整事务处理"""
-        result = {
-            'file': sql_file,
-            'success': False,
-            'executed_statements': 0,
-            'total_statements': 0,
-            'affected_rows': 0,
-            'execution_time': 0.0,
-            'error_message': '',
-            'warnings': [],
-            'transaction_status': 'not_started'
-        }
-        
-        cursor = None
-        successful_statements = 0
-        
-        try:
-            start_time = time.time()
-            
-            # 读取SQL文件
-            with open(sql_file, 'r', encoding='utf-8') as f:
-                sql_content = f.read().strip()
-            
-            if not sql_content:
-                result['error_message'] = 'SQL文件为空'
-                result['transaction_status'] = 'no_content'
-                return result
-            
-            # 智能提取SQL语句（修复版本 - 正确处理注释和SQL语句混合的情况）
-            sql_statements = self._extract_sql_statements(sql_content)
-            
-            if not sql_statements:
-                result['error_message'] = '没有有效的SQL语句'
-                result['transaction_status'] = 'no_valid_statements'
-                return result
-            
-            result['total_statements'] = len(sql_statements)
-            cursor = self.connection.cursor()
-            total_affected_rows = 0
-            
-            # 开始事务
-            print(f"🔄 开始执行SQL事务: {os.path.basename(sql_file)}")
-            print(f"📊 共 {len(sql_statements)} 条有效SQL语句")
-            result['transaction_status'] = 'started'
-            
-            try:
-                # 执行所有SQL语句
-                for i, sql_statement in enumerate(sql_statements, 1):
-                    print(f"🔄 执行SQL语句 {i}/{len(sql_statements)}: {sql_statement[:50]}...")
-                    cursor.execute(sql_statement)
-                    
-                    affected_rows = cursor.rowcount if cursor.rowcount >= 0 else 0
-                    total_affected_rows += affected_rows
-                    successful_statements += 1
-                    
-                    print(f"✅ SQL语句 {i} 执行成功，影响 {affected_rows} 行")
-                
-                # 所有语句执行成功，提交事务
-                self.connection.commit()
-                result['transaction_status'] = 'committed'
-                
-                result['success'] = True
-                result['executed_statements'] = successful_statements
-                result['affected_rows'] = total_affected_rows
-                result['execution_time'] = time.time() - start_time
-                
-                print(f"🎉 SQL事务执行成功: {os.path.basename(sql_file)}")
-                print(f"   📊 成功执行语句: {result['executed_statements']}/{result['total_statements']} 条")
-                print(f"   📝 总影响行数: {result['affected_rows']} 行")
-                print(f"   ⏱️ 执行时间: {result['execution_time']:.2f} 秒")
-                print(f"   ✅ 事务状态: 已提交")
-                
-            except Error as e:
-                # 发生异常，回滚事务
-                try:
-                    self.connection.rollback()
-                    result['transaction_status'] = 'rolled_back'
-                    rollback_msg = "事务已回滚"
-                except Exception as rollback_error:
-                    result['transaction_status'] = 'rollback_failed'
-                    rollback_msg = f"事务回滚失败: {rollback_error}"
-                
-                result['error_message'] = f"SQL执行错误: {str(e)} (已成功执行{successful_statements}/{len(sql_statements)}条语句，{rollback_msg})"
-                result['executed_statements'] = successful_statements
-                result['affected_rows'] = 0  # 回滚后影响行数为0
-                result['execution_time'] = time.time() - start_time
-                
-                print(f"❌ SQL事务执行失败: {e}")
-                print(f"   📊 执行进度: {successful_statements}/{len(sql_statements)} 条语句")
-                print(f"   🔄 事务状态: {result['transaction_status']}")
-                
-            finally:
-                if cursor:
-                    cursor.close()
-            
-        except Exception as e:
-            result['error_message'] = f"文件处理异常: {str(e)}"
-            result['transaction_status'] = 'file_error'
-            result['execution_time'] = time.time() - start_time if 'start_time' in locals() else 0
-            print(f"⚠️ SQL文件处理异常 {sql_file}: {e}")
-        
-        return result
-    
-    def _extract_sql_statements(self, sql_content: str) -> list:
-        """
-        智能提取SQL语句 - 修复版本
-        
-        处理逻辑：
-        1. 按分号分割SQL内容
-        2. 对每个片段进行细粒度处理，移除注释但保留SQL语句
-        3. 确保提取完整的可执行SQL语句
-        """
-        if not sql_content.strip():
-            return []
-        
-        # 按分号分割SQL内容
-        all_segments = [segment.strip() for segment in sql_content.split(';') if segment.strip()]
-        
-        sql_statements = []
-        
-        for segment in all_segments:
-            # 按行分割当前片段
-            lines = segment.split('\n')
-            
-            # 过滤每一行，移除注释行和空行
-            sql_lines = []
-            for line in lines:
-                line = line.strip()
-                # 跳过空行和注释行
-                if line and not line.startswith(('--', '#')):
-                    sql_lines.append(line)
-            
-            # 如果有有效的SQL行，重新组合成完整语句
-            if sql_lines:
-                clean_statement = ' '.join(sql_lines).strip()
-                
-                # 检查是否是有效的SQL语句
-                if clean_statement and self._is_valid_sql_statement(clean_statement):
-                    sql_statements.append(clean_statement)
-        
-        return sql_statements
-    
-    def _is_valid_sql_statement(self, statement: str) -> bool:
-        """检查是否是有效的SQL语句"""
-        statement_upper = statement.upper().strip()
-        
-        # 检查是否以SQL关键字开头
-        sql_keywords = ['INSERT', 'UPDATE', 'DELETE', 'SELECT', 'CREATE', 'ALTER', 'DROP', 'TRUNCATE']
-        
-        for keyword in sql_keywords:
-            if statement_upper.startswith(keyword):
-                # 对于INSERT语句，进一步检查是否包含VALUES关键字
-                if keyword == 'INSERT':
-                    return 'VALUES' in statement_upper or 'SELECT' in statement_upper
-                return True
-        
-        return False
-    
-    def _close_database_connection(self):
-        """关闭数据库连接"""
-        try:
-            if self.connection and self.connection.is_connected():
-                self.connection.close()
-                print("✅ 数据库连接已关闭")
-        except Exception as e:
-            print(f"⚠️ 关闭数据库连接时发生异常: {e}")
-
-
-# ===============================================================================
-# 模块管理器 - Maven模块创建和POM配置
-# ===============================================================================
-
-class ModuleManager:
-    """Maven模块管理器 - 负责模块创建和POM文件配置"""
-    
-    def __init__(self, config_manager):
-        self.config = config_manager
-        
-    def ensure_module_exists(self, module_name: str, logger: 'CodeGenLogger' = None) -> bool:
-        """确保模块存在，如果不存在则创建并配置"""
-        try:
-            if logger:
-                logger.log_step("模块检查", "IN_PROGRESS", f"检查模块 {module_name} 是否存在")
-            
-            # 1. 检查模块是否存在
-            if self._check_module_exists(module_name):
-                if logger:
-                    logger.log_step("模块检查", "SUCCESS", "模块已存在，跳过创建")
-                return True
-            
-            if logger:
-                logger.log_step("模块检查", "SUCCESS", "模块不存在，开始创建流程")
-            
-            # 2. 创建Maven模块
-            if not self._create_maven_module(module_name, logger):
-                return False
-                
-            # 3. 更新模块注册表pom.xml
-            if not self._update_module_registry_pom(module_name, logger):
-                return False
-                
-            # 4. 更新系统启动项目pom.xml
-            if not self._update_system_start_pom(module_name, logger):
-                return False
-                
-            return True
-            
-        except Exception as e:
-            if logger:
-                logger.log_step("模块管理", "FAILED", f"模块管理异常: {str(e)}")
-            print(f"❌ 模块管理异常: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+        except Exception:
+            return None
     
     def _check_module_exists(self, module_name: str) -> bool:
         """检查模块目录是否存在"""
         try:
-            project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
+            project_root = self.config.get_project_root()
             module_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
             return os.path.exists(module_path)
         except Exception:
             return False
     
-    def _create_maven_module(self, module_name: str, logger: 'CodeGenLogger' = None) -> bool:
+    def _create_maven_module(self, module_name: str) -> bool:
         """使用Maven archetype创建新模块"""
+        import subprocess
         try:
-            if logger:
-                logger.log_step("Maven模块创建", "IN_PROGRESS", f"执行mvn archetype:generate创建模块 jeecg-module-{module_name}")
+            print(f"🔨 执行 mvn archetype:generate 创建模块 jeecg-module-{module_name}")
             
-            # 获取项目根路径
-            project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
+            # 获取项目根路径和执行目录
+            project_root = self.config.get_project_root()
             exec_dir = f"{project_root}/jeecg-boot/jeecg-boot-module"
             
             if not os.path.exists(exec_dir):
-                if logger:
-                    logger.log_step("Maven模块创建", "FAILED", f"执行目录不存在: {exec_dir}")
+                print(f"❌ 执行目录不存在: {exec_dir}")
                 return False
             
             # 构建Maven命令
@@ -1669,38 +475,115 @@ class ModuleManager:
             )
             
             if result.returncode == 0:
-                if logger:
-                    logger.log_step("Maven模块创建", "SUCCESS", f"Maven模块创建成功: jeecg-module-{module_name}")
+                print(f"✅ Maven模块创建成功: jeecg-module-{module_name}")
                 return True
             else:
                 error_msg = f"Maven命令执行失败(返回码:{result.returncode})"
                 if result.stderr:
                     error_msg += f", 错误: {result.stderr[:200]}"
-                if logger:
-                    logger.log_step("Maven模块创建", "FAILED", error_msg)
+                print(f"❌ {error_msg}")
                 return False
                 
         except subprocess.TimeoutExpired:
-            if logger:
-                logger.log_step("Maven模块创建", "FAILED", "Maven命令执行超时(5分钟)")
+            print("❌ Maven命令执行超时(5分钟)")
             return False
         except Exception as e:
-            if logger:
-                logger.log_step("Maven模块创建", "FAILED", f"Maven命令执行异常: {str(e)}")
+            print(f"❌ Maven命令执行异常: {str(e)}")
             return False
+
+
+class PomConfigurationTask:
+    """任务3：更新模块注册和依赖配置"""
     
-    def _update_module_registry_pom(self, module_name: str, logger: 'CodeGenLogger' = None) -> bool:
+    def __init__(self, config: JeecgBootConfig = None):
+        self.task_id = 3
+        self.task_name = "更新模块注册和依赖配置"
+        self.config = config or JeecgBootConfig()
+        if not self.config.loaded:
+            self.config.load_config()
+    
+    def execute(self, config_data: Dict) -> str:
+        """执行POM配置更新任务"""
+        try:
+            # 1. 提取模块信息
+            module_info = self._extract_module_info(config_data)
+            if not module_info:
+                summary = "模块信息提取失败"
+                task_result = "fail"
+            else:
+                module_name = module_info['module_name']
+                
+                # 2. 更新模块注册表pom.xml
+                registry_success = self._update_module_registry_pom(module_name)
+                
+                # 3. 更新系统启动项目pom.xml
+                system_success = self._update_system_start_pom(module_name)
+                
+                # 4. 判断结果
+                if registry_success and system_success:
+                    summary = f"模块 {module_name} 配置更新完成"
+                    task_result = "pass"
+                elif registry_success or system_success:
+                    success_part = "注册表" if registry_success else "启动依赖"
+                    summary = f"模块 {module_name} 部分配置成功({success_part})"
+                    task_result = "pass"  # 部分成功也算通过
+                else:
+                    summary = f"模块 {module_name} 配置更新失败"
+                    task_result = "fail"
+        
+        except Exception as e:
+            summary = f"POM配置更新异常: {e}"
+            task_result = "fail"
+            print(f"❌ {summary}")
+        
+        print(f"{self.task_id}--{self.task_name}--{summary}")
+        print(task_result)
+        
+        return f"{self.task_id}-{self.task_name}-{task_result}"
+    
+    def _extract_module_info(self, config_data: Dict) -> Dict:
+        """提取模块信息"""
+        try:
+            metadata = config_data.get('metadata', {})
+            generation_info = metadata.get('generation_info', {})
+            
+            if generation_info:
+                module_name = generation_info.get('module_name')
+                submodule_name = generation_info.get('submodule_name')
+                
+                if module_name and submodule_name:
+                    return {
+                        'module_name': module_name,
+                        'submodule_name': submodule_name
+                    }
+            
+            # 从表名推断模块信息
+            head = config_data.get('head', {})
+            table_name = head.get('tableName', '')
+            
+            if table_name and '_' in table_name:
+                parts = table_name.split('_')
+                if len(parts) >= 2:
+                    return {
+                        'module_name': parts[0],
+                        'submodule_name': parts[1]
+                    }
+            
+            return None
+            
+        except Exception:
+            return None
+    
+    def _update_module_registry_pom(self, module_name: str) -> bool:
         """更新模块注册表pom.xml添加新模块"""
         try:
-            if logger:
-                logger.log_step("模块注册", "IN_PROGRESS", "更新jeecg-boot-module/pom.xml添加模块引用")
+            print(f"📝 更新 jeecg-boot-module/pom.xml 添加模块引用")
             
-            project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
+            project_root = self.config.get_project_root()
             pom_path = f"{project_root}/jeecg-boot/jeecg-boot-module/pom.xml"
             
             if not os.path.exists(pom_path):
-                if logger:
-                    logger.log_step("模块注册", "FAILED", f"模块注册表pom.xml不存在: {pom_path}")
+                print(f"❌ 模块注册表pom.xml不存在: {pom_path}")
                 return False
             
             # 读取原始文件内容
@@ -1710,8 +593,7 @@ class ModuleManager:
             # 检查模块是否已存在
             module_artifact_id = f"jeecg-module-{module_name}"
             if f"<module>{module_artifact_id}</module>" in content:
-                if logger:
-                    logger.log_step("模块注册", "SUCCESS", f"模块已存在于模块注册表中: {module_artifact_id}")
+                print(f"✅ 模块已存在于注册表中: {module_artifact_id}")
                 return True
             
             # 查找 </modules> 标签的位置
@@ -1719,8 +601,7 @@ class ModuleManager:
             if modules_end_pos == -1:
                 modules_end_pos = content.find('</ns0:modules>')
             if modules_end_pos == -1:
-                if logger:
-                    logger.log_step("模块注册", "FAILED", "未找到modules节点")
+                print("❌ 未找到modules节点")
                 return False
             
             # 在 </modules> 前插入新模块
@@ -1731,27 +612,23 @@ class ModuleManager:
             with open(pom_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
             
-            if logger:
-                logger.log_step("模块注册", "SUCCESS", f"已添加模块到注册表: {module_artifact_id}")
+            print(f"✅ 已添加模块到注册表: {module_artifact_id}")
             return True
             
         except Exception as e:
-            if logger:
-                logger.log_step("模块注册", "FAILED", f"更新模块注册表异常: {str(e)}")
+            print(f"❌ 更新模块注册表异常: {str(e)}")
             return False
     
-    def _update_system_start_pom(self, module_name: str, logger: 'CodeGenLogger' = None) -> bool:
+    def _update_system_start_pom(self, module_name: str) -> bool:
         """更新系统启动项目pom.xml添加新模块依赖"""
         try:
-            if logger:
-                logger.log_step("依赖配置", "IN_PROGRESS", "更新jeecg-system-start/pom.xml添加模块依赖")
+            print(f"📝 更新 jeecg-system-start/pom.xml 添加模块依赖")
             
-            project_root = os.getenv('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
+            project_root = self.config.get_project_root()
             pom_path = f"{project_root}/jeecg-boot/jeecg-module-system/jeecg-system-start/pom.xml"
             
             if not os.path.exists(pom_path):
-                if logger:
-                    logger.log_step("依赖配置", "FAILED", f"启动项目pom.xml不存在: {pom_path}")
+                print(f"❌ 启动项目pom.xml不存在: {pom_path}")
                 return False
             
             # 读取原始文件内容
@@ -1761,8 +638,7 @@ class ModuleManager:
             # 检查依赖是否已存在
             artifact_id = f"jeecg-module-{module_name}"
             if f"<artifactId>{artifact_id}</artifactId>" in content:
-                if logger:
-                    logger.log_step("依赖配置", "SUCCESS", f"依赖已存在: {artifact_id}")
+                print(f"✅ 依赖已存在: {artifact_id}")
                 return True
             
             # 查找合适的位置插入新依赖（在 jeecg-system-biz 依赖之后）
@@ -1771,25 +647,23 @@ class ModuleManager:
                 # 如果找不到 jeecg-system-biz，就在第一个 </dependency> 后插入
                 first_dep_end = content.find('</dependency>')
                 if first_dep_end == -1:
-                    if logger:
-                        logger.log_step("依赖配置", "FAILED", "无法找到合适的位置插入依赖")
+                    print("❌ 未找到合适的插入位置")
                     return False
                 insert_pos = first_dep_end + len('</dependency>')
             else:
                 # 找到 jeecg-system-biz 依赖的结束位置
-                dep_end_pos = content.find('</dependency>', system_biz_pos)
-                if dep_end_pos == -1:
-                    if logger:
-                        logger.log_step("依赖配置", "FAILED", "无法找到依赖结束位置")
+                dep_end = content.find('</dependency>', system_biz_pos)
+                if dep_end == -1:
+                    print("❌ 未找到依赖结束标签")
                     return False
-                insert_pos = dep_end_pos + len('</dependency>')
+                insert_pos = dep_end + len('</dependency>')
             
-            # 构建新的依赖项
+            # 构建新的依赖配置
             new_dependency = f"""
         <dependency>
             <groupId>org.jeecgframework.boot</groupId>
             <artifactId>{artifact_id}</artifactId>
-            <version>${{jeecgboot.version}}</version>
+            <version>3.8.2</version>
         </dependency>"""
             
             # 插入新依赖
@@ -1799,625 +673,2253 @@ class ModuleManager:
             with open(pom_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
             
-            if logger:
-                logger.log_step("依赖配置", "SUCCESS", f"已添加依赖到启动项目: {artifact_id}")
+            print(f"✅ 已添加依赖: {artifact_id}")
             return True
             
         except Exception as e:
-            if logger:
-                logger.log_step("依赖配置", "FAILED", f"更新启动项目依赖异常: {str(e)}")
+            print(f"❌ 更新启动项目依赖异常: {str(e)}")
             return False
 
-# ===============================================================================
-# 统一执行器 - 核心入口
-# ===============================================================================
 
-class UnifiedTableExecutor:
-    """统一表处理执行器 - 支持AI随机性"""
+class ScenarioIdentificationTask:
+    TABLE_TYPE_SCENARIOS = {1: "独立表场景", 2: "主子表场景中的主表", 3: "主子表场景中的子表"}
     
-    def __init__(self, config_file: str = "Code_Gen_Config.properties"):
-        self.api_manager = JeecgBootAPIManager(config_file)
-        self.module_manager = ModuleManager(self.api_manager)
-        self.frontend_migrator = FrontendMigrator(self.api_manager)
-        self.placeholder_processor = PlaceholderProcessor(self.api_manager)
-        self.sql_executor = DatabaseSQLExecutor(self.api_manager)
-        self.validator = CodeGenValidator() if CodeGenValidator else None
-        self.logger = None  # 初始化为None，在execute_table_workflow中创建
-    
-    def execute_table_workflow(self, config_data: Dict) -> bool:
-        """统一的表处理入口 - 支持AI随机性执行"""
+    def __init__(self):
+        self.task_id = 4
+        self.task_name = "需求场景识别"
+        self.file_name = None
+        self.table_name = None
+        self.business_entity = None
+        self.table_type = None
+        self.data_registry = []
+        
+    def execute(self, filename):
         try:
-            print(f"\n{'='*80}")
-            print("🚀 JeecgBoot 代码生成执行器 v2.0 启动")
-            print(f"{'='*80}")
+            with open(filename, 'r', encoding='utf-8') as f:
+                data = json.load(f)
             
-            # 1. 解析基本信息创建日志记录器
+            if isinstance(data, dict) and 'head' in data:
+                success = self._process_jeecgboot_format(filename, data)
+            elif isinstance(data, dict) and 'tableType' in data:
+                success = self._process_single_table(filename, data)
+            elif isinstance(data, list):
+                success = self._process_multiple_tables(filename, data)
+            elif isinstance(data, dict) and 'tables' in data:
+                success = self._process_multiple_tables(filename, data['tables'])
+            else:
+                success = False
+                
+        except Exception:
+            success = False
+        
+        task_result = "pass" if success else "fail"
+        
+        # 生成摘要
+        if success:
+            scenario = self.TABLE_TYPE_SCENARIOS.get(self.table_type, "未知场景")
+            summary = f"识别{self.table_name}为{scenario}"
+        else:
+            summary = "场景识别失败"
+            
+        print(f"{self.task_id}--{self.task_name}--{summary}")
+        print(task_result)
+        
+        return f"{self.task_id}-{self.task_name}-{task_result}"
+    
+    def _process_jeecgboot_format(self, filename, data):
+        head_data = data.get('head', {})
+        metadata = data.get('metadata', {})
+        generation_info = metadata.get('generation_info', {})
+        
+        table_type = head_data.get('tableType')
+        table_name = head_data.get('tableName')
+        business_entity = head_data.get('business_entity') or generation_info.get('business_entity')
+        
+        if table_type is None:
+            return False
+            
+        table_info = {
+            'file_name': filename,
+            'table_name': table_name,
+            'business_entity': business_entity,
+            'table_type': table_type
+        }
+        self.data_registry.append(table_info)
+        
+        self.file_name = filename
+        self.table_name = table_name
+        self.business_entity = business_entity
+        self.table_type = table_type
+        
+        return True
+    
+    def _process_single_table(self, filename, data):
+        table_type = data.get('tableType')
+        table_name = data.get('tableName', data.get('table_name'))
+        business_entity = data.get('business_entity', data.get('businessEntity'))
+        
+        if table_type is None:
+            return False
+            
+        table_info = {
+            'file_name': filename,
+            'table_name': table_name,
+            'business_entity': business_entity,
+            'table_type': table_type
+        }
+        self.data_registry.append(table_info)
+        
+        self.file_name = filename
+        self.table_name = table_name
+        self.business_entity = business_entity
+        self.table_type = table_type
+        
+        return True
+    
+    def _process_multiple_tables(self, filename, tables_data):
+        if not isinstance(tables_data, list):
+            return False
+            
+        success_count = 0
+        for i, table_data in enumerate(tables_data):
+            if isinstance(table_data, dict) and 'tableType' in table_data:
+                if self._process_single_table(f"{filename}[{i}]", table_data):
+                    success_count += 1
+                    
+        return success_count > 0
+    
+    def query_by_filename(self, filename):
+        for record in self.data_registry:
+            if record['file_name'] == filename:
+                return record['table_type']
+        return None
+    
+    def query_by_table_name(self, table_name):
+        for record in self.data_registry:
+            if record['table_name'] == table_name:
+                return record['table_type']
+        return None
+    
+    def query_by_business_entity(self, business_entity):
+        for record in self.data_registry:
+            if record['business_entity'] == business_entity:
+                return record['table_type']
+        return None
+    
+    def query_table_type(self, **kwargs):
+        if 'filename' in kwargs:
+            return self.query_by_filename(kwargs['filename'])
+        elif 'table_name' in kwargs:
+            return self.query_by_table_name(kwargs['table_name'])
+        elif 'business_entity' in kwargs:
+            return self.query_by_business_entity(kwargs['business_entity'])
+        return None
+    
+    def get_scenario_description(self, table_type):
+        return self.TABLE_TYPE_SCENARIOS.get(table_type, "未知场景")
+    
+    def get_all_records(self):
+        return self.data_registry.copy()
+
+
+class SentinelMechanismTask:
+    def __init__(self):
+        self.task_id = 5
+        self.task_name = "建立哨兵机制"
+        self.sentinel_file = None
+        self.sentinel_data = {}
+        
+    def execute(self, config_data, scenario_task_result=None):
+        try:
             module_info = self._extract_module_info(config_data)
             if not module_info:
-                return False
+                task_result = "fail"
+                summary = "模块信息提取失败"
+            else:
+                module_name = module_info['module_name']
+                submodule_name = module_info['submodule_name']
+                self.sentinel_file = f"{module_name}_{submodule_name}_sentinel.json"
+                
+                # 记录操作前的表数量
+                old_table_count = 0
+                if os.path.exists(self.sentinel_file):
+                    try:
+                        with open(self.sentinel_file, 'r', encoding='utf-8') as f:
+                            old_data = json.load(f)
+                            old_table_count = len(old_data.get('tables', {}))
+                    except:
+                        old_table_count = 0
+                    
+                    success = self._update_existing_sentinel(config_data, module_info)
+                    action = "更新"
+                else:
+                    success = self._create_new_sentinel(config_data, module_info)
+                    action = "创建"
+                
+                task_result = "pass" if success else "fail"
+                if success:
+                    new_table_count = len(self.sentinel_data.get('tables', {}))
+                    if action == "创建":
+                        summary = f"{action}哨兵文件,包含{new_table_count}个表"
+                    else:
+                        added_count = new_table_count - old_table_count
+                        if added_count > 0:
+                            summary = f"{action}哨兵文件,新增{added_count}个表,共{new_table_count}个表"
+                        else:
+                            summary = f"{action}哨兵文件,维持{new_table_count}个表"
+                else:
+                    summary = f"哨兵文件{action}失败"
+        except Exception:
+            task_result = "fail"
+            summary = "哨兵机制建立异常"
+        
+        print(f"{self.task_id}--{self.task_name}--{summary}")
+        print(task_result)
+        
+        return f"{self.task_id}-{self.task_name}-{task_result}"
+    
+    def _extract_module_info(self, config_data):
+        try:
+            metadata = config_data.get('metadata', {})
+            generation_info = metadata.get('generation_info', {})
             
-            # 创建日志记录器
-            self.logger = CodeGenLogger(module_info['module_name'], module_info['submodule_name'])
-            self.logger.log_step("系统初始化", "SUCCESS", "代码生成执行器启动", f"模块: {module_info['module_name']}.{module_info['submodule_name']}")
+            if generation_info:
+                module_name = generation_info.get('module_name')
+                submodule_name = generation_info.get('submodule_name')
+                
+                if module_name and submodule_name:
+                    return {
+                        'module_name': module_name,
+                        'submodule_name': submodule_name,
+                        'business_entity': generation_info.get('business_entity'),
+                        'inference_strategy': generation_info.get('inference_strategy'),
+                        'semantic_analysis': generation_info.get('semantic_analysis')
+                    }
             
-            # 2. 配置验证
-            if not self._validate_config(config_data):
-                if self.logger:
-                    self.logger.log_step("配置验证", "FAILED", "配置文件验证失败")
-                    self.logger.print_workflow_summary()
-                    self.logger.save_log_file()
-                return False
+            head = config_data.get('head', {})
+            table_name = head.get('tableName', '')
             
-            table_type = config_data.get('head', {}).get('tableType', 1)
+            if table_name and '_' in table_name:
+                parts = table_name.split('_')
+                if len(parts) >= 2:
+                    return {
+                        'module_name': parts[0],
+                        'submodule_name': parts[1],
+                        'business_entity': head.get('business_entity'),
+                        'inference_strategy': 'table_name_inference',
+                        'semantic_analysis': ''
+                    }
+            
+            return None
+            
+        except Exception:
+            return None
+    
+    def _create_new_sentinel(self, config_data, module_info):
+        try:
+            head = config_data.get('head', {})
+            table_type = head.get('tableType', 1)
+            scenario_type = self._determine_scenario_type(table_type)
+            
+            self.sentinel_data = {
+                "scenario_id": f"{module_info['module_name']}_{module_info['submodule_name']}",
+                "scenario_type": scenario_type,
+                "module_name": module_info['module_name'],
+                "submodule_name": module_info['submodule_name'],
+                "created_at": datetime.now().isoformat(),
+                "last_updated": datetime.now().isoformat(),
+                "tables": {},
+                "version": 1,
+                "summary_status": SentinelStatus.SUMMARY_PENDING  # 使用状态常量
+            }
+            
+            self._add_table_info(config_data, module_info)
+            return self._save_sentinel()
+            
+        except Exception:
+            return False
+    
+    def _update_existing_sentinel(self, config_data, module_info):
+        try:
+            with open(self.sentinel_file, 'r', encoding='utf-8') as f:
+                self.sentinel_data = json.load(f)
+            
+            self.sentinel_data['last_updated'] = datetime.now().isoformat()
+            self.sentinel_data['version'] = self.sentinel_data.get('version', 1) + 1
+            
+            if 'summary_status' not in self.sentinel_data:
+                self.sentinel_data['summary_status'] = SentinelStatus.SUMMARY_PENDING
+            
+            self._add_table_info(config_data, module_info)
+            # 重新计算汇总状态
+            self.sentinel_data['summary_status'] = self._calculate_summary_status()
+            
+            return self._save_sentinel()
+            
+        except Exception:
+            return False
+    
+    def _add_table_info(self, config_data, module_info):
+        head = config_data.get('head', {})
+        table_name = head.get('tableName')
+        table_type = head.get('tableType', 1)
+        business_entity = module_info.get('business_entity')
+        
+        if table_name:
+            # 添加或更新主表/当前表信息
+            current_time = datetime.now().isoformat()
+            
+            if table_name in self.sentinel_data['tables']:
+                # 表已存在，更新信息
+                existing_table = self.sentinel_data['tables'][table_name]
+                existing_table.update({
+                    "table_type": table_type,
+                    "entity_name": business_entity,
+                    "last_updated": current_time
+                })
+                if table_type == 3:
+                    existing_table["tab_order"] = head.get('tabOrderNum', 1)
+            else:
+                # 新表，创建完整信息
+                table_info = {
+                    "table_name": table_name,
+                    "table_type": table_type,
+                    "entity_name": business_entity,
+                    "status": SentinelStatus.TABLE_PENDING,  # 使用状态常量
+                    "form_id": None,
+                    "created_at": current_time,
+                    "last_updated": current_time
+                }
+                
+                if table_type == 3:
+                    table_info["tab_order"] = head.get('tabOrderNum', 1)
+                
+                self.sentinel_data['tables'][table_name] = table_info
+        
+        # 如果是主表(tableType=2)，还需要处理subList中的子表信息
+        if table_type == 2:
+            sub_list = config_data.get('subList', [])
+            if sub_list:
+                self._add_subtables_from_sublist(sub_list)
+    
+    def _add_subtables_from_sublist(self, sub_list):
+        """从subList添加或更新子表信息"""
+        for i, sub_item in enumerate(sub_list, 1):
+            sub_table_name = sub_item.get('tableName')
+            sub_entity_name = sub_item.get('entityName')
+            
+            if sub_table_name and sub_entity_name:
+                current_time = datetime.now().isoformat()
+                
+                if sub_table_name in self.sentinel_data['tables']:
+                    # 子表已存在，更新信息
+                    existing_subtable = self.sentinel_data['tables'][sub_table_name]
+                    existing_subtable.update({
+                        "entity_name": sub_entity_name,
+                        "last_updated": current_time,
+                        "tab_order": i
+                    })
+                else:
+                    # 新子表，创建完整信息
+                    sub_table_info = {
+                        "table_name": sub_table_name,
+                        "table_type": 3,  # 子表固定为tableType=3
+                        "entity_name": sub_entity_name,
+                        "status": SentinelStatus.TABLE_PENDING,  # 使用状态常量
+                        "form_id": None,
+                        "created_at": current_time,
+                        "last_updated": current_time,
+                        "tab_order": i
+                    }
+                    self.sentinel_data['tables'][sub_table_name] = sub_table_info
+    
+    def _determine_scenario_type(self, table_type):
+        if table_type == 1:
+            return "independent_table"
+        elif table_type in [2, 3]:
+            return "master_sub_table"
+        else:
+            return "unknown"
+    
+    def _calculate_summary_status(self):
+        """计算汇总状态"""
+        tables = self.sentinel_data.get('tables', {})
+        if not tables:
+            return SentinelStatus.SUMMARY_PENDING
+        
+        statuses = [table.get('status', SentinelStatus.TABLE_PENDING) for table in tables.values()]
+        return SentinelStatusManager.calculate_summary_status(statuses)
+    
+    def _save_sentinel(self):
+        try:
+            with open(self.sentinel_file, 'w', encoding='utf-8') as f:
+                json.dump(self.sentinel_data, f, indent=2, ensure_ascii=False)
+            return True
+        except Exception:
+            return False
+    
+    def get_sentinel_data(self):
+        return self.sentinel_data.copy()
+    
+    def get_sentinel_file(self):
+        return self.sentinel_file
+    
+    def update_table_status(self, table_name: str, new_status: str, form_id: str = None) -> bool:
+        """
+        更新表的状态
+        
+        Args:
+            table_name: 表名
+            new_status: 新状态（必须是有效的表状态）
+            form_id: 表单ID（可选）
+            
+        Returns:
+            bool: 是否更新成功
+        """
+        if not SentinelStatusManager.is_valid_table_status(new_status):
+            print(f"无效的表状态: {new_status}")
+            return False
+        
+        if table_name not in self.sentinel_data.get('tables', {}):
+            print(f"表不存在: {table_name}")
+            return False
+        
+        table_info = self.sentinel_data['tables'][table_name]
+        current_status = table_info.get('status', SentinelStatus.TABLE_PENDING)
+        
+        # 检查状态转换是否合法
+        if not SentinelStatusManager.can_transition_to(current_status, new_status):
+            print(f"无法从 {current_status} 转换到 {new_status}")
+            return False
+        
+        # 更新表状态
+        table_info['status'] = new_status
+        table_info['last_updated'] = datetime.now().isoformat()
+        
+        if form_id:
+            table_info['form_id'] = form_id
+        
+        # 更新哨兵文件的版本和汇总状态
+        self.sentinel_data['last_updated'] = datetime.now().isoformat()
+        self.sentinel_data['version'] = self.sentinel_data.get('version', 1) + 1
+        self.sentinel_data['summary_status'] = self._calculate_summary_status()
+        
+        # 保存到文件
+        return self._save_sentinel()
+    
+    def get_table_status(self, table_name: str) -> Optional[str]:
+        """获取表的当前状态"""
+        table_info = self.sentinel_data.get('tables', {}).get(table_name)
+        if table_info:
+            return table_info.get('status', SentinelStatus.TABLE_PENDING)
+        return None
+    
+    def get_tables_by_status(self, status: str) -> list:
+        """获取指定状态的所有表"""
+        tables = []
+        for table_name, table_info in self.sentinel_data.get('tables', {}).items():
+            if table_info.get('status') == status:
+                tables.append(table_name)
+        return tables
+
+
+class CodeGenerationTask:
+    """任务6：哨兵机制生成代码"""
+    
+    def __init__(self, config: JeecgBootConfig = None):
+        """
+        初始化代码生成任务
+        
+        Args:
+            config: JeecgBootConfig配置实例，如果为None则使用默认配置
+        """
+        if config:
+            self.config = config
+        else:
+            # 创建默认配置（主要用于向后兼容）
+            self.config = JeecgBootConfig()
+            self.config.load_config()
+            
+        # 从配置中心获取参数
+        self.base_url = self.config.get_base_url()
+        self.username = self.config.get_username()  
+        self.password = self.config.get_password()
+    
+    def execute(self, filename: str) -> str:
+        """执行代码生成任务"""
+        try:
+            # 读取传入的JSON文件
+            with open(filename, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+            
+            table_type = config_data.get('head', {}).get('tableType')
             table_name = config_data.get('head', {}).get('tableName', '')
             
-            print(f"📊 表信息: {table_name} (tableType={table_type})")
-            print(f"📁 模块信息: {module_info['module_name']}.{module_info['submodule_name']}")
+            print(f"6--哨兵机制生成代码--开始处理 {table_name} (类型:{table_type})")
             
-            # 3. 获取或创建哨兵
-            sentinel = MasterSubTableSentinel(module_info['module_name'], module_info['submodule_name'])
-            if not sentinel.get_or_create_sentinel(config_data):
-                if self.logger:
-                    self.logger.log_step("哨兵协调", "FAILED", "哨兵创建或获取失败")
-                    self.logger.print_workflow_summary()
-                    self.logger.save_log_file()
-                return False
-            
-            self.logger.log_step("哨兵协调", "SUCCESS", "哨兵创建或获取成功")
-            
-            # 4. 模块准备工作流（确保Maven模块存在并配置完成）
-            if not self.module_manager.ensure_module_exists(module_info['module_name'], self.logger):
-                if self.logger:
-                    self.logger.log_step("模块准备", "FAILED", "模块创建和配置失败")
-                    # 模块准备失败不终止流程，继续执行（向后兼容）
-                    print("⚠️ 模块准备失败，但继续执行后续工作流...")
-            
-            # 5. 执行基础工作流（所有表类型都需要）
-            if not self._execute_basic_workflow(config_data):
-                if self.logger:
-                    self.logger.log_step("基础工作流", "FAILED", "API调用工作流执行失败")
-                    self.logger.print_workflow_summary()
-                    self.logger.save_log_file()
-                return False
-            
-            # 6. 向哨兵报告完成状态
-            form_id = self.api_manager.get_form_id(table_name)
-            if not sentinel.report_completion(table_name, SentinelStatus.SYNCED, form_id):
-                if self.logger:
-                    self.logger.log_step("哨兵状态报告", "FAILED", "无法更新哨兵状态")
-                    self.logger.print_workflow_summary()
-                    self.logger.save_log_file()
-                return False
-            
-            self.logger.log_step("哨兵状态报告", "SUCCESS", "表状态已同步到哨兵")
-            
-            # 7. 检查是否触发最终代码生成（根据表类型分别处理）
-            if table_type == 2:  # 主表：等待所有子表完成后统一生成
-                result = self._handle_master_table_completion(sentinel, config_data)
-            elif table_type == 1:  # 独立表：直接生成完整代码
-                result = self._execute_standalone_table_workflow(config_data)
-            else:  # 子表：只等待主表触发
-                self.logger.log_step("工作流完成", "SUCCESS", "子表工作流执行完成，等待主表触发代码生成")
-                result = True
-            
-            self.logger.print_workflow_summary()
-            self.logger.save_log_file()
-            return result
+            if table_type == 1:
+                return self._handle_independent_table(config_data)
+            elif table_type == 3:
+                return self._handle_sub_table(config_data)
+            elif table_type == 2:
+                return self._handle_master_table(config_data)
+            else:
+                print(f"6--哨兵机制生成代码--无效的表类型:{table_type}")
+                return "fail"
                 
         except Exception as e:
-            if self.logger:
-                self.logger.log_step("系统异常", "FAILED", f"执行器异常: {str(e)}")
-                self.logger.print_workflow_summary()
-                self.logger.save_log_file()
-            print(f"❌ 执行器异常: {e}")
+            print(f"6--哨兵机制生成代码--异常:{e}")
+            return "fail"
+    
+    def _handle_independent_table(self, config_data: Dict) -> str:
+        """处理独立表场景(tableType=1)"""
+        table_name = config_data.get('head', {}).get('tableName', '')
+        
+        # 登录获取token
+        login_result = jeecg_login(self.base_url, self.username, self.password, 
+                                  self.config.get_timeout('login'))
+        if not login_result['success']:
+            print(f"登录失败: {login_result['message']}")
+            return "fail"
+        
+        token = login_result['token']
+        
+        # API调用链：创建 → 查询 → 同步 → 代码生成
+        try:
+            # 1. 表单创建
+            create_result = jeecg_create_form(self.base_url, token, config_data, 
+                                            self.config.get_timeout('create'))
+            if not create_result['success']:
+                print(f"表单创建失败: {create_result['message']}")
+                return "fail"
+            
+            form_id = create_result['form_id']
+            print(f"表单创建成功: {form_id}")
+            
+            # 2. 表单查询（验证）
+            query_result = jeecg_query_form(self.base_url, token, table_name, 
+                                          self.config.get_page_size(), 
+                                          self.config.get_timeout('list'))
+            if not query_result['success']:
+                print(f"表单查询失败: {query_result['message']}")
+                return "fail"
+            
+            # 3. 数据库同步
+            sync_result = jeecg_sync_database(self.base_url, token, form_id, 
+                                            self.config.get_timeout('sync'))
+            if not sync_result['success']:
+                print(f"数据库同步失败: {sync_result['message']}")
+                return "fail"
+            
+            print(f"数据库同步成功")
+            
+            # 4. 代码生成
+            project_root = self.config.env_vars.get('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
+            generate_result = jeecg_generate_code(self.base_url, token, form_id, config_data, 
+                                                self.config.get_timeout('codegen'), project_root)
+            if not generate_result['success']:
+                print(f"代码生成失败: {generate_result['message']}")
+                return "fail"
+            
+            print(f"代码生成成功")
+            return "pass"
+            
+        except Exception as e:
+            print(f"独立表处理异常: {e}")
+            return "fail"
+    
+    def _handle_sub_table(self, config_data: Dict) -> str:
+        """处理子表场景(tableType=3) - 无操作，等待主表调用"""
+        table_name = config_data.get('head', {}).get('tableName', '')
+        print(f"子表 {table_name} 等待主表处理")
+        return "waiting"  # 特殊状态，不是pass也不是fail
+    
+    def _handle_master_table(self, config_data: Dict) -> str:
+        """处理主表场景(tableType=2)"""
+        table_name = config_data.get('head', {}).get('tableName', '')
+        
+        # 获取哨兵文件路径
+        module_info = self._extract_module_info(config_data)
+        sentinel_file = f"{module_info['module_name']}_{module_info['submodule_name']}_sentinel.json"
+        
+        if not os.path.exists(sentinel_file):
+            print(f"哨兵文件不存在: {sentinel_file}")
+            return "fail"
+        
+        # 读取哨兵文件
+        try:
+            with open(sentinel_file, 'r', encoding='utf-8') as f:
+                sentinel_data = json.load(f)
+        except Exception as e:
+            print(f"读取哨兵文件失败: {e}")
+            return "fail"
+        
+        # 登录获取token
+        login_result = jeecg_login(self.base_url, self.username, self.password, 
+                                  self.config.get_timeout('login'))
+        if not login_result['success']:
+            print(f"登录失败: {login_result['message']}")
+            self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
+            return "fail"
+        
+        token = login_result['token']
+        
+        # 处理所有表：创建 → 查询 → 同步
+        try:
+            all_tables = sentinel_data.get('tables', {})
+            
+            for table_name, table_info in all_tables.items():
+                table_status = table_info.get('status', SentinelStatus.TABLE_PENDING)
+                
+                # 跳过已经完成同步的表
+                if table_status in [SentinelStatus.TABLE_DB_SYNCED, SentinelStatus.TABLE_CODE_GENERATED]:
+                    continue
+                
+                # 查找对应的JSON配置文件
+                table_config = self._find_table_json_file(table_name)
+                if not table_config:
+                    print(f"未找到表 {table_name} 的配置文件")
+                    self._update_table_status(sentinel_file, table_name, SentinelStatus.TABLE_FAIL)
+                    self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
+                    return "fail"
+                
+                # 执行API调用链
+                if not self._process_table_apis(token, table_name, table_config, sentinel_file):
+                    return "fail"
+            
+            # 所有表都同步完成后，对主表执行代码生成
+            main_table_name = None
+            main_table_config = None
+            
+            for table_name, table_info in all_tables.items():
+                if table_info.get('table_type') == 2:  # 主表
+                    main_table_name = table_name
+                    main_table_config = self._find_table_json_file(table_name)
+                    break
+            
+            if main_table_name and main_table_config:
+                # 重新读取哨兵文件获取最新的form_id
+                try:
+                    with open(sentinel_file, 'r', encoding='utf-8') as f:
+                        updated_sentinel_data = json.load(f)
+                    return self._generate_master_table_code(token, main_table_name, main_table_config, updated_sentinel_data, sentinel_file)
+                except Exception as e:
+                    print(f"重新读取哨兵文件失败: {e}")
+                    return "fail"
+            else:
+                print("未找到主表信息")
+                return "fail"
+                
+        except Exception as e:
+            print(f"主表处理异常: {e}")
+            self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
+            return "fail"
+    
+    def _extract_module_info(self, config_data: Dict) -> Dict:
+        """提取模块信息"""
+        metadata = config_data.get('metadata', {})
+        generation_info = metadata.get('generation_info', {})
+        
+        return {
+            'module_name': generation_info.get('module_name', 'unknown'),
+            'submodule_name': generation_info.get('submodule_name', 'unknown')
+        }
+    
+    def _find_table_json_file(self, table_name: str) -> Dict:
+        """根据表名查找对应的JSON配置文件 - 增强版本支持多种命名格式"""
+        import glob
+        import re
+        
+        def to_pascal_case(snake_str: str) -> str:
+            """将snake_case字符串转换为PascalCase"""
+            if not snake_str:
+                return ""
+            # 按下划线分割，每个单词首字母大写
+            words = snake_str.split('_')
+            return ''.join(word.capitalize() for word in words if word)
+        
+        def to_camel_case(snake_str: str) -> str:
+            """将snake_case字符串转换为camelCase"""
+            if not snake_str:
+                return ""
+            words = snake_str.split('_')
+            if not words:
+                return ""
+            # 第一个单词小写，其余单词首字母大写
+            return words[0].lower() + ''.join(word.capitalize() for word in words[1:] if word)
+        
+        # 策略1: 直接匹配 (原始表名)
+        pattern = f"{table_name}_*.json"
+        matching_files = glob.glob(pattern)
+        
+        # 策略2: 通配符模糊匹配
+        if not matching_files:
+            table_parts = table_name.split('_')
+            if len(table_parts) >= 3:
+                module = table_parts[0]
+                submodule = table_parts[1]
+                entity_part = '_'.join(table_parts[2:])
+                
+                # 使用通配符进行模糊匹配，忽略大小写差异
+                fuzzy_pattern = f"{module}_{submodule}_*{entity_part.lower()}*_*.json"
+                all_files = glob.glob(f"{module}_{submodule}_*_*.json")
+                
+                # 在匹配的文件中查找包含entity_part的文件（忽略大小写）
+                for file in all_files:
+                    if entity_part.lower() in file.lower():
+                        matching_files.append(file)
+                
+        # 策略3: PascalCase转换匹配
+        if not matching_files:
+            table_parts = table_name.split('_')
+            if len(table_parts) >= 3:
+                module = table_parts[0]
+                submodule = table_parts[1]
+                entity_part = '_'.join(table_parts[2:])
+                
+                # 将entity部分转换为PascalCase
+                entity_pascal = to_pascal_case(entity_part)
+                pascal_pattern = f"{module}_{submodule}_{entity_pascal}_*.json"
+                matching_files = glob.glob(pascal_pattern)
+        
+        # 策略4: camelCase转换匹配
+        if not matching_files:
+            table_parts = table_name.split('_')
+            if len(table_parts) >= 3:
+                module = table_parts[0]
+                submodule = table_parts[1]
+                entity_part = '_'.join(table_parts[2:])
+                
+                # 将entity部分转换为camelCase
+                entity_camel = to_camel_case(entity_part)
+                camel_pattern = f"{module}_{submodule}_{entity_camel}_*.json"
+                matching_files = glob.glob(camel_pattern)
+        
+        # 策略5: 正则表达式匹配 (最宽松)
+        if not matching_files:
+            table_parts = table_name.split('_')
+            if len(table_parts) >= 3:
+                module = table_parts[0]
+                submodule = table_parts[1]
+                entity_part = '_'.join(table_parts[2:])
+                
+                # 查找所有可能的文件
+                all_possible_files = glob.glob(f"{module}_{submodule}_*_*.json")
+                
+                # 使用正则表达式进行灵活匹配
+                entity_chars = ''.join(c for c in entity_part if c.isalnum())
+                pattern_regex = re.compile(
+                    f"{re.escape(module)}_{re.escape(submodule)}_.*{re.escape(entity_chars)}.*\\.json$", 
+                    re.IGNORECASE
+                )
+                
+                for file in all_possible_files:
+                    if pattern_regex.match(file):
+                        matching_files.append(file)
+        
+        # 返回第一个匹配的文件
+        if matching_files:
+            # 去重并选择第一个
+            matching_files = list(set(matching_files))
+            try:
+                print(f"✅ 找到配置文件: {matching_files[0]} (匹配表名: {table_name})")
+                with open(matching_files[0], 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"❌ 读取配置文件失败 {matching_files[0]}: {e}")
+                return None
+        
+        print(f"❌ 未找到表 {table_name} 的配置文件")
+        print(f"   尝试的匹配策略:")
+        print(f"   1. 直接匹配: {table_name}_*.json")
+        if '_' in table_name and len(table_name.split('_')) >= 3:
+            parts = table_name.split('_')
+            entity = '_'.join(parts[2:])
+            print(f"   2. 通配符匹配: {parts[0]}_{parts[1]}_*{entity.lower()}*_*.json")
+            print(f"   3. PascalCase匹配: {parts[0]}_{parts[1]}_{to_pascal_case(entity)}_*.json")
+            print(f"   4. camelCase匹配: {parts[0]}_{parts[1]}_{to_camel_case(entity)}_*.json")
+        
+        return None
+    
+    def _process_table_apis(self, token: str, table_name: str, table_config: Dict, sentinel_file: str) -> bool:
+        """处理单个表的API调用链"""
+        try:
+            # 1. 表单创建
+            create_result = jeecg_create_form(self.base_url, token, table_config, 
+                                            self.config.get_timeout('create'))
+            if not create_result['success']:
+                print(f"表 {table_name} 创建失败: {create_result['message']}")
+                self._update_table_status(sentinel_file, table_name, SentinelStatus.TABLE_FAIL)
+                self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
+                return False
+            
+            form_id = create_result['form_id']
+            self._update_table_status(sentinel_file, table_name, SentinelStatus.TABLE_FORM_CREATED, form_id)
+            print(f"表 {table_name} 创建成功")
+            
+            # 2. 表单查询（验证）
+            query_result = jeecg_query_form(self.base_url, token, table_name, 
+                                          self.config.get_page_size(), 
+                                          self.config.get_timeout('list'))
+            if not query_result['success']:
+                print(f"表 {table_name} 查询失败: {query_result['message']}")
+                self._update_table_status(sentinel_file, table_name, SentinelStatus.TABLE_FAIL)
+                self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
+                return False
+            
+            # 3. 数据库同步
+            sync_result = jeecg_sync_database(self.base_url, token, form_id, 
+                                            self.config.get_timeout('sync'))
+            if not sync_result['success']:
+                print(f"表 {table_name} 同步失败: {sync_result['message']}")
+                self._update_table_status(sentinel_file, table_name, SentinelStatus.TABLE_FAIL)
+                self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
+                return False
+            
+            self._update_table_status(sentinel_file, table_name, SentinelStatus.TABLE_DB_SYNCED)
+            print(f"表 {table_name} 同步成功")
+            return True
+            
+        except Exception as e:
+            print(f"表 {table_name} 处理异常: {e}")
+            self._update_table_status(sentinel_file, table_name, SentinelStatus.TABLE_FAIL)
+            self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
+            return False
+    
+    def _generate_master_table_code(self, token: str, main_table_name: str, main_table_config: Dict, sentinel_data: Dict, sentinel_file: str) -> str:
+        """为主表生成代码"""
+        try:
+            # 构建subList
+            sub_list = self._build_sublist_from_sentinel(sentinel_data)
+            
+            # 将subList添加到主表配置中
+            main_table_config['subList'] = sub_list
+            
+            # 获取主表form_id
+            main_table_info = sentinel_data.get('tables', {}).get(main_table_name, {})
+            form_id = main_table_info.get('form_id')
+            
+            if not form_id:
+                print(f"主表 {main_table_name} 缺少form_id")
+                return "fail"
+            
+            # 执行代码生成
+            project_root = self.config.env_vars.get('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
+            generate_result = jeecg_generate_code(self.base_url, token, form_id, main_table_config, 
+                                                self.config.get_timeout('codegen'), project_root)
+            if not generate_result['success']:
+                print(f"主表代码生成失败: {generate_result['message']}")
+                self._update_table_status(sentinel_file, main_table_name, SentinelStatus.TABLE_FAIL)
+                self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
+                return "fail"
+            
+            # 更新主表状态为代码已生成
+            self._update_table_status(sentinel_file, main_table_name, SentinelStatus.TABLE_CODE_GENERATED)
+            self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_PASS)
+            print(f"主表 {main_table_name} 代码生成成功")
+            return "pass"
+            
+        except Exception as e:
+            print(f"主表代码生成异常: {e}")
+            self._update_table_status(sentinel_file, main_table_name, SentinelStatus.TABLE_FAIL)
+            self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
+            return "fail"
+    
+    def _build_sublist_from_sentinel(self, sentinel_data: Dict) -> list:
+        """根据哨兵文件构建subList"""
+        sub_list = []
+        all_tables = sentinel_data.get('tables', {})
+        
+        # 获取所有子表（tableType=3）
+        sub_tables = []
+        for table_name, table_info in all_tables.items():
+            if table_info.get('table_type') == 3:
+                sub_tables.append({
+                    'table_name': table_name,
+                    'entity_name': table_info.get('entity_name', ''),
+                    'tab_order': table_info.get('tab_order', 1)
+                })
+        
+        # 按tab_order排序
+        sub_tables.sort(key=lambda x: x.get('tab_order', 999))
+        
+        # 构建subList格式（参考Example_Main_Sub_Table.json）
+        for i, sub_table in enumerate(sub_tables):
+            sub_list.append({
+                "tableName": sub_table['table_name'],
+                "entityName": sub_table['entity_name'],
+                "ftlDescription": f"{sub_table['entity_name']}表",
+                "id": f"row_{1020 + i}"
+            })
+        
+        return sub_list
+    
+    def _update_table_status(self, sentinel_file: str, table_name: str, status: str, form_id: str = None):
+        """更新哨兵文件中表的状态"""
+        try:
+            with open(sentinel_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            if table_name in data.get('tables', {}):
+                data['tables'][table_name]['status'] = status
+                data['tables'][table_name]['last_updated'] = datetime.now().isoformat()
+                if form_id:
+                    data['tables'][table_name]['form_id'] = form_id
+                
+                data['version'] = data.get('version', 0) + 1
+                
+                with open(sentinel_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"更新表状态失败: {e}")
+    
+    def _update_sentinel_summary_status(self, sentinel_file: str, summary_status: str):
+        """更新哨兵文件的汇总状态"""
+        try:
+            with open(sentinel_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            data['summary_status'] = summary_status
+            data['last_updated'] = datetime.now().isoformat()
+            data['version'] = data.get('version', 0) + 1
+            
+            with open(sentinel_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"更新汇总状态失败: {e}")
+
+
+class PlaceholderVariableProcessingTask:
+    """任务7：占位符变量处理"""
+    
+    def __init__(self, config: JeecgBootConfig = None):
+        self.task_id = 7
+        self.task_name = "占位符变量处理"
+        self.config = config or JeecgBootConfig()
+        if not self.config.loaded:
+            self.config.load_config()
+    
+    def execute(self, filename: str) -> str:
+        """执行占位符变量处理任务"""
+        try:
+            # 读取配置数据
+            with open(filename, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+            
+            print("7--占位符变量处理--任务开始")
+            
+            # 处理占位符变量替换
+            if self.process_placeholder_variables(config_data):
+                summary = "占位符变量处理成功"
+                task_result = "pass"
+            else:
+                summary = "占位符变量处理失败"
+                task_result = "fail"
+            
+            print(f"{self.task_id}--{self.task_name}--{summary}")
+            print(task_result)
+            
+            return f"{self.task_id}-{self.task_name}-{task_result}"
+            
+        except Exception as e:
+            summary = f"占位符变量处理异常: {e}"
+            task_result = "fail"
+            print(f"❌ {summary}")
+            print(f"{self.task_id}--{self.task_name}--{summary}")
+            print(task_result)
+            return f"{self.task_id}-{self.task_name}-{task_result}"
+    
+    def process_placeholder_variables(self, config_data: Dict) -> bool:
+        """处理占位变量替换 - 基于老脚本的实现"""
+        import shutil
+        import re
+        
+        try:
+            print("🔄 开始处理生成代码中的占位变量")
+            
+            # 提取模块信息
+            module_info = self._extract_module_info(config_data)
+            if not module_info:
+                print("❌ 缺少必要的模块信息")
+                return False
+            
+            module_name = module_info['module_name']
+            submodule_name = module_info['submodule_name']
+            business_entity = module_info['business_entity']
+            
+            # 查找生成的模块目录
+            project_root = self.config.get_project_root()
+            module_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
+            
+            if not os.path.exists(module_path):
+                print(f"❌ 模块目录不存在: {module_path}")
+                return False
+            
+            print(f"📁 处理模块目录: {module_path}")
+            
+            # 构建包名和路径映射
+            src_java_path = f"{module_path}/src/main/java"
+            package_name = f"org.jeecg.modules.{module_name}"
+            package_path = package_name.replace('.', '/')
+            
+            # 定义占位变量映射
+            placeholders = {
+                '{{PACKAGE_NAME}}': package_name,
+                '{{MODULE_NAME}}': module_name,
+                '{{SUBMODULE_NAME}}': submodule_name,
+                '{{BUSINESS_ENTITY}}': business_entity
+            }
+            
+            print(f"📋 占位变量映射: {placeholders}")
+            
+            # 处理文件夹重命名 - 先重命名包目录结构
+            old_package_path = f"{src_java_path}/{{{{PACKAGE_NAME}}}}"
+            new_package_path = f"{src_java_path}/{package_path}"
+            
+            if os.path.exists(old_package_path):
+                print(f"📂 重命名包目录: {{{{PACKAGE_NAME}}}} -> {package_path}")
+                # 创建正确的包目录结构
+                os.makedirs(os.path.dirname(new_package_path), exist_ok=True)
+                shutil.move(old_package_path, new_package_path)
+                print(f"✅ 包目录重命名成功")
+            else:
+                print(f"ℹ️ 未找到需要重命名的包目录: {old_package_path}")
+            
+            # 处理所有文件中的占位变量
+            replaced_count = 0
+            processed_files = []
+            
+            for root, dirs, files in os.walk(module_path):
+                for file in files:
+                    if file.endswith(('.java', '.xml', '.ts', '.vue', '.sql', '.yml', '.yaml', '.properties')):
+                        file_path = os.path.join(root, file)
+                        if self._replace_file_placeholders(file_path, placeholders):
+                            replaced_count += 1
+                            # 记录处理的文件（相对路径）
+                            relative_path = os.path.relpath(file_path, module_path)
+                            processed_files.append(relative_path)
+            
+            print(f"✅ 占位符变量处理完成")
+            print(f"📊 共处理 {replaced_count} 个文件")
+            
+            if processed_files:
+                print("📄 处理的文件列表:")
+                for file_path in processed_files[:10]:  # 最多显示前10个文件
+                    print(f"   - {file_path}")
+                if len(processed_files) > 10:
+                    print(f"   ... 还有 {len(processed_files) - 10} 个文件")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ 占位变量处理失败: {e}")
             import traceback
             traceback.print_exc()
             return False
     
-    def _validate_config(self, config_data: Dict) -> bool:
-        """验证配置文件"""
-        if not self.validator:
-            if self.logger:
-                self.logger.log_step("配置验证", "SKIPPED", "验证器未加载，跳过验证")
-            return True
-        
-        # 实现基本的配置验证逻辑
-        try:
-            # 验证必需的配置项
-            required_sections = ['head', 'metadata']
-            for section in required_sections:
-                if section not in config_data:
-                    if self.logger:
-                        self.logger.log_step("配置验证", "FAILED", f"缺少必需的配置段: {section}")
-                    return False
-            
-            # 验证head段的必需字段
-            head = config_data.get('head', {})
-            required_head_fields = ['tableName', 'tableType']
-            for field in required_head_fields:
-                if not head.get(field):
-                    if self.logger:
-                        self.logger.log_step("配置验证", "FAILED", f"head段缺少必需字段: {field}")
-                    return False
-            
-            # 验证metadata段的必需字段
-            metadata = config_data.get('metadata', {})
-            generation_info = metadata.get('generation_info', {})
-            required_meta_fields = ['module_name', 'submodule_name', 'business_entity']
-            for field in required_meta_fields:
-                if not generation_info.get(field):
-                    if self.logger:
-                        self.logger.log_step("配置验证", "FAILED", f"metadata.generation_info缺少必需字段: {field}")
-                    return False
-            
-            # 验证表类型的有效性
-            table_type = head.get('tableType')
-            if table_type not in [1, 2, 3]:
-                if self.logger:
-                    self.logger.log_step("配置验证", "FAILED", f"无效的表类型: {table_type}，应为1(独立表)、2(主表)或3(子表)")
-                return False
-            
-            if self.logger:
-                self.logger.log_step("配置验证", "SUCCESS", "配置文件验证通过")
-            return True
-            
-        except Exception as e:
-            if self.logger:
-                self.logger.log_step("配置验证", "FAILED", f"配置验证异常: {str(e)}")
-            return False
-    
-    def _extract_module_info(self, config_data: Dict) -> Optional[Dict]:
+    def _extract_module_info(self, config_data: Dict) -> Dict:
         """提取模块信息"""
         try:
-            # 方法1: 从metadata获取
             metadata = config_data.get('metadata', {})
             generation_info = metadata.get('generation_info', {})
             
-            module_name = generation_info.get('module_name')
-            submodule_name = generation_info.get('submodule_name')
+            if generation_info:
+                module_name = generation_info.get('module_name')
+                submodule_name = generation_info.get('submodule_name')
+                business_entity = generation_info.get('business_entity')
+                
+                if module_name and submodule_name and business_entity:
+                    return {
+                        'module_name': module_name,
+                        'submodule_name': submodule_name,
+                        'business_entity': business_entity
+                    }
             
-            if module_name and submodule_name:
-                return {
-                    'module_name': module_name,
-                    'submodule_name': submodule_name,
-                    'source': 'metadata'
-                }
+            # 从表名推断模块信息
+            head = config_data.get('head', {})
+            table_name = head.get('tableName', '')
+            business_entity = head.get('business_entity', '')
             
-            # 方法2: 从表名解析 - 支持3段式命名
-            table_name = config_data.get('head', {}).get('tableName', '')
-            parts = table_name.split('_')
-            if len(parts) >= 3:
-                return {
-                    'module_name': parts[0],  # 第一段是模块名
-                    'submodule_name': parts[1],  # 第二段是子模块名
-                    'source': 'table_name'
-                }
+            if table_name and '_' in table_name and business_entity:
+                parts = table_name.split('_')
+                if len(parts) >= 2:
+                    return {
+                        'module_name': parts[0],
+                        'submodule_name': parts[1],
+                        'business_entity': business_entity
+                    }
             
-            print("❌ 无法提取模块信息")
             return None
             
-        except Exception as e:
-            print(f"❌ 模块信息提取异常: {e}")
+        except Exception:
             return None
     
-    def _execute_basic_workflow(self, config_data: Dict) -> bool:
-        """执行基础工作流：登录 → 创建表单 → 查询验证 → 数据库同步"""
-        
-        # 1. 登录
-        self.logger.log_step("用户登录", "IN_PROGRESS", "开始JeecgBoot API认证")
-        if not self.api_manager.login():
-            self.logger.log_step("用户登录", "FAILED", "API登录认证失败")
-            return False
-        self.logger.log_step("用户登录", "SUCCESS", "API登录认证成功")
-        
-        # 2. 创建表单
-        self.logger.log_step("创建表单", "IN_PROGRESS", "调用addAll API创建在线表单")
-        form_id, is_duplicate = self.api_manager.create_form(config_data)
-        if not form_id:
-            self.logger.log_step("创建表单", "FAILED", "表单创建失败")
-            return False
-        
-        if is_duplicate:
-            # 检测到重复表单，记录为失败
-            self.logger.log_step("创建表单", "FAILED", f"表单重复，检测到已存在表单: {form_id}")
-            return False
-        else:
-            self.logger.log_step("创建表单", "SUCCESS", f"表单创建成功，ID: {form_id}")
-        
-        # 3. 查询验证
-        table_name = config_data.get('head', {}).get('tableName', '')
-        self.logger.log_step("表单验证", "IN_PROGRESS", f"验证表单 {table_name} 是否正确创建")
-        verified_form_id = self.api_manager.get_form_id(table_name)
-        if not verified_form_id:
-            self.logger.log_step("表单验证", "FAILED", "表单查询验证失败")
-            return False
-        self.logger.log_step("表单验证", "SUCCESS", f"表单验证通过，ID: {verified_form_id}")
-        
-        # 4. 数据库同步
-        self.logger.log_step("数据库同步", "IN_PROGRESS", "同步表单结构到数据库")
-        if not self.api_manager.sync_database(verified_form_id):
-            self.logger.log_step("数据库同步", "FAILED", "数据库同步失败")
-            return False
-        self.logger.log_step("数据库同步", "SUCCESS", "数据库同步完成")
-        
-        return True
-    
-    def _handle_master_table_completion(self, sentinel: MasterSubTableSentinel, main_config: Dict) -> bool:
-        """处理主表完成逻辑"""
-        
-        # 检查所有表是否完成
-        if sentinel.is_all_completed():
-            print("🎯 所有表已完成，开始统一代码生成...")
-            return self._execute_final_workflow(sentinel, main_config)
-        else:
-            print("⏳ 主表等待子表完成...")
-            
-            # 显示等待状态
-            tables = sentinel.sentinel_data.get('tables', {})
-            for table_name, table_info in tables.items():
-                status = table_info.get('status', 'unknown')
-                table_type = table_info.get('table_type', 0)
-                type_desc = {1: '独立表', 2: '主表', 3: '子表'}.get(table_type, '未知')
-                print(f"   {table_name} ({type_desc}): {status}")
-            
-            return True
-    
-    def _execute_final_workflow(self, sentinel: MasterSubTableSentinel, main_config: Dict) -> bool:
-        """执行最终工作流：统一代码生成 → 后续处理"""
+    def _replace_file_placeholders(self, file_path: str, placeholders: Dict[str, str]) -> bool:
+        """替换单个文件中的占位变量"""
         try:
-            # 获取主表信息
-            main_table_info = sentinel.get_main_table_info()
-            if not main_table_info:
-                self.logger.log_step("最终工作流", "FAILED", "未找到主表信息")
-                return False
+            # 尝试以UTF-8编码读取文件
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except UnicodeDecodeError:
+                # 如果UTF-8失败，尝试使用GBK编码
+                try:
+                    with open(file_path, 'r', encoding='gbk') as f:
+                        content = f.read()
+                except UnicodeDecodeError:
+                    # 如果都失败，跳过这个文件
+                    print(f"⚠️ 文件编码无法识别，跳过: {file_path}")
+                    return False
             
-            form_id = main_table_info.get('form_id')
-            if not form_id:
-                self.logger.log_step("最终工作流", "FAILED", "主表form_id缺失")
-                return False
+            original_content = content
             
-            # 1. 统一代码生成
-            self.logger.log_step("代码生成", "IN_PROGRESS", "开始统一代码生成")
-            if not self.api_manager.generate_code(form_id, main_config):
-                self.logger.log_step("代码生成", "FAILED", "代码生成API调用失败")
-                return False
-            self.logger.log_step("代码生成", "SUCCESS", "代码生成完成")
+            # 替换所有占位变量
+            for placeholder, value in placeholders.items():
+                if placeholder in content:
+                    content = content.replace(placeholder, value)
             
-            # 2. 后续处理流程
-            self.logger.log_step("后续处理开始", "IN_PROGRESS", "开始执行后续处理环节")
+            # 修复Java包路径中的连续点号问题
+            if file_path.endswith('.java'):
+                import re
+                # 使用正则表达式替换连续的点号为单个点号
+                content = re.sub(r'\.{2,}', '.', content)
             
-            # 占位变量处理 - 最重要，先执行
-            success_count = 0
-            total_count = 3
+            # 如果内容有变化才写回文件
+            if content != original_content:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                return True
             
-            if self.placeholder_processor.process_placeholder_variables(main_config, self.logger):
-                success_count += 1
+            return False
+            
+        except Exception as e:
+            print(f"⚠️ 文件处理失败 {file_path}: {e}")
+            return False
+
+
+class FrontendCodeMigrationTask:
+    """任务8：前端代码迁移"""
+    
+    def __init__(self, config: JeecgBootConfig = None):
+        self.task_id = 8
+        self.task_name = "前端代码迁移"
+        self.config = config or JeecgBootConfig()
+        if not self.config.loaded:
+            self.config.load_config()
+    
+    def execute(self, filename: str) -> str:
+        """执行前端代码迁移任务"""
+        try:
+            # 读取配置数据
+            with open(filename, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+            
+            print("8--前端代码迁移--任务开始")
+            
+            # 执行前端代码迁移
+            if self.migrate_frontend_code(config_data):
+                summary = "前端代码迁移成功"
+                task_result = "pass"
             else:
-                # 占位变量处理失败不终止，继续执行其他环节
-                pass
+                summary = "前端代码迁移失败"
+                task_result = "fail"
             
-            # 前端代码迁移
-            if self.frontend_migrator.migrate_frontend_code(main_config, self.logger):
-                success_count += 1
+            print(f"{self.task_id}--{self.task_name}--{summary}")
+            print(task_result)
             
-            # SQL脚本执行
-            if self.sql_executor.execute_permission_sql(main_config, self.logger):
-                success_count += 1
+            return f"{self.task_id}-{self.task_name}-{task_result}"
             
-            # 3. 标记完成
-            sentinel.report_completion(main_table_info['table_name'], SentinelStatus.CODE_GENERATED)
+        except Exception as e:
+            summary = f"前端代码迁移异常: {e}"
+            task_result = "fail"
+            print(f"❌ {summary}")
+            print(f"{self.task_id}--{self.task_name}--{summary}")
+            print(task_result)
+            return f"{self.task_id}-{self.task_name}-{task_result}"
+    
+    def migrate_frontend_code(self, config_data: Dict) -> bool:
+        """迁移前端代码到正确位置"""
+        import shutil
+        
+        try:
+            print("🔄 开始迁移Vue3前端代码")
             
-            # 记录整体结果
-            # 根据成功率决定最终状态
-            if success_count == total_count:
-                self.logger.log_step("工作流完成", "SUCCESS", f"主子表完整工作流执行成功，{success_count}/{total_count} 个环节成功")
-            elif success_count >= 2:  # 至少2个环节成功才算部分成功
-                self.logger.log_step("工作流完成", "SUCCESS", f"主子表工作流执行完成，{success_count}/{total_count} 个环节成功，部分环节可能需要手动处理")
-            else:
-                self.logger.log_step("工作流完成", "FAILED", f"主子表工作流执行失败，仅{success_count}/{total_count} 个环节成功")
-                return False  # 成功率太低，标记为失败
+            # 提取模块信息
+            module_info = self._extract_module_info(config_data)
+            if not module_info:
+                print("❌ 缺少必要的模块信息")
+                return False
+            
+            module_name = module_info['module_name']
+            submodule_name = module_info['submodule_name']
+            
+            # 获取路径信息
+            project_root = self.config.get_project_root()
+            
+            # 源路径：生成的Vue3代码位置（占位符处理后的实际路径）
+            source_vue_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}/src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/vue3"
+            
+            # 目标路径：前端项目中的位置（使用submodule层级）
+            target_base_path = "jeecgboot-vue3/src/views"
+            target_dir = f"{project_root}/{target_base_path}/{submodule_name}"
+            
+            print(f"📂 源路径: {source_vue_path}")
+            print(f"📂 目标路径: {target_dir}")
+            
+            # 检查源路径是否存在
+            if not os.path.exists(source_vue_path):
+                print(f"❌ 源路径不存在: {source_vue_path}")
+                return False
+            
+            # 检查源路径中是否有文件
+            if not os.listdir(source_vue_path):
+                print(f"⚠️ 源路径为空: {source_vue_path}")
+                return True  # 空目录也算成功
+            
+            # 确保目标目录存在
+            os.makedirs(target_dir, exist_ok=True)
+            print(f"📁 创建目标目录: {target_dir}")
+            
+            # 统计迁移的文件数
+            migrated_files = []
+            
+            # 移动vue3目录下的所有内容到目标位置
+            for item in os.listdir(source_vue_path):
+                source_item = os.path.join(source_vue_path, item)
+                target_item = os.path.join(target_dir, item)
+                
+                # 如果目标文件已存在，先备份
+                if os.path.exists(target_item):
+                    backup_name = f"{target_item}.backup.{int(time.time())}"
+                    shutil.move(target_item, backup_name)
+                    print(f"🔄 备份已存在文件: {item} -> {os.path.basename(backup_name)}")
+                
+                # 移动文件或目录
+                shutil.move(source_item, target_item)
+                migrated_files.append(item)
+                print(f"📄 迁移文件: {item}")
+            
+            print(f"✅ 前端代码迁移完成")
+            print(f"📊 共迁移 {len(migrated_files)} 个文件/目录")
+            print(f"📂 目标位置: {target_dir}")
+            
+            if migrated_files:
+                print("📄 迁移的文件列表:")
+                for file_name in migrated_files:
+                    print(f"   - {file_name}")
+            
+            # 清理空的源目录
+            try:
+                if os.path.exists(source_vue_path) and not os.listdir(source_vue_path):
+                    os.rmdir(source_vue_path)
+                    print(f"🧹 清理空源目录: {source_vue_path}")
+            except Exception as e:
+                print(f"⚠️ 清理源目录失败: {e}")
             
             return True
             
         except Exception as e:
-            self.logger.log_step("最终工作流", "FAILED", f"执行异常: {str(e)}")
-            print(f"❌ 最终工作流执行异常: {e}")
+            print(f"❌ 前端代码迁移失败: {e}")
             import traceback
             traceback.print_exc()
             return False
     
-    def _execute_standalone_table_workflow(self, config_data: Dict) -> bool:
-        """执行独立表完整工作流：代码生成 → 后续处理"""
+    def _extract_module_info(self, config_data: Dict) -> Dict:
+        """提取模块信息"""
         try:
-            table_name = config_data.get('head', {}).get('tableName', '')
-            form_id = self.api_manager.get_form_id(table_name)
+            metadata = config_data.get('metadata', {})
+            generation_info = metadata.get('generation_info', {})
             
-            if not form_id:
-                self.logger.log_step("独立表代码生成", "FAILED", "无法获取表单ID")
-                return False
+            if generation_info:
+                module_name = generation_info.get('module_name')
+                submodule_name = generation_info.get('submodule_name')
+                
+                if module_name and submodule_name:
+                    return {
+                        'module_name': module_name,
+                        'submodule_name': submodule_name
+                    }
             
-            # 1. 代码生成
-            self.logger.log_step("代码生成", "IN_PROGRESS", "开始独立表代码生成")
-            if not self.api_manager.generate_code(form_id, config_data):
-                self.logger.log_step("代码生成", "FAILED", "代码生成API调用失败")
-                return False
-            self.logger.log_step("代码生成", "SUCCESS", "代码生成完成")
+            # 从表名推断模块信息
+            head = config_data.get('head', {})
+            table_name = head.get('tableName', '')
             
-            # 2. 后续处理流程（复用主子表的完整逻辑）
-            self.logger.log_step("后续处理开始", "IN_PROGRESS", "开始执行后续处理环节")
+            if table_name and '_' in table_name:
+                parts = table_name.split('_')
+                if len(parts) >= 2:
+                    return {
+                        'module_name': parts[0],
+                        'submodule_name': parts[1]
+                    }
             
-            # 占位变量处理 - 最重要，先执行
-            success_count = 0
-            total_count = 3
+            return None
             
-            if self.placeholder_processor.process_placeholder_variables(config_data, self.logger):
-                success_count += 1
-            else:
-                # 占位变量处理失败不终止，继续执行其他环节
-                pass
-            
-            # 前端代码迁移
-            if self.frontend_migrator.migrate_frontend_code(config_data, self.logger):
-                success_count += 1
-            
-            # SQL脚本执行
-            if self.sql_executor.execute_permission_sql(config_data, self.logger):
-                success_count += 1
-            
-            # 3. 记录整体结果
-            # 根据成功率决定最终状态
-            if success_count == total_count:
-                self.logger.log_step("工作流完成", "SUCCESS", f"独立表完整工作流执行成功，{success_count}/{total_count} 个环节成功")
-            elif success_count >= 2:  # 至少2个环节成功才算部分成功
-                self.logger.log_step("工作流完成", "SUCCESS", f"独立表工作流执行完成，{success_count}/{total_count} 个环节成功，部分环节可能需要手动处理")
-            else:
-                self.logger.log_step("工作流完成", "FAILED", f"独立表工作流执行失败，仅{success_count}/{total_count} 个环节成功")
-                return False  # 成功率太低，标记为失败
-            
-            return True
-            
-        except Exception as e:
-            self.logger.log_step("独立表工作流", "FAILED", f"执行异常: {str(e)}")
-            print(f"❌ 独立表工作流执行异常: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+        except Exception:
+            return None
 
-# ===============================================================================
-# 独立测试和验证函数
-# ===============================================================================
 
-def test_menu_permission_sql_execution():
-    """
-    测试菜单权限SQL执行功能
-    这是一个独立的测试函数，可以用来验证功能是否正常
-    """
-    print("🗺  开始测试菜单权限SQL执行功能...")
+# =============================================================================
+# 任务9：菜单权限SQL执行
+# =============================================================================
+
+class DatabaseSQLExecutionTask:
+    """任务9：菜单权限SQL执行任务"""
     
-    try:
-        # 模拟测试参数
-        test_module = "test"
-        test_submodule = "demo" 
-        test_entity = "TestEntity"
+    def __init__(self, config: Optional[JeecgBootConfig] = None):
+        """初始化SQL执行任务
         
-        # 创建测试配置管理器
-        config_manager = JeecgBootAPIManager()
+        Args:
+            config: JeecgBoot配置对象，包含数据库连接信息
+        """
+        self.config = config or JeecgBootConfig()
+        if not self.config.loaded:
+            self.config.load_config()
+    
+    def execute(self, config_file: str) -> str:
+        """执行SQL文件中的菜单权限语句
         
-        # 创建数据库执行器并执行菜单权限授权
-        sql_executor = DatabaseSQLExecutor(config_manager)
-        result = {'success': sql_executor.execute_permission_sql({
-            'metadata': {
-                'generation_info': {
-                    'module_name': test_module,
-                    'submodule_name': test_submodule,
-                    'business_entity': test_entity
-                }
+        Args:
+            config_file: 配置文件路径（未使用，但保持接口一致性）
+            
+        Returns:
+            str: 执行结果状态 "9-菜单权限SQL执行-pass" 或 "9-菜单权限SQL执行-fail"
+        """
+        print("9--菜单权限SQL执行--任务开始")
+        
+        try:
+            # 获取数据库连接配置
+            db_config = self._get_database_config()
+            if not db_config:
+                print("❌ 数据库配置缺失")
+                print("9--菜单权限SQL执行--数据库配置缺失")
+                return "9-菜单权限SQL执行-fail"
+            
+            # 发现SQL文件
+            sql_files = self._discover_sql_files()
+            if not sql_files:
+                print("ℹ️ 未发现需要执行的SQL文件")
+                print("9--菜单权限SQL执行--无SQL文件需要执行")
+                return "9-菜单权限SQL执行-pass"
+            
+            print(f"📄 发现 {len(sql_files)} 个SQL文件需要执行")
+            
+            # 执行SQL文件
+            success_count = 0
+            for sql_file in sql_files:
+                print(f"🔄 执行SQL文件: {sql_file}")
+                if self._execute_sql_file(sql_file, db_config):
+                    success_count += 1
+                    print(f"✅ SQL文件执行成功: {sql_file}")
+                else:
+                    print(f"❌ SQL文件执行失败: {sql_file}")
+            
+            if success_count == len(sql_files):
+                print(f"✅ 菜单权限SQL执行完成")
+                print(f"📊 成功执行 {success_count}/{len(sql_files)} 个SQL文件")
+                print("9--菜单权限SQL执行--SQL执行成功")
+                return "9-菜单权限SQL执行-pass"
+            else:
+                print(f"⚠️ 部分SQL文件执行失败")
+                print(f"📊 成功执行 {success_count}/{len(sql_files)} 个SQL文件")
+                print("9--菜单权限SQL执行--部分SQL执行失败")
+                return "9-菜单权限SQL执行-fail"
+                
+        except Exception as e:
+            print(f"❌ SQL执行任务异常: {str(e)}")
+            print("9--菜单权限SQL执行--SQL执行异常")
+            return "9-菜单权限SQL执行-fail"
+    
+    def _get_database_config(self) -> Optional[Dict]:
+        """获取数据库连接配置
+        
+        Returns:
+            Dict: 数据库配置信息，包含host、port、user、password、database
+        """
+        try:
+            # 从JEECG_DATABASE_URL解析数据库连接信息
+            database_url = self.config.env_vars.get('JEECG_DATABASE_URL', '')
+            database_username = self.config.env_vars.get('JEECG_DATABASE_USERNAME', '')
+            database_password = self.config.env_vars.get('JEECG_DATABASE_PASSWORD', '')
+            
+            if not database_url or not database_username or not database_password:
+                print("⚠️ JeecgBoot数据库配置缺失")
+                print(f"   JEECG_DATABASE_URL: {'✓' if database_url else '✗'}")
+                print(f"   JEECG_DATABASE_USERNAME: {'✓' if database_username else '✗'}")
+                print(f"   JEECG_DATABASE_PASSWORD: {'✓' if database_password else '✗'}")
+                return None
+            
+            # 解析JDBC URL: jdbc:mysql://localhost:30004/jeecg-boot
+            import re
+            jdbc_pattern = r'jdbc:mysql://([^:]+):(\d+)/(.+?)(\?.*)?$'
+            match = re.match(jdbc_pattern, database_url)
+            
+            if not match:
+                print(f"❌ 无法解析数据库URL: {database_url}")
+                return None
+            
+            db_host = match.group(1)
+            db_port = int(match.group(2))
+            db_name = match.group(3)
+            
+            print(f"📊 数据库连接信息:")
+            print(f"   主机: {db_host}")
+            print(f"   端口: {db_port}")
+            print(f"   数据库: {db_name}")
+            print(f"   用户: {database_username}")
+            
+            return {
+                'host': db_host,
+                'port': db_port,
+                'user': database_username,
+                'password': database_password,
+                'database': db_name,
+                'charset': 'utf8mb4',
+                'autocommit': False
             }
-        })}
+            
+        except Exception as e:
+            print(f"❌ 获取数据库配置失败: {str(e)}")
+            return None
+    
+    def _discover_sql_files(self) -> List[str]:
+        """在前端代码路径中查找菜单权限SQL文件
         
-        # 检查结果
-        print(f"✅ 测试结果: {result['success']}")
-        print(f"   总语句数: {result['total_statements']}")
-        print(f"   影响行数: {result['total_affected_rows']}")
-        print(f"   执行时间: {result['execution_time']:.2f}秒")
+        Returns:
+            List[str]: 发现的SQL文件路径列表
+        """
+        try:
+            # 前端代码目录路径
+            frontend_views_path = os.path.join(os.getcwd(), "..", "jeecgboot-vue3", "src", "views")
+            
+            if not os.path.exists(frontend_views_path):
+                print(f"⚠️ 前端视图目录不存在: {frontend_views_path}")
+                return []
+            
+            print(f"🔍 在前端代码路径中查找SQL文件: {frontend_views_path}")
+            
+            sql_files = []
+            
+            # 递归查找所有.sql文件
+            for root, dirs, files in os.walk(frontend_views_path):
+                for file in files:
+                    if file.endswith('.sql'):
+                        file_path = os.path.join(root, file)
+                        
+                        # 检查文件是否包含菜单权限相关的SQL
+                        if self._is_menu_permission_sql(file_path):
+                            sql_files.append(file_path)
+                            relative_path = os.path.relpath(file_path, frontend_views_path)
+                            print(f"📄 发现菜单权限SQL文件: views/{relative_path}")
+            
+            return sql_files
+            
+        except Exception as e:
+            print(f"❌ 查找SQL文件失败: {str(e)}")
+            return []
+    
+    def _is_menu_permission_sql(self, file_path: str) -> bool:
+        """检查SQL文件是否包含菜单权限相关语句
         
-        if result['error_message']:
-            print(f"   错误信息: {result['error_message']}")
+        Args:
+            file_path: SQL文件路径
+            
+        Returns:
+            bool: 是否为菜单权限SQL文件
+        """
+        try:
+            if not os.path.exists(file_path):
+                return False
+            
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read().lower()
+                
+            # 检查是否包含菜单权限相关的表名和关键词
+            menu_keywords = [
+                'sys_permission',
+                'sys_role_permission',
+                'menu_insert',
+                'permission',
+                'menu'
+            ]
+            
+            return any(keyword in content for keyword in menu_keywords)
+            
+        except Exception:
+            return False
+    
+    def _execute_sql_file(self, sql_file: str, db_config: Dict) -> bool:
+        """执行单个SQL文件
         
-        return result['success']
+        Args:
+            sql_file: SQL文件路径
+            db_config: 数据库配置
+            
+        Returns:
+            bool: 执行是否成功
+        """
+        connection = None
+        try:
+            # 读取SQL文件内容
+            sql_statements = self._extract_sql_statements(sql_file)
+            if not sql_statements:
+                print(f"⚠️ 文件中没有有效的SQL语句: {sql_file}")
+                return True  # 空文件视为成功
+            
+            # 建立数据库连接
+            connection = mysql.connector.connect(**db_config)
+            cursor = connection.cursor()
+            
+            # 开始事务
+            connection.start_transaction()
+            
+            executed_count = 0
+            for sql_statement in sql_statements:
+                try:
+                    cursor.execute(sql_statement)
+                    executed_count += 1
+                except mysql.connector.Error as e:
+                    print(f"❌ SQL语句执行失败: {str(e)}")
+                    print(f"   SQL: {sql_statement[:100]}...")
+                    raise
+            
+            # 提交事务
+            connection.commit()
+            print(f"📊 成功执行 {executed_count} 条SQL语句")
+            return True
+            
+        except Exception as e:
+            # 回滚事务
+            if connection:
+                try:
+                    connection.rollback()
+                    print("🔄 事务已回滚")
+                except:
+                    pass
+            
+            print(f"❌ SQL文件执行失败: {str(e)}")
+            return False
+            
+        finally:
+            if connection:
+                try:
+                    connection.close()
+                except:
+                    pass
+    
+    def _extract_sql_statements(self, sql_file: str) -> List[str]:
+        """从SQL文件中提取SQL语句
         
-    except Exception as e:
-        print(f"❌ 测试异常: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+        Args:
+            sql_file: SQL文件路径
+            
+        Returns:
+            List[str]: SQL语句列表
+        """
+        try:
+            with open(sql_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            statements = []
+            lines = content.split('\n')
+            current_statement = []
+            
+            for line in lines:
+                line = line.strip()
+                
+                # 跳过空行和注释
+                if not line or line.startswith('--') or line.startswith('#'):
+                    continue
+                
+                # 移除行内注释
+                if '--' in line:
+                    line = line.split('--')[0].strip()
+                if '#' in line:
+                    line = line.split('#')[0].strip()
+                
+                if not line:
+                    continue
+                
+                current_statement.append(line)
+                
+                # 如果行以分号结尾，表示语句结束
+                if line.endswith(';'):
+                    full_statement = ' '.join(current_statement).strip()
+                    if full_statement and not full_statement.startswith(('--', '#')):
+                        statements.append(full_statement)
+                    current_statement = []
+            
+            # 处理最后一个未以分号结尾的语句
+            if current_statement:
+                full_statement = ' '.join(current_statement).strip()
+                if full_statement and not full_statement.startswith(('--', '#')):
+                    statements.append(full_statement)
+            
+            return statements
+            
+        except Exception as e:
+            print(f"❌ 读取SQL文件失败: {str(e)}")
+            return []
 
-def create_test_config_data(module_name: str, submodule_name: str, business_entity: str, table_type: int = 1) -> Dict:
+
+# =============================================================================
+# JeecgBoot API 独立函数集 - 六个核心API接口封装
+# =============================================================================
+
+def jeecg_login(base_url: str, username: str, password: str, timeout: int = 10) -> Dict:
     """
-    创建测试配置数据
+    JeecgBoot用户认证API
     
     Args:
-        module_name: 模块名
-        submodule_name: 子模块名  
-        business_entity: 业务实体名
-        table_type: 表类型 (1=独立表, 2=主表, 3=子表)
-    
+        base_url: JeecgBoot服务基础URL，如 http://localhost:8080/jeecg-boot
+        username: 用户名
+        password: 密码
+        timeout: 请求超时时间（秒）
+        
     Returns:
-        Dict: 测试配置数据
+        Dict: {"success": bool, "token": str, "message": str}
     """
-    table_name = f"{module_name}_{submodule_name}_{business_entity.lower()}"
-    
-    return {
-        "head": {
-            "tableName": table_name,
-            "tableType": table_type,
-            "business_entity": business_entity,
-            "tableTxt": f"{business_entity}管理"
-        },
-        "metadata": {
-            "generation_info": {
-                "module_name": module_name,
-                "submodule_name": submodule_name,
-                "business_entity": business_entity
-            }
-        },
-        "subList": [] if table_type != 2 else [
-            {
-                "tableName": f"{table_name}_detail",
-                "entityName": f"{business_entity}Detail"
-            }
-        ]
-    }
-
-def test_complete_workflow():
-    """
-    测试完整的代码生成工作流
-    """
-    print("🏃 开始测试完整工作流...")
+    login_url = f"{base_url}/sys/mLogin"
+    login_data = {"username": username, "password": password}
     
     try:
-        # 创建测试配置
-        test_config = create_test_config_data(
-            module_name="test",
-            submodule_name="demo", 
-            business_entity="TestEntity",
-            table_type=1
-        )
-        
-        print(f"📄 测试配置: {test_config['head']['tableName']}")
-        
-        # 创建执行器
-        executor = UnifiedTableExecutor()
-        
-        # 模拟执行 (不连接真实数据库)
-        print("🔍 模拟模块信息提取...")
-        module_info = executor._extract_module_info(test_config)
-        
-        if module_info:
-            print(f"✅ 模块信息提取成功: {module_info}")
+        response = requests.post(login_url, json=login_data, timeout=timeout)
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                token_info = result.get('result', {})
+                token = token_info.get('token')
+                if token:
+                    return {"success": True, "token": token, "message": "登录成功"}
+                else:
+                    return {"success": False, "token": None, "message": "未获取到token"}
+            else:
+                return {"success": False, "token": None, "message": result.get('message', '登录失败')}
         else:
-            print("❌ 模块信息提取失败")
-            return False
-        
-        print("🔍 模拟配置验证...")
-        validation_result = executor._validate_config(test_config)
-        
-        if validation_result:
-            print("✅ 配置验证通过")
-        else:
-            print("❌ 配置验证失败")
-            return False
-            
-        print("✅ 测试完整工作流通过")
-        return True
-        
+            return {"success": False, "token": None, "message": f"请求失败，状态码: {response.status_code}"}
     except Exception as e:
-        print(f"❌ 测试异常: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+        return {"success": False, "token": None, "message": f"登录异常: {str(e)}"}
 
-# ===============================================================================
-# 向后兼容接口 - 保持原有调用方式
-# ===============================================================================
 
-def main():
-    """主入口函数 - 支持测试模式和正常执行模式"""
-    if len(sys.argv) < 2:
-        print("使用方法:")
-        print("  正常执行: python Code_Gen_Execute.py <config_file.json>")
-        print("  测试模式: python Code_Gen_Execute.py --test")
-        print("  SQL独立测试: python Code_Gen_Execute.py --test-sql <module> <submodule> <entity>")
-        sys.exit(1)
+def jeecg_create_form(base_url: str, token: str, form_data: Dict, timeout: int = 60) -> Dict:
+    """
+    JeecgBoot表单创建API
     
-    # 检查是否为测试模式
-    if sys.argv[1] == "--test":
-        print("🧪 进入测试模式...")
-        success = test_complete_workflow()
-        sys.exit(0 if success else 1)
+    Args:
+        base_url: JeecgBoot服务基础URL
+        token: 认证token
+        form_data: 表单配置数据（包含head、fields等信息）
+        timeout: 请求超时时间（秒）
+        
+    Returns:
+        Dict: {"success": bool, "form_id": str, "is_duplicate": bool, "message": str}
+    """
+    create_url = f"{base_url}/online/cgform/api/addAll"
+    headers = {'X-Access-Token': token, 'Content-Type': 'application/json'}
     
-    elif sys.argv[1] == "--test-sql":
-        if len(sys.argv) < 5:
-            print("使用方法: python Code_Gen_Execute.py --test-sql <module> <submodule> <entity>")
-            print("例如: python Code_Gen_Execute.py --test-sql system user UserInfo")
-            sys.exit(1)
+    try:
+        response = requests.post(create_url, json=form_data, headers=headers, timeout=timeout)
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                table_name = form_data.get('head', {}).get('tableName')
+                
+                # 创建成功后获取form_id
+                time.sleep(1)  # 等待数据库写入
+                form_id_result = jeecg_query_form(base_url, token, table_name)
+                if form_id_result.get('success'):
+                    form_id = form_id_result.get('form_id')
+                    return {
+                        "success": True, 
+                        "form_id": form_id, 
+                        "is_duplicate": False, 
+                        "message": f"表单创建成功: {table_name}"
+                    }
+                else:
+                    return {
+                        "success": False, 
+                        "form_id": None, 
+                        "is_duplicate": False, 
+                        "message": "表单创建成功但无法获取form_id"
+                    }
+            else:
+                error_message = result.get('message', '')
+                # 处理重复表单情况
+                if '数据库表' in error_message and '已存在' in error_message:
+                    table_name = form_data.get('head', {}).get('tableName')
+                    time.sleep(1)
+                    form_id_result = jeecg_query_form(base_url, token, table_name)
+                    if form_id_result.get('success'):
+                        form_id = form_id_result.get('form_id')
+                        return {
+                            "success": True, 
+                            "form_id": form_id, 
+                            "is_duplicate": True, 
+                            "message": f"发现重复表单: {table_name}"
+                        }
+                    else:
+                        return {
+                            "success": False, 
+                            "form_id": None, 
+                            "is_duplicate": False, 
+                            "message": f"表单创建失败，数据不一致: {error_message}"
+                        }
+                else:
+                    return {"success": False, "form_id": None, "is_duplicate": False, "message": error_message}
+        else:
+            return {
+                "success": False, 
+                "form_id": None, 
+                "is_duplicate": False, 
+                "message": f"请求失败，状态码: {response.status_code}"
+            }
+    except Exception as e:
+        return {"success": False, "form_id": None, "is_duplicate": False, "message": f"表单创建异常: {str(e)}"}
+
+
+def jeecg_query_form(base_url: str, token: str, table_name: str, page_size: int = 50, timeout: int = 15) -> Dict:
+    """
+    JeecgBoot表单查询API
+    
+    Args:
+        base_url: JeecgBoot服务基础URL
+        token: 认证token
+        table_name: 要查询的表名
+        page_size: 分页大小
+        timeout: 请求超时时间（秒）
         
-        module = sys.argv[2]
-        submodule = sys.argv[3] 
-        entity = sys.argv[4]
+    Returns:
+        Dict: {"success": bool, "form_id": str, "form_info": dict, "message": str}
+    """
+    query_url = f"{base_url}/online/cgform/head/list"
+    headers = {'X-Access-Token': token}
+    params = {'tableName': table_name, 'pageNo': 1, 'pageSize': page_size}
+    
+    try:
+        response = requests.get(query_url, params=params, headers=headers, timeout=timeout)
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                records = result.get('result', {}).get('records', [])
+                for record in records:
+                    if record.get('tableName') == table_name:
+                        form_id = record.get('id')
+                        return {
+                            "success": True, 
+                            "form_id": form_id, 
+                            "form_info": record, 
+                            "message": f"查询成功: {table_name}"
+                        }
+                return {
+                    "success": False, 
+                    "form_id": None, 
+                    "form_info": None, 
+                    "message": f"未找到表单: {table_name}"
+                }
+            else:
+                return {
+                    "success": False, 
+                    "form_id": None, 
+                    "form_info": None, 
+                    "message": result.get('message', '查询失败')
+                }
+        else:
+            return {
+                "success": False, 
+                "form_id": None, 
+                "form_info": None, 
+                "message": f"请求失败，状态码: {response.status_code}"
+            }
+    except Exception as e:
+        return {"success": False, "form_id": None, "form_info": None, "message": f"查询异常: {str(e)}"}
+
+
+def jeecg_sync_database(base_url: str, token: str, form_id: str, timeout: int = 60) -> Dict:
+    """
+    JeecgBoot数据库同步API
+    
+    Args:
+        base_url: JeecgBoot服务基础URL
+        token: 认证token
+        form_id: 表单ID
+        timeout: 请求超时时间（秒）
         
-        print(f"🗺  进入SQL独立测试模式: {module}.{submodule}.{entity}")
+    Returns:
+        Dict: {"success": bool, "message": str}
+    """
+    sync_url = f"{base_url}/online/cgform/api/doDbSynch/{form_id}/normal"
+    headers = {'X-Access-Token': token}
+    
+    try:
+        response = requests.post(sync_url, headers=headers, timeout=timeout)
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                return {"success": True, "message": "数据库同步成功"}
+            else:
+                return {"success": False, "message": result.get('message', '数据库同步失败')}
+        else:
+            return {"success": False, "message": f"请求失败，状态码: {response.status_code}"}
+    except Exception as e:
+        return {"success": False, "message": f"数据库同步异常: {str(e)}"}
+
+
+def jeecg_generate_code(base_url: str, token: str, form_id: str, config_data: Dict, timeout: int = 120, project_root: str = None) -> Dict:
+    """
+    JeecgBoot代码生成API
+    
+    Args:
+        base_url: JeecgBoot服务基础URL
+        token: 登录获取的认证token
+        form_id: 表单ID
+        config_data: 表单配置数据（用于提取生成参数）
+        timeout: 请求超时时间（秒）
+        project_root: 项目根目录路径，如果不提供将从环境变量获取
         
-        try:
-            config_manager = JeecgBootAPIManager()
-            # 创建数据库执行器并执行菜单权限授权
-            sql_executor = DatabaseSQLExecutor(config_manager)
-            success = sql_executor.execute_permission_sql({
+    Returns:
+        Dict: {"success": bool, "message": str}
+    """
+    generate_url = f"{base_url}/online/cgform/api/codeGenerate"
+    
+    try:
+        # 构建代码生成参数
+        table_name = config_data.get('head', {}).get('tableName', '')
+        table_type = config_data.get('head', {}).get('tableType', 1)
+        business_entity = config_data.get('head', {}).get('business_entity', '')
+        
+        # 如果未提供project_root参数，使用默认值
+        if project_root is None:
+            project_root = '/Users/admin/Work/Github/JeecgBoot'
+        
+        # 解析表名获取模块信息 - 支持3段式命名
+        parts = table_name.split('_')
+        if len(parts) >= 3:
+            module_name = parts[0]  # 第一段是模块名
+            submodule_name = parts[1]  # 第二段是子模块名
+            # 使用传入的项目路径
+            project_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
+        else:
+            # 尝试从metadata获取模块信息
+            metadata = config_data.get('metadata', {})
+            generation_info = metadata.get('generation_info', {})
+            submodule_name = generation_info.get('submodule_name', 'common')
+            module_name = generation_info.get('module_name', 'system')
+            # 使用传入的项目路径
+            project_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
+        
+        # 根据表类型设置参数
+        if table_type == 2:  # 主表
+            jsp_mode = "jvxe"
+            jform_type = "2"
+            sub_list = config_data.get('subList', [])
+        else:  # 独立表
+            jsp_mode = "one"
+            jform_type = "1"
+            sub_list = []
+        
+        # 构建请求数据
+        data = {
+            "code": form_id,
+            "projectPath": project_path,
+            "entityName": business_entity,
+            "entityPackage": submodule_name,
+            "jspMode": jsp_mode,
+            "jformType": jform_type,
+            "ftlDescription": config_data.get('head', {}).get('tableTxt', ''),
+            "tableName_tmp": table_name,
+            "packageStyle": "service",
+            "vueStyle": "vue3",
+            "codeTypes": "controller,service,dao,mapper,entity,vue",
+            "tableName": table_name
+        }
+        
+        # 如果是主表，添加子表列表
+        if sub_list:
+            # 简化版：直接使用配置中的子表信息
+            data["subList"] = sub_list
+        
+        headers = {'X-Access-Token': token, 'Content-Type': 'application/json'}
+        response = requests.post(generate_url, json=data, headers=headers, timeout=timeout)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                return {"success": True, "message": "代码生成成功"}
+            else:
+                return {"success": False, "message": result.get('message', '代码生成失败')}
+        else:
+            return {"success": False, "message": f"请求失败，状态码: {response.status_code}"}
+            
+    except Exception as e:
+        return {"success": False, "message": f"代码生成异常: {str(e)}"}
+
+
+def jeecg_delete_forms_batch(base_url: str, token: str, form_ids: list, timeout: int = 30) -> Dict:
+    """
+    JeecgBoot批量删除表单API
+    
+    Args:
+        base_url: JeecgBoot服务基础URL
+        token: 认证token
+        form_ids: 要删除的表单ID列表
+        timeout: 请求超时时间（秒）
+        
+    Returns:
+        Dict: {"success": bool, "message": str, "deleted_count": int}
+    """
+    if not form_ids:
+        return {"success": True, "message": "没有表单需要删除", "deleted_count": 0}
+    
+    delete_url = f"{base_url}/online/cgform/head/deleteBatch"
+    
+    try:
+        # 将form_ids列表转换为逗号分隔的字符串
+        ids_str = ','.join(form_ids)
+        
+        # URL编码处理特殊字符
+        import urllib.parse
+        ids_encoded = urllib.parse.quote(ids_str, safe='')
+        
+        # 构建完整的URL（包含查询参数）
+        url_with_params = f"{delete_url}?ids={ids_encoded}&flag=table"
+        
+        headers = {'X-Access-Token': token}
+        response = requests.delete(url_with_params, headers=headers, timeout=timeout)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                return {
+                    "success": True, 
+                    "message": f"成功删除 {len(form_ids)} 个表单", 
+                    "deleted_count": len(form_ids)
+                }
+            else:
+                return {
+                    "success": False, 
+                    "message": result.get('message', '批量删除失败'), 
+                    "deleted_count": 0
+                }
+        else:
+            return {
+                "success": False, 
+                "message": f"请求失败，状态码: {response.status_code}", 
+                "deleted_count": 0
+            }
+            
+    except Exception as e:
+        return {"success": False, "message": f"批量删除异常: {str(e)}", "deleted_count": 0}
+
+
+def test_jeecg_apis():
+    """
+    测试JeecgBoot API函数的简单示例
+    使用配置中心的配置进行测试
+    """
+    # 创建配置中心
+    config = JeecgBootConfig()
+    if not config.load_config():
+        print("❌ 配置加载失败，使用默认值")
+    
+    base_url = config.get_base_url()
+    username = config.get_username()
+    password = config.get_password()
+    
+    print("=== JeecgBoot API函数测试 ===")
+    
+    # 测试1：用户登录
+    print("\n1. 测试用户登录...")
+    login_result = jeecg_login(base_url, username, password, config.get_timeout('login'))
+    print(f"登录结果: {login_result}")
+    
+    if not login_result.get('success'):
+        print("登录失败，终止测试")
+        return
+    
+    token = login_result.get('token')
+    
+    # 测试2：查询表单（使用一个可能存在的表名）
+    print("\n2. 测试表单查询...")
+    query_result = jeecg_query_form(base_url, token, 'alumni_members_memberprofile', 
+                                  config.get_page_size(), config.get_timeout('list'))
+    print(f"查询结果: {query_result}")
+    
+    # 测试3：如果有form_id，测试数据库同步
+    if query_result.get('success'):
+        form_id = query_result.get('form_id')
+        print(f"\n3. 测试数据库同步 (form_id: {form_id})...")
+        sync_result = jeecg_sync_database(base_url, token, form_id, config.get_timeout('sync'))
+        print(f"同步结果: {sync_result}")
+        
+        # 测试4：如果同步成功，测试代码生成
+        if sync_result.get('success'):
+            print(f"\n4. 测试代码生成...")
+            # 创建简化的配置数据用于测试
+            test_config = {
+                'head': {
+                    'tableName': 'alumni_members_memberprofile',
+                    'tableType': 2,
+                    'business_entity': 'MemberProfile',
+                    'tableTxt': '成员档案表'
+                },
                 'metadata': {
                     'generation_info': {
-                        'module_name': module,
-                        'submodule_name': submodule,
-                        'business_entity': entity
+                        'module_name': 'alumni',
+                        'submodule_name': 'members'
                     }
                 }
-            })
-            
-            result = {
-                'success': success,
-                'executed_files': [],
-                'total_statements': 0,
-                'total_affected_rows': 0,
-                'execution_time': 0.0,
-                'error_message': '' if success else '菜单权限授权执行失败'
             }
+            project_root = config.env_vars.get('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
+            generate_result = jeecg_generate_code(base_url, token, form_id, test_config, 
+                                                config.get_timeout('codegen'), project_root)
+            print(f"代码生成结果: {generate_result}")
             
-            print("\n📈 执行结果报告:")
-            success_icon = '\u2705 成功' if result['success'] else '\u274c 失败'
-            print(f"   成功状态: {success_icon}")
-            print(f"   执行语句: {result['total_statements']} 条")
-            print(f"   影响行数: {result['total_affected_rows']} 行")
-            print(f"   执行时间: {result['execution_time']:.2f} 秒")
-            
-            if result['error_message']:
-                print(f"   错误信息: {result['error_message']}")
-                
-            sys.exit(0 if result['success'] else 1)
-            
-        except Exception as e:
-            print(f"❌ 测试异常: {e}")
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
-    
-    # 正常执行模式
-    config_file = sys.argv[1]
-    
-    try:
-        # 读取配置文件
-        with open(config_file, 'r', encoding='utf-8') as f:
-            config_data = json.load(f)
-        
-        # 创建执行器并执行
-        executor = UnifiedTableExecutor()
-        success = executor.execute_table_workflow(config_data)
-        
-        # 不再输出额外的成功/失败消息，保持汇总状态为最后一行
-        if success:
-            sys.exit(0)
+            # 测试5：批量删除表单（仅在测试环境下执行）
+            if form_id and config.env_vars.get('JEECG_TEST_DELETE', '').lower() == 'true':
+                print(f"\n5. 测试批量删除表单...")
+                delete_result = jeecg_delete_forms_batch(base_url, token, [form_id], 
+                                                       config.get_timeout('delete'))
+                print(f"删除结果: {delete_result}")
+            else:
+                print("\n5. 跳过批量删除测试（需要设置JEECG_TEST_DELETE=true环境变量启用）")
         else:
-            sys.exit(1)
+            print("\n4. 跳过代码生成测试（数据库同步失败）")
+    else:
+        print("\n3. 跳过数据库同步、代码生成和删除测试（未找到form_id）")
+    
+    print("\n=== 测试完成 ===")
+
+
+def test_sentinel_status():
+    """
+    测试哨兵状态管理系统
+    """
+    print("=== 哨兵状态管理系统测试 ===")
+    
+    # 测试1：状态验证
+    print("\n1. 测试状态验证...")
+    print(f"pending是否为有效表状态: {SentinelStatusManager.is_valid_table_status('pending')}")
+    print(f"invalid_status是否为有效表状态: {SentinelStatusManager.is_valid_table_status('invalid_status')}")
+    print(f"pass是否为有效汇总状态: {SentinelStatusManager.is_valid_summary_status('pass')}")
+    
+    # 测试2：状态转换
+    print("\n2. 测试状态转换...")
+    print(f"pending -> form_created: {SentinelStatusManager.can_transition_to('pending', 'form_created')}")
+    print(f"form_created -> pending: {SentinelStatusManager.can_transition_to('form_created', 'pending')}")
+    print(f"pass -> form_created: {SentinelStatusManager.can_transition_to('pass', 'form_created')}")
+    
+    # 测试3：状态顺序
+    print("\n3. 测试状态顺序...")
+    current = SentinelStatus.TABLE_PENDING
+    for i in range(len(SentinelStatus.TABLE_STATUS_ORDER)):
+        next_status = SentinelStatusManager.get_next_table_status(current)
+        print(f"{current} -> {next_status}")
+        current = next_status
+        if current == SentinelStatus.TABLE_CODE_GENERATED:
+            break
+    
+    # 测试4：汇总状态计算
+    print("\n4. 测试汇总状态计算...")
+    test_cases = [
+        ['pending', 'pending', 'pending'],
+        ['pending', 'form_created', 'db_synced'],
+        ['code_generated', 'code_generated', 'code_generated'],
+        ['pending', 'fail', 'code_generated']
+    ]
+    
+    for statuses in test_cases:
+        summary = SentinelStatusManager.calculate_summary_status(statuses)
+        print(f"{statuses} -> {summary}")
+    
+    print("\n=== 状态测试完成 ===")
+
+
+class CodeGenExecutor:
+    """
+    JeecgBoot代码生成执行器
+    
+    这是一个全新设计的代码生成器，专为AI调用优化：
+    - 简洁的接口设计
+    - 清晰的错误处理
+    - 完整的文档说明
+    - 模块化的功能组织
+    """
+    
+    def __init__(self):
+        """初始化代码生成执行器"""
+        pass
+    
+    def execute(self, config_data):
+        """
+        执行代码生成
+        
+        Args:
+            config_data: 代码生成配置数据
             
-    except FileNotFoundError:
-        print(f"❌ 配置文件不存在: {config_file}")
-        sys.exit(1)
-    except json.JSONDecodeError as e:
-        print(f"❌ 配置文件JSON格式错误: {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"❌ 执行异常: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+        Returns:
+            生成结果
+        """
+        pass
+
+
+def main(filename):
+    global SUMMARY_RESULT
+    
+    # 任务执行记录
+    task_results = []
+    
+    if not os.path.exists(filename):
+        print(f"不存在{filename}文件，请确认！")
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+    
+    # 任务1：配置中心初始化
+    env_task = EnvironmentVariableTask()
+    task1_result = env_task.execute()
+    task1_status = "pass" if "pass" in task1_result else "fail"
+    task_results.append(("1", "配置中心初始化", task1_status))
+    
+    if task1_status == "fail":
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+    
+    # 获取配置实例
+    config = env_task.get_config()
+    if not config:
+        print("❌ 配置实例获取失败")
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+    
+    # 读取配置数据供后续任务使用
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            config_data = json.load(f)
+    except Exception:
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+    
+    # 任务2：Maven原型创建新模块
+    maven_task = MavenModuleCreationTask(config)
+    task2_result = maven_task.execute(config_data)
+    task2_status = "pass" if "pass" in task2_result else "fail"
+    task_results.append(("2", "Maven原型创建新模块", task2_status))
+    
+    if task2_status == "fail":
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+    
+    # 任务3：更新模块注册和依赖配置
+    pom_task = PomConfigurationTask(config)
+    task3_result = pom_task.execute(config_data)
+    task3_status = "pass" if "pass" in task3_result else "fail"
+    task_results.append(("3", "更新模块注册和依赖配置", task3_status))
+    
+    if task3_status == "fail":
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+        
+    # 任务4：需求场景识别
+    scenario_task = ScenarioIdentificationTask()
+    task4_result = scenario_task.execute(filename)
+    task4_status = "pass" if "pass" in task4_result else "fail"
+    task_results.append(("4", "需求场景识别", task4_status))
+    
+    if task4_status == "fail":
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+    
+    # 任务5：建立哨兵机制
+    sentinel_task = SentinelMechanismTask()
+    task5_result = sentinel_task.execute(config_data, scenario_task)
+    task5_status = "pass" if "pass" in task5_result else "fail"
+    task_results.append(("5", "建立哨兵机制", task5_status))
+    
+    if task5_status == "fail":
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+    
+    # 任务6：哨兵机制生成代码
+    code_generation_task = CodeGenerationTask(config)
+    task6_result = code_generation_task.execute(filename)
+    if task6_result == "fail":
+        task_results.append(("6", "哨兵机制生成代码", "fail"))
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+    elif task6_result == "waiting":
+        # 子表场景，等待主表调用，直接返回SUCCESS
+        task_results.append(("6", "哨兵机制生成代码", "pass"))
+        _print_execution_summary(task_results, "SUCCESS")
+        return "SUCCESS"
+    else:
+        task_results.append(("6", "哨兵机制生成代码", "pass"))
+    
+    # 任务7：占位符变量处理
+    placeholder_task = PlaceholderVariableProcessingTask(config)
+    task7_result = placeholder_task.execute(filename)
+    task7_status = "pass" if "pass" in task7_result else "fail"
+    task_results.append(("7", "占位符变量处理", task7_status))
+    
+    if task7_status == "fail":
+        _print_execution_summary(task_results, "ERROR") 
+        return "ERROR"
+    
+    # 任务8：前端代码迁移
+    migration_task = FrontendCodeMigrationTask(config)
+    task8_result = migration_task.execute(filename)
+    task8_status = "pass" if "pass" in task8_result else "fail"
+    task_results.append(("8", "前端代码迁移", task8_status))
+    
+    if task8_status == "fail":
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+    
+    # 任务9：菜单权限SQL执行
+    sql_task = DatabaseSQLExecutionTask(config)
+    task9_result = sql_task.execute(filename)
+    task9_status = "pass" if "pass" in task9_result else "fail"
+    task_results.append(("9", "菜单权限SQL执行", task9_status))
+    
+    if task9_status == "fail":
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+        
+    _print_execution_summary(task_results, "SUCCESS")
+    return "SUCCESS"
+
+
+def _print_execution_summary(task_results, overall_status):
+    """打印任务执行汇总信息
+    
+    Args:
+        task_results: 任务结果列表，格式为 [(序号, 名称, 状态), ...]
+        overall_status: 总体状态 "SUCCESS" 或 "ERROR"
+    """
+    print("\n" + "="*60)
+    print("任务执行状态汇总:")
+    print("="*60)
+    
+    for task_id, task_name, status in task_results:
+        status_symbol = "✅" if status == "pass" else "❌"
+        print(f"{task_id}-{task_name}-{status} {status_symbol}")
+    
+    print("="*60)
+    print(f"EXECUTE_SUMMARY={overall_status}")
+    print("="*60)
+
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) < 2:
+        print("使用方法:")
+        print("  python Code_Gen_Execute.py <filename>       # 执行代码生成任务")
+        print("  python Code_Gen_Execute.py --test-api       # 测试JeecgBoot API函数")
+        print("  python Code_Gen_Execute.py --test-status    # 测试哨兵状态管理系统")
+        sys.exit(1)
+    
+    if sys.argv[1] == "--test-api":
+        test_jeecg_apis()
+        sys.exit(0)
+    elif sys.argv[1] == "--test-status":
+        test_sentinel_status()
+        sys.exit(0)
+    else:
+        result = main(sys.argv[1])
+        sys.exit(0 if result == "SUCCESS" else 1)
