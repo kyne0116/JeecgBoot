@@ -36,3 +36,4 @@ PRPs/
 .windsurfrules
 .superdesign/design_iterations/default_ui_darkmode.css
 **/__pycache__/
+CodeGen/.env_temp

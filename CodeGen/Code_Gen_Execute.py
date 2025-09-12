@@ -7,10 +7,638 @@ import requests
 import time
 import configparser
 import mysql.connector
+import logging
 from datetime import datetime
 from typing import Dict, Optional, Tuple, List
+from contextlib import contextmanager
 
 SUMMARY_RESULT = "ERROR"
+
+# =============================================================================
+# 日志管理系统 - 持久化所有执行过程到日志文件
+# =============================================================================
+
+class LogManager:
+    """日志管理器 - 将所有输出记录到日志文件中"""
+    
+    def __init__(self):
+        self.log_file_path = None
+        self.logger = None
+        self.console_handler = None
+        self.file_handler = None
+        self.original_stdout = None
+        self.original_stderr = None
+        
+    def extract_module_info(self, config_data: Dict) -> Tuple[str, str]:
+        """
+        从配置数据中提取模块信息
+        
+        Args:
+            config_data: 配置数据字典
+            
+        Returns:
+            Tuple[str, str]: (module_name, submodule_name)
+        """
+        try:
+            # 策略1：从metadata.generation_info获取
+            metadata = config_data.get('metadata', {})
+            generation_info = metadata.get('generation_info', {})
+            
+            module_name = generation_info.get('module_name')
+            submodule_name = generation_info.get('submodule_name')
+            
+            if module_name and submodule_name:
+                return module_name, submodule_name
+            
+            # 策略2：从head.tableName推断
+            head = config_data.get('head', {})
+            table_name = head.get('tableName', '')
+            
+            if table_name and '_' in table_name:
+                parts = table_name.split('_')
+                if len(parts) >= 2:
+                    return parts[0], parts[1]
+            
+            # 策略3：使用默认值
+            return 'unknown', 'module'
+            
+        except Exception:
+            return 'unknown', 'module'
+    
+    def _clean_filename(self, name: str) -> str:
+        """
+        清理文件名，移除不安全的字符
+        
+        Args:
+            name: 原始文件名
+            
+        Returns:
+            str: 清理后的文件名
+        """
+        import re
+        if not name:
+            return 'unknown'
+        # 替换特殊字符为下划线，只保留字母数字和下划线
+        clean_name = re.sub(r'[^\w\-.]', '_', name)
+        # 移除连续的下划线
+        clean_name = re.sub(r'_{2,}', '_', clean_name)
+        # 移除开头和结尾的下划线
+        clean_name = clean_name.strip('_')
+        return clean_name or 'unknown'
+    
+    def setup_logging(self, config_file_path: str = None, config_data: Dict = None):
+        """
+        设置日志记录系统
+        
+        Args:
+            config_file_path: 配置文件路径
+            config_data: 配置数据（可选，如果提供则直接使用）
+        """
+        try:
+            # 获取配置数据
+            if config_data is None and config_file_path:
+                if os.path.exists(config_file_path):
+                    with open(config_file_path, 'r', encoding='utf-8') as f:
+                        config_data = json.load(f)
+                else:
+                    config_data = {}
+            elif config_data is None:
+                config_data = {}
+            
+            # 提取模块信息
+            module_name, submodule_name = self.extract_module_info(config_data)
+            
+            # 生成日志文件名 - 清理模块名中的特殊字符
+            clean_module_name = self._clean_filename(module_name)
+            clean_submodule_name = self._clean_filename(submodule_name)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            self.log_file_path = f"{clean_module_name}_{clean_submodule_name}_{timestamp}.log"
+            
+            # 配置日志格式
+            log_format = '[%(asctime)s] [%(levelname)s] %(message)s'
+            date_format = '%Y-%m-%d %H:%M:%S'
+            
+            # 创建logger
+            self.logger = logging.getLogger('CodeGenExecutor')
+            self.logger.setLevel(logging.INFO)
+            
+            # 清除之前的handlers
+            for handler in self.logger.handlers[:]:
+                self.logger.removeHandler(handler)
+            
+            # 创建文件处理器
+            self.file_handler = logging.FileHandler(self.log_file_path, encoding='utf-8', mode='w')
+            self.file_handler.setLevel(logging.INFO)
+            file_formatter = logging.Formatter(log_format, date_format)
+            self.file_handler.setFormatter(file_formatter)
+            self.logger.addHandler(self.file_handler)
+            
+            # 注意：不创建控制台处理器，由TeeOutput负责控制台输出
+            # 避免重复输出到控制台
+            
+            # 重定向print输出
+            self._setup_print_redirect()
+            
+            # 记录初始化信息
+            self.logger.info("="*70)
+            self.logger.info(f"📝 JeecgBoot 代码生成器日志系统启动")
+            self.logger.info("="*70)
+            self.logger.info(f"📄 日志文件: {self.log_file_path}")
+            self.logger.info(f"🏷️ 模块信息: {module_name}.{submodule_name}")
+            self.logger.info(f"🕒 启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            self.logger.info("="*70)
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ 日志系统初始化失败: {str(e)}")
+            return False
+    
+    def _setup_print_redirect(self):
+        """设置print输出重定向"""
+        
+        class TeeOutput:
+            """同时输出到控制台和日志文件的输出流"""
+            
+            def __init__(self, logger, original_stream):
+                self.logger = logger
+                self.original_stream = original_stream
+                
+            def write(self, message):
+                if message.strip():  # 只记录非空消息
+                    # 移除ANSI颜色代码
+                    import re
+                    clean_message = re.sub(r'\x1b\[[0-9;]*m', '', message.strip())
+                    if clean_message:
+                        self.logger.info(clean_message)
+                
+                # 同时输出到原始流
+                self.original_stream.write(message)
+                self.original_stream.flush()
+                
+            def flush(self):
+                if hasattr(self.original_stream, 'flush'):
+                    self.original_stream.flush()
+        
+        # 保存原始输出流
+        self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
+        
+        # 设置重定向
+        sys.stdout = TeeOutput(self.logger, self.original_stdout)
+        sys.stderr = TeeOutput(self.logger, self.original_stderr)
+    
+    def cleanup_logging(self):
+        """清理日志系统并恢复原始输出"""
+        try:
+            if self.logger:
+                self.logger.info("="*70)
+                self.logger.info(f"📝 JeecgBoot 代码生成器日志记录完成")
+                self.logger.info(f"💾 日志已保存至: {self.log_file_path}")
+                self.logger.info(f"🕒 结束时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                self.logger.info("="*70)
+            
+            # 恢复原始输出流
+            if self.original_stdout:
+                sys.stdout = self.original_stdout
+            if self.original_stderr:
+                sys.stderr = self.original_stderr
+            
+            # 关闭文件处理器
+            if self.file_handler:
+                self.file_handler.close()
+                
+            # 清除handlers
+            if self.logger:
+                for handler in self.logger.handlers[:]:
+                    self.logger.removeHandler(handler)
+                    
+        except Exception as e:
+            print(f"⚠️ 日志清理时出现问题: {str(e)}")
+    
+    def get_log_file_path(self) -> str:
+        """获取日志文件路径"""
+        return self.log_file_path or "未生成日志文件"
+    
+    def log_section_start(self, section_name: str):
+        """记录章节开始"""
+        if self.logger:
+            self.logger.info(f"\n{'='*50}")
+            self.logger.info(f"📋 {section_name}")
+            self.logger.info(f"{'='*50}")
+    
+    def log_section_end(self, section_name: str):
+        """记录章节结束"""
+        if self.logger:
+            self.logger.info(f"{'='*50}")
+            self.logger.info(f"✅ {section_name} 完成")
+            self.logger.info(f"{'='*50}\n")
+
+# 全局日志管理器实例
+_log_manager = LogManager()
+
+@contextmanager
+def setup_execution_logging(config_file_path: str = None, config_data: Dict = None):
+    """
+    执行日志上下文管理器
+    
+    使用方法:
+        with setup_execution_logging("config.json"):
+            # 执行代码，所有输出都会被记录到日志文件
+            pass
+    """
+    try:
+        # 初始化日志系统
+        if _log_manager.setup_logging(config_file_path, config_data):
+            yield _log_manager
+        else:
+            yield None
+    finally:
+        # 清理日志系统
+        _log_manager.cleanup_logging()
+
+# =============================================================================
+# 环境变量配置引导系统
+# =============================================================================
+
+class EnvironmentGuide:
+    """环境变量配置引导系统"""
+    
+    REQUIRED_ENV_VARS = [
+        {
+            'name': 'JEECG_PROJECT_ROOT',
+            'description': 'JeecgBoot项目根目录路径',
+            'example': '/Users/admin/Work/Github/JeecgBoot',
+            'required': True,
+            'type': 'path'
+        },
+        {
+            'name': 'JEECG_BASE_URL', 
+            'description': 'JeecgBoot服务基础URL',
+            'example': 'http://localhost:8080/jeecg-boot',
+            'required': True,
+            'type': 'url'
+        },
+        {
+            'name': 'JEECG_USERNAME',
+            'description': 'JeecgBoot登录用户名',
+            'example': 'admin',
+            'required': True,
+            'type': 'string'
+        },
+        {
+            'name': 'JEECG_PASSWORD',
+            'description': 'JeecgBoot登录密码',
+            'example': '123456',
+            'required': True,
+            'type': 'password'
+        },
+        {
+            'name': 'JEECG_DATABASE_TYPE',
+            'description': '数据库类型',
+            'example': 'mysql',
+            'required': True,
+            'type': 'string'
+        },
+        {
+            'name': 'JEECG_DATABASE_URL',
+            'description': '数据库连接URL',
+            'example': 'jdbc:mysql://localhost:30004/jeecg-boot',
+            'required': True,
+            'type': 'url'
+        },
+        {
+            'name': 'JEECG_DATABASE_USERNAME',
+            'description': '数据库用户名',
+            'example': 'root',
+            'required': True,
+            'type': 'string'
+        },
+        {
+            'name': 'JEECG_DATABASE_PASSWORD',
+            'description': '数据库密码',
+            'example': 'Best@2008',
+            'required': True,
+            'type': 'password'
+        }
+    ]
+    
+    def __init__(self):
+        self.config_values = {}
+        
+    def check_environment_setup(self) -> Dict:
+        """检查环境变量配置状态"""
+        # 首先加载临时环境文件（如果存在）
+        self._load_temp_env_file()
+        
+        result = {
+            'all_configured': True,
+            'missing_vars': [],
+            'configured_vars': [],
+            'config_status': {}
+        }
+        
+        for var_info in self.REQUIRED_ENV_VARS:
+            var_name = var_info['name']
+            var_value = os.getenv(var_name)
+            is_configured = bool(var_value)
+            
+            result['config_status'][var_name] = {
+                'configured': is_configured,
+                'value': var_value if var_name not in ['JEECG_PASSWORD', 'JEECG_DATABASE_PASSWORD'] else ('***' if var_value else None),
+                'required': var_info['required']
+            }
+            
+            if var_info['required'] and not is_configured:
+                result['all_configured'] = False
+                result['missing_vars'].append(var_name)
+            elif is_configured:
+                result['configured_vars'].append(var_name)
+        
+        return result
+    
+    def print_environment_status(self):
+        """打印环境变量配置状态"""
+        status = self.check_environment_setup()
+        
+        print("\n" + "="*60)
+        print("🔧 JeecgBoot 环境变量配置状态检查")
+        print("="*60)
+        
+        print("\n📋 配置状态概览:")
+        total_vars = len([v for v in self.REQUIRED_ENV_VARS if v['required']])
+        configured_vars = len(status['configured_vars'])
+        missing_count = len(status['missing_vars'])
+        
+        # 检查实际环境变量数量
+        actual_env_vars = sum(1 for var_info in self.REQUIRED_ENV_VARS 
+                            if var_info['required'] and os.getenv(var_info['name']))
+        
+        if status['all_configured']:
+            if actual_env_vars == total_vars:
+                print(f"✅ 所有必需环境变量已配置 ({configured_vars}/{total_vars})")
+            else:
+                print(f"🔧 配置完整但主要使用默认值 ({actual_env_vars}/{total_vars} 个真实环境变量)")
+        else:
+            print(f"❌ 缺少 {missing_count} 个必需环境变量 ({configured_vars}/{total_vars})")
+        
+        print("\n📄 详细配置状态:")
+        for var_info in self.REQUIRED_ENV_VARS:
+            var_name = var_info['name']
+            var_status = status['config_status'][var_name]
+            actual_env_value = os.getenv(var_name)
+            
+            if var_status['configured']:
+                if actual_env_value:
+                    icon = "✅"
+                    status_text = f"环境变量: {var_status['value']}"
+                else:
+                    icon = "🔧"
+                    status_text = f"默认值: {var_status['value']}"
+            else:
+                icon = "❌" if var_info['required'] else "⚠️"
+                status_text = "未配置" + ("（必需）" if var_info['required'] else "（可选）")
+            
+            print(f"  {icon} {var_name:<25} {status_text}")
+            print(f"     描述: {var_info['description']}")
+        
+        if not status['all_configured']:
+            print(f"\n⚠️  请配置缺少的环境变量后重新运行脚本")
+            print(f"💡 或使用 --setup-guide 参数启动交互式配置向导")
+        else:
+            # 添加默认值说明
+            if actual_env_vars < total_vars:
+                print(f"\n📌 默认值说明:")
+                print(f"   🔧 系统内置了合理的默认配置，可以直接使用")
+                print(f"   ✅ 如需自定义，请设置对应的环境变量覆盖默认值")
+                print(f"   💡 使用 --setup-guide 可以交互式设置环境变量")
+        
+        return status
+    
+    def interactive_setup_guide(self):
+        """交互式配置向导"""
+        print("\n" + "="*60)
+        print("🚀 JeecgBoot 环境变量配置向导")
+        print("="*60)
+        print("此向导将帮助您配置必需的环境变量")
+        print("按 Ctrl+C 随时退出")
+        
+        try:
+            # 收集用户输入
+            for var_info in self.REQUIRED_ENV_VARS:
+                if not var_info['required']:
+                    continue
+                    
+                var_name = var_info['name']
+                current_value = os.getenv(var_name, '')
+                
+                print(f"\n📝 配置: {var_name}")
+                print(f"   描述: {var_info['description']}")
+                print(f"   示例: {var_info['example']}")
+                
+                if current_value:
+                    if var_name in ['JEECG_PASSWORD', 'JEECG_DATABASE_PASSWORD']:
+                        display_value = "***"
+                    else:
+                        display_value = current_value
+                    print(f"   当前值: {display_value}")
+                
+                # 获取用户输入
+                if var_info['type'] == 'password':
+                    import getpass
+                    user_input = getpass.getpass("   请输入新值 (回车保留当前值): ")
+                else:
+                    user_input = input("   请输入新值 (回车保留当前值): ").strip()
+                
+                # 处理用户输入
+                if user_input:
+                    self.config_values[var_name] = user_input
+                elif current_value:
+                    self.config_values[var_name] = current_value
+                else:
+                    # 如果没有当前值且用户没有输入，使用示例值作为默认值
+                    if var_info['required']:
+                        example_value = var_info.get('example', '')
+                        if example_value:
+                            self.config_values[var_name] = example_value
+                            print(f"   🔧 采用推荐示例值: {example_value}")
+                        else:
+                            print("   ❌ 此变量为必需项，不能为空")
+                            return False
+            
+            # 验证配置
+            if self._validate_configuration():
+                # 在当前会话中设置环境变量
+                self._set_current_session_env()
+                return True
+            else:
+                print("❌ 配置验证失败")
+                return False
+                
+        except KeyboardInterrupt:
+            print("\n\n⏹️  配置向导已取消")
+            return False
+        except Exception as e:
+            print(f"\n❌ 配置向导发生错误: {e}")
+            return False
+    
+    def _validate_configuration(self) -> bool:
+        """验证配置的有效性"""
+        print("\n🔍 正在验证配置...")
+        
+        # 验证路径
+        if 'JEECG_PROJECT_ROOT' in self.config_values:
+            project_root = self.config_values['JEECG_PROJECT_ROOT']
+            if not os.path.exists(project_root):
+                print(f"❌ 项目根目录不存在: {project_root}")
+                return False
+            
+            # 检查关键目录结构
+            key_paths = [
+                f"{project_root}/jeecg-boot",
+                f"{project_root}/jeecg-boot/jeecg-boot-module"
+            ]
+            
+            for path in key_paths:
+                if not os.path.exists(path):
+                    print(f"⚠️  关键目录不存在: {path}")
+        
+        # 验证URL格式
+        url_vars = ['JEECG_BASE_URL', 'JEECG_DATABASE_URL']
+        for var_name in url_vars:
+            if var_name in self.config_values:
+                url_value = self.config_values[var_name]
+                if not (url_value.startswith('http://') or url_value.startswith('https://') or url_value.startswith('jdbc:')):
+                    print(f"⚠️  {var_name} URL格式可能不正确: {url_value}")
+        
+        print("✅ 配置验证完成")
+        return True
+    
+    def _set_current_session_env(self):
+        """在当前会话中设置环境变量"""
+        print("\n🔧 正在设置环境变量...")
+        
+        # 1. 设置环境变量到当前Python进程
+        for var_name, var_value in self.config_values.items():
+            os.environ[var_name] = var_value
+            print(f"   ✅ {var_name} = {var_value if 'PASSWORD' not in var_name else '***'}")
+        
+        # 2. 生成临时环境文件供后续使用
+        self._create_temp_env_file()
+        
+        print(f"\n✅ 环境变量设置完成")
+        print(f"📋 已设置 {len(self.config_values)} 个环境变量")
+        
+        print(f"\n💡 使用说明:")
+        print(f"   🔄 环境变量已设置，可以立即运行代码生成任务")
+        print(f"   📝 环境变量存储在 .env_temp 文件中供后续Python进程读取")
+    
+    def _create_temp_env_file(self):
+        """创建临时环境变量文件"""
+        try:
+            with open('.env_temp', 'w', encoding='utf-8') as f:
+                f.write("# JeecgBoot 临时环境变量文件\n")
+                f.write("# 此文件由 --setup-guide 自动生成\n")
+                f.write(f"# 生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                
+                for var_name, var_value in self.config_values.items():
+                    f.write(f"{var_name}={var_value}\n")
+            
+            print(f"   📁 临时环境文件已创建: .env_temp")
+        except Exception as e:
+            print(f"   ⚠️ 创建临时环境文件失败: {e}")
+    
+    def _generate_setup_scripts(self):
+        """生成环境变量设置脚本"""
+        print("\n📝 正在生成环境变量设置脚本...")
+        
+        # 生成shell脚本
+        shell_script = self._generate_shell_script()
+        with open('setup_env.sh', 'w', encoding='utf-8') as f:
+            f.write(shell_script)
+        
+        # 生成bat脚本 (Windows)
+        bat_script = self._generate_bat_script()
+        with open('setup_env.bat', 'w', encoding='utf-8') as f:
+            f.write(bat_script)
+        
+        print("\n✅ 配置文件生成完成:")
+        print("   📄 setup_env.sh - Linux/macOS环境变量设置脚本")
+        print("   📄 setup_env.bat - Windows环境变量设置脚本")
+        
+        print(f"\n🔧 下一步操作:")
+        print(f"   1. 根据您的操作系统执行相应的脚本:")
+        print(f"      Linux/macOS: source setup_env.sh")
+        print(f"      Windows: setup_env.bat")
+        print(f"   2. 重新运行代码生成器")
+    
+    def _generate_shell_script(self) -> str:
+        """生成Shell脚本"""
+        script_lines = ['#!/bin/bash', '# JeecgBoot 环境变量设置脚本 (Linux/macOS)', '']
+        
+        for var_name, var_value in self.config_values.items():
+            script_lines.append(f'export {var_name}="{var_value}"')
+        
+        script_lines.extend([
+            '',
+            'echo "✅ JeecgBoot 环境变量已设置"',
+            'echo "📋 已设置的环境变量:"'
+        ])
+        
+        for var_name in self.config_values.keys():
+            if 'PASSWORD' in var_name:
+                script_lines.append(f'echo "   {var_name}=***"')
+            else:
+                script_lines.append(f'echo "   {var_name}=${var_name}"')
+        
+        return '\n'.join(script_lines)
+    
+    def _generate_bat_script(self) -> str:
+        """生成Batch脚本"""
+        script_lines = ['@echo off', 'REM JeecgBoot 环境变量设置脚本 (Windows)', '']
+        
+        for var_name, var_value in self.config_values.items():
+            script_lines.append(f'set {var_name}={var_value}')
+        
+        script_lines.extend([
+            '',
+            'echo ✅ JeecgBoot 环境变量已设置',
+            'echo 📋 已设置的环境变量:'
+        ])
+        
+        for var_name in self.config_values.keys():
+            if 'PASSWORD' in var_name:
+                script_lines.append(f'echo    {var_name}=***')
+            else:
+                script_lines.append(f'echo    {var_name}=%{var_name}%')
+        
+        script_lines.append('pause')
+        
+        return '\n'.join(script_lines)
+    
+    def _load_temp_env_file(self):
+        """加载临时环境文件"""
+        temp_env_file = '.env_temp'
+        if os.path.exists(temp_env_file):
+            try:
+                with open(temp_env_file, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                
+                loaded_count = 0
+                for line in lines:
+                    line = line.strip()
+                    # 跳过注释和空行
+                    if line and not line.startswith('#'):
+                        if '=' in line:
+                            key, value = line.split('=', 1)
+                            os.environ[key.strip()] = value.strip()
+                            loaded_count += 1
+                
+                if loaded_count > 0:
+                    print(f"📁 从临时环境文件加载了 {loaded_count} 个环境变量")
+                
+            except Exception as e:
+                print(f"⚠️ 加载临时环境文件失败: {e}")
 
 
 # =============================================================================
@@ -30,10 +658,13 @@ class JeecgBootConfig:
     def load_config(self, config_file: str = "Code_Gen_Config.properties") -> bool:
         """从环境变量和配置文件加载完整配置"""
         try:
-            # 1. 读取环境变量
+            # 1. 首先尝试加载临时环境文件
+            self._load_temp_env_file()
+            
+            # 2. 读取环境变量
             self._load_environment_variables()
             
-            # 2. 读取配置文件
+            # 3. 读取配置文件
             if os.path.exists(config_file):
                 self._load_config_file(config_file)
             else:
@@ -47,29 +678,99 @@ class JeecgBootConfig:
             print(f"❌ 配置加载失败: {e}")
             return False
     
+    def _load_temp_env_file(self):
+        """加载临时环境文件"""
+        temp_env_file = '.env_temp'
+        if os.path.exists(temp_env_file):
+            print(f"📁 发现临时环境文件: {temp_env_file}")
+            try:
+                with open(temp_env_file, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                
+                loaded_count = 0
+                for line in lines:
+                    line = line.strip()
+                    # 跳过注释和空行
+                    if line and not line.startswith('#'):
+                        if '=' in line:
+                            key, value = line.split('=', 1)
+                            os.environ[key.strip()] = value.strip()
+                            loaded_count += 1
+                
+                print(f"   ✅ 从临时文件加载了 {loaded_count} 个环境变量")
+                
+            except Exception as e:
+                print(f"   ⚠️ 加载临时环境文件失败: {e}")
+        else:
+            print(f"💡 未找到临时环境文件，使用系统环境变量")
+    
     def _load_environment_variables(self):
         """加载环境变量"""
+        print(f"\n🔍 正在加载环境变量配置...")
+        
         # JeecgBoot 完整环境变量列表
         all_env_var_names = [
             'JEECG_PROJECT_ROOT', 'JEECG_BASE_URL', 'JEECG_USERNAME', 'JEECG_PASSWORD',
-            'JEECG_DATABASE_TYPE', 'JEECG_DATABASE_URL', 'JEECG_DATABASE_USERNAME', 'JEECG_DATABASE_PASSWORD',
-            'JEECG_TEST_DELETE'  # 测试模式下的表单删除标志
+            'JEECG_DATABASE_TYPE', 'JEECG_DATABASE_URL', 'JEECG_DATABASE_USERNAME', 'JEECG_DATABASE_PASSWORD'
         ]
         
+        # 定义硬编码默认值
+        defaults = {
+            # 基础JeecgBoot配置
+            'JEECG_BASE_URL': 'http://localhost:8080/jeecg-boot',
+            'JEECG_USERNAME': 'admin',
+            'JEECG_PASSWORD': '123456',
+            'JEECG_PROJECT_ROOT': '/Users/admin/Work/Github/JeecgBoot',
+            # 数据库配置默认值 (基于注释的~/.zshrc值)
+            'JEECG_DATABASE_TYPE': 'mysql',
+            'JEECG_DATABASE_URL': 'jdbc:mysql://localhost:30004/jeecg-boot',
+            'JEECG_DATABASE_USERNAME': 'root',
+            'JEECG_DATABASE_PASSWORD': 'Best@2008'
+        }
+        
+        print(f"📋 硬编码默认值配置:")
+        print(f"   基础配置: JEECG_PROJECT_ROOT, JEECG_BASE_URL, JEECG_USERNAME, JEECG_PASSWORD")
+        print(f"   数据库配置: JEECG_DATABASE_TYPE, JEECG_DATABASE_URL, JEECG_DATABASE_USERNAME, JEECG_DATABASE_PASSWORD")
+        
+        # 环境变量提取统计
+        env_found = 0
+        env_defaulted = 0
+        env_empty = 0
+        
+        print(f"\n📊 环境变量提取详情:")
         for env_var in all_env_var_names:
             value = os.getenv(env_var)
             if value:
                 self.env_vars[env_var] = value
+                env_found += 1
+                # 检查是否与默认值相同
+                is_default = value == defaults.get(env_var)
+                default_indicator = " (与默认值相同)" if is_default else " (自定义值)"
+                display_value = value if env_var not in ['JEECG_PASSWORD', 'JEECG_DATABASE_PASSWORD'] else '*' * len(value)
+                print(f"   ✅ {env_var}: 环境变量 = {display_value}{default_indicator}")
             else:
                 # 设置默认值
-                defaults = {
-                    'JEECG_BASE_URL': 'http://localhost:8080/jeecg-boot',
-                    'JEECG_USERNAME': 'admin',
-                    'JEECG_PASSWORD': '123456',
-                    'JEECG_PROJECT_ROOT': '/Users/admin/Work/Github/JeecgBoot'
-                    # 注意：数据库相关环境变量不设置默认值，从实际配置文件读取
-                }
-                self.env_vars[env_var] = defaults.get(env_var, '')
+                default_value = defaults.get(env_var, '')
+                self.env_vars[env_var] = default_value
+                if default_value:
+                    env_defaulted += 1
+                    display_value = default_value if env_var not in ['JEECG_PASSWORD', 'JEECG_DATABASE_PASSWORD'] else '*' * len(default_value)
+                    print(f"   🔧 {env_var}: 使用默认值 = {display_value}")
+                else:
+                    env_empty += 1
+                    print(f"   ⚠️ {env_var}: 未设置 (无默认值)")
+        
+        print(f"\n📈 环境变量加载统计:")
+        print(f"   🎯 从环境变量获取: {env_found} 个")
+        print(f"   🔧 使用默认值: {env_defaulted} 个")
+        print(f"   ⚠️ 保持空值: {env_empty} 个")
+        print(f"   📊 总计: {env_found + env_defaulted + env_empty} 个环境变量处理完成")
+        
+        # 重要提示
+        if env_found == 0 and env_defaulted > 0:
+            print(f"\n💡 重要提示:")
+            print(f"   当前使用的是系统默认配置，非真实环境变量")
+            print(f"   如需自定义配置，请设置对应的环境变量")
     
     def _load_config_file(self, config_file: str):
         """从配置文件加载参数"""
@@ -139,18 +840,45 @@ class JeecgBootConfig:
     
     def print_summary(self):
         """打印配置摘要"""
-        print("📋 配置摘要:")
-        print(f"  Base URL: {self.get_base_url()}")
-        print(f"  Username: {self.get_username()}")
-        print(f"  Project Root: {self.get_project_root()}")
-        print(f"  Timeouts: {self.timeouts}")
-        print(f"  Page Size: {self.get_page_size()}")
+        print("\n" + "="*60)
+        print("📋 JeecgBoot 配置中心状态摘要")
+        print("="*60)
+        print(f"✅ 配置加载状态: 成功")
+        print(f"🔧 Base URL: {self.get_base_url()}")
+        print(f"👤 Username: {self.get_username()}")
+        print(f"📁 Project Root: {self.get_project_root()}")
+        print(f"⏱️ Timeouts: {self.timeouts}")
+        print(f"📄 Page Size: {self.get_page_size()}")
         
-        # 显示环境变量状态
-        for env_var, value in self.env_vars.items():
-            status = "✓" if value else "✗"
-            display_value = value if env_var != 'JEECG_PASSWORD' else '*' * len(value)
-            print(f"  {status} {env_var}={display_value}")
+        print(f"\n🔍 环境变量检查结果:")
+        # 按类别分组显示环境变量
+        basic_vars = ['JEECG_PROJECT_ROOT', 'JEECG_BASE_URL', 'JEECG_USERNAME', 'JEECG_PASSWORD']
+        db_vars = ['JEECG_DATABASE_TYPE', 'JEECG_DATABASE_URL', 'JEECG_DATABASE_USERNAME', 'JEECG_DATABASE_PASSWORD']
+        
+        print("  📌 基础配置:")
+        for env_var in basic_vars:
+            if env_var in self.env_vars:
+                status = "✅" if self.env_vars[env_var] else "❌"
+                display_value = self.env_vars[env_var] if env_var != 'JEECG_PASSWORD' else '*' * len(self.env_vars[env_var]) if self.env_vars[env_var] else ''
+                print(f"    {status} {env_var} = {display_value}")
+        
+        print("  🗄️ 数据库配置:")
+        for env_var in db_vars:
+            if env_var in self.env_vars:
+                status = "✅" if self.env_vars[env_var] else "❌"
+                display_value = self.env_vars[env_var] if env_var != 'JEECG_DATABASE_PASSWORD' else '*' * len(self.env_vars[env_var]) if self.env_vars[env_var] else ''
+                print(f"    {status} {env_var} = {display_value}")
+        
+        # 显示其他环境变量
+        other_vars = [k for k in self.env_vars.keys() if k not in basic_vars and k not in db_vars]
+        if other_vars:
+            print("  ⚙️ 其他配置:")
+            for env_var in other_vars:
+                status = "✅" if self.env_vars[env_var] else "⚠️"
+                display_value = self.env_vars[env_var] if self.env_vars[env_var] else '(未设置)'
+                print(f"    {status} {env_var} = {display_value}")
+        
+        print("="*60)
 
 
 # =============================================================================
@@ -289,9 +1017,14 @@ class EnvironmentVariableTask:
         
     def execute(self):
         """初始化配置中心并验证环境变量"""
+        print(f"\n🔧 开始执行任务{self.task_id}: {self.task_name}")
+        
         try:
             # 1. 创建并加载配置
+            print(f"📦 步骤1: 创建JeecgBootConfig实例...")
             self.config = JeecgBootConfig()
+            
+            print(f"⚙️ 步骤2: 加载配置文件和环境变量...")
             config_loaded = self.config.load_config()
             
             if not config_loaded:
@@ -299,36 +1032,79 @@ class EnvironmentVariableTask:
                 task_result = "fail"
                 summary = "配置中心初始化失败"
             else:
-                # 2. 验证核心环境变量
+                # 2. 验证核心环境变量有效性
+                print(f"\n✅ 步骤3: 验证核心环境变量有效性...")
                 success_count = 0
+                failed_vars = []
                 total_required = len(self.REQUIRED_ENV_VARS)
                 
+                print(f"🔍 检查 {total_required} 个必需环境变量:")
                 for env_var in self.REQUIRED_ENV_VARS:
-                    if self.config.env_vars.get(env_var):
+                    actual_value = self.config.env_vars.get(env_var)
+                    if actual_value:
                         success_count += 1
+                        print(f"   ✅ {env_var}: 有效 (长度: {len(actual_value)})")
                     else:
-                        print(f"⚠️ {env_var}: 使用默认值")
+                        failed_vars.append(env_var)
+                        print(f"   ❌ {env_var}: 无效或为空")
                 
-                # 3. 显示配置摘要
+                # 3. 应用情况分析
+                print(f"\n🎯 步骤4: 分析最终配置应用情况...")
+                print(f"📊 配置统计:")
+                print(f"   ✅ 有效环境变量: {success_count} 个")
+                print(f"   ❌ 无效环境变量: {len(failed_vars)} 个")
+                print(f"   📈 成功率: {success_count/total_required*100:.1f}%")
+                
+                # 显示实际应用的配置值
+                print(f"\n🔧 最终应用的配置值:")
+                print(f"   Base URL: {self.config.get_base_url()}")
+                print(f"   Username: {self.config.get_username()}")
+                print(f"   Project Root: {self.config.get_project_root()}")
+                print(f"   Database Type: {self.config.env_vars.get('JEECG_DATABASE_TYPE', 'N/A')}")
+                print(f"   Database Host: {self._extract_db_host(self.config.env_vars.get('JEECG_DATABASE_URL', ''))}")
+                
+                # 4. 显示配置摘要
                 self.config.print_summary()
                 
-                # 4. 判断任务结果
+                # 5. 判断任务结果
+                print(f"\n🏁 步骤5: 评估任务执行结果...")
                 if success_count >= 4:  # 至少需要基本的4个环境变量
                     task_result = "pass"
                     summary = f"配置中心初始化成功({success_count}/{total_required}个环境变量)"
+                    print(f"   🎉 评估结果: 通过 (满足最低要求 {success_count}>=4)")
                 else:
                     task_result = "fail" 
                     summary = f"关键环境变量缺失({success_count}/{total_required})"
+                    print(f"   💥 评估结果: 失败 (不满足最低要求 {success_count}<4)")
+                    if failed_vars:
+                        print(f"   📋 失败变量: {', '.join(failed_vars)}")
         
         except Exception as e:
             task_result = "fail"
             summary = f"配置中心初始化异常: {e}"
             print(f"❌ {summary}")
+            import traceback
+            traceback.print_exc()
         
-        print(f"{self.task_id}--{self.task_name}--{summary}")
-        print(task_result)
+        status_icon = "✅" if task_result == "pass" else "❌"
+        print(f"\n{status_icon} 任务{self.task_id}: {self.task_name}")
+        print(f"   结果: {summary}")
+        print(f"   状态: {task_result.upper()}")
+        print("-" * 50)
         
         return f"{self.task_id}-{self.task_name}-{task_result}"
+    
+    def _extract_db_host(self, db_url: str) -> str:
+        """从数据库URL中提取主机信息"""
+        try:
+            if 'jdbc:mysql://' in db_url:
+                # 提取 jdbc:mysql://localhost:30004/jeecg-boot 中的 localhost:30004
+                import re
+                match = re.search(r'jdbc:mysql://([^/]+)', db_url)
+                return match.group(1) if match else 'N/A'
+            return db_url if db_url else 'N/A'
+        except:
+            return 'N/A'
     
     def get_config(self) -> JeecgBootConfig:
         """获取配置实例"""
@@ -2673,14 +3449,6 @@ def test_jeecg_apis():
                                                 config.get_timeout('codegen'), project_root)
             print(f"代码生成结果: {generate_result}")
             
-            # 测试5：批量删除表单（仅在测试环境下执行）
-            if form_id and config.env_vars.get('JEECG_TEST_DELETE', '').lower() == 'true':
-                print(f"\n5. 测试批量删除表单...")
-                delete_result = jeecg_delete_forms_batch(base_url, token, [form_id], 
-                                                       config.get_timeout('delete'))
-                print(f"删除结果: {delete_result}")
-            else:
-                print("\n5. 跳过批量删除测试（需要设置JEECG_TEST_DELETE=true环境变量启用）")
         else:
             print("\n4. 跳过代码生成测试（数据库同步失败）")
     else:
@@ -2764,21 +3532,66 @@ class CodeGenExecutor:
 def main(filename):
     global SUMMARY_RESULT
     
+    # 使用日志系统执行所有任务
+    with setup_execution_logging(filename) as log_manager:
+        if not log_manager:
+            print("❌ 日志系统初始化失败，继续执行但无法记录日志")
+        
+        return _execute_main_tasks(filename, log_manager)
+
+def _execute_main_tasks(filename, log_manager=None):
+    """执行主要任务逻辑"""
+    global SUMMARY_RESULT
+    
     # 任务执行记录
     task_results = []
     
+    print("\n" + "="*70)
+    print("🚀 JeecgBoot 代码生成器启动")
+    print("="*70)
+    print(f"📄 配置文件: {filename}")
+    print(f"🕒 启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    if log_manager:
+        print(f"📝 日志文件: {log_manager.get_log_file_path()}")
+    print("="*70)
+    
     if not os.path.exists(filename):
-        print(f"不存在{filename}文件，请确认！")
+        print(f"\n❌ 致命错误: 配置文件不存在")
+        print(f"   文件路径: {filename}")
+        print(f"💡 请检查文件路径是否正确")
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
     
+    # 预检查：验证真实环境变量
+    print("\n🔍 预检查: 验证环境变量配置...")
+    env_guide = EnvironmentGuide()
+    env_status = env_guide.check_environment_setup()
+    
+    if not env_status['all_configured']:
+        print(f"\n❌ 检测到缺失必需环境变量: {', '.join(env_status['missing_vars'])}")
+        print(f"💡 请运行以下命令进行环境配置:")
+        print(f"   python3 Code_Gen_Execute.py --setup-guide")
+        print(f"⚠️  执行中断，请先配置环境变量")
+        _print_execution_summary(task_results, "ERROR")
+        return "ERROR"
+    
+    print("✅ 环境变量检查通过，继续执行任务...")
+    
     # 任务1：配置中心初始化
+    if log_manager:
+        log_manager.log_section_start("任务1: 配置中心初始化")
+    
     env_task = EnvironmentVariableTask()
     task1_result = env_task.execute()
     task1_status = "pass" if "pass" in task1_result else "fail"
     task_results.append(("1", "配置中心初始化", task1_status))
     
+    if log_manager:
+        log_manager.log_section_end("任务1: 配置中心初始化")
+    
     if task1_status == "fail":
+        print(f"\n💥 执行中断: 任务1失败，无法继续后续任务")
+        print(f"🔧 建议: 请检查环境变量配置或运行 --check-env 进行诊断")
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
     
@@ -2798,85 +3611,137 @@ def main(filename):
         return "ERROR"
     
     # 任务2：Maven原型创建新模块
+    if log_manager:
+        log_manager.log_section_start("任务2: Maven原型创建新模块")
+    
     maven_task = MavenModuleCreationTask(config)
     task2_result = maven_task.execute(config_data)
     task2_status = "pass" if "pass" in task2_result else "fail"
     task_results.append(("2", "Maven原型创建新模块", task2_status))
+    
+    if log_manager:
+        log_manager.log_section_end("任务2: Maven原型创建新模块")
     
     if task2_status == "fail":
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
     
     # 任务3：更新模块注册和依赖配置
+    if log_manager:
+        log_manager.log_section_start("任务3: 更新模块注册和依赖配置")
+    
     pom_task = PomConfigurationTask(config)
     task3_result = pom_task.execute(config_data)
     task3_status = "pass" if "pass" in task3_result else "fail"
     task_results.append(("3", "更新模块注册和依赖配置", task3_status))
+    
+    if log_manager:
+        log_manager.log_section_end("任务3: 更新模块注册和依赖配置")
     
     if task3_status == "fail":
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
         
     # 任务4：需求场景识别
+    if log_manager:
+        log_manager.log_section_start("任务4: 需求场景识别")
+    
     scenario_task = ScenarioIdentificationTask()
     task4_result = scenario_task.execute(filename)
     task4_status = "pass" if "pass" in task4_result else "fail"
     task_results.append(("4", "需求场景识别", task4_status))
+    
+    if log_manager:
+        log_manager.log_section_end("任务4: 需求场景识别")
     
     if task4_status == "fail":
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
     
     # 任务5：建立哨兵机制
+    if log_manager:
+        log_manager.log_section_start("任务5: 建立哨兵机制")
+    
     sentinel_task = SentinelMechanismTask()
     task5_result = sentinel_task.execute(config_data, scenario_task)
     task5_status = "pass" if "pass" in task5_result else "fail"
     task_results.append(("5", "建立哨兵机制", task5_status))
+    
+    if log_manager:
+        log_manager.log_section_end("任务5: 建立哨兵机制")
     
     if task5_status == "fail":
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
     
     # 任务6：哨兵机制生成代码
+    if log_manager:
+        log_manager.log_section_start("任务6: 哨兵机制生成代码")
+    
     code_generation_task = CodeGenerationTask(config)
     task6_result = code_generation_task.execute(filename)
     if task6_result == "fail":
         task_results.append(("6", "哨兵机制生成代码", "fail"))
+        if log_manager:
+            log_manager.log_section_end("任务6: 哨兵机制生成代码")
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
     elif task6_result == "waiting":
         # 子表场景，等待主表调用，直接返回SUCCESS
         task_results.append(("6", "哨兵机制生成代码", "pass"))
+        if log_manager:
+            log_manager.log_section_end("任务6: 哨兵机制生成代码")
         _print_execution_summary(task_results, "SUCCESS")
         return "SUCCESS"
     else:
         task_results.append(("6", "哨兵机制生成代码", "pass"))
     
+    if log_manager:
+        log_manager.log_section_end("任务6: 哨兵机制生成代码")
+    
     # 任务7：占位符变量处理
+    if log_manager:
+        log_manager.log_section_start("任务7: 占位符变量处理")
+    
     placeholder_task = PlaceholderVariableProcessingTask(config)
     task7_result = placeholder_task.execute(filename)
     task7_status = "pass" if "pass" in task7_result else "fail"
     task_results.append(("7", "占位符变量处理", task7_status))
+    
+    if log_manager:
+        log_manager.log_section_end("任务7: 占位符变量处理")
     
     if task7_status == "fail":
         _print_execution_summary(task_results, "ERROR") 
         return "ERROR"
     
     # 任务8：前端代码迁移
+    if log_manager:
+        log_manager.log_section_start("任务8: 前端代码迁移")
+    
     migration_task = FrontendCodeMigrationTask(config)
     task8_result = migration_task.execute(filename)
     task8_status = "pass" if "pass" in task8_result else "fail"
     task_results.append(("8", "前端代码迁移", task8_status))
+    
+    if log_manager:
+        log_manager.log_section_end("任务8: 前端代码迁移")
     
     if task8_status == "fail":
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
     
     # 任务9：菜单权限SQL执行
+    if log_manager:
+        log_manager.log_section_start("任务9: 菜单权限SQL执行")
+    
     sql_task = DatabaseSQLExecutionTask(config)
     task9_result = sql_task.execute(filename)
     task9_status = "pass" if "pass" in task9_result else "fail"
     task_results.append(("9", "菜单权限SQL执行", task9_status))
+    
+    if log_manager:
+        log_manager.log_section_end("任务9: 菜单权限SQL执行")
     
     if task9_status == "fail":
         _print_execution_summary(task_results, "ERROR")
@@ -2893,33 +3758,133 @@ def _print_execution_summary(task_results, overall_status):
         task_results: 任务结果列表，格式为 [(序号, 名称, 状态), ...]
         overall_status: 总体状态 "SUCCESS" 或 "ERROR"
     """
-    print("\n" + "="*60)
-    print("任务执行状态汇总:")
-    print("="*60)
+    print("\n" + "="*70)
+    if overall_status == "SUCCESS":
+        print("🎉 JeecgBoot 代码生成完成 - 执行成功")
+    else:
+        print("💥 JeecgBoot 代码生成失败 - 执行中断")
+    print("="*70)
     
-    for task_id, task_name, status in task_results:
-        status_symbol = "✅" if status == "pass" else "❌"
-        print(f"{task_id}-{task_name}-{status} {status_symbol}")
+    if task_results:
+        print(f"📋 任务执行状态详情:")
+        for task_id, task_name, status in task_results:
+            status_symbol = "✅" if status == "pass" else "❌"
+            status_text = "成功" if status == "pass" else "失败"
+            print(f"   {status_symbol} 任务{task_id}: {task_name} - {status_text}")
+        
+        success_count = sum(1 for _, _, status in task_results if status == "pass")
+        total_count = len(task_results)
+        print(f"\n📊 执行统计: {success_count}/{total_count} 个任务成功")
     
-    print("="*60)
-    print(f"EXECUTE_SUMMARY={overall_status}")
-    print("="*60)
+    print("="*70)
+    overall_icon = "✅" if overall_status == "SUCCESS" else "❌"
+    overall_text = "成功" if overall_status == "SUCCESS" else "失败"
+    print(f"{overall_icon} 最终状态: {overall_text}")
+    print(f"🕒 完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("="*70)
+
+
+def main_enhanced(filename="", check_env=False, setup_guide=False, interactive_guide=False, continue_after_setup=False):
+    """增强版主函数，支持环境检查和交互式配置"""
+    global SUMMARY_RESULT
+    
+    # 环境检查模式（无需日志记录）
+    if check_env:
+        guide = EnvironmentGuide()
+        status = guide.print_environment_status()
+        return "SUCCESS" if status['all_configured'] else "ERROR"
+    
+    # 配置向导模式
+    if setup_guide:
+        guide = EnvironmentGuide()
+        if guide.interactive_setup_guide():
+            print("✅ 环境配置已完成，环境变量已在当前Python进程中生效")
+            print("\n💡 提示: 您现在可以运行代码生成任务，环境变量在此Python进程中有效")
+            print("   示例: python3 Code_Gen_Execute.py your_table_config.json")
+            return "SETUP_COMPLETE"
+        else:
+            print("❌ 环境配置失败")
+            return "ERROR"
+    
+    # 如果启用交互式引导，先检查环境（无需日志记录）
+    if interactive_guide:
+        guide = EnvironmentGuide()
+        status = guide.print_environment_status()
+        
+        if not status['all_configured']:
+            print("\n🚀 检测到环境变量缺失，启动交互式配置向导...")
+            if guide.interactive_setup_guide():
+                print("✅ 环境配置已完成，环境变量已在当前Python进程中生效")
+                print(f"\n🔄 继续执行代码生成任务: {filename}")
+                print("=" * 50)
+                # 直接继续执行主要任务
+                result = main(filename)
+                if _log_manager and _log_manager.log_file_path:
+                    print(f"\n📝 执行日志已保存至: {_log_manager.log_file_path}")
+                return result
+            else:
+                print("❌ 环境配置失败")
+                return "ERROR"
+    
+    # 正常的代码生成模式（使用日志记录）
+    if not filename:
+        print("❌ 请指定配置文件")
+        return "ERROR"
+        
+    # 使用日志系统执行主要任务
+    result = main(filename)
+    
+    # 输出日志文件位置信息
+    if _log_manager and _log_manager.log_file_path:
+        print(f"\n📝 执行日志已保存至: {_log_manager.log_file_path}")
+        print(f"💡 您可以查看日志文件了解详细的执行过程")
+    
+    return result
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
+        print("JeecgBoot 代码生成执行器 v4.1 Enhanced - 支持完整日志记录")
+        print("=" * 60)
+        print("🔥 新功能: 所有执行过程自动记录到日志文件 {MODULE_NAME}_{SUBMODULE_NAME}_{timestamp}.log")
+        print("=" * 60)
         print("使用方法:")
-        print("  python Code_Gen_Execute.py <filename>       # 执行代码生成任务")
-        print("  python Code_Gen_Execute.py --test-api       # 测试JeecgBoot API函数")
-        print("  python Code_Gen_Execute.py --test-status    # 测试哨兵状态管理系统")
+        print("  python3 Code_Gen_Execute.py <表单配置文件.json>  # 执行代码生成任务 (含日志记录)")
+        print("  python3 Code_Gen_Execute.py --setup-guide        # 启动交互式环境变量配置向导")
+        print("  python3 Code_Gen_Execute.py --check-env          # 检查环境变量配置")
+        print("  python3 Code_Gen_Execute.py <filename> --guide   # 执行任务前先检查环境")
+        print("  python3 Code_Gen_Execute.py --test-api           # 测试JeecgBoot API函数")
+        print("  python3 Code_Gen_Execute.py --test-status        # 测试哨兵状态管理系统")
+        print("")
+        print("📝 日志功能说明:")
+        print("  • 所有控制台输出都会同步记录到日志文件")
+        print("  • 日志文件包含完整的执行过程和错误信息")
+        print("  • 文件名格式: {模块名}_{子模块名}_{时间戳}.log")
+        print("  • 日志文件保存在脚本执行目录")
+        print("")
+        print("🔧 环境变量配置说明:")
+        print("  • --setup-guide 配置系统环境变量，生成临时配置文件 .env_temp")
+        print("  • 后续运行会自动加载 .env_temp 文件中的环境变量")
+        print("  • 建议工作流程:")
+        print("    1. python3 Code_Gen_Execute.py --setup-guide      # 配置环境")
+        print("    2. python3 Code_Gen_Execute.py your_table.json    # 执行生成")
+        print("    3. 如需重新配置，重复步骤1即可")
         sys.exit(1)
     
-    if sys.argv[1] == "--test-api":
+    if sys.argv[1] == "--setup-guide":
+        result = main_enhanced(setup_guide=True)
+        sys.exit(0 if result in ["SUCCESS", "SETUP_COMPLETE"] else 1)
+    elif sys.argv[1] == "--check-env":
+        result = main_enhanced(check_env=True)
+        sys.exit(0 if result == "SUCCESS" else 1)
+    elif sys.argv[1] == "--test-api":
         test_jeecg_apis()
         sys.exit(0)
     elif sys.argv[1] == "--test-status":
         test_sentinel_status()
         sys.exit(0)
     else:
-        result = main(sys.argv[1])
-        sys.exit(0 if result == "SUCCESS" else 1)
+        filename = sys.argv[1]
+        guide_mode = "--guide" in sys.argv
+        result = main_enhanced(filename, interactive_guide=guide_mode)
+        sys.exit(0 if result in ["SUCCESS", "SETUP_COMPLETE"] else 1)
