@@ -61,6 +61,7 @@ class CodeGenValidator:
         errors.extend(self._validate_order_num(config))
         errors.extend(self._validate_system_fields(config))
         errors.extend(self._validate_table_name(config))
+        errors.extend(self._validate_field_names(config))
         errors.extend(self._validate_field_length_limits(config))
 
         # 验证表类型参数
@@ -78,7 +79,7 @@ class CodeGenValidator:
         elif table_type == 2:  # 主表
             if has_sub_list:
                 # 主表可以有subList，但如果存在就需要验证
-                sub_list_valid, sub_list_errors = self.validate_sub_list_for_master_table(config['subList'])
+                sub_list_valid, sub_list_errors = self.validate_sub_list_for_master_table(config['subList'], config)
                 if not sub_list_valid:
                     errors.extend(sub_list_errors)
                 
@@ -136,16 +137,64 @@ class CodeGenValidator:
 
         return errors
 
+    def _validate_field_names(self, config: Dict) -> List[str]:
+        """验证字段名长度和格式（重点关注db_field_name的32字符限制）"""
+        errors = []
+        fields = config.get('fields', [])
+
+        for i, field in enumerate(fields):
+            field_name = field.get('dbFieldName', '')
+            if not field_name:
+                errors.append(f"🚨 字段{i+1}缺少dbFieldName")
+                continue
+
+            # 检查字段名长度（重要：对应数据库onl_cgform_field.db_field_name varchar(32)限制）
+            if len(field_name) > 32:
+                errors.append(f"🚨 字段{i+1}的dbFieldName超长: '{field_name}' ({len(field_name)}字符 > 32字符限制) - 这会导致数据库插入失败")
+
+            # 检查字段名格式
+            if not re.match(r'^[a-z][a-z0-9_]*$', field_name):
+                errors.append(f"🚨 字段{i+1}的dbFieldName格式错误: '{field_name}' (应为小写字母开头，可包含数字和下划线)")
+
+            # 检查是否包含连续下划线
+            if '__' in field_name:
+                errors.append(f"⚠️ 字段{i+1}的dbFieldName包含连续下划线: '{field_name}' (建议避免使用)")
+
+        return errors
+
     def _validate_table_name(self, config: Dict) -> List[str]:
-        """验证表名格式"""
+        """验证表名格式 - 严格三段式"""
         errors = []
         table_name = config.get('head', {}).get('tableName', '')
-
-        if not table_name.startswith('us_'):
-            errors.append("表名必须以us_开头")
-
-        if table_name.count('_') < 3:
-            errors.append("表名必须至少是4段式: us_module_submodule_entity（支持更多段）")
+        
+        # 严格三段式验证：必须正好有3段，不允许4段式或更多段式
+        segments = table_name.split('_')
+        
+        if len(segments) != 3:
+            errors.append(f"❌ 表名格式错误: '{table_name}' 必须严格为三段式格式 {{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{ENTITY_SUFFIX}}，当前为{len(segments)}段式")
+            return errors
+        
+        module_name, submodule_name, entity_suffix = segments
+        
+        # 验证各段格式
+        if not re.match(r'^[a-z]+$', module_name):
+            errors.append(f"❌ MODULE_NAME格式错误: '{module_name}' 必须为纯小写字母")
+        
+        if not re.match(r'^[a-z]+$', submodule_name):
+            errors.append(f"❌ SUBMODULE_NAME格式错误: '{submodule_name}' 必须为纯小写字母")
+        
+        if not re.match(r'^[a-z0-9]+$', entity_suffix):
+            errors.append(f"❌ ENTITY_SUFFIX格式错误: '{entity_suffix}' 必须为小写字母和数字组合")
+            
+        # 检查常见的四段式错误模式
+        invalid_patterns = [
+            "crm_customer_customer_profile",
+            "education_student_student_info", 
+            "finance_invoice_invoice_header"
+        ]
+        
+        if table_name in invalid_patterns:
+            errors.append(f"❌ 禁止使用四段式表名: '{table_name}' 应简化为三段式，如 'crm_customer_profile'")
 
         return errors
 
@@ -154,7 +203,7 @@ class CodeGenValidator:
         errors = []
         fields = config.get('fields', [])
 
-        # 字段长度限制定义
+        # 字段长度限制定义（除了dbFieldName，它在_validate_field_names中专门处理）
         length_limits = {
             'queryMode': 10,
             'fieldShowType': 20,
@@ -194,11 +243,25 @@ JSON配置验证报告
             report += "\n修复建议:\n"
             report += "1. 确保orderNum从0开始连续递增\n"
             report += "2. 检查前7个系统字段是否正确\n"
-            report += "3. 验证表名格式: us_module_submodule_entity\n"
+            report += "3. 验证表名格式: module_submodule_entity\n"
+            report += "4. 确保dbFieldName长度不超过32字符(数据库限制)\n"
+            report += "5. 检查字段名格式: 小写字母开头，可包含数字和下划线\n"
+
+            # 添加字段名修正建议
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                suggestions = self.suggest_field_name_corrections(config)
+                if suggestions:
+                    report += "\n字段名修正建议:\n"
+                    for field_key, suggestion in suggestions.items():
+                        report += f"  {field_key}: {suggestion}\n"
+            except Exception as e:
+                report += f"\n无法生成字段名修正建议: {e}\n"
 
         return report
 
-    def validate_sub_list_for_master_table(self, sub_list: List[Dict]) -> Tuple[bool, List[str]]:
+    def validate_sub_list_for_master_table(self, sub_list: List[Dict], config: Dict = None) -> Tuple[bool, List[str]]:
         """验证主表的subList配置 - 允许空数组"""
         errors = []
 
@@ -211,7 +274,7 @@ JSON配置验证报告
             return True, []
 
         # 如果不为空，则使用标准验证逻辑
-        return self._validate_sub_list_content(sub_list)
+        return self._validate_sub_list_content(sub_list, config)
 
     def validate_sub_list(self, sub_list: List[Dict]) -> Tuple[bool, List[str]]:
         """验证subList配置的完整性 - 子表场景（不允许空数组）"""
@@ -227,7 +290,7 @@ JSON配置验证报告
 
         return self._validate_sub_list_content(sub_list)
 
-    def _validate_sub_list_content(self, sub_list: List[Dict]) -> Tuple[bool, List[str]]:
+    def _validate_sub_list_content(self, sub_list: List[Dict], config: Dict = None) -> Tuple[bool, List[str]]:
         """验证subList内容的通用逻辑"""
         errors = []
 
@@ -246,11 +309,35 @@ JSON配置验证报告
                 if field not in sub_table or not sub_table[field]:
                     errors.append(f"subList[{i}]缺少必需字段: {field}")
 
-            # 验证表名格式
+            # 验证子表表名格式 - 严格三段式
             table_name = sub_table.get('tableName', '')
             if table_name:
-                if not re.match(r'^us_[a-z0-9_]+$', table_name):
-                    errors.append(f"subList[{i}]表名格式错误: {table_name}，应为us_开头的小写字母、数字和下划线格式")
+                # 严格三段式验证
+                segments = table_name.split('_')
+                if len(segments) != 3:
+                    errors.append(f"❌ subList[{i}]表名格式错误: '{table_name}' 必须严格为三段式格式 {{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{ENTITY_SUFFIX}}，当前为{len(segments)}段式")
+                else:
+                    module_name, submodule_name, entity_suffix = segments
+                    
+                    # 验证各段格式
+                    if not re.match(r'^[a-z]+$', module_name):
+                        errors.append(f"❌ subList[{i}] MODULE_NAME格式错误: '{module_name}' 必须为纯小写字母")
+                    
+                    if not re.match(r'^[a-z]+$', submodule_name):
+                        errors.append(f"❌ subList[{i}] SUBMODULE_NAME格式错误: '{submodule_name}' 必须为纯小写字母")
+                    
+                    if not re.match(r'^[a-z0-9]+$', entity_suffix):
+                        errors.append(f"❌ subList[{i}] ENTITY_SUFFIX格式错误: '{entity_suffix}' 必须为小写字母和数字组合")
+                
+                # 检查禁用的四段式表名
+                invalid_patterns = [
+                    "crm_customer_customer_profile",
+                    "education_student_student_info", 
+                    "finance_invoice_invoice_header"
+                ]
+                
+                if table_name in invalid_patterns:
+                    errors.append(f"❌ subList[{i}]禁止使用四段式表名: '{table_name}' 应简化为三段式")
 
                 if table_name in used_table_names:
                     errors.append(f"subList[{i}]表名重复: {table_name}")
@@ -259,8 +346,18 @@ JSON配置验证报告
 
             # 验证实体名格式
             entity_name = sub_table.get('entityName', '')
-            if entity_name and not re.match(r'^[A-Z][a-zA-Z0-9]*$', entity_name):
-                errors.append(f"subList[{i}]实体名格式错误: {entity_name}，应为PascalCase格式")
+            if entity_name:
+                # 基础格式验证
+                if not re.match(r'^[A-Z][a-zA-Z0-9]*$', entity_name):
+                    errors.append(f"subList[{i}]实体名格式错误: {entity_name}，应为PascalCase格式")
+                
+                # ✅ 新增：验证简洁格式
+                main_entity = config.get('head', {}).get('business_entity', '')
+                if main_entity and entity_name == main_entity:
+                    errors.append(f"subList[{i}]实体名不能与主表实体名相同: {entity_name}")
+                elif main_entity and entity_name.startswith(main_entity):
+                    errors.append(f"subList[{i}]实体名应使用简洁格式: {entity_name}，推荐去除主表前缀")
+                    errors.append(f"⚠️ 统一使用简洁格式，避免复合命名")
 
             # 验证ID格式
             sub_id = sub_table.get('id', '')
@@ -312,29 +409,25 @@ JSON配置验证报告
 
         # 解析主表的模块信息
         main_parts = main_table_name.split('_')
-        if len(main_parts) < 4:
-            errors.append(f"主表名格式错误: {main_table_name}（至少需要4段）")
+        if len(main_parts) < 3:
+            errors.append(f"主表名格式错误: {main_table_name}（至少需要3段）")
             return False, errors
 
-        main_prefix, main_module, main_submodule = main_parts[0], main_parts[1], main_parts[2]
+        main_module, main_submodule = main_parts[0], main_parts[1]
 
         # 验证子表与主表的模块一致性
         for i, sub_table in enumerate(sub_list):
             sub_table_name = sub_table.get('tableName', '')
             if sub_table_name:
                 sub_parts = sub_table_name.split('_')
-                if len(sub_parts) == 4:
-                    sub_prefix, sub_module, sub_submodule = sub_parts[0], sub_parts[1], sub_parts[2]
-
-                    if sub_prefix != main_prefix:
-                        errors.append(f"subList[{i}]前缀不一致: 主表{main_prefix}，子表{sub_prefix}")
+                if len(sub_parts) >= 3:
+                    sub_module, sub_submodule = sub_parts[0], sub_parts[1]
 
                     if sub_module != main_module:
                         errors.append(f"subList[{i}]模块不一致: 主表{main_module}，子表{sub_module}")
 
-                    # 子模块可以不同，但不能与主表相同
-                    if sub_submodule == main_submodule:
-                        errors.append(f"subList[{i}]子模块与主表相同: {sub_submodule}")
+                    if sub_submodule != main_submodule:
+                        errors.append(f"subList[{i}]子模块不一致: 主表{main_submodule}，子表{sub_submodule}")
 
         return len(errors) == 0, errors
 
@@ -425,6 +518,71 @@ JSON配置验证报告
             errors.append("子表必须包含至少一个外键字段（字段名以_id结尾，且配置了mainTable和mainField）")
 
         return len(errors) == 0, errors
+
+    def suggest_field_name_corrections(self, config: Dict) -> Dict[str, str]:
+        """为过长的字段名提供修正建议"""
+        suggestions = {}
+        fields = config.get('fields', [])
+
+        # 常见缩写映射
+        abbreviations = {
+            'information': 'info',
+            'profile': 'prof', 
+            'description': 'desc',
+            'configuration': 'config',
+            'management': 'mgmt',
+            'customer': 'cust',
+            'employee': 'emp',
+            'department': 'dept',
+            'organization': 'org',
+            'telephone': 'tel',
+            'address': 'addr',
+            'reference': 'ref',
+            'category': 'cat',
+            'status': 'stat',
+            'number': 'num',
+            'identifier': 'id',
+            'timestamp': 'ts',
+            'created': 'crt',
+            'updated': 'upd',
+            'modified': 'mod'
+        }
+
+        for i, field in enumerate(fields):
+            field_name = field.get('dbFieldName', '')
+            if len(field_name) > 32:
+                # 尝试自动缩短字段名
+                shortened = field_name
+                
+                # 应用常见缩写
+                for full, abbr in abbreviations.items():
+                    shortened = shortened.replace(full, abbr)
+                
+                # 移除连续下划线
+                while '__' in shortened:
+                    shortened = shortened.replace('__', '_')
+                
+                # 如果仍然太长，进行进一步缩短
+                if len(shortened) > 32:
+                    # 尝试移除元音字母（保留第一个字符和下划线后的首字符）
+                    parts = shortened.split('_')
+                    new_parts = []
+                    for part in parts:
+                        if len(part) > 3:
+                            # 保留首字符和辅音
+                            consonants = part[0] + ''.join([c for c in part[1:] if c not in 'aeiou'])
+                            new_parts.append(consonants[:6])  # 限制每部分最多6字符
+                        else:
+                            new_parts.append(part)
+                    shortened = '_'.join(new_parts)
+                
+                # 确保不超过32字符
+                if len(shortened) > 32:
+                    shortened = shortened[:32]
+                
+                suggestions[f"field_{i+1}_dbFieldName"] = f"'{field_name}' -> '{shortened}'"
+
+        return suggestions
 
 def main():
     """主函数"""

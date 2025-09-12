@@ -17,7 +17,7 @@ import { PAGE_NOT_FOUND_ROUTE } from '/@/router/routes/basic';
 import { isArray } from '/@/utils/is';
 import { useGlobSetting } from '/@/hooks/setting';
 import { JDragConfigEnum } from '/@/enums/jeecgEnum';
-import { useSso } from '/@/hooks/web/useSso';
+import { globalSSOManager } from '/@/utils/sso/GlobalSSOManager';
 import { isOAuth2AppEnv } from "/@/views/sys/login/useLogin";
 import { getUrlParam } from "@/utils";
 interface dictType {
@@ -95,6 +95,15 @@ export const useUserStore = defineStore({
     setToken(info: string | undefined) {
       this.token = info ? info : ''; // for null or undefined value
       setAuthCache(TOKEN_KEY, info);
+      
+      // 如果token为空，清除相关的用户信息和缓存
+      if (!info) {
+        this.userInfo = null;
+        this.loginInfo = null;
+        this.lastUpdateTime = 0;
+        setAuthCache(USER_INFO_KEY, null);
+        setAuthCache(LOGIN_INFO_KEY, null);
+      }
     },
     setRoleList(roleList: RoleEnum[]) {
       this.roleList = roleList;
@@ -178,6 +187,12 @@ export const useUserStore = defineStore({
      * @param goHome
      */
     async afterLoginAction(goHome?: boolean, data?: any): Promise<any | null> {
+      console.log('🔍 afterLoginAction被调用:', {
+        goHome,
+        hasToken: !!this.getToken,
+        currentPath: window.location.pathname
+      });
+      
       if (!this.getToken) return null;
       //获取用户信息
       const userInfo = await this.getUserInfoAction();
@@ -226,8 +241,10 @@ export const useUserStore = defineStore({
         //update-begin---author:wangshuai---date:2024-04-03---for:【issues/1102】设置单点登录后页面，进入首页提示404，也没有绘制侧边栏 #1102---
         let ticket = getUrlParam('ticket');
         if(ticket){
+          console.log('🔍 检查ticket跳转:', { ticket, goHome, targetPath: (userInfo && userInfo.homePath) || PageEnum.BASE_HOME });
           goHome && (window.location.replace((userInfo && userInfo.homePath) || PageEnum.BASE_HOME));
         }else{
+          console.log('🔍 检查常规跳转:', { goHome, targetPath: (userInfo && userInfo.homePath) || PageEnum.BASE_HOME });
           goHome && (await router.replace((userInfo && userInfo.homePath) || PageEnum.BASE_HOME));
         }
         //update-end---author:wangshuai---date:2024-04-03---for:【issues/1102】设置单点登录后页面，进入首页提示404，也没有绘制侧边栏 #1102---
@@ -298,7 +315,24 @@ export const useUserStore = defineStore({
           console.log('注销Token失败');
         }
       }
+      
+      // 执行清理操作
+      await this.performLogoutCleanup(goLogin);
+    },
 
+    /**
+     * 退出登录（不调用API，用于token已失效的情况）
+     */
+    async logoutWithoutApiCall(goLogin = false) {
+      console.log('🔄 执行logout清理（跳过API调用）...');
+      // 直接执行清理操作，不调用doLogout API
+      await this.performLogoutCleanup(goLogin);
+    },
+
+    /**
+     * 执行logout清理操作
+     */
+    async performLogoutCleanup(goLogin = false) {
       // //update-begin-author:taoyan date:2022-5-5 for: src/layouts/default/header/index.vue showLoginSelect方法 获取tenantId 退出登录后再次登录依然能获取到值，没有清空
       // let username:any = this.userInfo && this.userInfo.username;
       // if(username){
@@ -312,39 +346,55 @@ export const useUserStore = defineStore({
       this.setUserInfo(null);
       this.setLoginInfo(null);
       this.setTenant(null);
+      
+      // 清除SSO相关的localStorage
+      localStorage.removeItem('Access-Token');
+      localStorage.removeItem('userInfo');
+      
       // update-begin--author:liaozhiyang---date:20240517---for：【TV360X-23】退出登录后会提示「Token时效，请重新登录」
       setTimeout(() => {
         this.setAllDictItems(null);
       }, 1e3);
       // update-end--author:liaozhiyang---date:20240517---for：【TV360X-23】退出登录后会提示「Token时效，请重新登录」
+      
       //update-begin-author:liusq date:2022-5-5 for:退出登录后清除拖拽模块的接口前缀
       localStorage.removeItem(JDragConfigEnum.DRAG_BASE_URL);
       //update-end-author:liusq date:2022-5-5 for: 退出登录后清除拖拽模块的接口前缀
 
-      //如果开启单点登录,则跳转到单点统一登录中心
-      const openSso = useGlobSetting().openSso;
-      if (openSso == 'true') {
-        await useSso().ssoLoginOut();
-      }
-      //update-begin---author:wangshuai ---date:20230224  for：[QQYUN-3440]新建企业微信和钉钉配置表，通过租户模式隔离------------
-      //退出登录的时候需要用的应用id
-      if(isOAuth2AppEnv()){
-        let tenantId = getAuthCache(OAUTH2_THIRD_LOGIN_TENANT_ID);
-        removeAuthCache(OAUTH2_THIRD_LOGIN_TENANT_ID);
-        goLogin && await router.push({ name:"Login",query:{ tenantId:tenantId }})
-      }else{
-        // update-begin-author:sunjianlei date:20230306 for: 修复登录成功后，没有正确重定向的问题
-        goLogin && (await router.push({
-          path: PageEnum.BASE_LOGIN,
-          query: {
-            // 传入当前的路由，登录成功后跳转到当前路由
-            redirect: router.currentRoute.value.fullPath,
+      // 跳转逻辑（如果需要）
+      if (goLogin) {
+        try {
+          //如果开启单点登录,则跳转到单点统一登录中心
+          const openSso = useGlobSetting().openSso;
+          if (openSso == 'true') {
+            // 清理SSO会话
+            globalSSOManager.clearSession();
+            // TODO: 实现SSO统一登出逻辑
+            // return; // SSO登出后由外部系统控制跳转，直接返回
           }
-        }));
-        // update-end-author:sunjianlei date:20230306 for: 修复登录成功后，没有正确重定向的问题
-
+          
+          //update-begin---author:wangshuai ---date:20230224  for：[QQYUN-3440]新建企业微信和钉钉配置表，通过租户模式隔离------------
+          //退出登录的时候需要用的应用id
+          if(isOAuth2AppEnv()){
+            let tenantId = getAuthCache(OAUTH2_THIRD_LOGIN_TENANT_ID);
+            removeAuthCache(OAUTH2_THIRD_LOGIN_TENANT_ID);
+            await router.push({ name:"Login",query:{ tenantId:tenantId }});
+          }else{
+            // update-begin-author:sunjianlei date:20230306 for: 修复登录成功后，没有正确重定向的问题
+            await router.push({
+              path: PageEnum.BASE_LOGIN,
+              query: {
+                // 传入当前的路由，登录成功后跳转到当前路由
+                redirect: router.currentRoute.value.fullPath,
+              }
+            });
+            // update-end-author:sunjianlei date:20230306 for: 修复登录成功后，没有正确重定向的问题
+          }
+          //update-end---author:wangshuai ---date:20230224  for：[QQYUN-3440]新建企业微信和钉钉配置表，通过租户模式隔离------------
+        } catch (error) {
+          console.error('❌ 登出跳转失败:', error);
+        }
       }
-      //update-end---author:wangshuai ---date:20230224  for：[QQYUN-3440]新建企业微信和钉钉配置表，通过租户模式隔离------------
     },
     /**
      * 登录事件

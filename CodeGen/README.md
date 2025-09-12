@@ -229,7 +229,8 @@ python3 Code_Gen_Execute.py /Users/admin/Work/Github/JeecgBoot crm customer Cust
 ### 派生变量规则
 
 ```
-TABLE_NAME = us_{MODULE_NAME}_{SUBMODULE_NAME}_{BUSINESS_ENTITY.toLowerCase()}
+TABLE_NAME = {MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_SUFFIX}
+# 其中 ENTITY_SUFFIX = BUSINESS_ENTITY.toLowerCase() （去驼峰转小写）
 PACKAGE_NAME = org.jeecg.modules.{MODULE_NAME}.{SUBMODULE_NAME}
 FRONTEND_PATH = {MODULE_NAME}/{SUBMODULE_NAME}/{BUSINESS_ENTITY}
 ```
@@ -242,8 +243,9 @@ FRONTEND_PATH = {MODULE_NAME}/{SUBMODULE_NAME}/{BUSINESS_ENTITY}
 用户需求: "客户信息管理系统"
 MODULE_NAME: crm
 SUBMODULE_NAME: customer
-BUSINESS_ENTITY: CustomerInfo
-TABLE_NAME: us_crm_customer_customerinfo
+BUSINESS_ENTITY: CustomerProfile
+ENTITY_SUFFIX: customerprofile (CustomerProfile去驼峰转小写)
+TABLE_NAME: crm_customer_customerprofile
 ```
 
 **主子表场景**：
@@ -253,6 +255,30 @@ TABLE_NAME: us_crm_customer_customerinfo
 主表: education/student/StudentInfo
 子表1: education/student/EducationHistory
 子表2: education/student/AwardRecord
+```
+
+### 📋 表名格式约束
+
+**严格三段式要求**：
+
+- **格式**: `{MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_SUFFIX}`
+- **ENTITY_SUFFIX定义**: 领域对象实体类英文去驼峰后的全称（如：CustomerProfile → customerprofile）
+- **段数**: 必须正好3段，不允许4段式或更多段式
+- **分隔符**: 使用下划线 `_` 分隔
+- **字符集**: 仅包含小写字母、数字、下划线
+
+**❌ 禁止的四段式表名**：
+```
+crm_customer_customer_profile     # 错误：4段式
+education_student_student_info    # 错误：4段式  
+finance_invoice_invoice_header    # 错误：4段式
+```
+
+**✅ 正确的三段式表名**：
+```
+crm_customer_profile              # 正确：3段式
+education_student_info            # 正确：3段式
+finance_invoice_header            # 正确：3段式
 ```
 
 ## 🚀 快速开始指南
@@ -354,7 +380,7 @@ python3 Code_Gen_Execute.py /path/to/project crm customer CustomerInfo
 
 - 后端代码：`jeecg-module-crm/`
 - 前端代码：`jeecgboot-vue3/src/views/crm/customer/`
-- 数据库表：`us_crm_customer_customerinfo`
+- 数据库表：`crm_customer_customerinfo`
 
 #### 示例 2：主子表生成
 

@@ -221,6 +221,21 @@ export const useMultipleTabStore = defineStore({
         return (tab.fullPath || tab.path) === (fullPath || path);
       });
 
+      // 优化页签重复检测：特殊处理固定页签(affix)的重复添加问题
+      const existingAffixTab = this.tabList.find(tab => 
+        tab.path === path && tab.meta?.affix === true
+      );
+      if (existingAffixTab) {
+        console.log('🔍 跳过添加：已存在固定首页页签', {
+          existingPath: existingAffixTab.path,
+          newPath: path,
+          existingTitle: existingAffixTab.meta?.title,
+          newTitle: meta?.title,
+          reason: 'affix_tab_exists'
+        });
+        return;
+      }
+
       // If the tab already exists, perform the update operation
       if (tabHasExits) {
         const curTab = toRaw(this.tabList)[updateIndex];

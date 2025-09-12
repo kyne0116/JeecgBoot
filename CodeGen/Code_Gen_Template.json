@@ -1,6 +1,6 @@
 {
   "head": {
-    "tableName": "{{TABLE_NAME}}",
+    "tableName": "{{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{TABLE_SUFFIX}}",
     "tableTxt": "{{TABLE_DESCRIPTION}}",
     "business_entity": "{{BUSINESS_ENTITY}}",
     "tableType": "{{TABLE_TYPE}}",
