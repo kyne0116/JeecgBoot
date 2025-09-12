@@ -1,13 +1,13 @@
 package org.jeecg.modules.monitor.service.impl;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import javax.annotation.Resource;
 
-import cn.hutool.core.date.DateUtil;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.Maps;
 import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.modules.monitor.domain.RedisInfo;
 import org.jeecg.modules.monitor.exception.RedisConnectException;
@@ -17,6 +17,11 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Maps;
+
+import cn.hutool.core.date.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -31,15 +36,15 @@ public class RedisServiceImpl implements RedisService {
 	@Resource
 	private RedisConnectionFactory redisConnectionFactory;
 
-    /**
-     * redis信息
-     */
-    private static final String REDIS_MESSAGE = "3";
+	/**
+	 * redis信息
+	 */
+	private static final String REDIS_MESSAGE = "3";
 
 	/**
 	 * redis性能信息记录
 	 */
-	private static final Map<String,List<Map<String, Object>>> REDIS_METRICS = new HashMap<>(2);
+	private static final Map<String, List<Map<String, Object>>> REDIS_METRICS = new HashMap<>(2);
 
 	/**
 	 * Redis详细信息
@@ -71,66 +76,86 @@ public class RedisServiceImpl implements RedisService {
 
 	@Override
 	public Map<String, Object> getMemoryInfo() throws RedisConnectException {
-		Map<String, Object> map = null;
+		Map<String, Object> map = new HashMap<>(5);
+		map.put("create_time", System.currentTimeMillis());
+
 		Properties info = redisConnectionFactory.getConnection().info();
+		Map<String, Object> debugInfo = new HashMap<>();
+		debugInfo.put("info_size", info.size());
+
+		String foundKey = null;
 		for (Map.Entry<Object, Object> entry : info.entrySet()) {
 			String key = oConvertUtils.getString(entry.getKey());
-			if ("used_memory".equals(key)) {
-				map = new HashMap(5);
+			if (key.endsWith(".used_memory") || "used_memory".equals(key)) {
 				map.put("used_memory", entry.getValue());
-				map.put("create_time", System.currentTimeMillis());
+				foundKey = key;
+				debugInfo.put("found_key", foundKey);
+				debugInfo.put("found_value", entry.getValue());
+				break;
 			}
 		}
-		log.debug("--getMemoryInfo--: " + map.toString());
+
+		// 如果没有找到used_memory，设置默认值0避免后续处理出错
+		if (!map.containsKey("used_memory")) {
+			map.put("used_memory", 0L);
+			debugInfo.put("status", "not_found_use_default");
+		} else {
+			debugInfo.put("status", "found");
+		}
+
+		log.info("Redis内存信息获取结果: {}", debugInfo);
 		return map;
 	}
 
-    /**
-     * 查询redis信息for报表
-     * @param type 1redis key数量 2 占用内存 3redis信息
-     * @return
-     * @throws RedisConnectException
-     */
+	/**
+	 * 查询redis信息for报表
+	 * 
+	 * @param type 1redis key数量 2 占用内存 3redis信息
+	 * @return
+	 * @throws RedisConnectException
+	 */
 	@Override
-	public Map<String, JSONArray> getMapForReport(String type)  throws RedisConnectException {
-		Map<String,JSONArray> mapJson=new HashMap(5);
+	public Map<String, JSONArray> getMapForReport(String type) throws RedisConnectException {
+		Map<String, JSONArray> mapJson = new HashMap(5);
 		JSONArray json = new JSONArray();
-		if(REDIS_MESSAGE.equals(type)){
+		if (REDIS_MESSAGE.equals(type)) {
 			List<RedisInfo> redisInfo = getRedisInfo();
-			for(RedisInfo info:redisInfo){
-				Map<String, Object> map= Maps.newHashMap();
+			for (RedisInfo info : redisInfo) {
+				Map<String, Object> map = Maps.newHashMap();
 				BeanMap beanMap = BeanMap.create(info);
 				for (Object key : beanMap.keySet()) {
-					map.put(key+"", beanMap.get(key));
+					map.put(key + "", beanMap.get(key));
 				}
 				json.add(map);
 			}
-			mapJson.put("data",json);
+			mapJson.put("data", json);
 			return mapJson;
 		}
 		int length = 5;
-		for(int i = 0; i < length; i++){
+		for (int i = 0; i < length; i++) {
 			JSONObject jo = new JSONObject();
 			Map<String, Object> map;
-			if("1".equals(type)){
-				map= getKeysSize();
-				jo.put("value",map.get("dbSize"));
-			}else{
+			if ("1".equals(type)) {
+				map = getKeysSize();
+				jo.put("value", map.get("dbSize"));
+			} else {
 				map = getMemoryInfo();
 				Integer usedMemory = Integer.valueOf(map.get("used_memory").toString());
-				jo.put("value",usedMemory/1000);
+				jo.put("value", usedMemory / 1000);
 			}
-			String createTime = DateUtil.formatTime(DateUtil.date((Long) map.get("create_time")-(4-i)*1000));
-			jo.put("name",createTime);
+			String createTime = DateUtil.formatTime(DateUtil.date((Long) map.get("create_time") - (4 - i) * 1000));
+			jo.put("name", createTime);
 			json.add(jo);
 		}
-		mapJson.put("data",json);
+		mapJson.put("data", json);
 		return mapJson;
 	}
 
-	//update-begin---author:chenrui ---date:20240514  for：[QQYUN-9247]系统监控功能优化------------
+	// update-begin---author:chenrui ---date:20240514
+	// for：[QQYUN-9247]系统监控功能优化------------
 	/**
 	 * 获取历史性能指标
+	 * 
 	 * @return
 	 * @author chenrui
 	 * @date 2024/5/14 14:57
@@ -143,32 +168,34 @@ public class RedisServiceImpl implements RedisService {
 	/**
 	 * 记录近一小时redis监控数据 <br/>
 	 * 60s一次,,记录存储keysize和内存
+	 * 
 	 * @throws RedisConnectException
 	 * @author chenrui
 	 * @date 2024/5/14 14:09
 	 */
 	@Scheduled(fixedRate = 60000)
 	public void recordCustomMetric() throws RedisConnectException {
-		List<Map<String, Object>> list= new ArrayList<>();
-		if(REDIS_METRICS.containsKey("dbSize")){
+		List<Map<String, Object>> list = new ArrayList<>();
+		if (REDIS_METRICS.containsKey("dbSize")) {
 			list = REDIS_METRICS.get("dbSize");
-		}else{
-			REDIS_METRICS.put("dbSize",list);
+		} else {
+			REDIS_METRICS.put("dbSize", list);
 		}
-		if(list.size()>60){
+		if (list.size() > 60) {
 			list.remove(0);
 		}
 		list.add(getKeysSize());
-		list= new ArrayList<>();
-		if(REDIS_METRICS.containsKey("memory")){
+		list = new ArrayList<>();
+		if (REDIS_METRICS.containsKey("memory")) {
 			list = REDIS_METRICS.get("memory");
-		}else{
-			REDIS_METRICS.put("memory",list);
+		} else {
+			REDIS_METRICS.put("memory", list);
 		}
-		if(list.size()>60){
+		if (list.size() > 60) {
 			list.remove(0);
 		}
 		list.add(getMemoryInfo());
 	}
-	//update-end---author:chenrui ---date:20240514  for：[QQYUN-9247]系统监控功能优化------------
+	// update-end---author:chenrui ---date:20240514
+	// for：[QQYUN-9247]系统监控功能优化------------
 }
