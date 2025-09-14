@@ -8,6 +8,7 @@ import time
 import configparser
 import mysql.connector
 import logging
+import fnmatch
 from datetime import datetime
 from typing import Dict, Optional, Tuple, List
 from contextlib import contextmanager
@@ -2063,7 +2064,11 @@ class CodeGenerationTask:
                 if not self._process_table_apis(token, table_name, table_config, sentinel_file):
                     return "fail"
             
-            # 所有表都同步完成后，对主表执行代码生成
+            # 所有表都同步完成后，清理JSON配置文件中的tableTxt字段
+            scenario_id = f"{sentinel_data.get('module_name', 'unknown')}_{sentinel_data.get('submodule_name', 'unknown')}"
+            self._clean_table_txt_in_json_configs(scenario_id)
+            
+            # 然后对主表执行代码生成
             main_table_name = None
             main_table_config = None
             
@@ -2321,14 +2326,63 @@ class CodeGenerationTask:
         
         # 构建subList格式（参考Example_Main_Sub_Table.json）
         for i, sub_table in enumerate(sub_tables):
+            # 🔥 修复：使用安全的多重降级策略获取中文描述
+            ftl_description = self._get_safe_table_description(
+                sub_table['table_name'], 
+                sub_table['entity_name']
+            )
+            
             sub_list.append({
                 "tableName": sub_table['table_name'],
                 "entityName": sub_table['entity_name'],
-                "ftlDescription": f"{sub_table['entity_name']}表",
+                "ftlDescription": ftl_description,
                 "id": f"row_{1020 + i}"
             })
         
         return sub_list
+    
+    def _get_safe_table_description(self, table_name: str, entity_name: str) -> str:
+        """
+        安全获取表的中文描述
+        
+        🛡️ 多重降级策略确保系统绝对稳定：
+        Level 1: 尝试从子表JSON配置文件读取tableTxt
+        Level 2: 尝试从哨兵数据读取description 
+        Level 3: 使用原有的entity_name + "表"
+        
+        Args:
+            table_name: 表名
+            entity_name: 实体名
+            
+        Returns:
+            str: 表的中文描述
+        """
+        
+        # Level 1: 尝试从配置文件读取 (最优方案)
+        try:
+            config_data = self._find_table_json_file(table_name)
+            if config_data and isinstance(config_data, dict):
+                table_txt = config_data.get('head', {}).get('tableTxt')
+                if table_txt and table_txt.strip():
+                    return table_txt.strip()
+        except Exception as e:
+            # 🔇 静默处理，记录警告但不中断流程
+            print(f"⚠️  读取{table_name}配置文件异常，使用降级方案: {str(e)[:50]}...")
+        
+        # Level 2: 尝试从哨兵数据读取 (中级方案)
+        try:
+            if hasattr(self, 'sentinel_data') and self.sentinel_data:
+                tables = self.sentinel_data.get('tables', {})
+                table_info = tables.get(table_name, {})
+                description = table_info.get('table_description') or table_info.get('description')
+                if description and description.strip():
+                    return description.strip()
+        except Exception:
+            # 🔇 静默处理，继续降级
+            pass
+        
+        # Level 3: 最终降级方案 (确保系统稳定)
+        return f"{entity_name}表"
     
     def _update_table_status(self, sentinel_file: str, table_name: str, status: str, form_id: str = None):
         """更新哨兵文件中表的状态"""
@@ -2348,6 +2402,84 @@ class CodeGenerationTask:
                     json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
             print(f"更新表状态失败: {e}")
+    
+    def _clean_table_txt_in_json_configs(self, scenario_id: str):
+        """
+        清理生成的JSON配置文件中的tableTxt字段
+        移除模块前缀和"表"后缀，保留纯净的业务描述
+        
+        Args:
+            scenario_id: 场景ID，用于匹配JSON文件
+        """
+        try:
+            print(f"\n🧹 开始清理JSON配置文件中的tableTxt字段...")
+            
+            # 查找所有匹配的JSON配置文件
+            pattern = f"{scenario_id}_*.json"
+            json_files = []
+            
+            for file in os.listdir('.'):
+                if fnmatch.fnmatch(file, pattern):
+                    json_files.append(file)
+            
+            if not json_files:
+                print(f"⚠️  未找到匹配的JSON文件: {pattern}")
+                return
+            
+            # 定义业务描述映射表 - 将entity名称映射到纯净的中文描述
+            entity_to_description = {
+                'MemberEducation': '教育背景',
+                'MemberCareer': '职业发展', 
+                'MemberAchievement': '荣誉成就',
+                'MemberSocial': '社交属性',
+                'MemberProfile': '基础档案'  # 主表通常保持原样或简化
+            }
+            
+            cleaned_count = 0
+            
+            for json_file in json_files:
+                try:
+                    # 读取JSON文件
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        config_data = json.load(f)
+                    
+                    # 获取entity名称
+                    entity_name = config_data.get('head', {}).get('business_entity', '')
+                    current_table_txt = config_data.get('head', {}).get('tableTxt', '')
+                    
+                    if entity_name and entity_name in entity_to_description:
+                        # 获取纯净的业务描述
+                        clean_description = entity_to_description[entity_name]
+                        
+                        # 检查是否需要更新
+                        if current_table_txt != clean_description:
+                            print(f"   📝 {json_file}:")
+                            print(f"      原值: '{current_table_txt}'")
+                            print(f"      新值: '{clean_description}'")
+                            
+                            # 更新tableTxt字段
+                            config_data['head']['tableTxt'] = clean_description
+                            
+                            # 写回文件
+                            with open(json_file, 'w', encoding='utf-8') as f:
+                                json.dump(config_data, f, indent=2, ensure_ascii=False)
+                            
+                            cleaned_count += 1
+                        else:
+                            print(f"   ✅ {json_file}: tableTxt已经是纯净格式")
+                    else:
+                        print(f"   ⚠️  {json_file}: 未找到entity映射 ({entity_name})")
+                
+                except Exception as e:
+                    print(f"   ❌ 处理{json_file}失败: {str(e)}")
+            
+            if cleaned_count > 0:
+                print(f"✅ 成功清理了 {cleaned_count} 个JSON配置文件的tableTxt字段")
+            else:
+                print(f"ℹ️  所有JSON文件的tableTxt字段都已是正确格式")
+                
+        except Exception as e:
+            print(f"❌ 清理JSON配置文件失败: {str(e)}")
     
     def _update_sentinel_summary_status(self, sentinel_file: str, summary_status: str):
         """更新哨兵文件的汇总状态"""
