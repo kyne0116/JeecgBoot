@@ -3518,119 +3518,204 @@ def jeecg_delete_forms_batch(base_url: str, token: str, form_ids: list, timeout:
         return {"success": False, "message": f"批量删除异常: {str(e)}", "deleted_count": 0}
 
 
-def test_jeecg_apis():
+def jeecg_fetch_dictionary_page(base_url: str, token: str, page_no: int = 1, page_size: int = 10, timeout: int = 30) -> Dict:
     """
-    测试JeecgBoot API函数的简单示例
-    使用配置中心的配置进行测试
-    """
-    # 创建配置中心
-    config = JeecgBootConfig()
-    if not config.load_config():
-        print("❌ 配置加载失败，使用默认值")
+    获取数据字典分页数据
     
-    base_url = config.get_base_url()
-    username = config.get_username()
-    password = config.get_password()
-    
-    print("=== JeecgBoot API函数测试 ===")
-    
-    # 测试1：用户登录
-    print("\n1. 测试用户登录...")
-    login_result = jeecg_login(base_url, username, password, config.get_timeout('login'))
-    print(f"登录结果: {login_result}")
-    
-    if not login_result.get('success'):
-        print("登录失败，终止测试")
-        return
-    
-    token = login_result.get('token')
-    
-    # 测试2：查询表单（使用一个可能存在的表名）
-    print("\n2. 测试表单查询...")
-    query_result = jeecg_query_form(base_url, token, 'alumni_members_memberprofile', 
-                                  config.get_page_size(), config.get_timeout('list'))
-    print(f"查询结果: {query_result}")
-    
-    # 测试3：如果有form_id，测试数据库同步
-    if query_result.get('success'):
-        form_id = query_result.get('form_id')
-        print(f"\n3. 测试数据库同步 (form_id: {form_id})...")
-        sync_result = jeecg_sync_database(base_url, token, form_id, config.get_timeout('sync'))
-        print(f"同步结果: {sync_result}")
+    Args:
+        base_url: JeecgBoot基础URL
+        token: 认证token
+        page_no: 页码，从1开始
+        page_size: 每页大小
+        timeout: 超时时间（秒）
         
-        # 测试4：如果同步成功，测试代码生成
-        if sync_result.get('success'):
-            print(f"\n4. 测试代码生成...")
-            # 创建简化的配置数据用于测试
-            test_config = {
-                'head': {
-                    'tableName': 'alumni_members_memberprofile',
-                    'tableType': 2,
-                    'business_entity': 'MemberProfile',
-                    'tableTxt': '成员档案表'
-                },
-                'metadata': {
-                    'generation_info': {
-                        'module_name': 'alumni',
-                        'submodule_name': 'members'
+    Returns:
+        Dict: API响应结果，包含分页数据
+    """
+    import requests
+    
+    try:
+        # 构建API URL
+        api_url = f"{base_url}/sys/dict/list"
+        
+        # 请求参数
+        params = {
+            'column': 'createTime',
+            'order': 'desc',
+            'pageNo': page_no,
+            'pageSize': page_size
+        }
+        
+        # 请求头
+        headers = {
+            'X-Access-Token': token,
+            'Content-Type': 'application/json'
+        }
+        
+        print(f"📋 正在获取第 {page_no} 页数据 (每页 {page_size} 条)...")
+        
+        # 发送GET请求
+        response = requests.get(api_url, params=params, headers=headers, timeout=timeout)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                # 提取分页信息
+                result_data = result.get('result', {})
+                records = result_data.get('records', [])
+                total = result_data.get('total', 0)
+                pages = result_data.get('pages', 0)
+                current = result_data.get('current', page_no)
+                
+                print(f"   ✅ 获取成功: {len(records)} 条数据 (第 {current}/{pages} 页，共 {total} 条)")
+                
+                return {
+                    "success": True,
+                    "message": f"获取第 {page_no} 页数据成功",
+                    "records": records,
+                    "pagination": {
+                        "total": total,
+                        "pages": pages,
+                        "current": current,
+                        "size": page_size
                     }
                 }
-            }
-            project_root = config.env_vars.get('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
-            generate_result = jeecg_generate_code(base_url, token, form_id, test_config, 
-                                                config.get_timeout('codegen'), project_root)
-            print(f"代码生成结果: {generate_result}")
-            
+            else:
+                return {
+                    "success": False,
+                    "message": f"API返回失败: {result.get('message', '未知错误')}",
+                    "records": [],
+                    "pagination": None
+                }
         else:
-            print("\n4. 跳过代码生成测试（数据库同步失败）")
-    else:
-        print("\n3. 跳过数据库同步、代码生成和删除测试（未找到form_id）")
-    
-    print("\n=== 测试完成 ===")
+            return {
+                "success": False,
+                "message": f"请求失败，状态码: {response.status_code}",
+                "records": [],
+                "pagination": None
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"获取数据字典异常: {str(e)}",
+            "records": [],
+            "pagination": None
+        }
 
 
-def test_sentinel_status():
+def download_data_dictionary():
     """
-    测试哨兵状态管理系统
+    下载最新数据字典文件
+    
+    实现逻辑：
+    1. 删除现有的Code_Gen_DICT.json文件（已完成）
+    2. 复用jeecgboot的登陆接口进行认证
+    3. 循环调用分页API获取所有数据字典数据
+    4. 将所有数据合并保存到新的Code_Gen_DICT.json文件
+    
+    Returns:
+        str: "SUCCESS" 或 "ERROR"
     """
-    print("=== 哨兵状态管理系统测试 ===")
+    print("=== 下载最新数据字典文件 ===")
     
-    # 测试1：状态验证
-    print("\n1. 测试状态验证...")
-    print(f"pending是否为有效表状态: {SentinelStatusManager.is_valid_table_status('pending')}")
-    print(f"invalid_status是否为有效表状态: {SentinelStatusManager.is_valid_table_status('invalid_status')}")
-    print(f"pass是否为有效汇总状态: {SentinelStatusManager.is_valid_summary_status('pass')}")
-    
-    # 测试2：状态转换
-    print("\n2. 测试状态转换...")
-    print(f"pending -> form_created: {SentinelStatusManager.can_transition_to('pending', 'form_created')}")
-    print(f"form_created -> pending: {SentinelStatusManager.can_transition_to('form_created', 'pending')}")
-    print(f"pass -> form_created: {SentinelStatusManager.can_transition_to('pass', 'form_created')}")
-    
-    # 测试3：状态顺序
-    print("\n3. 测试状态顺序...")
-    current = SentinelStatus.TABLE_PENDING
-    for i in range(len(SentinelStatus.TABLE_STATUS_ORDER)):
-        next_status = SentinelStatusManager.get_next_table_status(current)
-        print(f"{current} -> {next_status}")
-        current = next_status
-        if current == SentinelStatus.TABLE_CODE_GENERATED:
-            break
-    
-    # 测试4：汇总状态计算
-    print("\n4. 测试汇总状态计算...")
-    test_cases = [
-        ['pending', 'pending', 'pending'],
-        ['pending', 'form_created', 'db_synced'],
-        ['code_generated', 'code_generated', 'code_generated'],
-        ['pending', 'fail', 'code_generated']
-    ]
-    
-    for statuses in test_cases:
-        summary = SentinelStatusManager.calculate_summary_status(statuses)
-        print(f"{statuses} -> {summary}")
-    
-    print("\n=== 状态测试完成 ===")
+    try:
+        # 1. 初始化配置
+        print("🔧 步骤1: 初始化配置...")
+        config = JeecgBootConfig()
+        if not config.load_config():
+            print("❌ 配置加载失败")
+            return "ERROR"
+        
+        base_url = config.get_base_url()
+        username = config.get_username()
+        password = config.get_password()
+        
+        print(f"   🔗 服务地址: {base_url}")
+        print(f"   👤 用户名: {username}")
+        
+        # 2. 用户认证
+        print("🔐 步骤2: 用户认证...")
+        login_result = jeecg_login(base_url, username, password, config.get_timeout('login'))
+        if not login_result['success']:
+            print(f"❌ 登录失败: {login_result['message']}")
+            return "ERROR"
+        
+        token = login_result['token']
+        print("   ✅ 登录成功，获取到认证token")
+        
+        # 3. 获取分页数据
+        print("📋 步骤3: 获取数据字典...")
+        all_records = []
+        page_no = 1
+        page_size = 50  # 使用较大的分页大小提高效率
+        
+        while True:
+            # 获取当前页数据
+            page_result = jeecg_fetch_dictionary_page(
+                base_url, token, page_no, page_size, config.get_timeout('list')
+            )
+            
+            if not page_result['success']:
+                print(f"❌ 获取第 {page_no} 页数据失败: {page_result['message']}")
+                return "ERROR"
+            
+            # 收集数据
+            records = page_result['records']
+            all_records.extend(records)
+            
+            # 检查分页信息
+            pagination = page_result.get('pagination')
+            if not pagination:
+                print("❌ 无分页信息，无法继续")
+                return "ERROR"
+            
+            current_page = pagination['current']
+            total_pages = pagination['pages']
+            total_records = pagination['total']
+            
+            print(f"   📄 已收集 {len(all_records)}/{total_records} 条数据")
+            
+            # 判断是否还有下一页
+            if current_page >= total_pages:
+                print(f"   ✅ 所有数据获取完成，共 {len(all_records)} 条数据")
+                break
+            
+            # 继续下一页
+            page_no += 1
+        
+        # 4. 保存到文件
+        print("💾 步骤4: 保存数据字典文件...")
+        dict_file_path = "Code_Gen_DICT.json"
+        
+        try:
+            import json
+            with open(dict_file_path, 'w', encoding='utf-8') as f:
+                json.dump(all_records, f, ensure_ascii=False, indent=2)
+            
+            print(f"   ✅ 数据字典已保存至: {dict_file_path}")
+            print(f"   📊 文件包含 {len(all_records)} 条数据字典记录")
+            
+            # 显示统计信息
+            if all_records:
+                latest_record = all_records[0]  # 按创建时间倒序，第一条是最新的
+                oldest_record = all_records[-1]  # 最后一条是最旧的
+                
+                print(f"   📅 最新记录: {latest_record.get('dictName', 'N/A')} ({latest_record.get('createTime', 'N/A')})")
+                print(f"   📅 最旧记录: {oldest_record.get('dictName', 'N/A')} ({oldest_record.get('createTime', 'N/A')})")
+            
+        except Exception as e:
+            print(f"❌ 保存文件失败: {str(e)}")
+            return "ERROR"
+        
+        print("\n🎉 数据字典下载完成!")
+        return "SUCCESS"
+        
+    except Exception as e:
+        print(f"❌ 下载过程中发生异常: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return "ERROR"
 
 
 class CodeGenExecutor:
@@ -3916,7 +4001,7 @@ def _print_execution_summary(task_results, overall_status):
     print("="*70)
 
 
-def main_enhanced(filename="", check_env=False, setup_guide=False, interactive_guide=False, continue_after_setup=False):
+def main_enhanced(filename="", check_env=False, setup_guide=False):
     """增强版主函数，支持环境检查和交互式配置"""
     global SUMMARY_RESULT
     
@@ -3937,26 +4022,6 @@ def main_enhanced(filename="", check_env=False, setup_guide=False, interactive_g
         else:
             print("❌ 环境配置失败")
             return "ERROR"
-    
-    # 如果启用交互式引导，先检查环境（无需日志记录）
-    if interactive_guide:
-        guide = EnvironmentGuide()
-        status = guide.print_environment_status()
-        
-        if not status['all_configured']:
-            print("\n🚀 检测到环境变量缺失，启动交互式配置向导...")
-            if guide.interactive_setup_guide():
-                print("✅ 环境配置已完成，环境变量已在当前Python进程中生效")
-                print(f"\n🔄 继续执行代码生成任务: {filename}")
-                print("=" * 50)
-                # 直接继续执行主要任务
-                result = main(filename)
-                if _log_manager and _log_manager.log_file_path:
-                    print(f"\n📝 执行日志已保存至: {_log_manager.log_file_path}")
-                return result
-            else:
-                print("❌ 环境配置失败")
-                return "ERROR"
     
     # 正常的代码生成模式（使用日志记录）
     if not filename:
@@ -3984,9 +4049,7 @@ if __name__ == "__main__":
         print("  python3 Code_Gen_Execute.py <表单配置文件.json>  # 执行代码生成任务 (含日志记录)")
         print("  python3 Code_Gen_Execute.py --setup-guide        # 启动交互式环境变量配置向导")
         print("  python3 Code_Gen_Execute.py --check-env          # 检查环境变量配置")
-        print("  python3 Code_Gen_Execute.py <filename> --guide   # 执行任务前先检查环境")
-        print("  python3 Code_Gen_Execute.py --test-api           # 测试JeecgBoot API函数")
-        print("  python3 Code_Gen_Execute.py --test-status        # 测试哨兵状态管理系统")
+        print("  python3 Code_Gen_Execute.py --dict               # 下载最新数据字典文件")
         print("")
         print("📝 日志功能说明:")
         print("  • 所有控制台输出都会同步记录到日志文件")
@@ -4009,14 +4072,10 @@ if __name__ == "__main__":
     elif sys.argv[1] == "--check-env":
         result = main_enhanced(check_env=True)
         sys.exit(0 if result == "SUCCESS" else 1)
-    elif sys.argv[1] == "--test-api":
-        test_jeecg_apis()
-        sys.exit(0)
-    elif sys.argv[1] == "--test-status":
-        test_sentinel_status()
-        sys.exit(0)
+    elif sys.argv[1] == "--dict":
+        result = download_data_dictionary()
+        sys.exit(0 if result == "SUCCESS" else 1)
     else:
         filename = sys.argv[1]
-        guide_mode = "--guide" in sys.argv
-        result = main_enhanced(filename, interactive_guide=guide_mode)
+        result = main_enhanced(filename)
         sys.exit(0 if result in ["SUCCESS", "SETUP_COMPLETE"] else 1)

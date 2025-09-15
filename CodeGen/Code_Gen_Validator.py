@@ -69,6 +69,11 @@ class CodeGenValidator:
         if not table_type_valid:
             errors.extend(table_type_errors)
 
+        # 验证数据字典字段配置
+        dict_field_valid, dict_field_errors = self.validate_dictionary_fields(config)
+        if not dict_field_valid:
+            errors.extend(dict_field_errors)
+
         # 智能验证subList配置（根据表类型）
         table_type = config.get('head', {}).get('tableType', 1)
         has_sub_list = 'subList' in config
@@ -224,6 +229,9 @@ class CodeGenValidator:
         """生成验证报告"""
         is_valid, errors = self.validate_config(config_file)
 
+        # 加载数据字典信息
+        dict_result = self._load_and_validate_dict_codes()
+
         report = f"""
 JSON配置验证报告
 {'='*40}
@@ -232,20 +240,66 @@ JSON配置验证报告
 
 """
 
+        # 数据字典状态报告
+        if dict_result['success']:
+            report += f"数据字典状态: ✅ 正常 (共{dict_result['valid_items']}个可用字典)\n"
+        else:
+            report += f"数据字典状态: ❌ 异常 - {dict_result['error']}\n"
+        
+        report += "\n"
+
         if is_valid:
             report += "配置文件符合JeecgBoot API要求\n"
-            report += "核心验证通过：orderNum连续性、系统字段、表名格式\n"
+            report += "核心验证通过：orderNum连续性、系统字段、表名格式、数据字典字段\n"
+            
+            # 显示使用的数据字典
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                
+                used_dicts = self._extract_used_dictionary_codes(config)
+                if used_dicts:
+                    report += f"\n使用的数据字典 ({len(used_dicts)}个):\n"
+                    for dict_code in sorted(used_dicts):
+                        detail = dict_result['dict_details'].get(dict_code, {})
+                        dict_name = detail.get('dictName', '未知')
+                        report += f"  • {dict_code} -> {dict_name}\n"
+            except Exception:
+                pass
+                
         else:
             report += f"发现 {len(errors)} 个问题:\n\n"
-            for i, error in enumerate(errors, 1):
-                report += f"{i}. {error}\n"
+            
+            # 按严重程度分类错误
+            critical_errors = [e for e in errors if e.startswith('❌')]
+            warning_errors = [e for e in errors if e.startswith('⚠️')]
+            other_errors = [e for e in errors if not e.startswith(('❌', '⚠️'))]
+            
+            if critical_errors:
+                report += "【严重错误 - 必须修复】:\n"
+                for i, error in enumerate(critical_errors, 1):
+                    report += f"{i}. {error}\n"
+                report += "\n"
+            
+            if other_errors:
+                report += "【其他错误】:\n"
+                for i, error in enumerate(other_errors, 1):
+                    report += f"{i}. {error}\n"
+                report += "\n"
+            
+            if warning_errors:
+                report += "【建议优化】:\n"
+                for i, error in enumerate(warning_errors, 1):
+                    report += f"{i}. {error}\n"
+                report += "\n"
 
-            report += "\n修复建议:\n"
-            report += "1. 确保orderNum从0开始连续递增\n"
-            report += "2. 检查前7个系统字段是否正确\n"
-            report += "3. 验证表名格式: module_submodule_entity\n"
-            report += "4. 确保dbFieldName长度不超过32字符(数据库限制)\n"
-            report += "5. 检查字段名格式: 小写字母开头，可包含数字和下划线\n"
+            report += "修复建议:\n"
+            report += "1. 【数据字典】确保所有dictField都存在于Code_Gen_DICT.json中\n"
+            report += "2. 【orderNum】确保从0开始连续递增\n"
+            report += "3. 【系统字段】检查前7个系统字段是否正确\n"
+            report += "4. 【表名格式】验证表名格式: module_submodule_entity\n"
+            report += "5. 【字段长度】确保dbFieldName长度不超过32字符\n"
+            report += "6. 【字段格式】检查字段名格式: 小写字母开头，可包含数字和下划线\n"
 
             # 添加字段名修正建议
             try:
@@ -258,6 +312,22 @@ JSON配置验证报告
                         report += f"  {field_key}: {suggestion}\n"
             except Exception as e:
                 report += f"\n无法生成字段名修正建议: {e}\n"
+
+        # 添加可用数据字典列表
+        if dict_result['success'] and dict_result['dict_codes']:
+            report += f"\n可用数据字典编码列表 (共{len(dict_result['dict_codes'])}个):\n"
+            report += "=" * 50 + "\n"
+            
+            # 按字母顺序分组显示
+            sorted_codes = sorted(dict_result['dict_codes'])
+            for i in range(0, len(sorted_codes), 4):  # 每行4个
+                line_codes = sorted_codes[i:i+4]
+                formatted_codes = []
+                for code in line_codes:
+                    detail = dict_result['dict_details'].get(code, {})
+                    dict_name = detail.get('dictName', '未知')
+                    formatted_codes.append(f"{code:15} ({dict_name[:10]}...)" if len(dict_name) > 10 else f"{code:15} ({dict_name})")
+                report += "  " + " | ".join(formatted_codes) + "\n"
 
         return report
 
@@ -519,6 +589,307 @@ JSON配置验证报告
 
         return len(errors) == 0, errors
 
+    def validate_dictionary_fields(self, config: Dict) -> Tuple[bool, List[str]]:
+        """验证数据字典字段配置 - 严格校验模式"""
+        errors = []
+        fields = config.get('fields', [])
+        
+        # 严格加载系统字典编码列表和详细信息
+        dict_validation_result = self._load_and_validate_dict_codes()
+        if not dict_validation_result['success']:
+            errors.append(f"🚨 无法加载Code_Gen_DICT.json文件: {dict_validation_result['error']}")
+            return False, errors
+        
+        available_dict_codes = dict_validation_result['dict_codes']
+        dict_details = dict_validation_result['dict_details']
+        
+        # 记录使用的字典编码统计
+        used_dict_codes = set()
+
+        for i, field in enumerate(fields):
+            field_name = field.get('dbFieldName', '')
+            dict_field = field.get('dictField', '')
+            
+            # 如果字段配置了数据字典
+            if dict_field:
+                used_dict_codes.add(dict_field)
+                
+                # 1. 【严格校验】验证数据字典编码是否存在 - 这是最关键的校验
+                if dict_field not in available_dict_codes:
+                    errors.append(f"❌ 数据字典字段{i+1}({field_name})使用了非法的dictField: '{dict_field}'")
+                    errors.append(f"   该字典编码不存在于Code_Gen_DICT.json中，系统拒绝此配置！")
+                    errors.append(f"   请使用以下合法的字典编码之一:")
+                    
+                    # 按字母顺序显示所有可用的字典编码
+                    sorted_codes = sorted(available_dict_codes)
+                    for j in range(0, len(sorted_codes), 5):  # 每行显示5个
+                        codes_line = sorted_codes[j:j+5]
+                        errors.append(f"     {', '.join(codes_line)}")
+                    
+                    # 显示字典详情（前10个作为参考）
+                    if dict_details:
+                        errors.append(f"   字典编码详细信息（示例）:")
+                        for code in sorted_codes[:10]:
+                            detail = dict_details.get(code, {})
+                            dict_name = detail.get('dictName', '未知')
+                            errors.append(f"     '{code}' -> {dict_name}")
+                        if len(sorted_codes) > 10:
+                            errors.append(f"     ... 共{len(sorted_codes)}个可用字典编码")
+                else:
+                    # 显示匹配的字典信息（用于确认）
+                    detail = dict_details.get(dict_field, {})
+                    dict_name = detail.get('dictName', '未知')
+                    # 这里不输出成功信息，避免日志过多
+
+                # 2. 【严格校验】验证fieldShowType必须是list
+                field_show_type = field.get('fieldShowType', '')
+                if field_show_type != 'list':
+                    errors.append(f"❌ 数据字典字段{i+1}({field_name})的fieldShowType必须是'list'，当前值: '{field_show_type}'")
+                    errors.append(f"   数据字典字段必须使用下拉选择控件")
+
+                # 3. 【严格校验】验证queryShowType必须是list  
+                query_show_type = field.get('queryShowType', '')
+                if query_show_type != 'list':
+                    errors.append(f"❌ 数据字典字段{i+1}({field_name})的queryShowType必须是'list'，当前值: '{query_show_type}'")
+                    errors.append(f"   数据字典字段的查询条件必须使用下拉选择控件")
+
+                # 4. 【严格校验】验证dbType必须是int
+                db_type = field.get('dbType', '')
+                if db_type != 'int':
+                    errors.append(f"❌ 数据字典字段{i+1}({field_name})的dbType必须是'int'，当前值: '{db_type}'")
+                    errors.append(f"   数据字典字段存储的是整数键值，如：1-男，2-女")
+
+                # 5. 【严格校验】验证queryDictField必须与dictField一致
+                query_dict_field = field.get('queryDictField', '')
+                if query_dict_field and query_dict_field != dict_field:
+                    errors.append(f"❌ 数据字典字段{i+1}({field_name})的queryDictField必须与dictField一致")
+                    errors.append(f"   dictField: '{dict_field}', queryDictField: '{query_dict_field}'")
+                elif not query_dict_field:
+                    errors.append(f"❌ 数据字典字段{i+1}({field_name})缺少queryDictField配置")
+                    errors.append(f"   queryDictField应该设置为: '{dict_field}'")
+
+                # 6. 【规范校验】验证dictTable和dictText应该为空（使用系统默认）
+                dict_table = field.get('dictTable', '')
+                if dict_table:
+                    errors.append(f"⚠️ 数据字典字段{i+1}({field_name})的dictTable应该为空字符串，当前值: '{dict_table}'")
+                    errors.append(f"   建议使用系统默认的字典表配置")
+
+                dict_text = field.get('dictText', '')
+                if dict_text:
+                    errors.append(f"⚠️ 数据字典字段{i+1}({field_name})的dictText应该为空字符串，当前值: '{dict_text}'")
+                    errors.append(f"   建议使用系统默认的显示逻辑")
+
+                # 7. 【规范校验】验证查询模式
+                query_mode = field.get('queryMode', '')
+                if query_mode not in ['single', 'like']:
+                    errors.append(f"⚠️ 数据字典字段{i+1}({field_name})的queryMode建议使用'single'，当前值: '{query_mode}'")
+                    errors.append(f"   数据字典字段通常使用精确匹配查询")
+
+                # 8. 【规范校验】验证显示配置
+                is_show_form = field.get('isShowForm', '0')
+                is_show_list = field.get('isShowList', '0')
+                if is_show_form == '0' and is_show_list == '0':
+                    errors.append(f"⚠️ 数据字典字段{i+1}({field_name})应该至少在表单或列表中显示")
+
+                # 9. 【规范校验】验证必填配置
+                field_must_input = field.get('fieldMustInput', '0')
+                if field_must_input == '0':
+                    # 对于重要字典字段给出建议
+                    important_fields = ['sex', 'status', 'user_status']
+                    if dict_field in important_fields:
+                        errors.append(f"⚠️ 数据字典字段{i+1}({field_name})建议设为必填，dictField: '{dict_field}'")
+
+        # 输出字典使用统计
+        if used_dict_codes:
+            print(f"📊 本次配置使用了 {len(used_dict_codes)} 个数据字典: {', '.join(sorted(used_dict_codes))}")
+
+        return len(errors) == 0, errors
+
+    def _load_and_validate_dict_codes(self) -> Dict:
+        """严格加载和验证Code_Gen_DICT.json文件中的所有数据字典"""
+        import os
+        
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        dict_file = os.path.join(current_dir, "Code_Gen_DICT.json")
+        
+        # 检查文件是否存在
+        if not os.path.exists(dict_file):
+            return {
+                'success': False,
+                'error': f'Code_Gen_DICT.json文件不存在: {dict_file}',
+                'dict_codes': [],
+                'dict_details': {}
+            }
+        
+        try:
+            # 读取并解析JSON文件
+            with open(dict_file, 'r', encoding='utf-8') as f:
+                dict_data = json.load(f)
+            
+            # 验证文件格式
+            if not isinstance(dict_data, list):
+                return {
+                    'success': False,
+                    'error': 'Code_Gen_DICT.json文件格式错误，应该是JSON数组',
+                    'dict_codes': [],
+                    'dict_details': {}
+                }
+            
+            # 完全遍历所有字典项
+            dict_codes = []
+            dict_details = {}
+            invalid_items = []
+            
+            for i, item in enumerate(dict_data):
+                if not isinstance(item, dict):
+                    invalid_items.append(f"索引{i}: 不是有效的字典对象")
+                    continue
+                
+                # 检查必需字段
+                if 'dictCode' not in item:
+                    invalid_items.append(f"索引{i}: 缺少dictCode字段")
+                    continue
+                
+                if 'dictName' not in item:
+                    invalid_items.append(f"索引{i}: 缺少dictName字段")
+                    continue
+                
+                dict_code = item['dictCode']
+                dict_name = item['dictName']
+                
+                # 验证dictCode格式
+                if not dict_code or not isinstance(dict_code, str):
+                    invalid_items.append(f"索引{i}: dictCode无效: '{dict_code}'")
+                    continue
+                
+                # 验证dictCode唯一性
+                if dict_code in dict_codes:
+                    invalid_items.append(f"索引{i}: dictCode重复: '{dict_code}'")
+                    continue
+                
+                # 收集有效的字典信息
+                dict_codes.append(dict_code)
+                dict_details[dict_code] = {
+                    'dictName': dict_name,
+                    'dictCode': dict_code,
+                    'id': item.get('id', ''),
+                    'type': item.get('type', 0),
+                    'description': item.get('description', ''),
+                    'createBy': item.get('createBy', ''),
+                    'createTime': item.get('createTime', ''),
+                    'index': i
+                }
+            
+            # 构建返回结果
+            result = {
+                'success': True,
+                'dict_codes': dict_codes,
+                'dict_details': dict_details,
+                'total_items': len(dict_data),
+                'valid_items': len(dict_codes),
+                'invalid_items': len(invalid_items)
+            }
+            
+            # 如果有无效项，添加警告信息
+            if invalid_items:
+                result['warnings'] = invalid_items
+                print(f"⚠️  Code_Gen_DICT.json文件中发现 {len(invalid_items)} 个无效项:")
+                for warning in invalid_items[:5]:  # 只显示前5个
+                    print(f"   {warning}")
+                if len(invalid_items) > 5:
+                    print(f"   ... 还有 {len(invalid_items) - 5} 个无效项")
+            
+            print(f"✅ 成功加载Code_Gen_DICT.json文件: 共{result['total_items']}项，有效{result['valid_items']}项")
+            
+            return result
+            
+        except json.JSONDecodeError as e:
+            return {
+                'success': False,
+                'error': f'Code_Gen_DICT.json文件JSON格式错误: {str(e)}',
+                'dict_codes': [],
+                'dict_details': {}
+            }
+        except FileNotFoundError:
+            return {
+                'success': False,
+                'error': f'Code_Gen_DICT.json文件不存在: {dict_file}',
+                'dict_codes': [],
+                'dict_details': {}
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'读取Code_Gen_DICT.json文件时发生未知错误: {str(e)}',
+                'dict_codes': [],
+                'dict_details': {}
+            }
+
+    def _load_available_dict_codes(self) -> List[str]:
+        """保留兼容性的简单方法"""
+        result = self._load_and_validate_dict_codes()
+        return result.get('dict_codes', [])
+
+    def _extract_used_dictionary_codes(self, config: Dict) -> List[str]:
+        """提取配置中使用的数据字典编码"""
+        used_dict_codes = []
+        fields = config.get('fields', [])
+        
+        for field in fields:
+            dict_field = field.get('dictField', '')
+            if dict_field and dict_field not in used_dict_codes:
+                used_dict_codes.append(dict_field)
+        
+        return used_dict_codes
+
+    def show_available_dictionaries(self):
+        """显示系统中所有可用的数据字典"""
+        dict_result = self._load_and_validate_dict_codes()
+        
+        if not dict_result['success']:
+            print(f"❌ 无法加载数据字典: {dict_result['error']}")
+            return
+        
+        dict_codes = dict_result['dict_codes']
+        dict_details = dict_result['dict_details']
+        
+        print("\n" + "="*60)
+        print(f"JeecgBoot 系统数据字典列表 (共 {len(dict_codes)} 个)")
+        print("="*60)
+        
+        # 按分类显示
+        categories = {}
+        for code in dict_codes:
+            detail = dict_details.get(code, {})
+            dict_name = detail.get('dictName', '未知')
+            
+            # 简单分类逻辑
+            if any(keyword in dict_name for keyword in ['状态', 'status']):
+                category = '状态类'
+            elif any(keyword in dict_name for keyword in ['类型', 'type', '分类']):
+                category = '类型分类'
+            elif any(keyword in dict_name for keyword in ['权限', 'perms', '角色']):
+                category = '权限管理'
+            elif any(keyword in dict_name for keyword in ['消息', 'msg', '通知', '公告']):
+                category = '消息通知'
+            elif any(keyword in dict_name for keyword in ['用户', 'user', '性别']):
+                category = '用户信息'
+            else:
+                category = '其他'
+            
+            if category not in categories:
+                categories[category] = []
+            categories[category].append((code, dict_name))
+        
+        # 显示各分类
+        for category, items in sorted(categories.items()):
+            print(f"\n【{category}】({len(items)}个):")
+            for code, name in sorted(items):
+                print(f"  • {code:20} -> {name}")
+        
+        print(f"\n总计: {len(dict_codes)} 个数据字典编码")
+        print("="*60)
+
     def suggest_field_name_corrections(self, config: Dict) -> Dict[str, str]:
         """为过长的字段名提供修正建议"""
         suggestions = {}
@@ -586,19 +957,55 @@ JSON配置验证报告
 
 def main():
     """主函数"""
-    if len(sys.argv) != 2:
-        print("用法: python3 Code_Gen_Validator.py <config_file.json>")
+    if len(sys.argv) < 2:
+        print("用法:")
+        print("  python3 Code_Gen_Validator.py <config_file.json>           # 验证配置文件")
+        print("  python3 Code_Gen_Validator.py --show-dicts                # 显示所有可用数据字典")
+        print("  python3 Code_Gen_Validator.py --help                      # 显示帮助信息")
         sys.exit(1)
 
-    config_file = sys.argv[1]
     validator = CodeGenValidator()
+    
+    # 处理命令行参数
+    if sys.argv[1] == '--show-dicts':
+        print("正在加载系统数据字典...")
+        validator.show_available_dictionaries()
+        sys.exit(0)
+    elif sys.argv[1] == '--help':
+        print("JeecgBoot 代码生成配置验证器")
+        print("="*50)
+        print("功能说明:")
+        print("  1. 验证JSON配置文件的格式和内容正确性")
+        print("  2. 严格校验数据字典字段是否在系统范围内")
+        print("  3. 检查orderNum连续性、系统字段、表名格式等")
+        print("  4. 提供详细的错误报告和修复建议")
+        print()
+        print("使用方法:")
+        print("  python3 Code_Gen_Validator.py config.json    # 验证配置文件")
+        print("  python3 Code_Gen_Validator.py --show-dicts   # 查看数据字典")
+        print()
+        print("数据字典严格校验:")
+        print("  • 所有dictField必须存在于Code_Gen_DICT.json中")
+        print("  • 不存在的字典编码将导致验证失败")
+        print("  • 数据字典字段必须使用正确的配置格式")
+        sys.exit(0)
+    else:
+        # 验证配置文件
+        config_file = sys.argv[1]
+        print(f"正在验证JSON配置文件: {config_file}")
+        print("="*60)
+        
+        report = validator.generate_validation_report(config_file)
+        print(report)
 
-    print("验证JSON配置文件...")
-    report = validator.generate_validation_report(config_file)
-    print(report)
-
-    is_valid, _ = validator.validate_config(config_file)
-    sys.exit(0 if is_valid else 1)
+        is_valid, _ = validator.validate_config(config_file)
+        
+        if is_valid:
+            print("\n✅ 配置文件验证通过，可以提交到JeecgBoot系统！")
+        else:
+            print("\n❌ 配置文件验证失败，请根据上述报告修复问题后重新验证。")
+            
+        sys.exit(0 if is_valid else 1)
 
 if __name__ == "__main__":
     main()

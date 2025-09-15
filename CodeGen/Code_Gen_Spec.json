@@ -437,6 +437,105 @@
         "_orderNum_constraint": "从7开始连续递增，不能跳号",
         "_orderNum_ai_hint": "字段排序号，从7开始：7,8,9,10..."
       }
+    },
+
+    "dictionary_field": {
+      "_description": "数据字典字段模板 - 用于下拉选择、单选框等需要预定义选项的字段",
+      "_field_type": "dictionary_field",
+      "_ai_usage_scenarios": [
+        "性别选择（男/女）",
+        "状态选择（启用/禁用）",
+        "类别选择（公告分类、模板分类等）",
+        "优先级选择（高/中/低）",
+        "审核状态（待审核/已通过/已拒绝）"
+      ],
+      "_ai_identification_keywords": [
+        "性别", "状态", "类型", "分类", "级别", "等级", 
+        "优先级", "审核", "是否", "种类", "方式"
+      ],
+
+      "dbFieldName": "{{FIELD_NAME}}",
+      "_dbFieldName_naming_pattern": "通常以_type、_status、_category、_level结尾，如：user_sex、order_status、notice_type",
+      "_dbFieldName_max_length": 32,
+
+      "dbFieldTxt": "{{FIELD_DESCRIPTION}}",
+      "_dbFieldTxt_ai_hint": "字段中文描述，如'学生性别'、'订单状态'、'公告分类'",
+
+      "fieldShowType": "list",
+      "_fieldShowType_constraint": "数据字典字段必须使用'list'类型，生成下拉选择框",
+      "_fieldShowType_alternatives": {
+        "list": "下拉选择框（推荐）",
+        "radio": "单选按钮（选项少时可用）",
+        "select": "等同于list，但推荐使用list"
+      },
+
+      "queryShowType": "list",
+      "_queryShowType_constraint": "查询条件也使用'list'类型，保持一致",
+
+      "dictField": "{{DICT_CODE}}",
+      "_dictField_type": "string",
+      "_dictField_constraint": "必须设置，指向Code_Gen_DICT.json中的dictCode字段",
+      "_dictField_examples": {
+        "sex": "性别字典",
+        "status": "状态字典", 
+        "notice_type": "公告分类字典",
+        "priority_level": "优先级字典"
+      },
+      "_dictField_ai_hint": "数据字典编码，对应系统中已存在的字典项，如sex、status等",
+
+      "dictTable": "",
+      "_dictTable_constraint": "通常为空字符串，使用系统默认的数据字典表",
+
+      "dictText": "",
+      "_dictText_constraint": "通常为空字符串，使用系统默认的显示逻辑",
+
+      "queryDictField": "{{DICT_CODE}}",
+      "_queryDictField_constraint": "查询条件字典编码，与dictField保持相同",
+
+      "queryDictTable": "",
+      "_queryDictTable_constraint": "查询条件字典表，通常为空",
+
+      "queryDictText": "",
+      "_queryDictText_constraint": "查询条件字典文本，通常为空",
+
+      "dbType": "int",
+      "_dbType_constraint": "数据字典字段数据库类型必须为'int'，存储字典项的数值",
+      "_dbType_ai_hint": "数据字典字段存储的是整数值（如：1-男，2-女）",
+
+      "dbLength": 10,
+      "_dbLength_constraint": "整数类型长度通常为10",
+
+      "isShowForm": "1",
+      "_isShowForm_default": "1",
+      "_isShowForm_ai_hint": "数据字典字段通常需要在表单中显示",
+
+      "isShowList": "1", 
+      "_isShowList_default": "1",
+      "_isShowList_ai_hint": "数据字典字段通常需要在列表中显示",
+
+      "isQuery": "1",
+      "_isQuery_default": "1", 
+      "_isQuery_ai_hint": "数据字典字段通常支持查询过滤",
+
+      "queryMode": "single",
+      "_queryMode_constraint": "数据字典字段查询模式推荐使用'single'",
+
+      "fieldMustInput": "1",
+      "_fieldMustInput_ai_hint": "根据业务需求确定是否必填，性别等重要字段建议必填",
+
+      "dbIsNull": "0",
+      "_dbIsNull_ai_hint": "重要的数据字典字段建议设为不可空（0），确保数据完整性",
+
+      "orderNum": "{{ORDER_NUM}}",
+      "_orderNum_constraint": "从7开始连续递增，不能跳号",
+      "_orderNum_ai_hint": "字段排序号，从7开始：7,8,9,10...",
+
+      "_ai_generation_rules": {
+        "identification": "当业务需求中出现需要预定义选项的字段时，应使用数据字典字段",
+        "dict_code_selection": "优先使用系统已存在的字典编码，如sex、status等",
+        "validation": "确保dictField指向的字典编码在系统中存在",
+        "naming_convention": "字段名应体现其字典性质，如user_sex、order_status"
+      }
     }
   },
 

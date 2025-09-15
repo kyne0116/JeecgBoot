@@ -111,6 +111,32 @@
         "mainField": "id",
         "fieldValidType": "",
         "fieldMustInput": "0"
+      },
+      "dictionary_field": {
+        "_description": "数据字典字段模板 - 用于下拉选择、单选框等需要预定义选项的字段",
+        "fieldShowType": "list",
+        "queryShowType": "list",
+        "dbType": "int",
+        "dbLength": 10,
+        "isShowForm": "1",
+        "isShowList": "1",
+        "isQuery": "1",
+        "queryMode": "single",
+        "dictField": "{{DICT_CODE}}",
+        "dictTable": "",
+        "dictText": "",
+        "queryDictField": "{{DICT_CODE}}",
+        "queryDictTable": "",
+        "queryDictText": "",
+        "fieldMustInput": "1",
+        "dbIsNull": "0",
+        "_usage_hint": "适用于性别、状态、类型等需要预定义选项的字段",
+        "_dict_examples": {
+          "sex": "性别字典（男/女）",
+          "status": "状态字典（启用/禁用）",
+          "notice_type": "公告分类字典",
+          "priority": "优先级字典（高/中/低）"
+        }
       }
     }
   },

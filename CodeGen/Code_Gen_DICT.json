@@ -1,5 +1,47 @@
 [
   {
+    "id": "1939572486447292418",
+    "type": 0,
+    "dictName": "首页关联",
+    "dictCode": "relation_type",
+    "description": null,
+    "delFlag": 0,
+    "createBy": "admin",
+    "createTime": "2025-06-30 14:31:31",
+    "updateBy": null,
+    "updateTime": null,
+    "tenantId": 0,
+    "lowAppId": null
+  },
+  {
+    "id": "1937393911539384322",
+    "type": 0,
+    "dictName": "模版分类",
+    "dictCode": "msgCategory",
+    "description": null,
+    "delFlag": 0,
+    "createBy": "admin",
+    "createTime": "2025-06-24 14:14:38",
+    "updateBy": null,
+    "updateTime": null,
+    "tenantId": 0,
+    "lowAppId": null
+  },
+  {
+    "id": "1934846825077878786",
+    "type": 0,
+    "dictName": "公告分类",
+    "dictCode": "notice_type",
+    "description": null,
+    "delFlag": 0,
+    "createBy": "admin",
+    "createTime": "2025-06-17 13:33:25",
+    "updateBy": null,
+    "updateTime": null,
+    "tenantId": 0,
+    "lowAppId": null
+  },
+  {
     "id": "1894701158027554818",
     "type": 0,
     "dictName": "AI应用类型",

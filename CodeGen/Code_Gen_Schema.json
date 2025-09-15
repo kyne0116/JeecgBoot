@@ -92,6 +92,36 @@
             "type": "string",
             "maxLength": 300,
             "description": "字段验证类型，最大300字符"
+          },
+          "dictField": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "数据字典字段编码，指向系统字典项，如sex、status等"
+          },
+          "dictTable": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "数据字典表名，通常为空字符串使用系统默认"
+          },
+          "dictText": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "数据字典文本字段，通常为空字符串使用系统默认"
+          },
+          "queryDictField": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "查询条件数据字典字段编码，与dictField保持相同"
+          },
+          "queryDictTable": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "查询条件数据字典表名，通常为空"
+          },
+          "queryDictText": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "查询条件数据字典文本，通常为空"
           }
         },
         "additionalProperties": true
