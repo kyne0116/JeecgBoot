@@ -174,10 +174,6 @@ system_overview:
         - name: "Hutool"
           version: "5.8.25"
           description: "Java工具类库"
-        - name: "APIJSON"
-          version: "5.2.0"
-          description: "腾讯开源的JSON动态API框架，支持零代码实时生成文档和自动化测试"
-          repository: "https://github.com/Tencent/APIJSON"
 
   git_repository:
     repo_url: "${GIT_REPOSITORY_URL}" # 项目的主要Git仓库地址
