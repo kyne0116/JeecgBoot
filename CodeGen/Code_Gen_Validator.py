@@ -104,13 +104,13 @@ class CodeGenValidator:
         fields = config.get('fields', [])
 
         if not fields:
-            return ["🚨 fields数组为空"]
+            return ["[ERROR] fields数组为空"]
 
         # 获取所有orderNum
         order_nums = []
         for i, field in enumerate(fields):
             if 'orderNum' not in field:
-                errors.append(f"🚨 字段{i+1}缺少orderNum")
+                errors.append(f"[ERROR] 字段{i+1}缺少orderNum")
                 continue
             order_nums.append(field['orderNum'])
 
@@ -118,7 +118,7 @@ class CodeGenValidator:
         order_nums.sort()
         for i, num in enumerate(order_nums):
             if num != i:
-                errors.append(f"🚨 orderNum不连续: 期望{i}, 实际{num} - 这会导致API失败")
+                errors.append(f"[ERROR] orderNum不连续: 期望{i}, 实际{num} - 这会导致API失败")
 
         return errors
 
@@ -128,17 +128,17 @@ class CodeGenValidator:
         fields = config.get('fields', [])
 
         if len(fields) < 7:
-            return ["🚨 字段数量不足，至少需要7个系统字段"]
+            return ["[ERROR] 字段数量不足，至少需要7个系统字段"]
 
         # 检查前7个字段是否为系统字段
         for i, expected_field in enumerate(self.system_fields):
             if i >= len(fields):
-                errors.append(f"🚨 缺少系统字段: {expected_field}")
+                errors.append(f"[ERROR] 缺少系统字段: {expected_field}")
                 continue
 
             actual_field = fields[i].get('dbFieldName', '')
             if actual_field != expected_field:
-                errors.append(f"🚨 系统字段{i}错误: 期望{expected_field}, 实际{actual_field}")
+                errors.append(f"[ERROR] 系统字段{i}错误: 期望{expected_field}, 实际{actual_field}")
 
         return errors
 
@@ -150,20 +150,20 @@ class CodeGenValidator:
         for i, field in enumerate(fields):
             field_name = field.get('dbFieldName', '')
             if not field_name:
-                errors.append(f"🚨 字段{i+1}缺少dbFieldName")
+                errors.append(f"[ERROR] 字段{i+1}缺少dbFieldName")
                 continue
 
             # 检查字段名长度（重要：对应数据库onl_cgform_field.db_field_name varchar(32)限制）
             if len(field_name) > 32:
-                errors.append(f"🚨 字段{i+1}的dbFieldName超长: '{field_name}' ({len(field_name)}字符 > 32字符限制) - 这会导致数据库插入失败")
+                errors.append(f"[ERROR] 字段{i+1}的dbFieldName超长: '{field_name}' ({len(field_name)}字符 > 32字符限制) - 这会导致数据库插入失败")
 
             # 检查字段名格式
             if not re.match(r'^[a-z][a-z0-9_]*$', field_name):
-                errors.append(f"🚨 字段{i+1}的dbFieldName格式错误: '{field_name}' (应为小写字母开头，可包含数字和下划线)")
+                errors.append(f"[ERROR] 字段{i+1}的dbFieldName格式错误: '{field_name}' (应为小写字母开头，可包含数字和下划线)")
 
             # 检查是否包含连续下划线
             if '__' in field_name:
-                errors.append(f"⚠️ 字段{i+1}的dbFieldName包含连续下划线: '{field_name}' (建议避免使用)")
+                errors.append(f"[WARN] 字段{i+1}的dbFieldName包含连续下划线: '{field_name}' (建议避免使用)")
 
         return errors
 
@@ -176,30 +176,30 @@ class CodeGenValidator:
         segments = table_name.split('_')
         
         if len(segments) != 3:
-            errors.append(f"❌ 表名格式错误: '{table_name}' 必须严格为三段式格式 {{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{ENTITY_SUFFIX}}，当前为{len(segments)}段式")
+            errors.append(f"[ERROR] 表名格式错误: '{table_name}' 必须严格为三段式格式 {{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{ENTITY_SUFFIX}}，当前为{len(segments)}段式")
             return errors
-        
+
         module_name, submodule_name, entity_suffix = segments
-        
+
         # 验证各段格式
         if not re.match(r'^[a-z]+$', module_name):
-            errors.append(f"❌ MODULE_NAME格式错误: '{module_name}' 必须为纯小写字母")
-        
+            errors.append(f"[ERROR] MODULE_NAME格式错误: '{module_name}' 必须为纯小写字母")
+
         if not re.match(r'^[a-z]+$', submodule_name):
-            errors.append(f"❌ SUBMODULE_NAME格式错误: '{submodule_name}' 必须为纯小写字母")
-        
+            errors.append(f"[ERROR] SUBMODULE_NAME格式错误: '{submodule_name}' 必须为纯小写字母")
+
         if not re.match(r'^[a-z0-9]+$', entity_suffix):
-            errors.append(f"❌ ENTITY_SUFFIX格式错误: '{entity_suffix}' 必须为小写字母和数字组合")
-            
+            errors.append(f"[ERROR] ENTITY_SUFFIX格式错误: '{entity_suffix}' 必须为小写字母和数字组合")
+
         # 检查常见的四段式错误模式
         invalid_patterns = [
             "crm_customer_customer_profile",
-            "education_student_student_info", 
+            "education_student_student_info",
             "finance_invoice_invoice_header"
         ]
-        
+
         if table_name in invalid_patterns:
-            errors.append(f"❌ 禁止使用四段式表名: '{table_name}' 应简化为三段式，如 'crm_customer_profile'")
+            errors.append(f"[ERROR] 禁止使用四段式表名: '{table_name}' 应简化为三段式，如 'crm_customer_profile'")
 
         return errors
 
@@ -221,7 +221,7 @@ class CodeGenValidator:
                 if field_name in field:
                     value = field[field_name]
                     if isinstance(value, str) and len(value) > max_length:
-                        errors.append(f"🚨 字段{i+1}的{field_name}超长: {len(value)}字符 > {max_length}字符限制")
+                        errors.append(f"[ERROR] 字段{i+1}的{field_name}超长: {len(value)}字符 > {max_length}字符限制")
 
         return errors
 
@@ -242,9 +242,9 @@ JSON配置验证报告
 
         # 数据字典状态报告
         if dict_result['success']:
-            report += f"数据字典状态: ✅ 正常 (共{dict_result['valid_items']}个可用字典)\n"
+            report += f"数据字典状态: [OK] 正常 (共{dict_result['valid_items']}个可用字典)\n"
         else:
-            report += f"数据字典状态: ❌ 异常 - {dict_result['error']}\n"
+            report += f"数据字典状态: [ERROR] 异常 - {dict_result['error']}\n"
         
         report += "\n"
 
@@ -263,7 +263,7 @@ JSON配置验证报告
                     for dict_code in sorted(used_dicts):
                         detail = dict_result['dict_details'].get(dict_code, {})
                         dict_name = detail.get('dictName', '未知')
-                        report += f"  • {dict_code} -> {dict_name}\n"
+                        report += f"  - {dict_code} -> {dict_name}\n"
             except Exception:
                 pass
                 
@@ -271,9 +271,9 @@ JSON配置验证报告
             report += f"发现 {len(errors)} 个问题:\n\n"
             
             # 按严重程度分类错误
-            critical_errors = [e for e in errors if e.startswith('❌')]
-            warning_errors = [e for e in errors if e.startswith('⚠️')]
-            other_errors = [e for e in errors if not e.startswith(('❌', '⚠️'))]
+            critical_errors = [e for e in errors if e.startswith('[ERROR]')]
+            warning_errors = [e for e in errors if e.startswith('[WARN]')]
+            other_errors = [e for e in errors if not e.startswith(('[ERROR]', '[WARN]'))]
             
             if critical_errors:
                 report += "【严重错误 - 必须修复】:\n"
@@ -385,29 +385,29 @@ JSON配置验证报告
                 # 严格三段式验证
                 segments = table_name.split('_')
                 if len(segments) != 3:
-                    errors.append(f"❌ subList[{i}]表名格式错误: '{table_name}' 必须严格为三段式格式 {{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{ENTITY_SUFFIX}}，当前为{len(segments)}段式")
+                    errors.append(f"[ERROR] subList[{i}]表名格式错误: '{table_name}' 必须严格为三段式格式 {{MODULE_NAME}}_{{SUBMODULE_NAME}}_{{ENTITY_SUFFIX}}，当前为{len(segments)}段式")
                 else:
                     module_name, submodule_name, entity_suffix = segments
-                    
+
                     # 验证各段格式
                     if not re.match(r'^[a-z]+$', module_name):
-                        errors.append(f"❌ subList[{i}] MODULE_NAME格式错误: '{module_name}' 必须为纯小写字母")
-                    
+                        errors.append(f"[ERROR] subList[{i}] MODULE_NAME格式错误: '{module_name}' 必须为纯小写字母")
+
                     if not re.match(r'^[a-z]+$', submodule_name):
-                        errors.append(f"❌ subList[{i}] SUBMODULE_NAME格式错误: '{submodule_name}' 必须为纯小写字母")
-                    
+                        errors.append(f"[ERROR] subList[{i}] SUBMODULE_NAME格式错误: '{submodule_name}' 必须为纯小写字母")
+
                     if not re.match(r'^[a-z0-9]+$', entity_suffix):
-                        errors.append(f"❌ subList[{i}] ENTITY_SUFFIX格式错误: '{entity_suffix}' 必须为小写字母和数字组合")
-                
+                        errors.append(f"[ERROR] subList[{i}] ENTITY_SUFFIX格式错误: '{entity_suffix}' 必须为小写字母和数字组合")
+
                 # 检查禁用的四段式表名
                 invalid_patterns = [
                     "crm_customer_customer_profile",
-                    "education_student_student_info", 
+                    "education_student_student_info",
                     "finance_invoice_invoice_header"
                 ]
-                
+
                 if table_name in invalid_patterns:
-                    errors.append(f"❌ subList[{i}]禁止使用四段式表名: '{table_name}' 应简化为三段式")
+                    errors.append(f"[ERROR] subList[{i}]禁止使用四段式表名: '{table_name}' 应简化为三段式")
 
                 if table_name in used_table_names:
                     errors.append(f"subList[{i}]表名重复: {table_name}")
@@ -421,13 +421,13 @@ JSON配置验证报告
                 if not re.match(r'^[A-Z][a-zA-Z0-9]*$', entity_name):
                     errors.append(f"subList[{i}]实体名格式错误: {entity_name}，应为PascalCase格式")
                 
-                # ✅ 新增：验证简洁格式
+                # 新增：验证简洁格式
                 main_entity = config.get('head', {}).get('business_entity', '')
                 if main_entity and entity_name == main_entity:
                     errors.append(f"subList[{i}]实体名不能与主表实体名相同: {entity_name}")
                 elif main_entity and entity_name.startswith(main_entity):
                     errors.append(f"subList[{i}]实体名应使用简洁格式: {entity_name}，推荐去除主表前缀")
-                    errors.append(f"⚠️ 统一使用简洁格式，避免复合命名")
+                    errors.append(f"[WARN] 统一使用简洁格式，避免复合命名")
 
             # 验证ID格式
             sub_id = sub_table.get('id', '')
@@ -597,7 +597,7 @@ JSON配置验证报告
         # 严格加载系统字典编码列表和详细信息
         dict_validation_result = self._load_and_validate_dict_codes()
         if not dict_validation_result['success']:
-            errors.append(f"🚨 无法加载Code_Gen_DICT.json文件: {dict_validation_result['error']}")
+            errors.append(f"[ERROR] 无法加载Code_Gen_DICT.json文件: {dict_validation_result['error']}")
             return False, errors
         
         available_dict_codes = dict_validation_result['dict_codes']
@@ -616,7 +616,7 @@ JSON配置验证报告
                 
                 # 1. 【严格校验】验证数据字典编码是否存在 - 这是最关键的校验
                 if dict_field not in available_dict_codes:
-                    errors.append(f"❌ 数据字典字段{i+1}({field_name})使用了非法的dictField: '{dict_field}'")
+                    errors.append(f"[ERROR] 数据字典字段{i+1}({field_name})使用了非法的dictField: '{dict_field}'")
                     errors.append(f"   该字典编码不存在于Code_Gen_DICT.json中，系统拒绝此配置！")
                     errors.append(f"   请使用以下合法的字典编码之一:")
                     
@@ -644,52 +644,52 @@ JSON配置验证报告
                 # 2. 【严格校验】验证fieldShowType必须是list
                 field_show_type = field.get('fieldShowType', '')
                 if field_show_type != 'list':
-                    errors.append(f"❌ 数据字典字段{i+1}({field_name})的fieldShowType必须是'list'，当前值: '{field_show_type}'")
+                    errors.append(f"[ERROR] 数据字典字段{i+1}({field_name})的fieldShowType必须是'list'，当前值: '{field_show_type}'")
                     errors.append(f"   数据字典字段必须使用下拉选择控件")
 
-                # 3. 【严格校验】验证queryShowType必须是list  
+                # 3. 【严格校验】验证queryShowType必须是list
                 query_show_type = field.get('queryShowType', '')
                 if query_show_type != 'list':
-                    errors.append(f"❌ 数据字典字段{i+1}({field_name})的queryShowType必须是'list'，当前值: '{query_show_type}'")
+                    errors.append(f"[ERROR] 数据字典字段{i+1}({field_name})的queryShowType必须是'list'，当前值: '{query_show_type}'")
                     errors.append(f"   数据字典字段的查询条件必须使用下拉选择控件")
 
                 # 4. 【严格校验】验证dbType必须是int
                 db_type = field.get('dbType', '')
                 if db_type != 'int':
-                    errors.append(f"❌ 数据字典字段{i+1}({field_name})的dbType必须是'int'，当前值: '{db_type}'")
+                    errors.append(f"[ERROR] 数据字典字段{i+1}({field_name})的dbType必须是'int'，当前值: '{db_type}'")
                     errors.append(f"   数据字典字段存储的是整数键值，如：1-男，2-女")
 
                 # 5. 【严格校验】验证queryDictField必须与dictField一致
                 query_dict_field = field.get('queryDictField', '')
                 if query_dict_field and query_dict_field != dict_field:
-                    errors.append(f"❌ 数据字典字段{i+1}({field_name})的queryDictField必须与dictField一致")
+                    errors.append(f"[ERROR] 数据字典字段{i+1}({field_name})的queryDictField必须与dictField一致")
                     errors.append(f"   dictField: '{dict_field}', queryDictField: '{query_dict_field}'")
                 elif not query_dict_field:
-                    errors.append(f"❌ 数据字典字段{i+1}({field_name})缺少queryDictField配置")
+                    errors.append(f"[ERROR] 数据字典字段{i+1}({field_name})缺少queryDictField配置")
                     errors.append(f"   queryDictField应该设置为: '{dict_field}'")
 
                 # 6. 【规范校验】验证dictTable和dictText应该为空（使用系统默认）
                 dict_table = field.get('dictTable', '')
                 if dict_table:
-                    errors.append(f"⚠️ 数据字典字段{i+1}({field_name})的dictTable应该为空字符串，当前值: '{dict_table}'")
+                    errors.append(f"[WARN] 数据字典字段{i+1}({field_name})的dictTable应该为空字符串，当前值: '{dict_table}'")
                     errors.append(f"   建议使用系统默认的字典表配置")
 
                 dict_text = field.get('dictText', '')
                 if dict_text:
-                    errors.append(f"⚠️ 数据字典字段{i+1}({field_name})的dictText应该为空字符串，当前值: '{dict_text}'")
+                    errors.append(f"[WARN] 数据字典字段{i+1}({field_name})的dictText应该为空字符串，当前值: '{dict_text}'")
                     errors.append(f"   建议使用系统默认的显示逻辑")
 
                 # 7. 【规范校验】验证查询模式
                 query_mode = field.get('queryMode', '')
                 if query_mode not in ['single', 'like']:
-                    errors.append(f"⚠️ 数据字典字段{i+1}({field_name})的queryMode建议使用'single'，当前值: '{query_mode}'")
+                    errors.append(f"[WARN] 数据字典字段{i+1}({field_name})的queryMode建议使用'single'，当前值: '{query_mode}'")
                     errors.append(f"   数据字典字段通常使用精确匹配查询")
 
                 # 8. 【规范校验】验证显示配置
                 is_show_form = field.get('isShowForm', '0')
                 is_show_list = field.get('isShowList', '0')
                 if is_show_form == '0' and is_show_list == '0':
-                    errors.append(f"⚠️ 数据字典字段{i+1}({field_name})应该至少在表单或列表中显示")
+                    errors.append(f"[WARN] 数据字典字段{i+1}({field_name})应该至少在表单或列表中显示")
 
                 # 9. 【规范校验】验证必填配置
                 field_must_input = field.get('fieldMustInput', '0')
@@ -697,11 +697,11 @@ JSON配置验证报告
                     # 对于重要字典字段给出建议
                     important_fields = ['sex', 'status', 'user_status']
                     if dict_field in important_fields:
-                        errors.append(f"⚠️ 数据字典字段{i+1}({field_name})建议设为必填，dictField: '{dict_field}'")
+                        errors.append(f"[WARN] 数据字典字段{i+1}({field_name})建议设为必填，dictField: '{dict_field}'")
 
         # 输出字典使用统计
         if used_dict_codes:
-            print(f"📊 本次配置使用了 {len(used_dict_codes)} 个数据字典: {', '.join(sorted(used_dict_codes))}")
+            print(f"[STAT] 本次配置使用了 {len(used_dict_codes)} 个数据字典: {', '.join(sorted(used_dict_codes))}")
 
         return len(errors) == 0, errors
 
@@ -793,13 +793,13 @@ JSON配置验证报告
             # 如果有无效项，添加警告信息
             if invalid_items:
                 result['warnings'] = invalid_items
-                print(f"⚠️  Code_Gen_DICT.json文件中发现 {len(invalid_items)} 个无效项:")
+                print(f"[WARN] Code_Gen_DICT.json文件中发现 {len(invalid_items)} 个无效项:")
                 for warning in invalid_items[:5]:  # 只显示前5个
                     print(f"   {warning}")
                 if len(invalid_items) > 5:
                     print(f"   ... 还有 {len(invalid_items) - 5} 个无效项")
-            
-            print(f"✅ 成功加载Code_Gen_DICT.json文件: 共{result['total_items']}项，有效{result['valid_items']}项")
+
+            print(f"[OK] 成功加载Code_Gen_DICT.json文件: 共{result['total_items']}项，有效{result['valid_items']}项")
             
             return result
             
@@ -845,9 +845,9 @@ JSON配置验证报告
     def show_available_dictionaries(self):
         """显示系统中所有可用的数据字典"""
         dict_result = self._load_and_validate_dict_codes()
-        
+
         if not dict_result['success']:
-            print(f"❌ 无法加载数据字典: {dict_result['error']}")
+            print(f"[ERROR] 无法加载数据字典: {dict_result['error']}")
             return
         
         dict_codes = dict_result['dict_codes']
@@ -885,7 +885,7 @@ JSON配置验证报告
         for category, items in sorted(categories.items()):
             print(f"\n【{category}】({len(items)}个):")
             for code, name in sorted(items):
-                print(f"  • {code:20} -> {name}")
+                print(f"  - {code:20} -> {name}")
         
         print(f"\n总计: {len(dict_codes)} 个数据字典编码")
         print("="*60)
@@ -985,9 +985,9 @@ def main():
         print("  python3 Code_Gen_Validator.py --show-dicts   # 查看数据字典")
         print()
         print("数据字典严格校验:")
-        print("  • 所有dictField必须存在于Code_Gen_DICT.json中")
-        print("  • 不存在的字典编码将导致验证失败")
-        print("  • 数据字典字段必须使用正确的配置格式")
+        print("  - 所有dictField必须存在于Code_Gen_DICT.json中")
+        print("  - 不存在的字典编码将导致验证失败")
+        print("  - 数据字典字段必须使用正确的配置格式")
         sys.exit(0)
     else:
         # 验证配置文件
@@ -1001,9 +1001,9 @@ def main():
         is_valid, _ = validator.validate_config(config_file)
         
         if is_valid:
-            print("\n✅ 配置文件验证通过，可以提交到JeecgBoot系统！")
+            print("\n[OK] 配置文件验证通过，可以提交到JeecgBoot系统！")
         else:
-            print("\n❌ 配置文件验证失败，请根据上述报告修复问题后重新验证。")
+            print("\n[ERROR] 配置文件验证失败，请根据上述报告修复问题后重新验证。")
             
         sys.exit(0 if is_valid else 1)
 

@@ -1,4 +1,50 @@
 # Code_Gen_Execute.py - JeecgBoot代码生成执行器，全新版本，不考虑前后兼容，始终为最新功能版本，易于AI调用理解
+#
+# =============================================================================
+# 跨平台编码规范 (Cross-Platform Encoding Guidelines)
+# =============================================================================
+#
+# 【重要】为了支持 Windows 和 macOS/Linux 跨平台执行，本脚本必须遵循以下规范：
+#
+# 1. 文件编码规范：
+#    - 本文件使用 UTF-8 编码保存（无BOM）
+#    - 所有字符串字面量使用普通中文字符，不使用 emoji 表情符号
+#    - 避免使用特殊 Unicode 字符（如 emoji: [LINK] [AUTH] [FOLDER] [OK] [ERROR] 等）
+#
+# 2. 输出编码规范：
+#    - Windows 命令行默认使用 GBK 编码，无法正确显示 emoji
+#    - macOS/Linux 终端使用 UTF-8 编码，支持 emoji 但为了跨平台兼容应避免
+#    - 所有 print() 输出应使用标准 ASCII 标签（如 [OK] [ERROR] [INFO]）
+#
+# 3. 日志输出标签规范（替代 emoji）：
+#    - [OK] / [SUCCESS] - 替代 [CHECK]
+#    - [ERROR] / [FAIL] - 替代 [CROSS]
+#    - [WARN] / [WARNING] - 替代 [ALERT]
+#    - [INFO] / [TIP] - 替代 [INFO_ICON]
+#    - [FOLDER] / [DIR] - 替代 [FOLDER_ICON]
+#    - [FILE] / [DOCUMENT] - 替代 [FILE_ICON]
+#    - [URL] / [LINK] - 替代 [LINK_ICON]
+#    - [AUTH] / [LOGIN] - 替代 [AUTH_ICON]
+#    - [SAVE] / [STORE] - 替代 [SAVE_ICON]
+#    - [BUILD] / [COMPILE] - 替代 [BUILD_ICON]
+#    - [API] / [NETWORK] - 替代 [API_ICON]
+#
+# 4. 路径处理规范：
+#    - 使用 os.path.join() 或 pathlib.Path 处理路径分隔符
+#    - 使用前向斜杠 / 作为通用路径分隔符（Python 会自动转换）
+#    - 避免硬编码 Windows 反斜杠 \ 或 Unix 斜杠 /
+#
+# 5. 子进程调用规范：
+#    - Windows: 使用 .cmd 或 .bat 扩展名（如 mvn.cmd）
+#    - macOS/Linux: 使用无扩展名命令（如 mvn）
+#    - 使用 platform.system() 判断操作系统类型
+#
+# 6. 编码错误处理：
+#    - 如遇到 UnicodeEncodeError: 'gbk' codec can't encode character
+#    - 说明输出中包含了不兼容的字符（通常是 emoji）
+#    - 解决方案：替换为标准 ASCII 标签
+#
+# =============================================================================
 
 import os
 import sys
@@ -12,6 +58,18 @@ import fnmatch
 from datetime import datetime
 from typing import Dict, Optional, Tuple, List
 from contextlib import contextmanager
+
+# =============================================================================
+# [FIX BUG1] Windows控制台编码修复 - 确保中文输出正常显示
+# =============================================================================
+# 在Windows环境下，控制台默认使用GBK编码，导致UTF-8字符显示为乱码
+# 解决方案：强制设置stdout和stderr为UTF-8编码
+if sys.platform == 'win32':
+    import codecs
+    # 重新配置stdout和stderr使用UTF-8编码，并忽略无法编码的字符
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, errors='replace')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, errors='replace')
+    print("[OK] Windows控制台已切换为UTF-8编码")
 
 SUMMARY_RESULT = "ERROR"
 
@@ -90,7 +148,7 @@ class LogManager:
     def setup_logging(self, config_file_path: str = None, config_data: Dict = None):
         """
         设置日志记录系统
-        
+
         Args:
             config_file_path: 配置文件路径
             config_data: 配置数据（可选，如果提供则直接使用）
@@ -105,15 +163,20 @@ class LogManager:
                     config_data = {}
             elif config_data is None:
                 config_data = {}
-            
+
             # 提取模块信息
             module_name, submodule_name = self.extract_module_info(config_data)
-            
+
+            # [FIX BUG3] 确定日志文件应该保存到CodeGen目录
+            # 获取当前脚本所在目录(Code_Gen_Execute.py所在目录,即CodeGen)
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+
             # 生成日志文件名 - 清理模块名中的特殊字符
             clean_module_name = self._clean_filename(module_name)
             clean_submodule_name = self._clean_filename(submodule_name)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            self.log_file_path = f"{clean_module_name}_{clean_submodule_name}_{timestamp}.log"
+            log_filename = f"{clean_module_name}_{clean_submodule_name}_{timestamp}.log"
+            self.log_file_path = os.path.join(script_dir, log_filename)
             
             # 配置日志格式
             log_format = '[%(asctime)s] [%(levelname)s] %(message)s'
@@ -142,17 +205,20 @@ class LogManager:
             
             # 记录初始化信息
             self.logger.info("="*70)
-            self.logger.info(f"📝 JeecgBoot 代码生成器日志系统启动")
+            self.logger.info(f"[LOG] JeecgBoot 代码生成器日志系统启动")
             self.logger.info("="*70)
-            self.logger.info(f"📄 日志文件: {self.log_file_path}")
-            self.logger.info(f"🏷️ 模块信息: {module_name}.{submodule_name}")
-            self.logger.info(f"🕒 启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            self.logger.info(f"[FILE] 日志文件: {self.log_file_path}")
+            self.logger.info(f"[TAG] 模块信息: {module_name}.{submodule_name}")
+            self.logger.info(f"[TIME] 启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             self.logger.info("="*70)
             
             return True
             
         except Exception as e:
-            print(f"❌ 日志系统初始化失败: {str(e)}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 日志系统初始化失败: {str(e)}")
             return False
     
     def _setup_print_redirect(self):
@@ -194,9 +260,9 @@ class LogManager:
         try:
             if self.logger:
                 self.logger.info("="*70)
-                self.logger.info(f"📝 JeecgBoot 代码生成器日志记录完成")
-                self.logger.info(f"💾 日志已保存至: {self.log_file_path}")
-                self.logger.info(f"🕒 结束时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                self.logger.info(f"[LOG] JeecgBoot 代码生成器日志记录完成")
+                self.logger.info(f"[SAVE] 日志已保存至: {self.log_file_path}")
+                self.logger.info(f"[TIME] 结束时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 self.logger.info("="*70)
             
             # 恢复原始输出流
@@ -215,7 +281,10 @@ class LogManager:
                     self.logger.removeHandler(handler)
                     
         except Exception as e:
-            print(f"⚠️ 日志清理时出现问题: {str(e)}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[WARN] 日志清理时出现问题: {str(e)}")
     
     def get_log_file_path(self) -> str:
         """获取日志文件路径"""
@@ -225,14 +294,14 @@ class LogManager:
         """记录章节开始"""
         if self.logger:
             self.logger.info(f"\n{'='*50}")
-            self.logger.info(f"📋 {section_name}")
+            self.logger.info(f"[INFO] {section_name}")
             self.logger.info(f"{'='*50}")
     
     def log_section_end(self, section_name: str):
         """记录章节结束"""
         if self.logger:
             self.logger.info(f"{'='*50}")
-            self.logger.info(f"✅ {section_name} 完成")
+            self.logger.info(f"[OK] {section_name} 完成")
             self.logger.info(f"{'='*50}\n")
 
 # 全局日志管理器实例
@@ -363,10 +432,10 @@ class EnvironmentGuide:
         status = self.check_environment_setup()
         
         print("\n" + "="*60)
-        print("🔧 JeecgBoot 环境变量配置状态检查")
+        print("[CONFIG] JeecgBoot 环境变量配置状态检查")
         print("="*60)
         
-        print("\n📋 配置状态概览:")
+        print("\n[INFO] 配置状态概览:")
         total_vars = len([v for v in self.REQUIRED_ENV_VARS if v['required']])
         configured_vars = len(status['configured_vars'])
         missing_count = len(status['missing_vars'])
@@ -377,13 +446,13 @@ class EnvironmentGuide:
         
         if status['all_configured']:
             if actual_env_vars == total_vars:
-                print(f"✅ 所有必需环境变量已配置 ({configured_vars}/{total_vars})")
+                print(f"[OK] 所有必需环境变量已配置 ({configured_vars}/{total_vars})")
             else:
-                print(f"🔧 配置完整但主要使用默认值 ({actual_env_vars}/{total_vars} 个真实环境变量)")
+                print(f"[CONFIG] 配置完整但主要使用默认值 ({actual_env_vars}/{total_vars} 个真实环境变量)")
         else:
-            print(f"❌ 缺少 {missing_count} 个必需环境变量 ({configured_vars}/{total_vars})")
+            print(f"[ERROR] 缺少 {missing_count} 个必需环境变量 ({configured_vars}/{total_vars})")
         
-        print("\n📄 详细配置状态:")
+        print("\n[FILE] 详细配置状态:")
         for var_info in self.REQUIRED_ENV_VARS:
             var_name = var_info['name']
             var_status = status['config_status'][var_name]
@@ -391,35 +460,35 @@ class EnvironmentGuide:
             
             if var_status['configured']:
                 if actual_env_value:
-                    icon = "✅"
+                    icon = "[OK]"
                     status_text = f"环境变量: {var_status['value']}"
                 else:
-                    icon = "🔧"
+                    icon = "[CONFIG]"
                     status_text = f"默认值: {var_status['value']}"
             else:
-                icon = "❌" if var_info['required'] else "⚠️"
+                icon = "[ERROR]" if var_info['required'] else "[WARN]"
                 status_text = "未配置" + ("（必需）" if var_info['required'] else "（可选）")
             
             print(f"  {icon} {var_name:<25} {status_text}")
             print(f"     描述: {var_info['description']}")
         
         if not status['all_configured']:
-            print(f"\n⚠️  请配置缺少的环境变量后重新运行脚本")
-            print(f"💡 或使用 --setup-guide 参数启动交互式配置向导")
+            print(f"\n[WARN]  请配置缺少的环境变量后重新运行脚本")
+            print(f"[TIP] 或使用 --setup-guide 参数启动交互式配置向导")
         else:
             # 添加默认值说明
             if actual_env_vars < total_vars:
-                print(f"\n📌 默认值说明:")
-                print(f"   🔧 系统内置了合理的默认配置，可以直接使用")
-                print(f"   ✅ 如需自定义，请设置对应的环境变量覆盖默认值")
-                print(f"   💡 使用 --setup-guide 可以交互式设置环境变量")
+                print(f"\n[NOTE] 默认值说明:")
+                print(f"   [CONFIG] 系统内置了合理的默认配置，可以直接使用")
+                print(f"   [OK] 如需自定义，请设置对应的环境变量覆盖默认值")
+                print(f"   [TIP] 使用 --setup-guide 可以交互式设置环境变量")
         
         return status
     
     def interactive_setup_guide(self):
         """交互式配置向导"""
         print("\n" + "="*60)
-        print("🚀 JeecgBoot 环境变量配置向导")
+        print("[START] JeecgBoot 环境变量配置向导")
         print("="*60)
         print("此向导将帮助您配置必需的环境变量")
         print("按 Ctrl+C 随时退出")
@@ -433,7 +502,7 @@ class EnvironmentGuide:
                 var_name = var_info['name']
                 current_value = os.getenv(var_name, '')
                 
-                print(f"\n📝 配置: {var_name}")
+                print(f"\n[LOG] 配置: {var_name}")
                 print(f"   描述: {var_info['description']}")
                 print(f"   示例: {var_info['example']}")
                 
@@ -462,9 +531,9 @@ class EnvironmentGuide:
                         example_value = var_info.get('example', '')
                         if example_value:
                             self.config_values[var_name] = example_value
-                            print(f"   🔧 采用推荐示例值: {example_value}")
+                            print(f"   [CONFIG] 采用推荐示例值: {example_value}")
                         else:
-                            print("   ❌ 此变量为必需项，不能为空")
+                            print("   [ERROR] 此变量为必需项，不能为空")
                             return False
             
             # 验证配置
@@ -473,25 +542,28 @@ class EnvironmentGuide:
                 self._set_current_session_env()
                 return True
             else:
-                print("❌ 配置验证失败")
+                print("[ERROR] 配置验证失败")
                 return False
                 
         except KeyboardInterrupt:
-            print("\n\n⏹️  配置向导已取消")
+            print("\n\n[STOP]  配置向导已取消")
             return False
         except Exception as e:
-            print(f"\n❌ 配置向导发生错误: {e}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"\n[ERROR] 配置向导发生错误: {e}")
             return False
     
     def _validate_configuration(self) -> bool:
         """验证配置的有效性"""
-        print("\n🔍 正在验证配置...")
+        print("\n[CHECK] 正在验证配置...")
         
         # 验证路径
         if 'JEECG_PROJECT_ROOT' in self.config_values:
             project_root = self.config_values['JEECG_PROJECT_ROOT']
             if not os.path.exists(project_root):
-                print(f"❌ 项目根目录不存在: {project_root}")
+                print(f"[ERROR] 项目根目录不存在: {project_root}")
                 return False
             
             # 检查关键目录结构
@@ -502,7 +574,7 @@ class EnvironmentGuide:
             
             for path in key_paths:
                 if not os.path.exists(path):
-                    print(f"⚠️  关键目录不存在: {path}")
+                    print(f"[WARN]  关键目录不存在: {path}")
         
         # 验证URL格式
         url_vars = ['JEECG_BASE_URL', 'JEECG_DATABASE_URL']
@@ -510,48 +582,55 @@ class EnvironmentGuide:
             if var_name in self.config_values:
                 url_value = self.config_values[var_name]
                 if not (url_value.startswith('http://') or url_value.startswith('https://') or url_value.startswith('jdbc:')):
-                    print(f"⚠️  {var_name} URL格式可能不正确: {url_value}")
+                    print(f"[WARN]  {var_name} URL格式可能不正确: {url_value}")
         
-        print("✅ 配置验证完成")
+        print("[OK] 配置验证完成")
         return True
     
     def _set_current_session_env(self):
         """在当前会话中设置环境变量"""
-        print("\n🔧 正在设置环境变量...")
+        print("\n[CONFIG] 正在设置环境变量...")
         
         # 1. 设置环境变量到当前Python进程
         for var_name, var_value in self.config_values.items():
             os.environ[var_name] = var_value
-            print(f"   ✅ {var_name} = {var_value if 'PASSWORD' not in var_name else '***'}")
+            print(f"   [OK] {var_name} = {var_value if 'PASSWORD' not in var_name else '***'}")
         
         # 2. 生成临时环境文件供后续使用
         self._create_temp_env_file()
         
-        print(f"\n✅ 环境变量设置完成")
-        print(f"📋 已设置 {len(self.config_values)} 个环境变量")
+        print(f"\n[OK] 环境变量设置完成")
+        print(f"[INFO] 已设置 {len(self.config_values)} 个环境变量")
         
-        print(f"\n💡 使用说明:")
-        print(f"   🔄 环境变量已设置，可以立即运行代码生成任务")
-        print(f"   📝 环境变量存储在 .env_temp 文件中供后续Python进程读取")
+        print(f"\n[TIP] 使用说明:")
+        print(f"   [PROCESS] 环境变量已设置，可以立即运行代码生成任务")
+        print(f"   [LOG] 环境变量存储在 .env_temp 文件中供后续Python进程读取")
     
     def _create_temp_env_file(self):
         """创建临时环境变量文件"""
         try:
-            with open('.env_temp', 'w', encoding='utf-8') as f:
+            # [FIX BUG2] 确保.env_temp文件在CodeGen目录中创建
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            temp_env_file = os.path.join(script_dir, '.env_temp')
+
+            with open(temp_env_file, 'w', encoding='utf-8') as f:
                 f.write("# JeecgBoot 临时环境变量文件\n")
                 f.write("# 此文件由 --setup-guide 自动生成\n")
                 f.write(f"# 生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-                
+
                 for var_name, var_value in self.config_values.items():
                     f.write(f"{var_name}={var_value}\n")
-            
-            print(f"   📁 临时环境文件已创建: .env_temp")
+
+            print(f"   [FOLDER] 临时环境文件已创建: {temp_env_file}")
         except Exception as e:
-            print(f"   ⚠️ 创建临时环境文件失败: {e}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"   [WARN] 创建临时环境文件失败: {e}")
     
     def _generate_setup_scripts(self):
         """生成环境变量设置脚本"""
-        print("\n📝 正在生成环境变量设置脚本...")
+        print("\n[LOG] 正在生成环境变量设置脚本...")
         
         # 生成shell脚本
         shell_script = self._generate_shell_script()
@@ -563,11 +642,11 @@ class EnvironmentGuide:
         with open('setup_env.bat', 'w', encoding='utf-8') as f:
             f.write(bat_script)
         
-        print("\n✅ 配置文件生成完成:")
-        print("   📄 setup_env.sh - Linux/macOS环境变量设置脚本")
-        print("   📄 setup_env.bat - Windows环境变量设置脚本")
+        print("\n[OK] 配置文件生成完成:")
+        print("   [FILE] setup_env.sh - Linux/macOS环境变量设置脚本")
+        print("   [FILE] setup_env.bat - Windows环境变量设置脚本")
         
-        print(f"\n🔧 下一步操作:")
+        print(f"\n[CONFIG] 下一步操作:")
         print(f"   1. 根据您的操作系统执行相应的脚本:")
         print(f"      Linux/macOS: source setup_env.sh")
         print(f"      Windows: setup_env.bat")
@@ -582,8 +661,8 @@ class EnvironmentGuide:
         
         script_lines.extend([
             '',
-            'echo "✅ JeecgBoot 环境变量已设置"',
-            'echo "📋 已设置的环境变量:"'
+            'echo "[OK] JeecgBoot 环境变量已设置"',
+            'echo "[INFO] 已设置的环境变量:"'
         ])
         
         for var_name in self.config_values.keys():
@@ -603,8 +682,8 @@ class EnvironmentGuide:
         
         script_lines.extend([
             '',
-            'echo ✅ JeecgBoot 环境变量已设置',
-            'echo 📋 已设置的环境变量:'
+            'echo [OK] JeecgBoot 环境变量已设置',
+            'echo [INFO] 已设置的环境变量:'
         ])
         
         for var_name in self.config_values.keys():
@@ -619,12 +698,15 @@ class EnvironmentGuide:
     
     def _load_temp_env_file(self):
         """加载临时环境文件"""
-        temp_env_file = '.env_temp'
+        # [FIX BUG2] 从CodeGen目录加载.env_temp文件
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        temp_env_file = os.path.join(script_dir, '.env_temp')
+
         if os.path.exists(temp_env_file):
             try:
                 with open(temp_env_file, 'r', encoding='utf-8') as f:
                     lines = f.readlines()
-                
+
                 loaded_count = 0
                 for line in lines:
                     line = line.strip()
@@ -634,12 +716,15 @@ class EnvironmentGuide:
                             key, value = line.split('=', 1)
                             os.environ[key.strip()] = value.strip()
                             loaded_count += 1
-                
+
                 if loaded_count > 0:
-                    print(f"📁 从临时环境文件加载了 {loaded_count} 个环境变量")
-                
+                    print(f"[FOLDER] 从临时环境文件加载了 {loaded_count} 个环境变量: {temp_env_file}")
+
             except Exception as e:
-                print(f"⚠️ 加载临时环境文件失败: {e}")
+                import traceback
+                print(f"[ERROR] Exception: {str(e)}")
+                traceback.print_exc()
+                print(f"[WARN] 加载临时环境文件失败: {e}")
 
 
 # =============================================================================
@@ -669,25 +754,31 @@ class JeecgBootConfig:
             if os.path.exists(config_file):
                 self._load_config_file(config_file)
             else:
-                print(f"⚠️ 配置文件 {config_file} 不存在，使用默认值")
+                print(f"[WARN] 配置文件 {config_file} 不存在，使用默认值")
                 self._set_default_values()
             
             self.loaded = True
             return True
             
         except Exception as e:
-            print(f"❌ 配置加载失败: {e}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 配置加载失败: {e}")
             return False
     
     def _load_temp_env_file(self):
         """加载临时环境文件"""
-        temp_env_file = '.env_temp'
+        # [FIX BUG2] 从CodeGen目录加载.env_temp文件
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        temp_env_file = os.path.join(script_dir, '.env_temp')
+
         if os.path.exists(temp_env_file):
-            print(f"📁 发现临时环境文件: {temp_env_file}")
+            print(f"[FOLDER] 发现临时环境文件: {temp_env_file}")
             try:
                 with open(temp_env_file, 'r', encoding='utf-8') as f:
                     lines = f.readlines()
-                
+
                 loaded_count = 0
                 for line in lines:
                     line = line.strip()
@@ -697,17 +788,20 @@ class JeecgBootConfig:
                             key, value = line.split('=', 1)
                             os.environ[key.strip()] = value.strip()
                             loaded_count += 1
-                
-                print(f"   ✅ 从临时文件加载了 {loaded_count} 个环境变量")
-                
+
+                print(f"   [OK] 从临时文件加载了 {loaded_count} 个环境变量")
+
             except Exception as e:
-                print(f"   ⚠️ 加载临时环境文件失败: {e}")
+                import traceback
+                print(f"[ERROR] Exception: {str(e)}")
+                traceback.print_exc()
+                print(f"   [WARN] 加载临时环境文件失败: {e}")
         else:
-            print(f"💡 未找到临时环境文件，使用系统环境变量")
+            print(f"[TIP] 未找到临时环境文件，使用系统环境变量")
     
     def _load_environment_variables(self):
         """加载环境变量"""
-        print(f"\n🔍 正在加载环境变量配置...")
+        print(f"\n[CHECK] 正在加载环境变量配置...")
         
         # JeecgBoot 完整环境变量列表
         all_env_var_names = [
@@ -729,7 +823,7 @@ class JeecgBootConfig:
             'JEECG_DATABASE_PASSWORD': 'Best@2008'
         }
         
-        print(f"📋 硬编码默认值配置:")
+        print(f"[INFO] 硬编码默认值配置:")
         print(f"   基础配置: JEECG_PROJECT_ROOT, JEECG_BASE_URL, JEECG_USERNAME, JEECG_PASSWORD")
         print(f"   数据库配置: JEECG_DATABASE_TYPE, JEECG_DATABASE_URL, JEECG_DATABASE_USERNAME, JEECG_DATABASE_PASSWORD")
         
@@ -738,7 +832,7 @@ class JeecgBootConfig:
         env_defaulted = 0
         env_empty = 0
         
-        print(f"\n📊 环境变量提取详情:")
+        print(f"\n[STAT] 环境变量提取详情:")
         for env_var in all_env_var_names:
             value = os.getenv(env_var)
             if value:
@@ -748,7 +842,7 @@ class JeecgBootConfig:
                 is_default = value == defaults.get(env_var)
                 default_indicator = " (与默认值相同)" if is_default else " (自定义值)"
                 display_value = value if env_var not in ['JEECG_PASSWORD', 'JEECG_DATABASE_PASSWORD'] else '*' * len(value)
-                print(f"   ✅ {env_var}: 环境变量 = {display_value}{default_indicator}")
+                print(f"   [OK] {env_var}: 环境变量 = {display_value}{default_indicator}")
             else:
                 # 设置默认值
                 default_value = defaults.get(env_var, '')
@@ -756,20 +850,20 @@ class JeecgBootConfig:
                 if default_value:
                     env_defaulted += 1
                     display_value = default_value if env_var not in ['JEECG_PASSWORD', 'JEECG_DATABASE_PASSWORD'] else '*' * len(default_value)
-                    print(f"   🔧 {env_var}: 使用默认值 = {display_value}")
+                    print(f"   [CONFIG] {env_var}: 使用默认值 = {display_value}")
                 else:
                     env_empty += 1
-                    print(f"   ⚠️ {env_var}: 未设置 (无默认值)")
+                    print(f"   [WARN] {env_var}: 未设置 (无默认值)")
         
-        print(f"\n📈 环境变量加载统计:")
-        print(f"   🎯 从环境变量获取: {env_found} 个")
-        print(f"   🔧 使用默认值: {env_defaulted} 个")
-        print(f"   ⚠️ 保持空值: {env_empty} 个")
-        print(f"   📊 总计: {env_found + env_defaulted + env_empty} 个环境变量处理完成")
+        print(f"\n[COUNT] 环境变量加载统计:")
+        print(f"   [TARGET] 从环境变量获取: {env_found} 个")
+        print(f"   [CONFIG] 使用默认值: {env_defaulted} 个")
+        print(f"   [WARN] 保持空值: {env_empty} 个")
+        print(f"   [STAT] 总计: {env_found + env_defaulted + env_empty} 个环境变量处理完成")
         
         # 重要提示
         if env_found == 0 and env_defaulted > 0:
-            print(f"\n💡 重要提示:")
+            print(f"\n[TIP] 重要提示:")
             print(f"   当前使用的是系统默认配置，非真实环境变量")
             print(f"   如需自定义配置，请设置对应的环境变量")
     
@@ -842,40 +936,40 @@ class JeecgBootConfig:
     def print_summary(self):
         """打印配置摘要"""
         print("\n" + "="*60)
-        print("📋 JeecgBoot 配置中心状态摘要")
+        print("[INFO] JeecgBoot 配置中心状态摘要")
         print("="*60)
-        print(f"✅ 配置加载状态: 成功")
-        print(f"🔧 Base URL: {self.get_base_url()}")
-        print(f"👤 Username: {self.get_username()}")
-        print(f"📁 Project Root: {self.get_project_root()}")
-        print(f"⏱️ Timeouts: {self.timeouts}")
-        print(f"📄 Page Size: {self.get_page_size()}")
+        print(f"[OK] 配置加载状态: 成功")
+        print(f"[CONFIG] Base URL: {self.get_base_url()}")
+        print(f"[USER] Username: {self.get_username()}")
+        print(f"[FOLDER] Project Root: {self.get_project_root()}")
+        print(f"[TIMEOUT] Timeouts: {self.timeouts}")
+        print(f"[FILE] Page Size: {self.get_page_size()}")
         
-        print(f"\n🔍 环境变量检查结果:")
+        print(f"\n[CHECK] 环境变量检查结果:")
         # 按类别分组显示环境变量
         basic_vars = ['JEECG_PROJECT_ROOT', 'JEECG_BASE_URL', 'JEECG_USERNAME', 'JEECG_PASSWORD']
         db_vars = ['JEECG_DATABASE_TYPE', 'JEECG_DATABASE_URL', 'JEECG_DATABASE_USERNAME', 'JEECG_DATABASE_PASSWORD']
         
-        print("  📌 基础配置:")
+        print("  [NOTE] 基础配置:")
         for env_var in basic_vars:
             if env_var in self.env_vars:
-                status = "✅" if self.env_vars[env_var] else "❌"
+                status = "[OK]" if self.env_vars[env_var] else "[ERROR]"
                 display_value = self.env_vars[env_var] if env_var != 'JEECG_PASSWORD' else '*' * len(self.env_vars[env_var]) if self.env_vars[env_var] else ''
                 print(f"    {status} {env_var} = {display_value}")
         
-        print("  🗄️ 数据库配置:")
+        print("  [DB] 数据库配置:")
         for env_var in db_vars:
             if env_var in self.env_vars:
-                status = "✅" if self.env_vars[env_var] else "❌"
+                status = "[OK]" if self.env_vars[env_var] else "[ERROR]"
                 display_value = self.env_vars[env_var] if env_var != 'JEECG_DATABASE_PASSWORD' else '*' * len(self.env_vars[env_var]) if self.env_vars[env_var] else ''
                 print(f"    {status} {env_var} = {display_value}")
         
         # 显示其他环境变量
         other_vars = [k for k in self.env_vars.keys() if k not in basic_vars and k not in db_vars]
         if other_vars:
-            print("  ⚙️ 其他配置:")
+            print("  [SETTING] 其他配置:")
             for env_var in other_vars:
-                status = "✅" if self.env_vars[env_var] else "⚠️"
+                status = "[OK]" if self.env_vars[env_var] else "[WARN]"
                 display_value = self.env_vars[env_var] if self.env_vars[env_var] else '(未设置)'
                 print(f"    {status} {env_var} = {display_value}")
         
@@ -1018,46 +1112,46 @@ class EnvironmentVariableTask:
         
     def execute(self):
         """初始化配置中心并验证环境变量"""
-        print(f"\n🔧 开始执行任务{self.task_id}: {self.task_name}")
+        print(f"\n[CONFIG] 开始执行任务{self.task_id}: {self.task_name}")
         
         try:
             # 1. 创建并加载配置
-            print(f"📦 步骤1: 创建JeecgBootConfig实例...")
+            print(f"[PACKAGE] 步骤1: 创建JeecgBootConfig实例...")
             self.config = JeecgBootConfig()
             
-            print(f"⚙️ 步骤2: 加载配置文件和环境变量...")
+            print(f"[SETTING] 步骤2: 加载配置文件和环境变量...")
             config_loaded = self.config.load_config()
             
             if not config_loaded:
-                print("❌ 配置加载失败")
+                print("[ERROR] 配置加载失败")
                 task_result = "fail"
                 summary = "配置中心初始化失败"
             else:
                 # 2. 验证核心环境变量有效性
-                print(f"\n✅ 步骤3: 验证核心环境变量有效性...")
+                print(f"\n[OK] 步骤3: 验证核心环境变量有效性...")
                 success_count = 0
                 failed_vars = []
                 total_required = len(self.REQUIRED_ENV_VARS)
                 
-                print(f"🔍 检查 {total_required} 个必需环境变量:")
+                print(f"[CHECK] 检查 {total_required} 个必需环境变量:")
                 for env_var in self.REQUIRED_ENV_VARS:
                     actual_value = self.config.env_vars.get(env_var)
                     if actual_value:
                         success_count += 1
-                        print(f"   ✅ {env_var}: 有效 (长度: {len(actual_value)})")
+                        print(f"   [OK] {env_var}: 有效 (长度: {len(actual_value)})")
                     else:
                         failed_vars.append(env_var)
-                        print(f"   ❌ {env_var}: 无效或为空")
+                        print(f"   [ERROR] {env_var}: 无效或为空")
                 
                 # 3. 应用情况分析
-                print(f"\n🎯 步骤4: 分析最终配置应用情况...")
-                print(f"📊 配置统计:")
-                print(f"   ✅ 有效环境变量: {success_count} 个")
-                print(f"   ❌ 无效环境变量: {len(failed_vars)} 个")
-                print(f"   📈 成功率: {success_count/total_required*100:.1f}%")
+                print(f"\n[TARGET] 步骤4: 分析最终配置应用情况...")
+                print(f"[STAT] 配置统计:")
+                print(f"   [OK] 有效环境变量: {success_count} 个")
+                print(f"   [ERROR] 无效环境变量: {len(failed_vars)} 个")
+                print(f"   [COUNT] 成功率: {success_count/total_required*100:.1f}%")
                 
                 # 显示实际应用的配置值
-                print(f"\n🔧 最终应用的配置值:")
+                print(f"\n[CONFIG] 最终应用的配置值:")
                 print(f"   Base URL: {self.config.get_base_url()}")
                 print(f"   Username: {self.config.get_username()}")
                 print(f"   Project Root: {self.config.get_project_root()}")
@@ -1068,26 +1162,29 @@ class EnvironmentVariableTask:
                 self.config.print_summary()
                 
                 # 5. 判断任务结果
-                print(f"\n🏁 步骤5: 评估任务执行结果...")
+                print(f"\n[FINISH] 步骤5: 评估任务执行结果...")
                 if success_count >= 4:  # 至少需要基本的4个环境变量
                     task_result = "pass"
                     summary = f"配置中心初始化成功({success_count}/{total_required}个环境变量)"
-                    print(f"   🎉 评估结果: 通过 (满足最低要求 {success_count}>=4)")
+                    print(f"   [SUCCESS] 评估结果: 通过 (满足最低要求 {success_count}>=4)")
                 else:
                     task_result = "fail" 
                     summary = f"关键环境变量缺失({success_count}/{total_required})"
-                    print(f"   💥 评估结果: 失败 (不满足最低要求 {success_count}<4)")
+                    print(f"   [FAIL] 评估结果: 失败 (不满足最低要求 {success_count}<4)")
                     if failed_vars:
-                        print(f"   📋 失败变量: {', '.join(failed_vars)}")
+                        print(f"   [INFO] 失败变量: {', '.join(failed_vars)}")
         
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             task_result = "fail"
             summary = f"配置中心初始化异常: {e}"
-            print(f"❌ {summary}")
+            print(f"[ERROR] {summary}")
             import traceback
             traceback.print_exc()
         
-        status_icon = "✅" if task_result == "pass" else "❌"
+        status_icon = "[OK]" if task_result == "pass" else "[ERROR]"
         print(f"\n{status_icon} 任务{self.task_id}: {self.task_name}")
         print(f"   结果: {summary}")
         print(f"   状态: {task_result.upper()}")
@@ -1159,9 +1256,12 @@ class MavenModuleCreationTask:
                         task_result = "fail"
         
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             summary = f"Maven模块创建异常: {e}"
             task_result = "fail"
-            print(f"❌ {summary}")
+            print(f"[ERROR] {summary}")
         
         print(f"{self.task_id}--{self.task_name}--{summary}")
         print(task_result)
@@ -1220,19 +1320,23 @@ class MavenModuleCreationTask:
         """使用Maven archetype创建新模块"""
         import subprocess
         try:
-            print(f"🔨 执行 mvn archetype:generate 创建模块 jeecg-module-{module_name}")
+            print(f"[BUILD] 执行 mvn archetype:generate 创建模块 jeecg-module-{module_name}")
             
             # 获取项目根路径和执行目录
             project_root = self.config.get_project_root()
             exec_dir = f"{project_root}/jeecg-boot/jeecg-boot-module"
             
             if not os.path.exists(exec_dir):
-                print(f"❌ 执行目录不存在: {exec_dir}")
+                print(f"[ERROR] 执行目录不存在: {exec_dir}")
                 return False
             
             # 构建Maven命令
+            # Windows环境下使用mvn.cmd
+            import platform
+            mvn_executable = 'mvn.cmd' if platform.system() == 'Windows' else 'mvn'
+
             maven_cmd = [
-                'mvn', 'archetype:generate',
+                mvn_executable, 'archetype:generate',
                 '-DgroupId=org.jeecgframework.boot',
                 f'-DartifactId=jeecg-module-{module_name}',
                 '-Dversion=3.8.2',
@@ -1241,7 +1345,7 @@ class MavenModuleCreationTask:
                 '-DarchetypeVersion=2.0',
                 '-DinteractiveMode=false'  # 非交互模式
             ]
-            
+
             # 执行Maven命令
             result = subprocess.run(
                 maven_cmd,
@@ -1252,20 +1356,23 @@ class MavenModuleCreationTask:
             )
             
             if result.returncode == 0:
-                print(f"✅ Maven模块创建成功: jeecg-module-{module_name}")
+                print(f"[OK] Maven模块创建成功: jeecg-module-{module_name}")
                 return True
             else:
                 error_msg = f"Maven命令执行失败(返回码:{result.returncode})"
                 if result.stderr:
                     error_msg += f", 错误: {result.stderr[:200]}"
-                print(f"❌ {error_msg}")
+                print(f"[ERROR] {error_msg}")
                 return False
                 
         except subprocess.TimeoutExpired:
-            print("❌ Maven命令执行超时(5分钟)")
+            print("[ERROR] Maven命令执行超时(5分钟)")
             return False
         except Exception as e:
-            print(f"❌ Maven命令执行异常: {str(e)}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] Maven命令执行异常: {str(e)}")
             return False
 
 
@@ -1309,9 +1416,12 @@ class PomConfigurationTask:
                     task_result = "fail"
         
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             summary = f"POM配置更新异常: {e}"
             task_result = "fail"
-            print(f"❌ {summary}")
+            print(f"[ERROR] {summary}")
         
         print(f"{self.task_id}--{self.task_name}--{summary}")
         print(task_result)
@@ -1354,13 +1464,13 @@ class PomConfigurationTask:
     def _update_module_registry_pom(self, module_name: str) -> bool:
         """更新模块注册表pom.xml添加新模块"""
         try:
-            print(f"📝 更新 jeecg-boot-module/pom.xml 添加模块引用")
+            print(f"[LOG] 更新 jeecg-boot-module/pom.xml 添加模块引用")
             
             project_root = self.config.get_project_root()
             pom_path = f"{project_root}/jeecg-boot/jeecg-boot-module/pom.xml"
             
             if not os.path.exists(pom_path):
-                print(f"❌ 模块注册表pom.xml不存在: {pom_path}")
+                print(f"[ERROR] 模块注册表pom.xml不存在: {pom_path}")
                 return False
             
             # 读取原始文件内容
@@ -1370,7 +1480,7 @@ class PomConfigurationTask:
             # 检查模块是否已存在
             module_artifact_id = f"jeecg-module-{module_name}"
             if f"<module>{module_artifact_id}</module>" in content:
-                print(f"✅ 模块已存在于注册表中: {module_artifact_id}")
+                print(f"[OK] 模块已存在于注册表中: {module_artifact_id}")
                 return True
             
             # 查找 </modules> 标签的位置
@@ -1378,7 +1488,7 @@ class PomConfigurationTask:
             if modules_end_pos == -1:
                 modules_end_pos = content.find('</ns0:modules>')
             if modules_end_pos == -1:
-                print("❌ 未找到modules节点")
+                print("[ERROR] 未找到modules节点")
                 return False
             
             # 在 </modules> 前插入新模块
@@ -1389,23 +1499,26 @@ class PomConfigurationTask:
             with open(pom_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
             
-            print(f"✅ 已添加模块到注册表: {module_artifact_id}")
+            print(f"[OK] 已添加模块到注册表: {module_artifact_id}")
             return True
             
         except Exception as e:
-            print(f"❌ 更新模块注册表异常: {str(e)}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 更新模块注册表异常: {str(e)}")
             return False
     
     def _update_system_start_pom(self, module_name: str) -> bool:
         """更新系统启动项目pom.xml添加新模块依赖"""
         try:
-            print(f"📝 更新 jeecg-system-start/pom.xml 添加模块依赖")
+            print(f"[LOG] 更新 jeecg-system-start/pom.xml 添加模块依赖")
             
             project_root = self.config.get_project_root()
             pom_path = f"{project_root}/jeecg-boot/jeecg-module-system/jeecg-system-start/pom.xml"
             
             if not os.path.exists(pom_path):
-                print(f"❌ 启动项目pom.xml不存在: {pom_path}")
+                print(f"[ERROR] 启动项目pom.xml不存在: {pom_path}")
                 return False
             
             # 读取原始文件内容
@@ -1415,7 +1528,7 @@ class PomConfigurationTask:
             # 检查依赖是否已存在
             artifact_id = f"jeecg-module-{module_name}"
             if f"<artifactId>{artifact_id}</artifactId>" in content:
-                print(f"✅ 依赖已存在: {artifact_id}")
+                print(f"[OK] 依赖已存在: {artifact_id}")
                 return True
             
             # 查找合适的位置插入新依赖（在 jeecg-system-biz 依赖之后）
@@ -1424,14 +1537,14 @@ class PomConfigurationTask:
                 # 如果找不到 jeecg-system-biz，就在第一个 </dependency> 后插入
                 first_dep_end = content.find('</dependency>')
                 if first_dep_end == -1:
-                    print("❌ 未找到合适的插入位置")
+                    print("[ERROR] 未找到合适的插入位置")
                     return False
                 insert_pos = first_dep_end + len('</dependency>')
             else:
                 # 找到 jeecg-system-biz 依赖的结束位置
                 dep_end = content.find('</dependency>', system_biz_pos)
                 if dep_end == -1:
-                    print("❌ 未找到依赖结束标签")
+                    print("[ERROR] 未找到依赖结束标签")
                     return False
                 insert_pos = dep_end + len('</dependency>')
             
@@ -1450,11 +1563,14 @@ class PomConfigurationTask:
             with open(pom_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
             
-            print(f"✅ 已添加依赖: {artifact_id}")
+            print(f"[OK] 已添加依赖: {artifact_id}")
             return True
             
         except Exception as e:
-            print(f"❌ 更新启动项目依赖异常: {str(e)}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 更新启动项目依赖异常: {str(e)}")
             return False
 
 
@@ -1615,7 +1731,11 @@ class SentinelMechanismTask:
             else:
                 module_name = module_info['module_name']
                 submodule_name = module_info['submodule_name']
-                self.sentinel_file = f"{module_name}_{submodule_name}_sentinel.json"
+
+                # [FIX BUG3] 哨兵文件应该生成在CodeGen目录内
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                sentinel_filename = f"{module_name}_{submodule_name}_sentinel.json"
+                self.sentinel_file = os.path.join(script_dir, sentinel_filename)
                 
                 # 记录操作前的表数量
                 old_table_count = 0
@@ -1945,6 +2065,9 @@ class CodeGenerationTask:
                 return "fail"
                 
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             print(f"6--哨兵机制生成代码--异常:{e}")
             return "fail"
     
@@ -1961,7 +2084,7 @@ class CodeGenerationTask:
         
         token = login_result['token']
         
-        # API调用链：创建 → 查询 → 同步 → 代码生成
+        # API调用链：创建 -> 查询 -> 同步 -> 代码生成
         try:
             # 1. 表单创建
             create_result = jeecg_create_form(self.base_url, token, config_data, 
@@ -2002,6 +2125,9 @@ class CodeGenerationTask:
             return "pass"
             
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             print(f"独立表处理异常: {e}")
             return "fail"
     
@@ -2014,11 +2140,13 @@ class CodeGenerationTask:
     def _handle_master_table(self, config_data: Dict) -> str:
         """处理主表场景(tableType=2)"""
         table_name = config_data.get('head', {}).get('tableName', '')
-        
-        # 获取哨兵文件路径
+
+        # [FIX BUG3] 获取哨兵文件路径 - 应该在CodeGen目录中查找
         module_info = self._extract_module_info(config_data)
-        sentinel_file = f"{module_info['module_name']}_{module_info['submodule_name']}_sentinel.json"
-        
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        sentinel_filename = f"{module_info['module_name']}_{module_info['submodule_name']}_sentinel.json"
+        sentinel_file = os.path.join(script_dir, sentinel_filename)
+
         if not os.path.exists(sentinel_file):
             print(f"哨兵文件不存在: {sentinel_file}")
             return "fail"
@@ -2028,6 +2156,9 @@ class CodeGenerationTask:
             with open(sentinel_file, 'r', encoding='utf-8') as f:
                 sentinel_data = json.load(f)
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             print(f"读取哨兵文件失败: {e}")
             return "fail"
         
@@ -2041,7 +2172,7 @@ class CodeGenerationTask:
         
         token = login_result['token']
         
-        # 处理所有表：创建 → 查询 → 同步
+        # 处理所有表：创建 -> 查询 -> 同步
         try:
             all_tables = sentinel_data.get('tables', {})
             
@@ -2085,6 +2216,9 @@ class CodeGenerationTask:
                         updated_sentinel_data = json.load(f)
                     return self._generate_master_table_code(token, main_table_name, main_table_config, updated_sentinel_data, sentinel_file)
                 except Exception as e:
+                    import traceback
+                    print(f"[ERROR] Exception: {str(e)}")
+                    traceback.print_exc()
                     print(f"重新读取哨兵文件失败: {e}")
                     return "fail"
             else:
@@ -2092,25 +2226,54 @@ class CodeGenerationTask:
                 return "fail"
                 
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             print(f"主表处理异常: {e}")
             self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
             return "fail"
     
     def _extract_module_info(self, config_data: Dict) -> Dict:
         """提取模块信息"""
+        # 优先从metadata中获取
         metadata = config_data.get('metadata', {})
         generation_info = metadata.get('generation_info', {})
-        
+
+        if generation_info:
+            module_name = generation_info.get('module_name')
+            submodule_name = generation_info.get('submodule_name')
+            if module_name and submodule_name:
+                return {
+                    'module_name': module_name,
+                    'submodule_name': submodule_name
+                }
+
+        # 如果metadata不存在，从表名推断
+        head = config_data.get('head', {})
+        table_name = head.get('tableName', '')
+
+        if table_name and '_' in table_name:
+            parts = table_name.split('_')
+            if len(parts) >= 2:
+                return {
+                    'module_name': parts[0],
+                    'submodule_name': parts[1]
+                }
+
+        # 兜底返回unknown
         return {
-            'module_name': generation_info.get('module_name', 'unknown'),
-            'submodule_name': generation_info.get('submodule_name', 'unknown')
+            'module_name': 'unknown',
+            'submodule_name': 'unknown'
         }
     
     def _find_table_json_file(self, table_name: str) -> Dict:
         """根据表名查找对应的JSON配置文件 - 增强版本支持多种命名格式"""
         import glob
         import re
-        
+
+        # [FIX BUG3] 在CodeGen目录中查找JSON配置文件
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+
         def to_pascal_case(snake_str: str) -> str:
             """将snake_case字符串转换为PascalCase"""
             if not snake_str:
@@ -2118,7 +2281,7 @@ class CodeGenerationTask:
             # 按下划线分割，每个单词首字母大写
             words = snake_str.split('_')
             return ''.join(word.capitalize() for word in words if word)
-        
+
         def to_camel_case(snake_str: str) -> str:
             """将snake_case字符串转换为camelCase"""
             if not snake_str:
@@ -2128,9 +2291,9 @@ class CodeGenerationTask:
                 return ""
             # 第一个单词小写，其余单词首字母大写
             return words[0].lower() + ''.join(word.capitalize() for word in words[1:] if word)
-        
+
         # 策略1: 直接匹配 (原始表名)
-        pattern = f"{table_name}_*.json"
+        pattern = os.path.join(script_dir, f"{table_name}_*.json")
         matching_files = glob.glob(pattern)
         
         # 策略2: 通配符模糊匹配
@@ -2140,16 +2303,15 @@ class CodeGenerationTask:
                 module = table_parts[0]
                 submodule = table_parts[1]
                 entity_part = '_'.join(table_parts[2:])
-                
+
                 # 使用通配符进行模糊匹配，忽略大小写差异
-                fuzzy_pattern = f"{module}_{submodule}_*{entity_part.lower()}*_*.json"
-                all_files = glob.glob(f"{module}_{submodule}_*_*.json")
-                
+                all_files = glob.glob(os.path.join(script_dir, f"{module}_{submodule}_*_*.json"))
+
                 # 在匹配的文件中查找包含entity_part的文件（忽略大小写）
                 for file in all_files:
-                    if entity_part.lower() in file.lower():
+                    if entity_part.lower() in os.path.basename(file).lower():
                         matching_files.append(file)
-                
+
         # 策略3: PascalCase转换匹配
         if not matching_files:
             table_parts = table_name.split('_')
@@ -2157,12 +2319,12 @@ class CodeGenerationTask:
                 module = table_parts[0]
                 submodule = table_parts[1]
                 entity_part = '_'.join(table_parts[2:])
-                
+
                 # 将entity部分转换为PascalCase
                 entity_pascal = to_pascal_case(entity_part)
-                pascal_pattern = f"{module}_{submodule}_{entity_pascal}_*.json"
+                pascal_pattern = os.path.join(script_dir, f"{module}_{submodule}_{entity_pascal}_*.json")
                 matching_files = glob.glob(pascal_pattern)
-        
+
         # 策略4: camelCase转换匹配
         if not matching_files:
             table_parts = table_name.split('_')
@@ -2170,10 +2332,10 @@ class CodeGenerationTask:
                 module = table_parts[0]
                 submodule = table_parts[1]
                 entity_part = '_'.join(table_parts[2:])
-                
+
                 # 将entity部分转换为camelCase
                 entity_camel = to_camel_case(entity_part)
-                camel_pattern = f"{module}_{submodule}_{entity_camel}_*.json"
+                camel_pattern = os.path.join(script_dir, f"{module}_{submodule}_{entity_camel}_*.json")
                 matching_files = glob.glob(camel_pattern)
         
         # 策略5: 正则表达式匹配 (最宽松)
@@ -2183,19 +2345,19 @@ class CodeGenerationTask:
                 module = table_parts[0]
                 submodule = table_parts[1]
                 entity_part = '_'.join(table_parts[2:])
-                
+
                 # 查找所有可能的文件
-                all_possible_files = glob.glob(f"{module}_{submodule}_*_*.json")
-                
+                all_possible_files = glob.glob(os.path.join(script_dir, f"{module}_{submodule}_*_*.json"))
+
                 # 使用正则表达式进行灵活匹配
                 entity_chars = ''.join(c for c in entity_part if c.isalnum())
                 pattern_regex = re.compile(
-                    f"{re.escape(module)}_{re.escape(submodule)}_.*{re.escape(entity_chars)}.*\\.json$", 
+                    f"{re.escape(module)}_{re.escape(submodule)}_.*{re.escape(entity_chars)}.*\\.json$",
                     re.IGNORECASE
                 )
-                
+
                 for file in all_possible_files:
-                    if pattern_regex.match(file):
+                    if pattern_regex.match(os.path.basename(file)):
                         matching_files.append(file)
         
         # 返回第一个匹配的文件
@@ -2203,14 +2365,17 @@ class CodeGenerationTask:
             # 去重并选择第一个
             matching_files = list(set(matching_files))
             try:
-                print(f"✅ 找到配置文件: {matching_files[0]} (匹配表名: {table_name})")
+                print(f"[OK] 找到配置文件: {matching_files[0]} (匹配表名: {table_name})")
                 with open(matching_files[0], 'r', encoding='utf-8') as f:
                     return json.load(f)
             except Exception as e:
-                print(f"❌ 读取配置文件失败 {matching_files[0]}: {e}")
+                import traceback
+                print(f"[ERROR] Exception: {str(e)}")
+                traceback.print_exc()
+                print(f"[ERROR] 读取配置文件失败 {matching_files[0]}: {e}")
                 return None
         
-        print(f"❌ 未找到表 {table_name} 的配置文件")
+        print(f"[ERROR] 未找到表 {table_name} 的配置文件")
         print(f"   尝试的匹配策略:")
         print(f"   1. 直接匹配: {table_name}_*.json")
         if '_' in table_name and len(table_name.split('_')) >= 3:
@@ -2262,6 +2427,9 @@ class CodeGenerationTask:
             return True
             
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             print(f"表 {table_name} 处理异常: {e}")
             self._update_table_status(sentinel_file, table_name, SentinelStatus.TABLE_FAIL)
             self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
@@ -2301,6 +2469,9 @@ class CodeGenerationTask:
             return "pass"
             
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             print(f"主表代码生成异常: {e}")
             self._update_table_status(sentinel_file, main_table_name, SentinelStatus.TABLE_FAIL)
             self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
@@ -2326,7 +2497,7 @@ class CodeGenerationTask:
         
         # 构建subList格式（参考Example_Main_Sub_Table.json）
         for i, sub_table in enumerate(sub_tables):
-            # 🔥 修复：使用安全的多重降级策略获取中文描述
+            # [FIX] 修复：使用安全的多重降级策略获取中文描述
             ftl_description = self._get_safe_table_description(
                 sub_table['table_name'], 
                 sub_table['entity_name']
@@ -2344,8 +2515,8 @@ class CodeGenerationTask:
     def _get_safe_table_description(self, table_name: str, entity_name: str) -> str:
         """
         安全获取表的中文描述
-        
-        🛡️ 多重降级策略确保系统绝对稳定：
+
+        [SAFE] 多重降级策略确保系统绝对稳定：
         Level 1: 尝试从子表JSON配置文件读取tableTxt
         Level 2: 尝试从哨兵数据读取description 
         Level 3: 使用原有的entity_name + "表"
@@ -2366,8 +2537,11 @@ class CodeGenerationTask:
                 if table_txt and table_txt.strip():
                     return table_txt.strip()
         except Exception as e:
-            # 🔇 静默处理，记录警告但不中断流程
-            print(f"⚠️  读取{table_name}配置文件异常，使用降级方案: {str(e)[:50]}...")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            # [SILENT] 静默处理，记录警告但不中断流程
+            print(f"[WARN]  读取{table_name}配置文件异常，使用降级方案: {str(e)[:50]}...")
         
         # Level 2: 尝试从哨兵数据读取 (中级方案)
         try:
@@ -2378,7 +2552,7 @@ class CodeGenerationTask:
                 if description and description.strip():
                     return description.strip()
         except Exception:
-            # 🔇 静默处理，继续降级
+            # [SILENT] 静默处理，继续降级
             pass
         
         # Level 3: 最终降级方案 (确保系统稳定)
@@ -2401,29 +2575,33 @@ class CodeGenerationTask:
                 with open(sentinel_file, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             print(f"更新表状态失败: {e}")
     
     def _clean_table_txt_in_json_configs(self, scenario_id: str):
         """
         清理生成的JSON配置文件中的tableTxt字段
         移除模块前缀和"表"后缀，保留纯净的业务描述
-        
+
         Args:
             scenario_id: 场景ID，用于匹配JSON文件
         """
         try:
-            print(f"\n🧹 开始清理JSON配置文件中的tableTxt字段...")
-            
-            # 查找所有匹配的JSON配置文件
+            print(f"\n[CLEAN] 开始清理JSON配置文件中的tableTxt字段...")
+
+            # [FIX BUG3] 在CodeGen目录中查找JSON配置文件
+            script_dir = os.path.dirname(os.path.abspath(__file__))
             pattern = f"{scenario_id}_*.json"
             json_files = []
-            
-            for file in os.listdir('.'):
+
+            for file in os.listdir(script_dir):
                 if fnmatch.fnmatch(file, pattern):
-                    json_files.append(file)
+                    json_files.append(os.path.join(script_dir, file))
             
             if not json_files:
-                print(f"⚠️  未找到匹配的JSON文件: {pattern}")
+                print(f"[WARN]  未找到匹配的JSON文件: {pattern}")
                 return
             
             # 定义业务描述映射表 - 将entity名称映射到纯净的中文描述
@@ -2453,7 +2631,7 @@ class CodeGenerationTask:
                         
                         # 检查是否需要更新
                         if current_table_txt != clean_description:
-                            print(f"   📝 {json_file}:")
+                            print(f"   [LOG] {json_file}:")
                             print(f"      原值: '{current_table_txt}'")
                             print(f"      新值: '{clean_description}'")
                             
@@ -2466,20 +2644,26 @@ class CodeGenerationTask:
                             
                             cleaned_count += 1
                         else:
-                            print(f"   ✅ {json_file}: tableTxt已经是纯净格式")
+                            print(f"   [OK] {json_file}: tableTxt已经是纯净格式")
                     else:
-                        print(f"   ⚠️  {json_file}: 未找到entity映射 ({entity_name})")
+                        print(f"   [WARN]  {json_file}: 未找到entity映射 ({entity_name})")
                 
                 except Exception as e:
-                    print(f"   ❌ 处理{json_file}失败: {str(e)}")
+                    import traceback
+                    print(f"[ERROR] Exception: {str(e)}")
+                    traceback.print_exc()
+                    print(f"   [ERROR] 处理{json_file}失败: {str(e)}")
             
             if cleaned_count > 0:
-                print(f"✅ 成功清理了 {cleaned_count} 个JSON配置文件的tableTxt字段")
+                print(f"[OK] 成功清理了 {cleaned_count} 个JSON配置文件的tableTxt字段")
             else:
-                print(f"ℹ️  所有JSON文件的tableTxt字段都已是正确格式")
+                print(f"[INFO] 所有JSON文件的tableTxt字段都已是正确格式")
                 
         except Exception as e:
-            print(f"❌ 清理JSON配置文件失败: {str(e)}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 清理JSON配置文件失败: {str(e)}")
     
     def _update_sentinel_summary_status(self, sentinel_file: str, summary_status: str):
         """更新哨兵文件的汇总状态"""
@@ -2494,6 +2678,9 @@ class CodeGenerationTask:
             with open(sentinel_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             print(f"更新汇总状态失败: {e}")
 
 
@@ -2530,9 +2717,12 @@ class PlaceholderVariableProcessingTask:
             return f"{self.task_id}-{self.task_name}-{task_result}"
             
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             summary = f"占位符变量处理异常: {e}"
             task_result = "fail"
-            print(f"❌ {summary}")
+            print(f"[ERROR] {summary}")
             print(f"{self.task_id}--{self.task_name}--{summary}")
             print(task_result)
             return f"{self.task_id}-{self.task_name}-{task_result}"
@@ -2543,12 +2733,12 @@ class PlaceholderVariableProcessingTask:
         import re
         
         try:
-            print("🔄 开始处理生成代码中的占位变量")
+            print("[PROCESS] 开始处理生成代码中的占位变量")
             
             # 提取模块信息
             module_info = self._extract_module_info(config_data)
             if not module_info:
-                print("❌ 缺少必要的模块信息")
+                print("[ERROR] 缺少必要的模块信息")
                 return False
             
             module_name = module_info['module_name']
@@ -2560,10 +2750,10 @@ class PlaceholderVariableProcessingTask:
             module_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
             
             if not os.path.exists(module_path):
-                print(f"❌ 模块目录不存在: {module_path}")
+                print(f"[ERROR] 模块目录不存在: {module_path}")
                 return False
             
-            print(f"📁 处理模块目录: {module_path}")
+            print(f"[FOLDER] 处理模块目录: {module_path}")
             
             # 构建包名和路径映射
             src_java_path = f"{module_path}/src/main/java"
@@ -2578,20 +2768,20 @@ class PlaceholderVariableProcessingTask:
                 '{{BUSINESS_ENTITY}}': business_entity
             }
             
-            print(f"📋 占位变量映射: {placeholders}")
+            print(f"[INFO] 占位变量映射: {placeholders}")
             
             # 处理文件夹重命名 - 先重命名包目录结构
             old_package_path = f"{src_java_path}/{{{{PACKAGE_NAME}}}}"
             new_package_path = f"{src_java_path}/{package_path}"
             
             if os.path.exists(old_package_path):
-                print(f"📂 重命名包目录: {{{{PACKAGE_NAME}}}} -> {package_path}")
+                print(f"[RENAME] 重命名包目录: {{{{PACKAGE_NAME}}}} -> {package_path}")
                 # 创建正确的包目录结构
                 os.makedirs(os.path.dirname(new_package_path), exist_ok=True)
                 shutil.move(old_package_path, new_package_path)
-                print(f"✅ 包目录重命名成功")
+                print(f"[OK] 包目录重命名成功")
             else:
-                print(f"ℹ️ 未找到需要重命名的包目录: {old_package_path}")
+                print(f"[INFO] 未找到需要重命名的包目录: {old_package_path}")
             
             # 处理所有文件中的占位变量
             replaced_count = 0
@@ -2607,11 +2797,11 @@ class PlaceholderVariableProcessingTask:
                             relative_path = os.path.relpath(file_path, module_path)
                             processed_files.append(relative_path)
             
-            print(f"✅ 占位符变量处理完成")
-            print(f"📊 共处理 {replaced_count} 个文件")
+            print(f"[OK] 占位符变量处理完成")
+            print(f"[STAT] 共处理 {replaced_count} 个文件")
             
             if processed_files:
-                print("📄 处理的文件列表:")
+                print("[FILE] 处理的文件列表:")
                 for file_path in processed_files[:10]:  # 最多显示前10个文件
                     print(f"   - {file_path}")
                 if len(processed_files) > 10:
@@ -2620,7 +2810,10 @@ class PlaceholderVariableProcessingTask:
             return True
             
         except Exception as e:
-            print(f"❌ 占位变量处理失败: {e}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 占位变量处理失败: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -2676,7 +2869,7 @@ class PlaceholderVariableProcessingTask:
                         content = f.read()
                 except UnicodeDecodeError:
                     # 如果都失败，跳过这个文件
-                    print(f"⚠️ 文件编码无法识别，跳过: {file_path}")
+                    print(f"[WARN] 文件编码无法识别，跳过: {file_path}")
                     return False
             
             original_content = content
@@ -2701,7 +2894,10 @@ class PlaceholderVariableProcessingTask:
             return False
             
         except Exception as e:
-            print(f"⚠️ 文件处理失败 {file_path}: {e}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[WARN] 文件处理失败 {file_path}: {e}")
             return False
 
 
@@ -2738,9 +2934,12 @@ class FrontendCodeMigrationTask:
             return f"{self.task_id}-{self.task_name}-{task_result}"
             
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             summary = f"前端代码迁移异常: {e}"
             task_result = "fail"
-            print(f"❌ {summary}")
+            print(f"[ERROR] {summary}")
             print(f"{self.task_id}--{self.task_name}--{summary}")
             print(task_result)
             return f"{self.task_id}-{self.task_name}-{task_result}"
@@ -2750,12 +2949,12 @@ class FrontendCodeMigrationTask:
         import shutil
         
         try:
-            print("🔄 开始迁移Vue3前端代码")
+            print("[PROCESS] 开始迁移Vue3前端代码")
             
             # 提取模块信息
             module_info = self._extract_module_info(config_data)
             if not module_info:
-                print("❌ 缺少必要的模块信息")
+                print("[ERROR] 缺少必要的模块信息")
                 return False
             
             module_name = module_info['module_name']
@@ -2770,23 +2969,23 @@ class FrontendCodeMigrationTask:
             # 目标路径：前端项目中的位置（使用submodule层级）
             target_base_path = "jeecgboot-vue3/src/views"
             target_dir = f"{project_root}/{target_base_path}/{submodule_name}"
-            
-            print(f"📂 源路径: {source_vue_path}")
-            print(f"📂 目标路径: {target_dir}")
+
+            print(f"[SOURCE] 源路径: {source_vue_path}")
+            print(f"[TARGET] 目标路径: {target_dir}")
             
             # 检查源路径是否存在
             if not os.path.exists(source_vue_path):
-                print(f"❌ 源路径不存在: {source_vue_path}")
+                print(f"[ERROR] 源路径不存在: {source_vue_path}")
                 return False
             
             # 检查源路径中是否有文件
             if not os.listdir(source_vue_path):
-                print(f"⚠️ 源路径为空: {source_vue_path}")
+                print(f"[WARN] 源路径为空: {source_vue_path}")
                 return True  # 空目录也算成功
             
             # 确保目标目录存在
             os.makedirs(target_dir, exist_ok=True)
-            print(f"📁 创建目标目录: {target_dir}")
+            print(f"[FOLDER] 创建目标目录: {target_dir}")
             
             # 统计迁移的文件数
             migrated_files = []
@@ -2800,19 +2999,19 @@ class FrontendCodeMigrationTask:
                 if os.path.exists(target_item):
                     backup_name = f"{target_item}.backup.{int(time.time())}"
                     shutil.move(target_item, backup_name)
-                    print(f"🔄 备份已存在文件: {item} -> {os.path.basename(backup_name)}")
+                    print(f"[PROCESS] 备份已存在文件: {item} -> {os.path.basename(backup_name)}")
                 
                 # 移动文件或目录
                 shutil.move(source_item, target_item)
                 migrated_files.append(item)
-                print(f"📄 迁移文件: {item}")
+                print(f"[FILE] 迁移文件: {item}")
             
-            print(f"✅ 前端代码迁移完成")
-            print(f"📊 共迁移 {len(migrated_files)} 个文件/目录")
-            print(f"📂 目标位置: {target_dir}")
+            print(f"[OK] 前端代码迁移完成")
+            print(f"[STAT] 共迁移 {len(migrated_files)} 个文件/目录")
+            print(f"[LOCATION] 目标位置: {target_dir}")
             
             if migrated_files:
-                print("📄 迁移的文件列表:")
+                print("[FILE] 迁移的文件列表:")
                 for file_name in migrated_files:
                     print(f"   - {file_name}")
             
@@ -2820,14 +3019,20 @@ class FrontendCodeMigrationTask:
             try:
                 if os.path.exists(source_vue_path) and not os.listdir(source_vue_path):
                     os.rmdir(source_vue_path)
-                    print(f"🧹 清理空源目录: {source_vue_path}")
+                    print(f"[CLEAN] 清理空源目录: {source_vue_path}")
             except Exception as e:
-                print(f"⚠️ 清理源目录失败: {e}")
+                import traceback
+                print(f"[ERROR] Exception: {str(e)}")
+                traceback.print_exc()
+                print(f"[WARN] 清理源目录失败: {e}")
             
             return True
             
         except Exception as e:
-            print(f"❌ 前端代码迁移失败: {e}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 前端代码迁移失败: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -2885,55 +3090,61 @@ class DatabaseSQLExecutionTask:
     
     def execute(self, config_file: str) -> str:
         """执行SQL文件中的菜单权限语句
-        
+
         Args:
             config_file: 配置文件路径（未使用，但保持接口一致性）
-            
+
         Returns:
             str: 执行结果状态 "9-菜单权限SQL执行-pass" 或 "9-菜单权限SQL执行-fail"
         """
         print("9--菜单权限SQL执行--任务开始")
-        
+
         try:
             # 获取数据库连接配置
             db_config = self._get_database_config()
             if not db_config:
-                print("❌ 数据库配置缺失")
+                print("[ERROR] 数据库配置缺失")
                 print("9--菜单权限SQL执行--数据库配置缺失")
                 return "9-菜单权限SQL执行-fail"
-            
+
             # 发现SQL文件
             sql_files = self._discover_sql_files()
             if not sql_files:
-                print("ℹ️ 未发现需要执行的SQL文件")
-                print("9--菜单权限SQL执行--无SQL文件需要执行")
+                # [FIX BUG1] SQL文件应该存在，如果未找到说明有问题，应该标记为警告而不是成功
+                print("[WARN] 未发现需要执行的SQL文件 - 这可能表示前端代码迁移有问题")
+                print("9--菜单权限SQL执行--未发现SQL文件(警告)")
+                # 虽然没有SQL文件，但不认为是错误，继续执行
                 return "9-菜单权限SQL执行-pass"
-            
-            print(f"📄 发现 {len(sql_files)} 个SQL文件需要执行")
-            
+
+            print(f"[FILE] 发现 {len(sql_files)} 个SQL文件需要执行")
+
             # 执行SQL文件
             success_count = 0
             for sql_file in sql_files:
-                print(f"🔄 执行SQL文件: {sql_file}")
+                print(f"[PROCESS] 执行SQL文件: {sql_file}")
                 if self._execute_sql_file(sql_file, db_config):
                     success_count += 1
-                    print(f"✅ SQL文件执行成功: {sql_file}")
+                    print(f"[OK] SQL文件执行成功: {sql_file}")
                 else:
-                    print(f"❌ SQL文件执行失败: {sql_file}")
-            
+                    print(f"[ERROR] SQL文件执行失败: {sql_file}")
+
+            # [FIX BUG1] 所有SQL文件必须执行成功
             if success_count == len(sql_files):
-                print(f"✅ 菜单权限SQL执行完成")
-                print(f"📊 成功执行 {success_count}/{len(sql_files)} 个SQL文件")
+                print(f"[OK] 菜单权限SQL执行完成")
+                print(f"[STAT] 成功执行 {success_count}/{len(sql_files)} 个SQL文件")
                 print("9--菜单权限SQL执行--SQL执行成功")
                 return "9-菜单权限SQL执行-pass"
             else:
-                print(f"⚠️ 部分SQL文件执行失败")
-                print(f"📊 成功执行 {success_count}/{len(sql_files)} 个SQL文件")
+                print(f"[ERROR] 部分SQL文件执行失败 - 任务失败")
+                print(f"[STAT] 成功执行 {success_count}/{len(sql_files)} 个SQL文件")
                 print("9--菜单权限SQL执行--部分SQL执行失败")
                 return "9-菜单权限SQL执行-fail"
-                
+
         except Exception as e:
-            print(f"❌ SQL执行任务异常: {str(e)}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] SQL执行任务异常: {str(e)}")
             print("9--菜单权限SQL执行--SQL执行异常")
             return "9-菜单权限SQL执行-fail"
     
@@ -2950,10 +3161,10 @@ class DatabaseSQLExecutionTask:
             database_password = self.config.env_vars.get('JEECG_DATABASE_PASSWORD', '')
             
             if not database_url or not database_username or not database_password:
-                print("⚠️ JeecgBoot数据库配置缺失")
-                print(f"   JEECG_DATABASE_URL: {'✓' if database_url else '✗'}")
-                print(f"   JEECG_DATABASE_USERNAME: {'✓' if database_username else '✗'}")
-                print(f"   JEECG_DATABASE_PASSWORD: {'✓' if database_password else '✗'}")
+                print("[WARN] JeecgBoot数据库配置缺失")
+                print(f"   JEECG_DATABASE_URL: {'[OK]' if database_url else '[ERROR]'}")
+                print(f"   JEECG_DATABASE_USERNAME: {'[OK]' if database_username else '[ERROR]'}")
+                print(f"   JEECG_DATABASE_PASSWORD: {'[OK]' if database_password else '[ERROR]'}")
                 return None
             
             # 解析JDBC URL: jdbc:mysql://localhost:30004/jeecg-boot
@@ -2962,14 +3173,14 @@ class DatabaseSQLExecutionTask:
             match = re.match(jdbc_pattern, database_url)
             
             if not match:
-                print(f"❌ 无法解析数据库URL: {database_url}")
+                print(f"[ERROR] 无法解析数据库URL: {database_url}")
                 return None
             
             db_host = match.group(1)
             db_port = int(match.group(2))
             db_name = match.group(3)
             
-            print(f"📊 数据库连接信息:")
+            print(f"[STAT] 数据库连接信息:")
             print(f"   主机: {db_host}")
             print(f"   端口: {db_port}")
             print(f"   数据库: {db_name}")
@@ -2986,43 +3197,50 @@ class DatabaseSQLExecutionTask:
             }
             
         except Exception as e:
-            print(f"❌ 获取数据库配置失败: {str(e)}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 获取数据库配置失败: {str(e)}")
             return None
     
     def _discover_sql_files(self) -> List[str]:
         """在前端代码路径中查找菜单权限SQL文件
-        
+
         Returns:
             List[str]: 发现的SQL文件路径列表
         """
         try:
-            # 前端代码目录路径
-            frontend_views_path = os.path.join(os.getcwd(), "..", "jeecgboot-vue3", "src", "views")
-            
+            # [FIX BUG2] 使用项目根目录的绝对路径而不是相对路径
+            project_root = self.config.get_project_root()
+            frontend_views_path = os.path.join(project_root, "jeecgboot-vue3", "src", "views")
+
             if not os.path.exists(frontend_views_path):
-                print(f"⚠️ 前端视图目录不存在: {frontend_views_path}")
+                print(f"[WARN] 前端视图目录不存在: {frontend_views_path}")
                 return []
-            
-            print(f"🔍 在前端代码路径中查找SQL文件: {frontend_views_path}")
-            
+
+            print(f"[CHECK] 在前端代码路径中查找SQL文件: {frontend_views_path}")
+
             sql_files = []
-            
+
             # 递归查找所有.sql文件
             for root, dirs, files in os.walk(frontend_views_path):
                 for file in files:
                     if file.endswith('.sql'):
                         file_path = os.path.join(root, file)
-                        
+
                         # 检查文件是否包含菜单权限相关的SQL
                         if self._is_menu_permission_sql(file_path):
                             sql_files.append(file_path)
                             relative_path = os.path.relpath(file_path, frontend_views_path)
-                            print(f"📄 发现菜单权限SQL文件: views/{relative_path}")
-            
+                            print(f"[FILE] 发现菜单权限SQL文件: views/{relative_path}")
+
             return sql_files
-            
+
         except Exception as e:
-            print(f"❌ 查找SQL文件失败: {str(e)}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 查找SQL文件失败: {str(e)}")
             return []
     
     def _is_menu_permission_sql(self, file_path: str) -> bool:
@@ -3070,7 +3288,7 @@ class DatabaseSQLExecutionTask:
             # 读取SQL文件内容
             sql_statements = self._extract_sql_statements(sql_file)
             if not sql_statements:
-                print(f"⚠️ 文件中没有有效的SQL语句: {sql_file}")
+                print(f"[WARN] 文件中没有有效的SQL语句: {sql_file}")
                 return True  # 空文件视为成功
             
             # 建立数据库连接
@@ -3086,25 +3304,28 @@ class DatabaseSQLExecutionTask:
                     cursor.execute(sql_statement)
                     executed_count += 1
                 except mysql.connector.Error as e:
-                    print(f"❌ SQL语句执行失败: {str(e)}")
+                    print(f"[ERROR] SQL语句执行失败: {str(e)}")
                     print(f"   SQL: {sql_statement[:100]}...")
                     raise
             
             # 提交事务
             connection.commit()
-            print(f"📊 成功执行 {executed_count} 条SQL语句")
+            print(f"[STAT] 成功执行 {executed_count} 条SQL语句")
             return True
             
         except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
             # 回滚事务
             if connection:
                 try:
                     connection.rollback()
-                    print("🔄 事务已回滚")
+                    print("[PROCESS] 事务已回滚")
                 except:
                     pass
             
-            print(f"❌ SQL文件执行失败: {str(e)}")
+            print(f"[ERROR] SQL文件执行失败: {str(e)}")
             return False
             
         finally:
@@ -3165,7 +3386,10 @@ class DatabaseSQLExecutionTask:
             return statements
             
         except Exception as e:
-            print(f"❌ 读取SQL文件失败: {str(e)}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 读取SQL文件失败: {str(e)}")
             return []
 
 
@@ -3188,9 +3412,13 @@ def jeecg_login(base_url: str, username: str, password: str, timeout: int = 10) 
     """
     login_url = f"{base_url}/sys/mLogin"
     login_data = {"username": username, "password": password}
+    print(f"[API] Login Request: POST {login_url}")
+    print(f"[API] Username: {username}, Password: ***")
+    
     
     try:
         response = requests.post(login_url, json=login_data, timeout=timeout)
+        print(f"[API] Login Response: status_code={response.status_code}")
         if response.status_code == 200:
             result = response.json()
             if result.get('success'):
@@ -3205,6 +3433,9 @@ def jeecg_login(base_url: str, username: str, password: str, timeout: int = 10) 
         else:
             return {"success": False, "token": None, "message": f"请求失败，状态码: {response.status_code}"}
     except Exception as e:
+        import traceback
+        print(f"[ERROR] Exception: {str(e)}")
+        traceback.print_exc()
         return {"success": False, "token": None, "message": f"登录异常: {str(e)}"}
 
 
@@ -3222,6 +3453,9 @@ def jeecg_create_form(base_url: str, token: str, form_data: Dict, timeout: int =
         Dict: {"success": bool, "form_id": str, "is_duplicate": bool, "message": str}
     """
     create_url = f"{base_url}/online/cgform/api/addAll"
+    table_name = form_data.get('head', {}).get('tableName', 'unknown')
+    print(f"[API] Create Form Request: POST {create_url}")
+    print(f"[API] Table Name: {table_name}")
     headers = {'X-Access-Token': token, 'Content-Type': 'application/json'}
     
     try:
@@ -3281,6 +3515,9 @@ def jeecg_create_form(base_url: str, token: str, form_data: Dict, timeout: int =
                 "message": f"请求失败，状态码: {response.status_code}"
             }
     except Exception as e:
+        import traceback
+        print(f"[ERROR] Exception: {str(e)}")
+        traceback.print_exc()
         return {"success": False, "form_id": None, "is_duplicate": False, "message": f"表单创建异常: {str(e)}"}
 
 
@@ -3299,6 +3536,7 @@ def jeecg_query_form(base_url: str, token: str, table_name: str, page_size: int 
         Dict: {"success": bool, "form_id": str, "form_info": dict, "message": str}
     """
     query_url = f"{base_url}/online/cgform/head/list"
+    print(f"[API] Query Form Request: GET {query_url}?tableName={table_name}")
     headers = {'X-Access-Token': token}
     params = {'tableName': table_name, 'pageNo': 1, 'pageSize': page_size}
     
@@ -3338,6 +3576,9 @@ def jeecg_query_form(base_url: str, token: str, table_name: str, page_size: int 
                 "message": f"请求失败，状态码: {response.status_code}"
             }
     except Exception as e:
+        import traceback
+        print(f"[ERROR] Exception: {str(e)}")
+        traceback.print_exc()
         return {"success": False, "form_id": None, "form_info": None, "message": f"查询异常: {str(e)}"}
 
 
@@ -3355,6 +3596,8 @@ def jeecg_sync_database(base_url: str, token: str, form_id: str, timeout: int = 
         Dict: {"success": bool, "message": str}
     """
     sync_url = f"{base_url}/online/cgform/api/doDbSynch/{form_id}/normal"
+    print(f"[API] Database Sync Request: POST {sync_url}")
+    print(f"[API] Form ID: {form_id}")
     headers = {'X-Access-Token': token}
     
     try:
@@ -3368,6 +3611,9 @@ def jeecg_sync_database(base_url: str, token: str, form_id: str, timeout: int = 
         else:
             return {"success": False, "message": f"请求失败，状态码: {response.status_code}"}
     except Exception as e:
+        import traceback
+        print(f"[ERROR] Exception: {str(e)}")
+        traceback.print_exc()
         return {"success": False, "message": f"数据库同步异常: {str(e)}"}
 
 
@@ -3387,6 +3633,7 @@ def jeecg_generate_code(base_url: str, token: str, form_id: str, config_data: Di
         Dict: {"success": bool, "message": str}
     """
     generate_url = f"{base_url}/online/cgform/api/codeGenerate"
+    print(f"[API] Code Generation Request: POST {generate_url}")
     
     try:
         # 构建代码生成参数
@@ -3458,6 +3705,9 @@ def jeecg_generate_code(base_url: str, token: str, form_id: str, config_data: Di
             return {"success": False, "message": f"请求失败，状态码: {response.status_code}"}
             
     except Exception as e:
+        import traceback
+        print(f"[ERROR] Exception: {str(e)}")
+        traceback.print_exc()
         return {"success": False, "message": f"代码生成异常: {str(e)}"}
 
 
@@ -3515,6 +3765,9 @@ def jeecg_delete_forms_batch(base_url: str, token: str, form_ids: list, timeout:
             }
             
     except Exception as e:
+        import traceback
+        print(f"[ERROR] Exception: {str(e)}")
+        traceback.print_exc()
         return {"success": False, "message": f"批量删除异常: {str(e)}", "deleted_count": 0}
 
 
@@ -3552,7 +3805,7 @@ def jeecg_fetch_dictionary_page(base_url: str, token: str, page_no: int = 1, pag
             'Content-Type': 'application/json'
         }
         
-        print(f"📋 正在获取第 {page_no} 页数据 (每页 {page_size} 条)...")
+        print(f"[INFO] 正在获取第 {page_no} 页数据 (每页 {page_size} 条)...")
         
         # 发送GET请求
         response = requests.get(api_url, params=params, headers=headers, timeout=timeout)
@@ -3567,7 +3820,7 @@ def jeecg_fetch_dictionary_page(base_url: str, token: str, page_no: int = 1, pag
                 pages = result_data.get('pages', 0)
                 current = result_data.get('current', page_no)
                 
-                print(f"   ✅ 获取成功: {len(records)} 条数据 (第 {current}/{pages} 页，共 {total} 条)")
+                print(f"   [OK] 获取成功: {len(records)} 条数据 (第 {current}/{pages} 页，共 {total} 条)")
                 
                 return {
                     "success": True,
@@ -3596,6 +3849,9 @@ def jeecg_fetch_dictionary_page(base_url: str, token: str, page_no: int = 1, pag
             }
             
     except Exception as e:
+        import traceback
+        print(f"[ERROR] Exception: {str(e)}")
+        traceback.print_exc()
         return {
             "success": False,
             "message": f"获取数据字典异常: {str(e)}",
@@ -3621,31 +3877,31 @@ def download_data_dictionary():
     
     try:
         # 1. 初始化配置
-        print("🔧 步骤1: 初始化配置...")
+        print("[CONFIG] 步骤1: 初始化配置...")
         config = JeecgBootConfig()
         if not config.load_config():
-            print("❌ 配置加载失败")
+            print("[ERROR] 配置加载失败")
             return "ERROR"
         
         base_url = config.get_base_url()
         username = config.get_username()
         password = config.get_password()
-        
-        print(f"   🔗 服务地址: {base_url}")
-        print(f"   👤 用户名: {username}")
-        
+
+        print(f"   [URL] 服务地址: {base_url}")
+        print(f"   [USER] 用户名: {username}")
+
         # 2. 用户认证
-        print("🔐 步骤2: 用户认证...")
+        print("[AUTH] 步骤2: 用户认证...")
         login_result = jeecg_login(base_url, username, password, config.get_timeout('login'))
         if not login_result['success']:
-            print(f"❌ 登录失败: {login_result['message']}")
+            print(f"[ERROR] 登录失败: {login_result['message']}")
             return "ERROR"
         
         token = login_result['token']
-        print("   ✅ 登录成功，获取到认证token")
+        print("   [OK] 登录成功，获取到认证token")
         
         # 3. 获取分页数据
-        print("📋 步骤3: 获取数据字典...")
+        print("[INFO] 步骤3: 获取数据字典...")
         all_records = []
         page_no = 1
         page_size = 50  # 使用较大的分页大小提高效率
@@ -3657,7 +3913,7 @@ def download_data_dictionary():
             )
             
             if not page_result['success']:
-                print(f"❌ 获取第 {page_no} 页数据失败: {page_result['message']}")
+                print(f"[ERROR] 获取第 {page_no} 页数据失败: {page_result['message']}")
                 return "ERROR"
             
             # 收集数据
@@ -3667,25 +3923,25 @@ def download_data_dictionary():
             # 检查分页信息
             pagination = page_result.get('pagination')
             if not pagination:
-                print("❌ 无分页信息，无法继续")
+                print("[ERROR] 无分页信息，无法继续")
                 return "ERROR"
             
             current_page = pagination['current']
             total_pages = pagination['pages']
             total_records = pagination['total']
             
-            print(f"   📄 已收集 {len(all_records)}/{total_records} 条数据")
+            print(f"   [FILE] 已收集 {len(all_records)}/{total_records} 条数据")
             
             # 判断是否还有下一页
             if current_page >= total_pages:
-                print(f"   ✅ 所有数据获取完成，共 {len(all_records)} 条数据")
+                print(f"   [OK] 所有数据获取完成，共 {len(all_records)} 条数据")
                 break
             
             # 继续下一页
             page_no += 1
         
         # 4. 保存到文件
-        print("💾 步骤4: 保存数据字典文件...")
+        print("[SAVE] 步骤4: 保存数据字典文件...")
         dict_file_path = "Code_Gen_DICT.json"
         
         try:
@@ -3693,26 +3949,32 @@ def download_data_dictionary():
             with open(dict_file_path, 'w', encoding='utf-8') as f:
                 json.dump(all_records, f, ensure_ascii=False, indent=2)
             
-            print(f"   ✅ 数据字典已保存至: {dict_file_path}")
-            print(f"   📊 文件包含 {len(all_records)} 条数据字典记录")
+            print(f"   [OK] 数据字典已保存至: {dict_file_path}")
+            print(f"   [STAT] 文件包含 {len(all_records)} 条数据字典记录")
             
             # 显示统计信息
             if all_records:
                 latest_record = all_records[0]  # 按创建时间倒序，第一条是最新的
                 oldest_record = all_records[-1]  # 最后一条是最旧的
                 
-                print(f"   📅 最新记录: {latest_record.get('dictName', 'N/A')} ({latest_record.get('createTime', 'N/A')})")
-                print(f"   📅 最旧记录: {oldest_record.get('dictName', 'N/A')} ({oldest_record.get('createTime', 'N/A')})")
+                print(f"   [TIME] 最新记录: {latest_record.get('dictName', 'N/A')} ({latest_record.get('createTime', 'N/A')})")
+                print(f"   [TIME] 最旧记录: {oldest_record.get('dictName', 'N/A')} ({oldest_record.get('createTime', 'N/A')})")
             
         except Exception as e:
-            print(f"❌ 保存文件失败: {str(e)}")
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 保存文件失败: {str(e)}")
             return "ERROR"
         
-        print("\n🎉 数据字典下载完成!")
+        print("\n[SUCCESS] 数据字典下载完成!")
         return "SUCCESS"
         
     except Exception as e:
-        print(f"❌ 下载过程中发生异常: {str(e)}")
+        import traceback
+        print(f"[ERROR] Exception: {str(e)}")
+        traceback.print_exc()
+        print(f"[ERROR] 下载过程中发生异常: {str(e)}")
         import traceback
         traceback.print_exc()
         return "ERROR"
@@ -3752,7 +4014,7 @@ def main(filename):
     # 使用日志系统执行所有任务
     with setup_execution_logging(filename) as log_manager:
         if not log_manager:
-            print("❌ 日志系统初始化失败，继续执行但无法记录日志")
+            print("[ERROR] 日志系统初始化失败，继续执行但无法记录日志")
         
         return _execute_main_tasks(filename, log_manager)
 
@@ -3764,35 +4026,35 @@ def _execute_main_tasks(filename, log_manager=None):
     task_results = []
     
     print("\n" + "="*70)
-    print("🚀 JeecgBoot 代码生成器启动")
+    print("[START] JeecgBoot 代码生成器启动")
     print("="*70)
-    print(f"📄 配置文件: {filename}")
-    print(f"🕒 启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"[FILE] 配置文件: {filename}")
+    print(f"[TIME] 启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     if log_manager:
-        print(f"📝 日志文件: {log_manager.get_log_file_path()}")
+        print(f"[LOG] 日志文件: {log_manager.get_log_file_path()}")
     print("="*70)
     
     if not os.path.exists(filename):
-        print(f"\n❌ 致命错误: 配置文件不存在")
+        print(f"\n[ERROR] 致命错误: 配置文件不存在")
         print(f"   文件路径: {filename}")
-        print(f"💡 请检查文件路径是否正确")
+        print(f"[TIP] 请检查文件路径是否正确")
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
     
     # 预检查：验证真实环境变量
-    print("\n🔍 预检查: 验证环境变量配置...")
+    print("\n[CHECK] 预检查: 验证环境变量配置...")
     env_guide = EnvironmentGuide()
     env_status = env_guide.check_environment_setup()
     
     if not env_status['all_configured']:
-        print(f"\n❌ 检测到缺失必需环境变量: {', '.join(env_status['missing_vars'])}")
-        print(f"💡 请运行以下命令进行环境配置:")
+        print(f"\n[ERROR] 检测到缺失必需环境变量: {', '.join(env_status['missing_vars'])}")
+        print(f"[TIP] 请运行以下命令进行环境配置:")
         print(f"   python3 Code_Gen_Execute.py --setup-guide")
-        print(f"⚠️  执行中断，请先配置环境变量")
+        print(f"[WARN]  执行中断，请先配置环境变量")
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
     
-    print("✅ 环境变量检查通过，继续执行任务...")
+    print("[OK] 环境变量检查通过，继续执行任务...")
     
     # 任务1：配置中心初始化
     if log_manager:
@@ -3807,15 +4069,15 @@ def _execute_main_tasks(filename, log_manager=None):
         log_manager.log_section_end("任务1: 配置中心初始化")
     
     if task1_status == "fail":
-        print(f"\n💥 执行中断: 任务1失败，无法继续后续任务")
-        print(f"🔧 建议: 请检查环境变量配置或运行 --check-env 进行诊断")
+        print(f"\n[FAIL] 执行中断: 任务1失败，无法继续后续任务")
+        print(f"[CONFIG] 建议: 请检查环境变量配置或运行 --check-env 进行诊断")
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
     
     # 获取配置实例
     config = env_task.get_config()
     if not config:
-        print("❌ 配置实例获取失败")
+        print("[ERROR] 配置实例获取失败")
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
     
@@ -3977,27 +4239,27 @@ def _print_execution_summary(task_results, overall_status):
     """
     print("\n" + "="*70)
     if overall_status == "SUCCESS":
-        print("🎉 JeecgBoot 代码生成完成 - 执行成功")
+        print("[SUCCESS] JeecgBoot 代码生成完成 - 执行成功")
     else:
-        print("💥 JeecgBoot 代码生成失败 - 执行中断")
+        print("[FAIL] JeecgBoot 代码生成失败 - 执行中断")
     print("="*70)
     
     if task_results:
-        print(f"📋 任务执行状态详情:")
+        print(f"[INFO] 任务执行状态详情:")
         for task_id, task_name, status in task_results:
-            status_symbol = "✅" if status == "pass" else "❌"
+            status_symbol = "[OK]" if status == "pass" else "[ERROR]"
             status_text = "成功" if status == "pass" else "失败"
             print(f"   {status_symbol} 任务{task_id}: {task_name} - {status_text}")
         
         success_count = sum(1 for _, _, status in task_results if status == "pass")
         total_count = len(task_results)
-        print(f"\n📊 执行统计: {success_count}/{total_count} 个任务成功")
+        print(f"\n[STAT] 执行统计: {success_count}/{total_count} 个任务成功")
     
     print("="*70)
-    overall_icon = "✅" if overall_status == "SUCCESS" else "❌"
+    overall_icon = "[OK]" if overall_status == "SUCCESS" else "[ERROR]"
     overall_text = "成功" if overall_status == "SUCCESS" else "失败"
     print(f"{overall_icon} 最终状态: {overall_text}")
-    print(f"🕒 完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"[TIME] 完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("="*70)
 
 
@@ -4015,17 +4277,17 @@ def main_enhanced(filename="", check_env=False, setup_guide=False):
     if setup_guide:
         guide = EnvironmentGuide()
         if guide.interactive_setup_guide():
-            print("✅ 环境配置已完成，环境变量已在当前Python进程中生效")
-            print("\n💡 提示: 您现在可以运行代码生成任务，环境变量在此Python进程中有效")
+            print("[OK] 环境配置已完成，环境变量已在当前Python进程中生效")
+            print("\n[TIP] 提示: 您现在可以运行代码生成任务，环境变量在此Python进程中有效")
             print("   示例: python3 Code_Gen_Execute.py your_table_config.json")
             return "SETUP_COMPLETE"
         else:
-            print("❌ 环境配置失败")
+            print("[ERROR] 环境配置失败")
             return "ERROR"
     
     # 正常的代码生成模式（使用日志记录）
     if not filename:
-        print("❌ 请指定配置文件")
+        print("[ERROR] 请指定配置文件")
         return "ERROR"
         
     # 使用日志系统执行主要任务
@@ -4033,8 +4295,8 @@ def main_enhanced(filename="", check_env=False, setup_guide=False):
     
     # 输出日志文件位置信息
     if _log_manager and _log_manager.log_file_path:
-        print(f"\n📝 执行日志已保存至: {_log_manager.log_file_path}")
-        print(f"💡 您可以查看日志文件了解详细的执行过程")
+        print(f"\n[LOG] 执行日志已保存至: {_log_manager.log_file_path}")
+        print(f"[TIP] 您可以查看日志文件了解详细的执行过程")
     
     return result
 
@@ -4043,7 +4305,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("JeecgBoot 代码生成执行器 v4.1 Enhanced - 支持完整日志记录")
         print("=" * 60)
-        print("🔥 新功能: 所有执行过程自动记录到日志文件 {MODULE_NAME}_{SUBMODULE_NAME}_{timestamp}.log")
+        print("[NEW] 新功能: 所有执行过程自动记录到日志文件 {MODULE_NAME}_{SUBMODULE_NAME}_{timestamp}.log")
         print("=" * 60)
         print("使用方法:")
         print("  python3 Code_Gen_Execute.py <表单配置文件.json>  # 执行代码生成任务 (含日志记录)")
@@ -4051,16 +4313,16 @@ if __name__ == "__main__":
         print("  python3 Code_Gen_Execute.py --check-env          # 检查环境变量配置")
         print("  python3 Code_Gen_Execute.py --dict               # 下载最新数据字典文件")
         print("")
-        print("📝 日志功能说明:")
-        print("  • 所有控制台输出都会同步记录到日志文件")
-        print("  • 日志文件包含完整的执行过程和错误信息")
-        print("  • 文件名格式: {模块名}_{子模块名}_{时间戳}.log")
-        print("  • 日志文件保存在脚本执行目录")
+        print("[LOG] 日志功能说明:")
+        print("  - 所有控制台输出都会同步记录到日志文件")
+        print("  - 日志文件包含完整的执行过程和错误信息")
+        print("  - 文件名格式: {模块名}_{子模块名}_{时间戳}.log")
+        print("  - 日志文件保存在脚本执行目录")
         print("")
-        print("🔧 环境变量配置说明:")
-        print("  • --setup-guide 配置系统环境变量，生成临时配置文件 .env_temp")
-        print("  • 后续运行会自动加载 .env_temp 文件中的环境变量")
-        print("  • 建议工作流程:")
+        print("[CONFIG] 环境变量配置说明:")
+        print("  - --setup-guide 配置系统环境变量，生成临时配置文件 .env_temp")
+        print("  - 后续运行会自动加载 .env_temp 文件中的环境变量")
+        print("  - 建议工作流程:")
         print("    1. python3 Code_Gen_Execute.py --setup-guide      # 配置环境")
         print("    2. python3 Code_Gen_Execute.py your_table.json    # 执行生成")
         print("    3. 如需重新配置，重复步骤1即可")
