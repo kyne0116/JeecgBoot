@@ -53,13 +53,20 @@ public class SsoLoginController {
     private Environment environment;
 
     /*
-     * webauth模式（后端主导）
+     * 页面单点：webauth模式（后端主导）
      * http://localhost:54009/dictd/sys/sso/webauth?sso_data=79C023386BAC6785E7EBD524110262678F770CF81CAB43EA38579DDF839A57B84C0EA0A80871598A5848A78546CBFD3D5A97AA48EBF7C845FC59BBFB8698327F&redirectUrl=http://localhost:3100/dashboard
      *
-     * apiauth模式（前端主导）  
+     * 页面单点：apiauth模式（前端主导）
      * http://localhost:3100/dashboard/analysis?sso=true&sso_mode=apiauth&sso_data=79138138A9ACAF75C7AC9924FD0AB0A036770C6A1CAB151408571641679AFE20A98D70C8684211BD5848A96038CB0778CD97AA48EBF7C8879B5FBBFB7798FCFD
      *
      * http://localhost:3100/data-analysis/chart-design-workflow?sso=true&sso_mode=apiauth&sso_data=79138138A9ACAF75C7AC9924FD0AB0A036770C6A1CAB151408571641679AFE20A98D70C8684211BD5848A96038CB0778CD97AA48EBF7C8879B5FBBFB7798FCFD
+     *
+     *
+     * 接口单点：
+     * 第一步：获取token 请求 http://localhost:54009/dictd/sys/sso/apiauth?sso_data= + 加密用户账号encryptedUsername
+     * 第二步：携带token 访问所需接口，例如：http://localhost:54009/dictd/datas/indicatorDashboard/list 注意携带认证头，参数：X-Access-Token 值：上一步获取的token
+     * 登录成功：返回数据
+     *
      */
 
     public static void main(String[] args) {
