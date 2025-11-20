@@ -3,3 +3,6 @@ spring:
     name: jeecg-system
   profiles:
     active: '@profile.name@'
+  main:
+    # 允许Bean定义覆盖(解决Shiro与Spring Boot 3兼容性问题)
+    allow-bean-definition-overriding: true

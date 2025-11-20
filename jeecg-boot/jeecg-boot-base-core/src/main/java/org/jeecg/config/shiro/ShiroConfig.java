@@ -367,10 +367,11 @@ public class ShiroConfig {
     /**
      * 解决 ShiroRequestMappingConfig 获取 requestMappingHandlerMapping Bean 冲突
      * spring-boot-autoconfigure:3.4.5 和 spring-boot-actuator-autoconfigure:3.4.5
+     * 使用@Primary注解和明确的bean名称确保Shiro使用此配置
      */
     @Primary
-    @Bean
-    public RequestMappingHandlerMapping overridedRequestMappingHandlerMapping() {
+    @Bean("requestMappingHandlerMapping")
+    public RequestMappingHandlerMapping requestMappingHandlerMapping() {
         RequestMappingHandlerMapping mapping = new RequestMappingHandlerMapping();
         mapping.setUrlPathHelper(new ShiroUrlPathHelper());
         return mapping;
