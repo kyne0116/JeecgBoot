@@ -6,31 +6,166 @@
 
 > 💡 **新增功能请在此表格顶部直接追加新行**
 
-| 定制时间   | 功能名称                          | 主要文件                                                                                                                                                   | 功能描述                                                                             | 状态 |
-| ---------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ---- |
-| 2025-09-08 | 统一SSO单点登录解决方案           | SsoLoginController.java<br/>GlobalSSOManager.ts<br/>ssoGuard.ts<br/>README.md<br/>main.ts<br/>user.ts | 企业级SSO解决方案，支持webauth(后端主导)和apiauth(前端主导)双模式，统一sso_data参数体系 | ✅   |
-| 2025-08-28 | 增强型 Redis 工具类               | SimbestRedisUtil.java                                                                                                                                      | 支持中文 Key 自动编码、应用前缀管理、分布式锁、双向转换的 Redis 工具类               | ✅   |
-| 2025-08-27 | 用户身份信息控制台显示功能        | user.ts                                                                                                                                                    | 登录成功后在浏览器控制台显示用户完整身份信息，包含用户基本信息、部门信息、权限代码等 | ✅   |
-| 2025-08-26 | OceanBase Oracle 兼容模式分页优化 | CustomPaginationInnerInterceptor.java<br/>MybatisPlusSaasConfig.java<br/>GlobalPaginationConfig.java                                                       | 解决 OceanBase Oracle 兼容模式下分页 SQL 语法不兼容问题（三层防护方案）              | ⚡   |
-| 2025-08-15 | MyBatis-Plus 升级及数据库优化     | pom.xml<br/>SysDepart.java<br/>SysUser.java<br/>SysDepartController.java                                                                                   | MyBatis-Plus 版本升级，添加数据库唯一索引，优化查询性能                              | ✅   |
-| 2025-08-14 | UUMS 组织用户同步功能             | SimbestAppToken.java<br/>UumsChangeOrgLogController.java<br/>UumsChangeUserLogController.java<br/>SyncUumsOrgScheduler.java<br/>SyncUumsUserScheduler.java | 第三方应用 Token 管理、组织用户变更日志记录、定时同步功能                            | ✅   |
-| 2025-08-14 | 启动配置信息打印功能              | JeecgSystemApplication.java                                                                                                                                | 应用启动时打印 Profile、数据库、Redis 等关键配置信息                                 | ✅   |
-| 2025-08-02 | 系统心跳检测功能                  | SysHealthController.java                                                                                                                                   | 提供系统健康状态检查接口，支持 HEAD 请求心跳检测                                     | ✅   |
-| 2025-07-31 | 日志生成规则定制                  | logback-spring.xml                                                                                                                                         | 按端口和日志级别分离的自定义日志配置                                                 | ✅   |
+| 定制时间   | 功能名称                          | 主要文件                                                                                                                                                   | 功能描述                                                                                      | 状态 |
+| ---------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---- |
+| 2025-11-20 | Shiro + Actuator 兼容性修复       | application.yml<br/>application-dev.yml<br/>ShiroConfig.java                                                                                               | 解决 Shiro 与 Spring Boot Actuator RequestMappingHandlerMapping Bean 冲突导致的启动失败问题   | ✅   |
+| 2025-09-08 | 统一 SSO 单点登录解决方案         | SsoLoginController.java<br/>GlobalSSOManager.ts<br/>ssoGuard.ts<br/>README.md<br/>main.ts<br/>user.ts                                                      | 企业级 SSO 解决方案，支持 webauth(后端主导)和 apiauth(前端主导)双模式，统一 sso_data 参数体系 | ✅   |
+| 2025-08-28 | 增强型 Redis 工具类               | SimbestRedisUtil.java                                                                                                                                      | 支持中文 Key 自动编码、应用前缀管理、分布式锁、双向转换的 Redis 工具类                        | ✅   |
+| 2025-08-27 | 用户身份信息控制台显示功能        | user.ts                                                                                                                                                    | 登录成功后在浏览器控制台显示用户完整身份信息，包含用户基本信息、部门信息、权限代码等          | ✅   |
+| 2025-08-26 | OceanBase Oracle 兼容模式分页优化 | CustomPaginationInnerInterceptor.java<br/>MybatisPlusSaasConfig.java<br/>GlobalPaginationConfig.java                                                       | 解决 OceanBase Oracle 兼容模式下分页 SQL 语法不兼容问题（三层防护方案）                       | ⚡   |
+| 2025-08-15 | MyBatis-Plus 升级及数据库优化     | pom.xml<br/>SysDepart.java<br/>SysUser.java<br/>SysDepartController.java                                                                                   | MyBatis-Plus 版本升级，添加数据库唯一索引，优化查询性能                                       | ✅   |
+| 2025-08-14 | UUMS 组织用户同步功能             | SimbestAppToken.java<br/>UumsChangeOrgLogController.java<br/>UumsChangeUserLogController.java<br/>SyncUumsOrgScheduler.java<br/>SyncUumsUserScheduler.java | 第三方应用 Token 管理、组织用户变更日志记录、定时同步功能                                     | ✅   |
+| 2025-08-14 | 启动配置信息打印功能              | JeecgSystemApplication.java                                                                                                                                | 应用启动时打印 Profile、数据库、Redis 等关键配置信息                                          | ✅   |
+| 2025-08-02 | 系统心跳检测功能                  | SysHealthController.java                                                                                                                                   | 提供系统健康状态检查接口，支持 HEAD 请求心跳检测                                              | ✅   |
+| 2025-07-31 | 日志生成规则定制                  | logback-spring.xml                                                                                                                                         | 按端口和日志级别分离的自定义日志配置                                                          | ✅   |
 
 ## 二、功能详细说明（按时间倒序）
 
 > 💡 **新增功能请在此部分顶部直接插入新的章节**
 
-### 2025-09-08：统一SSO单点登录解决方案
+### 2025-11-20：Shiro + Spring Boot Actuator 兼容性修复
 
-**功能概述：** 企业级SSO单点登录解决方案，提供全面的用户身份集成能力。支持webauth(后端主导)和apiauth(前端主导)双模式，通过统一的参数体系和智能状态管理，实现高效、安全的用户身份认证。
+**功能概述：** 解决 JeecgBoot 3.8.3 在 Spring Boot 3.5.5 环境下，Apache Shiro 与 Spring Boot Actuator 组件之间的 RequestMappingHandlerMapping Bean 冲突导致的应用启动失败问题。
 
-**需求背景：** 企业级应用集成场景中需要支持多种SSO接入方式，同时解决参数体系不统一、重复登录检测、会话管理等核心问题。要求实现开发阶段的纯净解决方案，不考虑向后兼容，完全统一参数体系。
+**问题背景：** 在开发环境启动应用时，遇到 Bean 定义冲突错误。核心原因是 Shiro 的 ShiroRequestMappingConfig 构造函数需要注入单个 RequestMappingHandlerMapping Bean，但 Spring Boot Actuator 会额外创建 controllerEndpointHandlerMapping Bean，导致依赖注入失败。
 
-**技术创新：** 
-- **统一参数体系**：前后端完全统一使用sso_data参数，消除参数歧义
-- **全局状态管理**：单例模式集中管理SSO状态和用户会话
+**错误信息：**
+
+```
+Parameter 0 of constructor in org.apache.shiro.spring.web.config.ShiroRequestMappingConfig required a single bean, but 2 were found:
+- requestMappingHandlerMapping: defined by method 'requestMappingHandlerMapping'
+- controllerEndpointHandlerMapping: defined by method 'controllerEndpointHandlerMapping'
+```
+
+**技术分析：**
+
+- **根本原因：** ShiroRequestMappingConfig 构造函数依赖注入无法处理多个 RequestMappingHandlerMapping Bean 候选者
+- **冲突来源：** WebMvcAutoConfiguration 创建 requestMappingHandlerMapping，WebMvcEndpointManagementContextConfiguration 创建 controllerEndpointHandlerMapping
+- **技术栈：** Spring Boot 3.5.5、Apache Shiro、Spring Boot Actuator、Java 17.0.15
+
+**涉及文件：**
+
+#### 后端配置文件
+
+**1.1 application.yml（修改）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/resources/application.yml`
+- **功能摘要：** 主应用配置文件，启用 Bean 定义覆盖支持
+- **核心变更：**
+  - 添加 `spring.main.allow-bean-definition-overriding: true` 配置
+  - 允许 Shiro 自定义的 RequestMappingHandlerMapping Bean 覆盖 Spring 默认配置
+- **配置内容：**
+  ```yaml
+  spring:
+    application:
+      name: jeecg-system
+    profiles:
+      active: "@profile.name@"
+    main:
+      # 允许Bean定义覆盖(解决Shiro与Spring Boot 3兼容性问题)
+      allow-bean-definition-overriding: true
+  ```
+
+**1.2 application-dev.yml（修改）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/resources/application-dev.yml`
+- **功能摘要：** 开发环境配置文件，禁用 Actuator Web 端点
+- **核心变更：**
+  - 设置 `management.server.port: -1` 禁用 Actuator Web 端点
+  - 清空 `management.endpoints.web.exposure.include` 配置
+  - 更新 MySQL 数据源连接配置（10.92.82.149:30004）
+  - 更新 Redis 连接配置（10.92.82.149:40004）
+- **管理配置：**
+  ```yaml
+  management:
+    # 禁用Actuator Web端点以避免与Shiro的RequestMappingHandlerMapping冲突
+    server:
+      port: -1
+    endpoints:
+      web:
+        exposure:
+          include:
+  ```
+
+**1.3 ShiroConfig.java（修改）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-biz/src/main/java/org/jeecg/config/shiro/ShiroConfig.java`
+- **功能摘要：** Shiro 核心配置类，定义自定义 RequestMappingHandlerMapping Bean
+- **核心变更：**
+  - 添加 `@Primary` 注解标记主要 Bean
+  - 明确指定 Bean 名称为 "requestMappingHandlerMapping"
+  - 配置 ShiroUrlPathHelper 实现 Shiro URL 路径处理
+- **核心方法：**
+  ```java
+  /**
+   * 解决 ShiroRequestMappingConfig 获取 requestMappingHandlerMapping Bean 冲突
+   * spring-boot-autoconfigure:3.4.5 和 spring-boot-actuator-autoconfigure:3.4.5
+   */
+  @Primary
+  @Bean("requestMappingHandlerMapping")
+  public RequestMappingHandlerMapping requestMappingHandlerMapping() {
+      RequestMappingHandlerMapping mapping = new RequestMappingHandlerMapping();
+      mapping.setUrlPathHelper(new ShiroUrlPathHelper());
+      return mapping;
+  }
+  ```
+
+**解决方案对比：**
+
+| 方案   | 实施方式               | 优点                         | 缺点                          | 最终选择 |
+| ------ | ---------------------- | ---------------------------- | ----------------------------- | -------- |
+| 方案 1 | 禁用 Actuator Web 端点 | 彻底消除 Bean 冲突，配置简单 | 失去 Actuator 监控功能        | ✅ 采用  |
+| 方案 2 | @Qualifier 注解限定    | 保留 Actuator 功能           | 需修改 Shiro 源码，维护成本高 | ❌ 放弃  |
+
+**技术实现细节：**
+
+```yaml
+# 三个关键配置协同工作
+
+# 1. Bean 覆盖支持（application.yml）
+spring.main.allow-bean-definition-overriding: true
+
+# 2. Actuator 禁用（application-dev.yml）
+management.server.port: -1
+
+# 3. @Primary Bean 定义（ShiroConfig.java）
+@Primary
+@Bean("requestMappingHandlerMapping")
+public RequestMappingHandlerMapping requestMappingHandlerMapping()
+```
+
+**架构优势：**
+
+- **兼容性保障：** 解决 Shiro 与 Spring Boot 3.x 的兼容性问题
+- **配置简洁：** 通过配置文件即可解决，无需修改核心代码
+- **启动稳定：** 消除 Bean 冲突，确保应用正常启动
+- **环境隔离：** 仅在开发环境禁用 Actuator，生产环境可按需配置
+
+**解决效果：**
+
+- **启动成功：** 应用在 38 秒内成功启动，端口 8080
+- **Bean 冲突消除：** RequestMappingHandlerMapping Bean 唯一性得到保证
+- **数据库连接正常：** MySQL (10.92.82.149:30004) 和 Redis (10.92.82.149:40004) 连接成功
+- **服务可访问：** http://localhost:8080/jeecg-boot 和 Swagger 文档正常访问
+
+**技术栈版本：**
+
+- Spring Boot: 3.5.5
+- JeecgBoot: 3.8.3
+- Apache Shiro: 与 JeecgBoot 集成版本
+- Java: 17.0.15
+- Maven: spring-boot:run 方式启动
+
+### 2025-09-08：统一 SSO 单点登录解决方案
+
+**功能概述：** 企业级 SSO 单点登录解决方案，提供全面的用户身份集成能力。支持 webauth(后端主导)和 apiauth(前端主导)双模式，通过统一的参数体系和智能状态管理，实现高效、安全的用户身份认证。
+
+**需求背景：** 企业级应用集成场景中需要支持多种 SSO 接入方式，同时解决参数体系不统一、重复登录检测、会话管理等核心问题。要求实现开发阶段的纯净解决方案，不考虑向后兼容，完全统一参数体系。
+
+**技术创新：**
+
+- **统一参数体系**：前后端完全统一使用 sso_data 参数，消除参数歧义
+- **全局状态管理**：单例模式集中管理 SSO 状态和用户会话
 - **智能防重复**：内置重复检测机制，确保系统稳定性
 - **无缝集成**：用户可从任意页面直接访问，提升使用便利性
 
@@ -39,116 +174,127 @@
 #### 后端文件
 
 **1.1 SsoLoginController.java（完全重构）**
+
 - **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-biz/src/main/java/org/jeecg/modules/system/controller/SsoLoginController.java`
-- **功能摘要：** 统一SSO控制器，采用纯粹sso_data参数体系，支持双模式SSO登录
+- **功能摘要：** 统一 SSO 控制器，采用纯粹 sso_data 参数体系，支持双模式 SSO 登录
 - **核心特性：**
-  - **统一参数接收**：webauth和apiauth接口统一使用sso_data参数
-  - **统一URL构建**：生成标准格式的SSO重定向URL（sso=true&sso_mode=webauth&sso_data=token）
-  - **错误处理统一**：统一的错误URL格式和异常处理机制
-  - **向后兼容清理**：完全移除username参数支持，确保参数体系纯净
+  - **统一参数接收**：webauth 和 apiauth 接口统一使用 sso_data 参数
+  - **统一 URL 构建**：生成标准格式的 SSO 重定向 URL（sso=true&sso_mode=webauth&sso_data=token）
+  - **错误处理统一**：统一的错误 URL 格式和异常处理机制
+  - **向后兼容清理**：完全移除 username 参数支持，确保参数体系纯净
 
 **核心方法：**
-- `webauth(@RequestParam("sso_data"))` - webauth模式，纯sso_data参数
-- `apiauth(@RequestParam("sso_data"))` - apiauth模式，纯sso_data参数  
-- `buildUnifiedRedirectUrl()` - 构建统一格式重定向URL
-- `buildUnifiedErrorUrl()` - 构建统一格式错误URL
+
+- `webauth(@RequestParam("sso_data"))` - webauth 模式，纯 sso_data 参数
+- `apiauth(@RequestParam("sso_data"))` - apiauth 模式，纯 sso_data 参数
+- `buildUnifiedRedirectUrl()` - 构建统一格式重定向 URL
+- `buildUnifiedErrorUrl()` - 构建统一格式错误 URL
 
 #### 前端文件
 
 **1.2 GlobalSSOManager.ts（新增核心）**
+
 - **路径：** `jeecgboot-vue3/src/utils/sso/GlobalSSOManager.ts`
-- **功能摘要：** 全局SSO管理器，核心单例类，统一处理所有SSO模式和状态管理
+- **功能摘要：** 全局 SSO 管理器，核心单例类，统一处理所有 SSO 模式和状态管理
 - **核心特性：**
-  - **单例模式**：全局统一SSO状态管理，避免数据不一致
-  - **智能参数检测**：自动检测和验证统一SSO参数格式
-  - **防重复处理**：3秒防重复间隔，避免重复执行SSO逻辑
-  - **模式分发**：根据sso_mode自动分发到对应处理器（webauth/apiauth）
-  - **会话管理**：生成和管理SSO会话ID，支持用户切换检测
-  - **URL清理**：登录完成后自动清理SSO参数
+  - **单例模式**：全局统一 SSO 状态管理，避免数据不一致
+  - **智能参数检测**：自动检测和验证统一 SSO 参数格式
+  - **防重复处理**：3 秒防重复间隔，避免重复执行 SSO 逻辑
+  - **模式分发**：根据 sso_mode 自动分发到对应处理器（webauth/apiauth）
+  - **会话管理**：生成和管理 SSO 会话 ID，支持用户切换检测
+  - **URL 清理**：登录完成后自动清理 SSO 参数
 
 **主要方法：**
-- `processSSOLogin()` - 统一SSO处理入口
-- `handleWebauth()` - webauth模式处理器  
-- `handleApiauth()` - apiauth模式处理器
-- `detectSSOParams()` - 智能SSO参数检测
-- `clearSession()` - SSO会话清理
+
+- `processSSOLogin()` - 统一 SSO 处理入口
+- `handleWebauth()` - webauth 模式处理器
+- `handleApiauth()` - apiauth 模式处理器
+- `detectSSOParams()` - 智能 SSO 参数检测
+- `clearSession()` - SSO 会话清理
 
 **1.3 ssoGuard.ts（重构）**
+
 - **路径：** `jeecgboot-vue3/src/router/guard/ssoGuard.ts`
-- **功能摘要：** SSO路由守卫，使用GlobalSSOManager统一处理SSO逻辑
+- **功能摘要：** SSO 路由守卫，使用 GlobalSSOManager 统一处理 SSO 逻辑
 - **核心特性：**
-  - **全局监控**：对所有路由自动检测SSO参数
-  - **统一处理**：调用GlobalSSOManager.processSSOLogin()统一处理
-  - **异常容错**：SSO失败时不阻塞用户访问
-  - **智能跳过**：自动跳过登录页、API路径等特殊路由
+  - **全局监控**：对所有路由自动检测 SSO 参数
+  - **统一处理**：调用 GlobalSSOManager.processSSOLogin()统一处理
+  - **异常容错**：SSO 失败时不阻塞用户访问
+  - **智能跳过**：自动跳过登录页、API 路径等特殊路由
 
 **1.4 README.md（新增文档）**
+
 - **路径：** `jeecgboot-vue3/src/utils/sso/README.md`
-- **功能摘要：** 完整的SSO技术文档，包含参数规范、使用方式、测试验证
+- **功能摘要：** 完整的 SSO 技术文档，包含参数规范、使用方式、测试验证
 - **核心内容：**
   - 统一参数体系定义和使用规则
-  - webauth/apiauth双模式详细说明
-  - sso_redirect参数使用规则（前端主导不需要，后端主导必需）
+  - webauth/apiauth 双模式详细说明
+  - sso_redirect 参数使用规则（前端主导不需要，后端主导必需）
   - 完整的使用示例和测试方法
 
 #### 集成文件
 
 **1.5 main.ts（修改）**
+
 - **路径：** `jeecgboot-vue3/src/main.ts`
-- **功能摘要：** 应用启动文件，集成GlobalSSOManager初始化
-- **核心变更：** 
-  - 移除旧的useSso().ssoLogin()调用
+- **功能摘要：** 应用启动文件，集成 GlobalSSOManager 初始化
+- **核心变更：**
+  - 移除旧的 useSso().ssoLogin()调用
   - 添加`await globalSSOManager.initialize()`初始化调用
-  - 确保SSO管理器在应用启动时正确初始化
+  - 确保 SSO 管理器在应用启动时正确初始化
 
 **1.6 user.ts（修改）**
+
 - **路径：** `jeecgboot-vue3/src/store/modules/user.ts`
-- **功能摘要：** 用户状态管理模块，集成SSO会话管理
+- **功能摘要：** 用户状态管理模块，集成 SSO 会话管理
 - **核心改进：**
-  - 集成globalSSOManager会话清理
-  - logout方法中添加`globalSSOManager.clearSession()`
-  - 优化用户状态和SSO状态的协调管理
+  - 集成 globalSSOManager 会话清理
+  - logout 方法中添加`globalSSOManager.clearSession()`
+  - 优化用户状态和 SSO 状态的协调管理
 
 **技术架构：**
 
 **统一参数体系：**
 
-所有SSO操作统一使用以下参数格式：
+所有 SSO 操作统一使用以下参数格式：
+
 ```bash
 ?sso=true&sso_mode={mode}&sso_data={data}&sso_redirect={path}
 ```
 
-| 参数 | 必需性 | 说明 | 使用场景 |
-|------|--------|------|----------|
-| `sso=true` | 必需 | SSO标识 | 所有模式 |
-| `sso_mode` | 必需 | SSO模式：webauth、apiauth | 所有模式 |
-| `sso_data` | 必需 | SSO数据：token、加密用户名 | 所有模式 |
-| `sso_redirect` | 可选 | 目标路径 | 仅webauth模式使用 |
+| 参数           | 必需性 | 说明                        | 使用场景            |
+| -------------- | ------ | --------------------------- | ------------------- |
+| `sso=true`     | 必需   | SSO 标识                    | 所有模式            |
+| `sso_mode`     | 必需   | SSO 模式：webauth、apiauth  | 所有模式            |
+| `sso_data`     | 必需   | SSO 数据：token、加密用户名 | 所有模式            |
+| `sso_redirect` | 可选   | 目标路径                    | 仅 webauth 模式使用 |
 
 **双模式技术对比：**
 
-| 特性 | webauth模式（后端主导） | apiauth模式（前端主导） |
-|------|----------------------|----------------------|
-| **发起方式** | 第三方系统调用后端接口 | 用户直接访问前端页面 |
-| **参数需求** | 需要redirectUrl参数 | 无需sso_redirect参数 |
-| **处理流程** | 后端重定向→前端自动处理 | 前端检测→后端API→状态设置 |
-| **适用场景** | 传统系统快速集成 | SPA应用精确控制 |
-| **前端工作** | 零改造，路由守卫自动处理 | 路由守卫自动处理 |
+| 特性         | webauth 模式（后端主导）  | apiauth 模式（前端主导）      |
+| ------------ | ------------------------- | ----------------------------- |
+| **发起方式** | 第三方系统调用后端接口    | 用户直接访问前端页面          |
+| **参数需求** | 需要 redirectUrl 参数     | 无需 sso_redirect 参数        |
+| **处理流程** | 后端重定向 → 前端自动处理 | 前端检测 → 后端 API→ 状态设置 |
+| **适用场景** | 传统系统快速集成          | SPA 应用精确控制              |
+| **前端工作** | 零改造，路由守卫自动处理  | 路由守卫自动处理              |
 
 **核心技术流程：**
 
-**webauth模式：**
+**webauth 模式：**
+
 ```
 第三方系统调用 → /sys/sso/webauth?sso_data=encrypted&redirectUrl=frontendUrl
      ↓
 后端验证用户 → 生成JWT token → 构建统一格式URL
-     ↓  
+     ↓
 重定向到前端 → ?sso=true&sso_mode=webauth&sso_data=jwt_token
      ↓
 前端路由守卫 → GlobalSSOManager → 自动登录完成
 ```
 
-**apiauth模式：**
+**apiauth 模式：**
+
 ```
 用户直接访问 → frontendUrl?sso=true&sso_mode=apiauth&sso_data=encrypted
      ↓
@@ -159,19 +305,19 @@
 
 **架构优势：**
 
-- **参数统一**：前后端完全统一的sso_data参数体系，消除歧义
-- **状态集中**：GlobalSSOManager单例模式，全局统一状态管理  
-- **智能处理**：自动检测SSO参数，智能防重复，无缝用户体验
-- **会话管理**：完整的SSO会话生命周期管理，支持用户切换
+- **参数统一**：前后端完全统一的 sso_data 参数体系，消除歧义
+- **状态集中**：GlobalSSOManager 单例模式，全局统一状态管理
+- **智能处理**：自动检测 SSO 参数，智能防重复，无缝用户体验
+- **会话管理**：完整的 SSO 会话生命周期管理，支持用户切换
 - **零提示登录**：登录成功后无任何弹窗提示，直接进入页面
 - **调试友好**：详细的控制台日志，便于开发调试和问题排查
 
 **技术创新点：**
 
-- **纯净参数体系**：开发阶段不考虑向后兼容，完全统一使用sso_data
+- **纯净参数体系**：开发阶段不考虑向后兼容，完全统一使用 sso_data
 - **单例架构**：避免多实例导致的状态混乱和重复处理
-- **智能检测**：3秒防重复间隔，用户切换检测，URL参数自动清理
-- **模式分发**：根据sso_mode自动路由到对应处理器，代码高内聚
+- **智能检测**：3 秒防重复间隔，用户切换检测，URL 参数自动清理
+- **模式分发**：根据 sso_mode 自动路由到对应处理器，代码高内聚
 
 ### 2025-08-28：增强型 Redis 工具类
 
@@ -624,7 +770,6 @@ public class GlobalPaginationConfig implements BeanPostProcessor {
 - **CodeTemplateInitListener：** 负责代码生成器模板初始化
 - **区别定位：** 启动类负责配置信息展示，监听器负责具体业务初始化
 
-
 ### 2025-08-02：系统心跳检测功能
 
 **功能概述：** 提供系统健康状态检查接口，支持外部监控系统通过 HEAD 请求进行心跳检测。
@@ -674,6 +819,62 @@ public class GlobalPaginationConfig implements BeanPostProcessor {
 
 > 💡 **新增功能使用说明请按功能名称追加新的小节**
 
+### Shiro + Spring Boot Actuator 兼容性修复
+
+```
+问题诊断：
+当应用启动时出现以下错误，即为 Shiro 与 Actuator Bean 冲突：
+- 错误信息包含 "ShiroRequestMappingConfig required a single bean, but 2 were found"
+- Bean 候选者包含 requestMappingHandlerMapping 和 controllerEndpointHandlerMapping
+- 应用启动失败，无法正常运行
+
+解决步骤：
+1. 启用 Bean 定义覆盖（application.yml）：
+   spring:
+     main:
+       allow-bean-definition-overriding: true
+
+2. 禁用 Actuator Web 端点（application-dev.yml）：
+   management:
+     server:
+       port: -1
+     endpoints:
+       web:
+         exposure:
+           include:
+
+3. 配置 @Primary Bean（ShiroConfig.java）：
+   @Primary
+   @Bean("requestMappingHandlerMapping")
+   public RequestMappingHandlerMapping requestMappingHandlerMapping()
+
+验证方法：
+1. 启动应用，观察启动日志无 Bean 冲突错误
+2. 应用成功启动在配置端口（如 8080）
+3. 访问应用主页：http://localhost:8080/jeecg-boot
+4. 访问 Swagger 文档：http://localhost:8080/jeecg-boot/doc.html
+5. 确认数据库和 Redis 连接正常
+
+注意事项：
+- 禁用 Actuator 会失去监控端点功能
+- 如需生产环境使用 Actuator，可考虑方案2（需修改 Shiro 源码）
+- 不同环境可使用不同配置文件（dev/test/prod）
+- 确保三个配置文件的修改协同工作
+
+适用环境：
+- ✅ Spring Boot 3.x + Shiro 集成场景
+- ✅ JeecgBoot 3.8.x 及以上版本
+- ✅ 开发和测试环境
+- ⚠️ 生产环境需评估 Actuator 监控需求
+
+故障排除：
+如果修复后仍有问题：
+1. 确认三个文件的修改都已保存生效
+2. 清理 Maven 缓存并重新编译：mvn clean install
+3. 检查 Spring Boot 和 Shiro 版本兼容性
+4. 查看完整启动日志，定位其他可能的配置冲突
+```
+
 ### 用户身份信息控制台显示功能
 
 ```
@@ -688,8 +889,8 @@ public class GlobalPaginationConfig implements BeanPostProcessor {
   ┌─────────────┬────────────────────┐
   │    (index)  │       Values       │
   ├─────────────┼────────────────────┤
-  │   用户账号   │     qinfumin       │
-  │   真实姓名   │      秦富民        │
+  │   用户账号   │     zhangsan       │
+  │   真实姓名   │      张三        │
   │   租户ID    │        0           │
   │   部门编码   │  A03A01A10A01A04   │
   │   部门名称   │    数据字典中心      │
@@ -849,22 +1050,24 @@ UUMS地址: http://10.92.82.161:8088/uums
 功能：便于开发人员快速确认系统配置状态
 ```
 
-### 统一SSO单点登录解决方案
+### 统一 SSO 单点登录解决方案
 
 #### 统一参数格式
 
-所有SSO操作统一使用标准参数格式：
+所有 SSO 操作统一使用标准参数格式：
+
 ```bash
 ?sso=true&sso_mode={mode}&sso_data={encrypted_data}&sso_redirect={path}
 ```
 
 **参数说明：**
-- `sso=true` - SSO标识（必需）
-- `sso_mode` - SSO模式：webauth、apiauth（必需）
-- `sso_data` - 加密数据：用户名或token（必需）
-- `sso_redirect` - 目标路径（webauth模式使用）
 
-#### webauth模式（后端主导）- 第三方系统集成
+- `sso=true` - SSO 标识（必需）
+- `sso_mode` - SSO 模式：webauth、apiauth（必需）
+- `sso_data` - 加密数据：用户名或 token（必需）
+- `sso_redirect` - 目标路径（webauth 模式使用）
+
+#### webauth 模式（后端主导）- 第三方系统集成
 
 ```bash
 # 第三方系统调用后端接口（实际发起地址）
@@ -883,12 +1086,12 @@ http://localhost:3100/dashboard?sso=true&sso_mode=webauth&sso_data={jwt_token}
 
 使用场景：
 - 门户系统中的链接跳转
-- 传统网站页面跳转集成  
+- 传统网站页面跳转集成
 - 第三方系统快速接入
 - OA系统、门户平台集成
 ```
 
-#### apiauth模式（前端主导）- 直接页面访问
+#### apiauth 模式（前端主导）- 直接页面访问
 
 ```bash
 # 用户直接访问前端页面（推荐方式）
@@ -969,7 +1172,7 @@ curl "http://localhost:54009/dictd/sys/sso/apiauth?sso_data={加密用户名}"
 - 登录后停留在当前访问页面
 - 适用于用户直接访问场景
 
-后端主导（webauth）：  
+后端主导（webauth）：
 - 必须提供redirectUrl参数
 - 后端生成包含sso_redirect的统一格式URL
 - 适用于第三方系统调用场景
