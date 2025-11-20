@@ -23,6 +23,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
@@ -89,8 +90,10 @@ public class MybatisPlusSaasConfig {
     }
 
 
+    @Primary
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
+        log.info("=== MyBatis Plus配置初始化：MybatisPlusSaasConfig ===");
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         // 先 add TenantLineInnerInterceptor 再 add PaginationInnerInterceptor
         interceptor.addInnerInterceptor(new TenantLineInnerInterceptor(new TenantLineHandler() {
@@ -143,7 +146,10 @@ public class MybatisPlusSaasConfig {
             // 如果是SQL Server则覆盖为2005分页方式
             interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.SQL_SERVER2005));
         } else {
-            interceptor.addInnerInterceptor(new PaginationInnerInterceptor());
+            // 使用自定义分页插件，支持OceanBase Oracle兼容模式
+            CustomPaginationInnerInterceptor paginationInterceptor = new CustomPaginationInnerInterceptor();
+            interceptor.addInnerInterceptor(paginationInterceptor);
+            log.info("=== 已加载自定义分页插件：CustomPaginationInnerInterceptor ===");
         }
         //update-end---author:scott ---date::2025-08-02  for：【issues/8666】升级mybatisPlus后SqlServer分页使用OFFSET ？ ROWS FETCH NEXT ？ ROWS ONLY，导致online报表报错---
         
