@@ -1,6 +1,8 @@
 ## ide
 **/.idea
+**/.vscode
 *.iml
+*.code-workspace
 rebel.xml
 
 ## backend
@@ -18,3 +20,4 @@ derby.log
 
 ## macOS
 .DS_Store
+jeecgboot-vue3/pnpm-lock.yaml

@@ -1,422 +1,768 @@
 #!/bin/bash
 
-# Git同步脚本 - 基于rebase策略同步upstream
-# 功能：以upstream最新版本为主，保留本地个性化定制
+################################################################################
+# JeecgBoot Upstream 同步脚本 v2.0
+#
+# 用途：智能同步 upstream 最新代码，保留本地定制
+# 作者：SIMBEST
+# 日期：2025-11-20
+#
+# 使用方法：
+#   ./sync-upstream.sh                    # 交互模式（默认）
+#   ./sync-upstream.sh --mode analyze     # 分析模式（只分析不合并）
+#   ./sync-upstream.sh --mode auto        # 自动模式（完全自动）
+#   ./sync-upstream.sh --help             # 显示帮助
+################################################################################
 
 set -e  # 遇到错误立即退出
 
-# ==========================================
-# 配置变量区域 - 请根据实际情况修改
-# ==========================================
+# ============================================================================
+# 配置区域
+# ============================================================================
 
-# Upstream 远程仓库配置
-UPSTREAM_URL="https://github.com/jeecgboot/JeecgBoot.git"
-UPSTREAM_BRANCH="springboot3"
-UPSTREAM_REMOTE_NAME="upstream"
-
-# 本地仓库配置
-LOCAL_BRANCH=$(git branch --show-current)
-
-# Origin 远程仓库配置（用于推送）
-ORIGIN_URL=$(git remote get-url origin 2>/dev/null || echo "")
-ORIGIN_BRANCH="${LOCAL_BRANCH}"
-
-# 备份配置
-BACKUP_BRANCH_PREFIX="backup"
-
-# ==========================================
-# 颜色输出配置
-# ==========================================
+# 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
-BOLD='\033[1m'
 NC='\033[0m' # No Color
+
+# 上游仓库配置
+UPSTREAM_REMOTE="upstream"
+UPSTREAM_BRANCH="master"
+
+# 本地分支
+LOCAL_BRANCH=$(git branch --show-current)
+
+# 工作目录
+WORK_DIR=$(pwd)
+TEMP_DIR="/tmp/jeecg-sync-$$"
+
+# 报告文件
+REPORT_FILE="${WORK_DIR}/sync-analysis-report.md"
+STRATEGY_FILE="${WORK_DIR}/handling-strategy.md"
+
+# 模式：analyze, interactive, auto
+MODE="interactive"
+
+# ============================================================================
+# 工具函数
+# ============================================================================
 
 # 打印带颜色的消息
 print_info() {
-    echo -e "${BLUE}[信息]${NC} $1"
+    echo -e "${BLUE}ℹ️  $1${NC}"
 }
 
 print_success() {
-    echo -e "${GREEN}[成功]${NC} $1"
+    echo -e "${GREEN}✅ $1${NC}"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[警告]${NC} $1"
+    echo -e "${YELLOW}⚠️  $1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}[错误]${NC} $1"
+    echo -e "${RED}❌ $1${NC}"
 }
 
-# 读取用户输入，支持默认值
-read_with_default() {
+print_step() {
+    echo -e "\n${PURPLE}═══════════════════════════════════════════════════${NC}"
+    echo -e "${PURPLE}$1${NC}"
+    echo -e "${PURPLE}═══════════════════════════════════════════════════${NC}\n"
+}
+
+# 询问用户确认
+ask_confirmation() {
     local prompt="$1"
-    local default="$2"
-    local value
+    local default="${2:-n}"
 
-    # 提示信息输出到stderr，避免干扰返回值
-    echo -e -n "${prompt} [${GREEN}${default}${NC}]: " >&2
-    read value
-
-    # 如果用户直接按回车，使用默认值
-    if [ -z "$value" ]; then
-        echo "$default"
-    else
-        echo "$value"
-    fi
-}
-
-# 显示当前配置
-show_config() {
-    local title="$1"
-    echo ""
-    echo "=========================================="
-    echo -e "   ${BOLD}${title}${NC}"
-    echo "=========================================="
-    echo ""
-
-    # 源端信息
-    echo -e "${BOLD}${BLUE}┌─ 源端（Source）- Upstream 远程仓库 ─────────────${NC}"
-    echo -e "${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}  同步来源: 从这里拉取最新代码"
-    echo -e "${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}  1. Remote名称: ${GREEN}${UPSTREAM_REMOTE_NAME}${NC}"
-    echo -e "${CYAN}│${NC}  2. 仓库地址:   ${GREEN}${UPSTREAM_URL}${NC}"
-    echo -e "${CYAN}│${NC}  3. 源端分支:   ${GREEN}${UPSTREAM_REMOTE_NAME}/${UPSTREAM_BRANCH}${NC}"
-    echo -e "${BOLD}${BLUE}└────────────────────────────────────────────────${NC}"
-    echo ""
-
-    # 目标端信息
-    echo -e "${BOLD}${YELLOW}┌─ 目标端（Target）- 本地仓库 ──────────────────${NC}"
-    echo -e "${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}  同步目标: 将源端代码合并到这里"
-    echo -e "${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}  4. 本地分支:   ${GREEN}${LOCAL_BRANCH}${NC}"
-    echo -e "${CYAN}│${NC}  5. 工作目录:   ${GREEN}$(pwd)${NC}"
-    echo -e "${BOLD}${YELLOW}└────────────────────────────────────────────────${NC}"
-    echo ""
-
-    # 推送目标信息
-    if [ -n "$ORIGIN_URL" ]; then
-        echo -e "${BOLD}${YELLOW}┌─ 推送目标（Push Target）- Origin 远程仓库 ───${NC}"
-        echo -e "${CYAN}│${NC}"
-        echo -e "${CYAN}│${NC}  同步完成后可推送到这里（可选）"
-        echo -e "${CYAN}│${NC}"
-        echo -e "${CYAN}│${NC}  6. 仓库地址:   ${GREEN}${ORIGIN_URL}${NC}"
-        echo -e "${CYAN}│${NC}  7. 目标分支:   ${GREEN}origin/${ORIGIN_BRANCH}${NC}"
-        echo -e "${BOLD}${YELLOW}└────────────────────────────────────────────────${NC}"
-        echo ""
-    fi
-
-    # 备份信息
-    BACKUP_BRANCH="${BACKUP_BRANCH_PREFIX}-${LOCAL_BRANCH}-$(date +%Y%m%d-%H%M%S)"
-    echo -e "${BOLD}${GREEN}┌─ 安全备份（Backup）────────────────────────${NC}"
-    echo -e "${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}  同步前自动创建备份，可随时回滚"
-    echo -e "${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}  8. 备份分支:   ${GREEN}${BACKUP_BRANCH}${NC} ${YELLOW}(自动)${NC}"
-    echo -e "${BOLD}${GREEN}└────────────────────────────────────────────────${NC}"
-    echo ""
-
-    # 同步流程说明
-    echo -e "${BOLD}同步流程：${NC}"
-    echo -e "  ${GREEN}${UPSTREAM_REMOTE_NAME}/${UPSTREAM_BRANCH}${NC} ${BLUE}→${NC} ${GREEN}${LOCAL_BRANCH}${NC}"
-    if [ -n "$ORIGIN_URL" ]; then
-        echo -e "  ${GREEN}${LOCAL_BRANCH}${NC} ${YELLOW}→${NC} ${GREEN}origin/${ORIGIN_BRANCH}${NC} ${YELLOW}(推送，可选)${NC}"
-    fi
-    echo ""
-}
-
-# 编辑配置
-edit_config() {
-    echo ""
-    echo -e "${YELLOW}╔════════════════════════════════════════════╗${NC}"
-    echo -e "${YELLOW}║         请选择要编辑的配置项               ║${NC}"
-    echo -e "${YELLOW}╚════════════════════════════════════════════╝${NC}"
-    echo ""
-    echo -e "  可编辑的配置项："
-    echo -e "  ${BLUE}[源端]${NC}  1-3: Upstream配置 (Remote名称/仓库地址/分支)"
-    echo -e "  ${YELLOW}[目标]${NC}  4-5: 本地配置 (分支名称/工作目录-不可改)"
-    echo -e "  ${YELLOW}[推送]${NC}  6-7: Origin配置 (仓库地址/分支)"
-    echo ""
-    echo -e "${YELLOW}输入编号（可多选，用空格分隔，如：2 3），或按回车跳过：${NC}"
-    echo -n "> "
-    read edit_choices
-
-    if [ -z "$edit_choices" ]; then
+    if [ "$MODE" = "auto" ]; then
+        print_info "自动模式：自动确认 - $prompt"
         return 0
     fi
 
-    for choice in $edit_choices; do
-        case $choice in
-            1)
-                UPSTREAM_REMOTE_NAME=$(read_with_default "源端Remote名称" "$UPSTREAM_REMOTE_NAME")
-                ;;
-            2)
-                UPSTREAM_URL=$(read_with_default "源端仓库地址" "$UPSTREAM_URL")
-                ;;
-            3)
-                UPSTREAM_BRANCH=$(read_with_default "源端分支名称" "$UPSTREAM_BRANCH")
-                ;;
-            4)
-                LOCAL_BRANCH=$(read_with_default "目标本地分支" "$LOCAL_BRANCH")
-                ;;
-            5)
-                print_warning "工作目录不可编辑，跳过"
-                ;;
-            6)
-                ORIGIN_URL=$(read_with_default "推送目标仓库地址" "$ORIGIN_URL")
-                ;;
-            7)
-                ORIGIN_BRANCH=$(read_with_default "推送目标分支" "$ORIGIN_BRANCH")
-                ;;
-            8)
-                print_warning "备份分支自动生成，不可编辑"
-                ;;
-            *)
-                print_warning "无效的选项: $choice"
-                ;;
+    while true; do
+        if [ "$default" = "y" ]; then
+            read -p "$(echo -e ${CYAN}$prompt [Y/n]: ${NC})" answer
+            answer=${answer:-y}
+        else
+            read -p "$(echo -e ${CYAN}$prompt [y/N]: ${NC})" answer
+            answer=${answer:-n}
+        fi
+
+        case $answer in
+            [Yy]* ) return 0;;
+            [Nn]* ) return 1;;
+            * ) echo "请输入 y 或 n";;
         esac
     done
 }
 
-# 检查是否在git仓库中
-if ! git rev-parse --git-dir > /dev/null 2>&1; then
-    print_error "当前目录不是一个Git仓库"
-    exit 1
-fi
+# 显示帮助信息
+show_help() {
+    cat << EOF
+JeecgBoot Upstream 同步脚本 v2.0
 
-# 显示脚本说明
-echo ""
-echo "=========================================="
-echo "   Git Upstream 同步脚本 (Rebase策略)"
-echo "=========================================="
-echo ""
-print_info "此脚本将："
-echo "  1. 创建当前分支的备份"
-echo "  2. 从upstream拉取最新代码"
-echo "  3. 使用rebase策略合并（优先upstream版本）"
-echo "  4. 保留本地独有的提交和文件"
-echo ""
+用法: $0 [选项]
 
-# 显示当前配置（在检查工作区之前）
-show_config "当前配置"
+选项:
+    --mode <mode>       运行模式
+                        analyze     - 只分析，不合并（安全）
+                        interactive - 交互模式，关键点需确认（默认）
+                        auto        - 自动模式，完全自动执行（危险）
 
-# 检查工作区是否干净
-if ! git diff-index --quiet HEAD --; then
-    print_warning "检测到未提交的更改"
-    git status --short
+    --upstream <name>   指定 upstream 远程仓库名（默认: upstream）
+    --branch <name>     指定 upstream 分支名（默认: master）
+    --help              显示此帮助信息
+
+示例:
+    # 分析模式：只看看差异，不做任何修改
+    $0 --mode analyze
+
+    # 交互模式：在关键点询问用户（推荐）
+    $0 --mode interactive
+
+    # 自动模式：完全自动化（需谨慎使用）
+    $0 --mode auto
+
+工作流程（8步）:
+    1. 创建备份分支和标签
+    2. 识别核心修改（生成详细报告）⭐ 最关键
+    3. 启动合并（触发冲突）
+    4. 批量保留配置文件
+    5. 批量保留自定义类
+    6. 批量保留新增文件
+    7. 处理剩余冲突
+    8. 提交并推送（可选）
+
+EOF
+    exit 0
+}
+
+# ============================================================================
+# 步骤 1：创建备份
+# ============================================================================
+
+step1_create_backup() {
+    print_step "步骤 1/8: 创建备份"
+
+    local backup_date=$(date +%Y%m%d-%H%M%S)
+    local backup_branch="backup-sync-${backup_date}"
+    local backup_tag="backup-tag-${backup_date}"
+
+    print_info "创建备份分支: $backup_branch"
+    git branch "$backup_branch"
+
+    print_info "创建备份标签: $backup_tag"
+    git tag "$backup_tag"
+
+    print_success "备份创建完成"
+    echo "  - 备份分支: $backup_branch"
+    echo "  - 备份标签: $backup_tag"
+    echo "  - 回滚命令: git reset --hard $backup_tag"
+
+    # 保存备份信息供后续使用
+    BACKUP_BRANCH="$backup_branch"
+    BACKUP_TAG="$backup_tag"
+}
+
+# ============================================================================
+# 步骤 2：识别核心修改（最关键！）
+# ============================================================================
+
+step2_identify_changes() {
+    print_step "步骤 2/8: 识别核心修改（最关键！）"
+
+    print_info "获取 upstream 最新代码..."
+    git fetch "$UPSTREAM_REMOTE"
+
+    print_info "分析本地修改..."
+
+    # 创建临时目录
+    mkdir -p "$TEMP_DIR"
+
+    # 统计差异文件
+    git diff --name-only ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH} > ${TEMP_DIR}/all-changes.txt
+    git diff --name-status ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH} > ${TEMP_DIR}/all-changes-status.txt
+
+    # 识别不同类型的文件
+    grep -E "\.(yml|yaml|properties|xml)$" ${TEMP_DIR}/all-changes.txt > ${TEMP_DIR}/config-files.txt 2>/dev/null || true
+    grep -i "custom" ${TEMP_DIR}/all-changes.txt > ${TEMP_DIR}/custom-files.txt 2>/dev/null || true
+    grep "^A" ${TEMP_DIR}/all-changes-status.txt | awk '{print $2}' > ${TEMP_DIR}/new-files.txt 2>/dev/null || true
+    grep "\.java$" ${TEMP_DIR}/all-changes.txt > ${TEMP_DIR}/java-files.txt 2>/dev/null || true
+    grep -E "\.(vue|ts|js)$" ${TEMP_DIR}/all-changes.txt > ${TEMP_DIR}/frontend-files.txt 2>/dev/null || true
+
+    # 统计数量
+    TOTAL_CHANGES=$(cat ${TEMP_DIR}/all-changes.txt | wc -l | tr -d ' ')
+    CONFIG_COUNT=$(cat ${TEMP_DIR}/config-files.txt | wc -l | tr -d ' ')
+    CUSTOM_COUNT=$(cat ${TEMP_DIR}/custom-files.txt | wc -l | tr -d ' ')
+    NEW_COUNT=$(cat ${TEMP_DIR}/new-files.txt | wc -l | tr -d ' ')
+    JAVA_COUNT=$(cat ${TEMP_DIR}/java-files.txt | wc -l | tr -d ' ')
+    FRONTEND_COUNT=$(cat ${TEMP_DIR}/frontend-files.txt | wc -l | tr -d ' ')
+
+    # 生成详细报告
+    generate_analysis_report
+
+    # 显示摘要
+    print_success "分析完成！"
     echo ""
-    echo -n "是否继续？这些更改会被暂存 (y/N): " >&2
-    read continue_with_changes
-    if [[ ! "$continue_with_changes" =~ ^[Yy]$ ]]; then
-        print_info "操作已取消"
-        exit 0
+    echo "📊 修改统计:"
+    echo "  ├─ 总修改文件数: $TOTAL_CHANGES"
+    echo "  ├─ 配置文件: $CONFIG_COUNT"
+    echo "  ├─ 自定义类: $CUSTOM_COUNT"
+    echo "  ├─ 新增文件: $NEW_COUNT"
+    echo "  ├─ Java 文件: $JAVA_COUNT"
+    echo "  └─ 前端文件: $FRONTEND_COUNT"
+    echo ""
+    echo "📄 详细报告已生成: $REPORT_FILE"
+
+    # 如果是分析模式，到此结束
+    if [ "$MODE" = "analyze" ]; then
+        print_success "分析模式完成，未执行合并操作"
+        echo ""
+        echo "下一步："
+        echo "  1. 查看报告: cat $REPORT_FILE"
+        echo "  2. 确认无误后执行: $0 --mode interactive"
+        cleanup_and_exit 0
     fi
-    STASH_NEEDED=true
-else
-    STASH_NEEDED=false
-fi
 
-# 配置编辑-确认循环
-while true; do
-    # 询问是否需要编辑（配置已经在上面显示过了）
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    # 交互模式：询问是否继续
+    if [ "$MODE" = "interactive" ]; then
+        echo ""
+        if ! ask_confirmation "是否继续执行合并？" "n"; then
+            print_warning "用户取消操作"
+            cleanup_and_exit 0
+        fi
+    fi
+}
 
-    # 询问是否需要编辑
-    echo -e "${BOLD}是否需要编辑配置？${NC}"
-    echo "  [e] 编辑配置"
-    echo "  [c] 确认并继续执行"
-    echo "  [q] 退出"
-    echo -n "> " >&2
-    read action
+# 生成详细分析报告
+generate_analysis_report() {
+    cat > "$REPORT_FILE" << EOF
+# JeecgBoot Upstream 同步分析报告
 
-    case $action in
-        e|E)
-            edit_config
-            # 编辑后重新显示配置
-            echo ""
-            show_config "更新后的配置"
-            ;;
-        c|C)
-            # 最终确认
-            echo ""
-            echo -e "${BOLD}${YELLOW}╔════════════════════════════════════════════════════╗${NC}"
-            echo -e "${BOLD}${YELLOW}║                   最终确认                         ║${NC}"
-            echo -e "${BOLD}${YELLOW}╚════════════════════════════════════════════════════╝${NC}"
-            echo ""
-            echo -e "${RED}${BOLD}⚠️  请仔细核对以下配置，确认无误后将开始同步操作${NC}"
-            echo ""
+**生成时间**: $(date '+%Y-%m-%d %H:%M:%S')
+**当前分支**: $LOCAL_BRANCH
+**对比目标**: ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}
+**备份分支**: $BACKUP_BRANCH
+**备份标签**: $BACKUP_TAG
 
-            # 源端信息
-            echo -e "${BOLD}${BLUE}【源端 Source】${NC} ${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "  ${BLUE}▸${NC} Remote名称: ${GREEN}${UPSTREAM_REMOTE_NAME}${NC}"
-            echo -e "  ${BLUE}▸${NC} 仓库地址:   ${GREEN}${UPSTREAM_URL}${NC}"
-            echo -e "  ${BLUE}▸${NC} 源端分支:   ${GREEN}${UPSTREAM_REMOTE_NAME}/${UPSTREAM_BRANCH}${NC}"
-            echo ""
+---
 
-            # 目标端信息
-            echo -e "${BOLD}${YELLOW}【目标端 Target】${NC} ${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "  ${YELLOW}▸${NC} 本地分支:   ${GREEN}${LOCAL_BRANCH}${NC}"
-            echo -e "  ${YELLOW}▸${NC} 工作目录:   ${GREEN}$(pwd)${NC}"
-            echo ""
+## 📊 统计摘要
 
-            # 推送目标
-            if [ -n "$ORIGIN_URL" ]; then
-                echo -e "${BOLD}${YELLOW}【推送目标 Push】${NC} ${YELLOW}━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "  ${YELLOW}▸${NC} 仓库地址:   ${GREEN}${ORIGIN_URL}${NC}"
-                echo -e "  ${YELLOW}▸${NC} 目标分支:   ${GREEN}origin/${ORIGIN_BRANCH}${NC}"
-                echo ""
-            fi
+| 类型 | 数量 | 占比 |
+|------|------|------|
+| 总修改文件 | $TOTAL_CHANGES | 100% |
+| 配置文件 | $CONFIG_COUNT | $(( TOTAL_CHANGES > 0 ? CONFIG_COUNT * 100 / TOTAL_CHANGES : 0 ))% |
+| 自定义类 | $CUSTOM_COUNT | $(( TOTAL_CHANGES > 0 ? CUSTOM_COUNT * 100 / TOTAL_CHANGES : 0 ))% |
+| 新增文件 | $NEW_COUNT | $(( TOTAL_CHANGES > 0 ? NEW_COUNT * 100 / TOTAL_CHANGES : 0 ))% |
+| Java 文件 | $JAVA_COUNT | $(( TOTAL_CHANGES > 0 ? JAVA_COUNT * 100 / TOTAL_CHANGES : 0 ))% |
+| 前端文件 | $FRONTEND_COUNT | $(( TOTAL_CHANGES > 0 ? FRONTEND_COUNT * 100 / TOTAL_CHANGES : 0 ))% |
 
-            # 备份信息
-            BACKUP_BRANCH="${BACKUP_BRANCH_PREFIX}-${LOCAL_BRANCH}-$(date +%Y%m%d-%H%M%S)"
-            echo -e "${BOLD}${GREEN}【安全备份 Backup】${NC} ${GREEN}━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "  ${GREEN}▸${NC} 备份分支:   ${GREEN}${BACKUP_BRANCH}${NC}"
-            echo ""
+---
 
-            # 同步流程
-            echo -e "${BOLD}【同步流程】${NC}"
-            echo -e "  ${GREEN}${UPSTREAM_REMOTE_NAME}/${UPSTREAM_BRANCH}${NC} ${BLUE}━━▶${NC} ${GREEN}${LOCAL_BRANCH}${NC}"
-            if [ -n "$ORIGIN_URL" ]; then
-                echo -e "  ${GREEN}${LOCAL_BRANCH}${NC} ${YELLOW}━━▶${NC} ${GREEN}origin/${ORIGIN_BRANCH}${NC} ${YELLOW}(可选推送)${NC}"
-            fi
-            echo ""
-            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo ""
-            echo -n -e "${BOLD}${RED}确认开始同步？(输入 yes 确认 / 其他取消): ${NC}" >&2
-            read final_confirm
+## 🔴 必须保留的文件（核心定制）
 
-            if [[ "$final_confirm" == "yes" ]]; then
-                print_success "配置确认完成，开始执行同步..."
-                break
-            else
-                print_warning "已取消，返回配置界面"
-            fi
-            ;;
-        q|Q)
-            print_info "操作已取消"
-            exit 0
-            ;;
-        *)
-            print_warning "无效的选项，请重新选择"
-            ;;
-    esac
-done
+### 配置文件 ($CONFIG_COUNT 个)
+\`\`\`
+$(cat ${TEMP_DIR}/config-files.txt)
+\`\`\`
 
-echo ""
-print_info "开始执行同步流程..."
+### 自定义类 ($CUSTOM_COUNT 个)
+\`\`\`
+$(cat ${TEMP_DIR}/custom-files.txt)
+\`\`\`
 
-# 暂存当前更改（如果需要）
-if [ "$STASH_NEEDED" = true ]; then
-    print_info "暂存当前未提交的更改..."
-    git stash push -m "Auto stash before upstream sync $(date +%Y%m%d-%H%M%S)"
-    print_success "更改已暂存"
-fi
+### 新增文件 ($NEW_COUNT 个)
+\`\`\`
+$(cat ${TEMP_DIR}/new-files.txt)
+\`\`\`
 
-# 确保在正确的本地分支上
-if [ "$(git branch --show-current)" != "$LOCAL_BRANCH" ]; then
-    print_info "切换到分支: $LOCAL_BRANCH"
-    git checkout "$LOCAL_BRANCH"
-fi
+---
 
-# 创建备份分支
-print_info "创建备份分支: $BACKUP_BRANCH"
-git branch "$BACKUP_BRANCH"
-print_success "备份分支创建成功"
+## 🟢 可以使用 upstream 版本的文件
 
-# 添加或更新upstream remote
-print_info "配置 ${UPSTREAM_REMOTE_NAME} 远程仓库..."
-if git remote | grep -q "^${UPSTREAM_REMOTE_NAME}$"; then
-    print_info "更新已存在的 ${UPSTREAM_REMOTE_NAME} 地址"
-    git remote set-url "${UPSTREAM_REMOTE_NAME}" "$UPSTREAM_URL"
-else
-    print_info "添加 ${UPSTREAM_REMOTE_NAME} 远程仓库"
-    git remote add "${UPSTREAM_REMOTE_NAME}" "$UPSTREAM_URL"
-fi
-print_success "远程仓库配置完成"
+建议对以下类型的文件使用 upstream 版本：
+- 框架核心代码（jeecg-boot-base/**）
+- 未定制的系统模块
+- 依赖配置（pom.xml, package.json）
 
-# 拉取upstream最新代码
-print_info "拉取 ${UPSTREAM_REMOTE_NAME}/${UPSTREAM_BRANCH} 最新代码..."
-git fetch "${UPSTREAM_REMOTE_NAME}"
-print_success "代码拉取完成"
+---
 
-# 执行rebase操作
-print_info "开始rebase操作 (将本地提交应用到 ${UPSTREAM_REMOTE_NAME}/${UPSTREAM_BRANCH} 上)..."
-echo ""
-print_warning "注意: 如果出现冲突，脚本会提示您手动解决"
-echo ""
+## 📋 推荐处理策略
 
-# 尝试执行rebase
-if git rebase "${UPSTREAM_REMOTE_NAME}/$UPSTREAM_BRANCH"; then
-    print_success "Rebase成功完成！"
+### 策略 1: 自动保留（git checkout --ours）
+- ✅ 所有配置文件
+- ✅ 所有自定义类
+- ✅ 所有新增文件
 
-    # 恢复之前暂存的更改
-    if [ "$STASH_NEEDED" = true ]; then
-        print_info "恢复之前暂存的更改..."
-        if git stash pop; then
-            print_success "暂存的更改已恢复"
+### 策略 2: 自动使用 upstream（git checkout --theirs）
+- ✅ 框架核心文件
+- ✅ 依赖配置文件
+
+### 策略 3: 手动检查
+- ⚠️ 既有框架更新又有本地修改的业务模块
+- ⚠️ 不确定的文件
+
+---
+
+## 🔍 详细文件清单
+
+### Java 文件
+\`\`\`
+$(cat ${TEMP_DIR}/java-files.txt | head -50)
+$([ $(cat ${TEMP_DIR}/java-files.txt | wc -l) -gt 50 ] && echo "... 还有 $(( $(cat ${TEMP_DIR}/java-files.txt | wc -l) - 50 )) 个文件" || true)
+\`\`\`
+
+### 前端文件
+\`\`\`
+$(cat ${TEMP_DIR}/frontend-files.txt | head -50)
+$([ $(cat ${TEMP_DIR}/frontend-files.txt | wc -l) -gt 50 ] && echo "... 还有 $(( $(cat ${TEMP_DIR}/frontend-files.txt | wc -l) - 50 )) 个文件" || true)
+\`\`\`
+
+---
+
+## ⚠️ 注意事项
+
+1. **配置文件**: 虽然保留本地版本，但需检查 upstream 是否新增配置项
+2. **自定义类**: 注意框架升级后 API 是否有变化
+3. **依赖文件**: 使用 upstream 版本后需测试兼容性
+4. **充分测试**: 合并后务必测试核心功能
+
+---
+
+## 🚀 下一步操作
+
+1. 仔细阅读本报告，理解修改分布
+2. 决定使用哪种模式继续：
+   - 交互模式（推荐）: \`$0 --mode interactive\`
+   - 自动模式（快速）: \`$0 --mode auto\`
+3. 执行合并
+4. 充分测试
+
+EOF
+
+    print_success "报告已生成: $REPORT_FILE"
+}
+
+# ============================================================================
+# 步骤 3：启动合并
+# ============================================================================
+
+step3_start_merge() {
+    print_step "步骤 3/8: 启动合并"
+
+    print_info "开始合并 ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}..."
+
+    if git merge ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH} --no-commit --no-ff 2>&1 | tee ${TEMP_DIR}/merge-output.txt; then
+        print_success "合并完成，无冲突"
+        HAS_CONFLICTS=false
+    else
+        if grep -q "CONFLICT" ${TEMP_DIR}/merge-output.txt; then
+            print_warning "检测到冲突，将进行批量处理"
+            HAS_CONFLICTS=true
+
+            # 统计冲突
+            INITIAL_CONFLICTS=$(git diff --name-only --diff-filter=U | wc -l | tr -d ' ')
+            print_info "冲突文件数: $INITIAL_CONFLICTS"
         else
-            print_warning "恢复暂存更改时出现冲突，请手动解决"
+            print_error "合并失败，请检查错误信息"
+            cat ${TEMP_DIR}/merge-output.txt
+            cleanup_and_exit 1
+        fi
+    fi
+}
+
+# ============================================================================
+# 步骤 4：批量保留配置文件
+# ============================================================================
+
+step4_keep_configs() {
+    print_step "步骤 4/8: 批量保留配置文件"
+
+    if [ ! -s ${TEMP_DIR}/config-files.txt ]; then
+        print_info "没有配置文件需要处理"
+        return
+    fi
+
+    print_info "保留 $CONFIG_COUNT 个配置文件的本地版本..."
+
+    local count=0
+    while IFS= read -r file; do
+        if [ -f "$file" ]; then
+            git checkout --ours -- "$file" 2>/dev/null || true
+            git add "$file" 2>/dev/null || true
+            count=$((count + 1))
+            echo "  [$count/$CONFIG_COUNT] $file"
+        fi
+    done < ${TEMP_DIR}/config-files.txt
+
+    print_success "配置文件处理完成: $count 个"
+}
+
+# ============================================================================
+# 步骤 5：批量保留自定义类
+# ============================================================================
+
+step5_keep_custom_classes() {
+    print_step "步骤 5/8: 批量保留自定义类"
+
+    if [ ! -s ${TEMP_DIR}/custom-files.txt ]; then
+        print_info "没有自定义类需要处理"
+        return
+    fi
+
+    print_info "保留 $CUSTOM_COUNT 个自定义类的本地版本..."
+
+    local count=0
+    while IFS= read -r file; do
+        if [ -f "$file" ]; then
+            git checkout --ours -- "$file" 2>/dev/null || true
+            git add "$file" 2>/dev/null || true
+            count=$((count + 1))
+            echo "  [$count/$CUSTOM_COUNT] $file"
+        fi
+    done < ${TEMP_DIR}/custom-files.txt
+
+    print_success "自定义类处理完成: $count 个"
+}
+
+# ============================================================================
+# 步骤 6：批量保留新增文件
+# ============================================================================
+
+step6_keep_new_files() {
+    print_step "步骤 6/8: 批量保留新增文件"
+
+    if [ ! -s ${TEMP_DIR}/new-files.txt ]; then
+        print_info "没有新增文件需要处理"
+        return
+    fi
+
+    print_info "保留 $NEW_COUNT 个新增文件..."
+
+    local count=0
+    while IFS= read -r file; do
+        if [ -f "$file" ]; then
+            git checkout --ours -- "$file" 2>/dev/null || true
+            git add "$file" 2>/dev/null || true
+            count=$((count + 1))
+            echo "  [$count/$NEW_COUNT] $file"
+        fi
+    done < ${TEMP_DIR}/new-files.txt
+
+    print_success "新增文件处理完成: $count 个"
+}
+
+# ============================================================================
+# 步骤 7：处理剩余冲突
+# ============================================================================
+
+step7_handle_remaining_conflicts() {
+    print_step "步骤 7/8: 处理剩余冲突"
+
+    # 检查剩余冲突
+    REMAINING_CONFLICTS=$(git diff --name-only --diff-filter=U 2>/dev/null | wc -l | tr -d ' ')
+
+    if [ "$REMAINING_CONFLICTS" -eq 0 ]; then
+        print_success "没有剩余冲突！"
+        return
+    fi
+
+    print_info "剩余冲突文件: $REMAINING_CONFLICTS 个"
+
+    if [ "$HAS_CONFLICTS" = true ] && [ -n "$INITIAL_CONFLICTS" ]; then
+        local resolved=$((INITIAL_CONFLICTS - REMAINING_CONFLICTS))
+        print_success "已自动解决: $resolved 个 ($(( resolved * 100 / INITIAL_CONFLICTS ))%)"
+    fi
+
+    # 显示剩余冲突文件
+    echo ""
+    echo "剩余冲突文件列表:"
+    git diff --name-only --diff-filter=U | head -20
+    if [ "$REMAINING_CONFLICTS" -gt 20 ]; then
+        echo "... 还有 $(( REMAINING_CONFLICTS - 20 )) 个文件"
+    fi
+    echo ""
+
+    # 分析剩余冲突类型
+    git diff --name-only --diff-filter=U > ${TEMP_DIR}/remaining-conflicts.txt
+
+    # 提供批量处理选项
+    if [ "$MODE" = "interactive" ]; then
+        echo "批量处理选项:"
+        echo "  1. 保留所有本地版本 (git checkout --ours)"
+        echo "  2. 使用所有 upstream 版本 (git checkout --theirs)"
+        echo "  3. 对框架文件使用 upstream，其他手动处理"
+        echo "  4. 跳过，稍后使用 IDE 手动处理"
+        echo ""
+        read -p "$(echo -e ${CYAN}请选择 [1-4]: ${NC})" choice
+
+        case $choice in
+            1)
+                print_info "保留所有本地版本..."
+                git diff --name-only --diff-filter=U | xargs -I {} git checkout --ours -- {}
+                git add .
+                print_success "已保留所有本地版本"
+                ;;
+            2)
+                print_warning "使用所有 upstream 版本..."
+                if ask_confirmation "确认要覆盖所有本地修改吗？" "n"; then
+                    git diff --name-only --diff-filter=U | xargs -I {} git checkout --theirs -- {}
+                    git add .
+                    print_success "已使用所有 upstream 版本"
+                fi
+                ;;
+            3)
+                print_info "对框架文件使用 upstream 版本..."
+                git diff --name-only --diff-filter=U | grep -E "jeecg-boot-base|jeecg-module-system" | xargs -I {} git checkout --theirs -- {} 2>/dev/null || true
+                git add . 2>/dev/null || true
+
+                REMAINING=$(git diff --name-only --diff-filter=U | wc -l | tr -d ' ')
+                print_success "框架文件已处理，剩余 $REMAINING 个需手动处理"
+                ;;
+            4)
+                print_info "跳过批量处理"
+                ;;
+            *)
+                print_warning "无效选择，跳过"
+                ;;
+        esac
+    elif [ "$MODE" = "auto" ]; then
+        print_info "自动模式：对框架文件使用 upstream 版本..."
+        git diff --name-only --diff-filter=U | grep -E "jeecg-boot-base|pom\.xml|package\.json" | xargs -I {} git checkout --theirs -- {} 2>/dev/null || true
+        git add . 2>/dev/null || true
+    fi
+
+    # 最终检查
+    FINAL_CONFLICTS=$(git diff --name-only --diff-filter=U 2>/dev/null | wc -l | tr -d ' ')
+
+    if [ "$FINAL_CONFLICTS" -gt 0 ]; then
+        print_warning "仍有 $FINAL_CONFLICTS 个冲突需要手动处理"
+        echo ""
+        echo "建议："
+        echo "  1. 使用 IDE 的冲突解决工具（推荐）"
+        echo "  2. 或手动编辑文件解决冲突标记（<<<<<<<, =======, >>>>>>>）"
+        echo "  3. 解决后执行: git add . && git commit"
+        echo ""
+
+        if [ "$MODE" = "interactive" ]; then
+            if ! ask_confirmation "现在暂停，让您手动处理剩余冲突。处理完成后继续？" "n"; then
+                print_info "请手动处理冲突后，执行以下命令完成合并："
+                echo ""
+                echo "  git add ."
+                echo "  git commit -m \"合并 upstream/${UPSTREAM_BRANCH}，保留本地定制\""
+                echo "  git push origin $LOCAL_BRANCH --force-with-lease"
+                echo ""
+                cleanup_and_exit 0
+            fi
+        fi
+    else
+        print_success "所有冲突已解决！"
+    fi
+}
+
+# ============================================================================
+# 步骤 8：提交并推送
+# ============================================================================
+
+step8_commit_and_push() {
+    print_step "步骤 8/8: 提交并推送"
+
+    # 检查是否还有未解决的冲突
+    if [ $(git diff --name-only --diff-filter=U 2>/dev/null | wc -l) -gt 0 ]; then
+        print_error "仍有未解决的冲突，无法提交"
+        git diff --name-only --diff-filter=U
+        cleanup_and_exit 1
+    fi
+
+    # 显示变更摘要
+    print_info "变更摘要:"
+    echo ""
+    git diff --cached --stat | head -20
+    echo ""
+
+    # 交互模式：询问是否提交
+    if [ "$MODE" = "interactive" ]; then
+        if ! ask_confirmation "是否提交合并？" "y"; then
+            print_warning "用户取消提交"
+            echo ""
+            echo "未提交的更改已暂存，您可以稍后提交："
+            echo "  git commit -m \"合并 upstream/${UPSTREAM_BRANCH}\""
+            cleanup_and_exit 0
         fi
     fi
 
-    echo ""
-    print_success "=========================================="
-    print_success "  同步完成！"
-    print_success "=========================================="
-    echo ""
-    print_info "备份分支: ${GREEN}$BACKUP_BRANCH${NC}"
-    print_info "当前分支: ${GREEN}$LOCAL_BRANCH${NC}"
-    echo ""
-    if [ -n "$ORIGIN_URL" ]; then
-        print_info "如果需要推送到远程仓库 origin/${ORIGIN_BRANCH}，请执行："
-        echo "  ${YELLOW}git push origin ${ORIGIN_BRANCH} --force-with-lease${NC}"
+    # 生成提交信息
+    local commit_msg=$(cat <<EOF
+合并 upstream/${UPSTREAM_BRANCH} 最新代码，保留 SIMBEST 定制
+
+📊 统计:
+- 总修改文件: $TOTAL_CHANGES
+- 配置文件: $CONFIG_COUNT (已保留本地版本)
+- 自定义类: $CUSTOM_COUNT (已保留本地版本)
+- 新增文件: $NEW_COUNT (已保留)
+
+✅ 自动处理:
+- 批量保留配置文件
+- 批量保留自定义类
+- 批量保留新增文件
+
+🔄 框架更新:
+- 更新到 upstream 最新版本
+- 保留 SIMBEST 核心定制
+
+⚠️ 测试状态: 待测试
+
+备份: $BACKUP_TAG
+EOF
+)
+
+    print_info "提交合并..."
+    git commit -m "$commit_msg"
+
+    print_success "提交完成"
+
+    # 询问是否推送
+    if [ "$MODE" = "interactive" ]; then
         echo ""
-    fi
-    print_info "如果需要回滚到同步前的状态，请执行："
-    echo "  ${YELLOW}git reset --hard $BACKUP_BRANCH${NC}"
-    echo ""
-    print_info "如果需要删除备份分支，请执行："
-    echo "  ${YELLOW}git branch -D $BACKUP_BRANCH${NC}"
-    echo ""
-
-else
-    # Rebase失败，可能有冲突
-    print_error "Rebase过程中出现冲突"
-    echo ""
-    print_info "请按以下步骤解决："
-    echo ""
-    echo "1. 查看冲突文件："
-    echo "   ${YELLOW}git status${NC}"
-    echo ""
-    echo "2. 编辑冲突文件，解决冲突标记"
-    echo ""
-    echo "3. 对于每个文件，选择解决方式："
-    echo "   - 使用upstream版本: ${YELLOW}git checkout --theirs <文件>${NC}"
-    echo "   - 使用本地版本: ${YELLOW}git checkout --ours <文件>${NC}"
-    echo "   - 手动编辑合并: 直接编辑文件"
-    echo ""
-    echo "4. 标记冲突已解决："
-    echo "   ${YELLOW}git add <已解决的文件>${NC}"
-    echo ""
-    echo "5. 继续rebase："
-    echo "   ${YELLOW}git rebase --continue${NC}"
-    echo ""
-    echo "或者放弃rebase，恢复到同步前状态："
-    echo "   ${YELLOW}git rebase --abort${NC}"
-    echo "   ${YELLOW}git reset --hard $BACKUP_BRANCH${NC}"
-    echo ""
-
-    # 恢复暂存的更改
-    if [ "$STASH_NEEDED" = true ]; then
-        print_warning "您有暂存的更改，解决冲突后请执行: ${YELLOW}git stash pop${NC}"
+        if ! ask_confirmation "是否推送到远程仓库 origin/$LOCAL_BRANCH？" "n"; then
+            print_info "未推送，您可以稍后手动推送："
+            echo "  git push origin $LOCAL_BRANCH --force-with-lease"
+            cleanup_and_exit 0
+        fi
     fi
 
-    exit 1
-fi
+    print_info "推送到 origin/$LOCAL_BRANCH..."
+    if git push origin "$LOCAL_BRANCH" --force-with-lease; then
+        print_success "推送成功！"
+    else
+        print_error "推送失败，可能需要先拉取远程更改"
+        echo ""
+        echo "建议操作："
+        echo "  git pull --rebase origin $LOCAL_BRANCH"
+        echo "  git push origin $LOCAL_BRANCH --force-with-lease"
+        cleanup_and_exit 1
+    fi
+}
+
+# ============================================================================
+# 清理和退出
+# ============================================================================
+
+cleanup_and_exit() {
+    local exit_code=$1
+
+    # 清理临时文件
+    if [ -d "$TEMP_DIR" ]; then
+        rm -rf "$TEMP_DIR"
+    fi
+
+    if [ $exit_code -eq 0 ]; then
+        print_success "同步流程完成！"
+        echo ""
+        echo "📋 重要提醒:"
+        echo "  1. 测试应用是否正常启动"
+        echo "  2. 测试核心功能是否正常"
+        echo "  3. 检查日志是否有异常"
+        echo "  4. 如有问题，回滚到备份: git reset --hard $BACKUP_TAG"
+    fi
+
+    exit $exit_code
+}
+
+# 捕获中断信号
+trap 'print_error "用户中断操作"; cleanup_and_exit 1' INT TERM
+
+# ============================================================================
+# 主流程
+# ============================================================================
+
+main() {
+    # 解析命令行参数
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --mode)
+                MODE="$2"
+                shift 2
+                ;;
+            --upstream)
+                UPSTREAM_REMOTE="$2"
+                shift 2
+                ;;
+            --branch)
+                UPSTREAM_BRANCH="$2"
+                shift 2
+                ;;
+            --help)
+                show_help
+                ;;
+            *)
+                print_error "未知参数: $1"
+                echo "使用 --help 查看帮助"
+                exit 1
+                ;;
+        esac
+    done
+
+    # 验证模式
+    if [[ ! "$MODE" =~ ^(analyze|interactive|auto)$ ]]; then
+        print_error "无效的模式: $MODE"
+        echo "有效模式: analyze, interactive, auto"
+        exit 1
+    fi
+
+    # 显示欢迎信息
+    echo ""
+    echo "╔═══════════════════════════════════════════════════╗"
+    echo "║   JeecgBoot Upstream 同步脚本 v2.0                ║"
+    echo "╚═══════════════════════════════════════════════════╝"
+    echo ""
+    print_info "运行模式: $MODE"
+    print_info "当前分支: $LOCAL_BRANCH"
+    print_info "同步目标: ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}"
+    echo ""
+
+    # 安全检查
+    if [ -n "$(git status --porcelain)" ]; then
+        print_warning "工作区有未提交的修改"
+        git status --short
+        echo ""
+        if ! ask_confirmation "是否继续？未提交的修改可能丢失！" "n"; then
+            print_info "请先提交或暂存您的修改"
+            exit 0
+        fi
+    fi
+
+    # 检查 upstream 是否存在
+    if ! git remote | grep -q "^${UPSTREAM_REMOTE}$"; then
+        print_error "未找到远程仓库: $UPSTREAM_REMOTE"
+        echo ""
+        echo "请先添加 upstream:"
+        echo "  git remote add $UPSTREAM_REMOTE <upstream-url>"
+        exit 1
+    fi
+
+    # 执行八步流程
+    step1_create_backup
+    step2_identify_changes
+
+    # 如果是分析模式，在 step2 中已经退出
+    # 以下步骤只在 interactive 和 auto 模式执行
+
+    step3_start_merge
+    step4_keep_configs
+    step5_keep_custom_classes
+    step6_keep_new_files
+    step7_handle_remaining_conflicts
+    step8_commit_and_push
+
+    cleanup_and_exit 0
+}
+
+# 执行主流程
+main "$@"
