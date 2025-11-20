@@ -1,17 +1,23 @@
 #!/bin/bash
 
 ################################################################################
-# JeecgBoot Upstream 同步脚本 v2.0
+# JeecgBoot Upstream 同步脚本 v2.1
 #
 # 用途：智能同步 upstream 最新代码，保留本地定制
 # 作者：SIMBEST
 # 日期：2025-11-20
+# 更新：v2.1 - 新增智能检测逻辑，避免重复同步
 #
 # 使用方法：
 #   ./sync-upstream.sh                    # 交互模式（默认）
 #   ./sync-upstream.sh --mode analyze     # 分析模式（只分析不合并）
 #   ./sync-upstream.sh --mode auto        # 自动模式（完全自动）
 #   ./sync-upstream.sh --help             # 显示帮助
+#
+# 新特性（v2.1）：
+#   ✅ 智能检测：自动判断是否需要同步，避免重复执行
+#   ✅ 提交分析：精确显示 upstream 新增的提交数量
+#   ✅ 状态提示：清晰展示本地与 upstream 的关系
 ################################################################################
 
 set -e  # 遇到错误立即退出
@@ -104,7 +110,7 @@ ask_confirmation() {
 # 显示帮助信息
 show_help() {
     cat << EOF
-JeecgBoot Upstream 同步脚本 v2.0
+JeecgBoot Upstream 同步脚本 v2.1
 
 用法: $0 [选项]
 
@@ -131,12 +137,28 @@ JeecgBoot Upstream 同步脚本 v2.0
 工作流程（8步）:
     1. 创建备份分支和标签
     2. 识别核心修改（生成详细报告）⭐ 最关键
+       ✨ 新增：智能检测是否需要同步，避免重复执行
     3. 启动合并（触发冲突）
     4. 批量保留配置文件
     5. 批量保留自定义类
     6. 批量保留新增文件
     7. 处理剩余冲突
     8. 提交并推送（可选）
+
+新特性（v2.1）:
+    ✅ 智能检测逻辑
+       - 自动判断本地是否已包含 upstream 所有提交
+       - 精确显示需要同步的新提交数量
+       - 避免重复同步，节省时间
+
+    ✅ 增强的状态提示
+       - 清晰展示本地与 upstream 的提交关系
+       - 显示共同祖先点
+       - 预览 upstream 新提交内容
+
+    ✅ 防重复检测
+       - 检测 24 小时内是否已同步
+       - 交互模式下二次确认
 
 EOF
     exit 0
@@ -179,7 +201,93 @@ step2_identify_changes() {
     print_info "获取 upstream 最新代码..."
     git fetch "$UPSTREAM_REMOTE"
 
-    print_info "分析本地修改..."
+    # ========================================
+    # 智能检测：判断是否真的需要同步
+    # ========================================
+
+    print_info "检测同步状态..."
+
+    # 获取关键提交点
+    LOCAL_HEAD=$(git rev-parse HEAD)
+    UPSTREAM_HEAD=$(git rev-parse ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH})
+    MERGE_BASE=$(git merge-base HEAD ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH})
+
+    echo ""
+    echo "📍 提交状态："
+    echo "  ├─ 本地 HEAD:    $(git rev-parse --short HEAD) ($(git log -1 --format='%s' HEAD | head -c 50)...)"
+    echo "  ├─ Upstream:     $(git rev-parse --short ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}) ($(git log -1 --format='%s' ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH} | head -c 50)...)"
+    echo "  └─ 共同祖先:     $(git rev-parse --short $MERGE_BASE)"
+    echo ""
+
+    # 情况1：本地已经包含 upstream 所有提交（本地是 upstream 的超集）
+    if [ "$MERGE_BASE" = "$UPSTREAM_HEAD" ]; then
+        print_success "✅ 本地分支已包含 upstream 所有提交"
+        echo ""
+        echo "📊 状态说明："
+        echo "  本地分支是基于 upstream 开发的，包含了所有 upstream 的提交"
+        echo "  本地还有额外的提交（本地定制）"
+        echo ""
+
+        # 计算本地领先的提交数
+        LOCAL_AHEAD=$(git rev-list --count ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}..HEAD)
+        echo "  本地领先 upstream: $LOCAL_AHEAD 个提交"
+
+        print_success "✨ 无需同步！本地已是最新状态"
+        echo ""
+        echo "💡 提示："
+        echo "  如果 upstream 有新的提交，请稍后再次运行此脚本"
+        echo "  查看 upstream 最新状态: git log ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH} -5"
+
+        cleanup_and_exit 0
+    fi
+
+    # 情况2：本地与 upstream 完全一致
+    if [ "$LOCAL_HEAD" = "$UPSTREAM_HEAD" ]; then
+        print_success "✅ 本地分支与 upstream 完全一致"
+        print_success "✨ 无需同步！"
+        cleanup_and_exit 0
+    fi
+
+    # 情况3：有新的 upstream 提交需要合并
+    NEW_COMMITS=$(git rev-list --count ${MERGE_BASE}..${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH})
+    LOCAL_COMMITS=$(git rev-list --count ${MERGE_BASE}..HEAD)
+
+    print_warning "检测到需要同步"
+    echo ""
+    echo "📊 提交对比："
+    echo "  ├─ Upstream 新增提交: $NEW_COMMITS 个"
+    echo "  └─ 本地新增提交:      $LOCAL_COMMITS 个"
+    echo ""
+
+    if [ "$NEW_COMMITS" -gt 0 ]; then
+        echo "🔍 Upstream 新提交预览（最新 5 个）："
+        git log --oneline --graph --decorate ${MERGE_BASE}..${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH} | head -10
+        echo ""
+    fi
+
+    # 检查最近是否刚同步过（24小时内）
+    LAST_MERGE=$(git log --all --grep="合并 upstream" --since="24 hours ago" --oneline 2>/dev/null | head -1)
+    if [ -n "$LAST_MERGE" ]; then
+        print_warning "检测到最近 24 小时内已同步过："
+        echo "  $LAST_MERGE"
+        echo ""
+
+        if [ "$MODE" = "interactive" ]; then
+            if ! ask_confirmation "确认要再次同步吗？" "n"; then
+                print_info "取消同步"
+                cleanup_and_exit 0
+            fi
+        elif [ "$MODE" = "analyze" ]; then
+            print_info "分析模式：继续分析..."
+        fi
+    fi
+
+    # ========================================
+    # 继续文件差异分析
+    # ========================================
+
+    print_info "分析文件差异..."
+    echo ""
 
     # 创建临时目录
     mkdir -p "$TEMP_DIR"
@@ -252,7 +360,26 @@ generate_analysis_report() {
 
 ---
 
-## 📊 统计摘要
+## 🔍 同步状态检测
+
+### 提交状态
+- **本地 HEAD**: \`$(git rev-parse --short HEAD)\` - $(git log -1 --format='%s' HEAD)
+- **Upstream**: \`$(git rev-parse --short ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH})\` - $(git log -1 --format='%s' ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH})
+- **共同祖先**: \`$(git rev-parse --short $MERGE_BASE)\`
+
+### 提交对比
+- **Upstream 新增提交**: $NEW_COMMITS 个
+- **本地新增提交**: $LOCAL_COMMITS 个
+
+### Upstream 新提交列表
+\`\`\`
+$(git log --oneline ${MERGE_BASE}..${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH} | head -20)
+$([ $NEW_COMMITS -gt 20 ] && echo "... 还有 $(( NEW_COMMITS - 20 )) 个提交" || true)
+\`\`\`
+
+---
+
+## 📊 文件差异统计
 
 | 类型 | 数量 | 占比 |
 |------|------|------|
@@ -719,7 +846,8 @@ main() {
     # 显示欢迎信息
     echo ""
     echo "╔═══════════════════════════════════════════════════╗"
-    echo "║   JeecgBoot Upstream 同步脚本 v2.0                ║"
+    echo "║   JeecgBoot Upstream 同步脚本 v2.1                ║"
+    echo "║   ✨ 新增：智能检测，避免重复同步                 ║"
     echo "╚═══════════════════════════════════════════════════╝"
     echo ""
     print_info "运行模式: $MODE"
