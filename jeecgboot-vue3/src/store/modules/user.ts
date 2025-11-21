@@ -178,6 +178,12 @@ export const useUserStore = defineStore({
      * @param goHome
      */
     async afterLoginAction(goHome?: boolean, data?: any): Promise<any | null> {
+      console.log('🔍 afterLoginAction被调用:', {
+        goHome,
+        hasToken: !!this.getToken,
+        currentPath: window.location.pathname,
+      });
+
       if (!this.getToken) return null;
       //获取用户信息
       const userInfo = await this.getUserInfoAction();
@@ -199,6 +205,11 @@ export const useUserStore = defineStore({
         //update-end---author:scott ---date::2024-02-21  for：【QQYUN-8326】登录不需要构建路由，进入首页有构建---
         
         await this.setLoginInfo({ ...data, isLogin: true });
+
+        // ========== 登录成功后打印用户身份信息 ==========
+        await this.printUserIdentityInfo();
+        // ============================================
+
         //update-begin-author:liusq date:2022-5-5 for:登录成功后缓存拖拽模块的接口前缀
         localStorage.setItem(JDragConfigEnum.DRAG_BASE_URL, useGlobSetting().domainUrl);
         //update-end-author:liusq date:2022-5-5 for: 登录成功后缓存拖拽模块的接口前缀
@@ -221,14 +232,14 @@ export const useUserStore = defineStore({
         //update-begin---author:wangshuai---date:2024-04-03---for:【issues/1102】设置单点登录后页面，进入首页提示404，也没有绘制侧边栏 #1102---
         let ticket = getUrlParam('ticket');
         if(ticket){
+          console.log('🔍 检查ticket跳转:', { ticket, goHome, targetPath: (userInfo && userInfo.homePath) || PageEnum.BASE_HOME });
           goHome && (window.location.replace((userInfo && userInfo.homePath) || PageEnum.BASE_HOME));
         }else{
+          console.log('🔍 检查常规跳转:', { goHome, targetPath: (userInfo && userInfo.homePath) || PageEnum.BASE_HOME });
           goHome && (await router.replace((userInfo && userInfo.homePath) || PageEnum.BASE_HOME));
         }
         //update-end---author:wangshuai---date:2024-04-03---for:【issues/1102】设置单点登录后页面，进入首页提示404，也没有绘制侧边栏 #1102---
       }
-      // 打印用户身份信息到控制台
-      await this.printUserIdentityInfo();
       return data;
     },
     /**
