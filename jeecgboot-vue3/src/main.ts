@@ -19,6 +19,7 @@ import { registerGlobComp } from '/@/components/registerGlobComp';
 import { registerThirdComp } from '/@/settings/registerThirdComp';
 import { registerSuper } from '/@/views/super/registerSuper';
 import { useSso } from '/@/hooks/web/useSso';
+import { globalSSOManager } from '/@/utils/sso/GlobalSSOManager';
 import { checkIsQiankunMicro } from "/@/qiankun/micro";
 import { autoUseQiankunMicro } from "/@/qiankun/micro/qiankunMicro";
 import { useAppStoreWithOut } from "@/store/modules/app";
@@ -69,8 +70,8 @@ async function bootstrap(props?: MainAppProps) {
   // 注册全局组件
   registerGlobComp(app);
 
-  //CAS单点登录
-  await useSso().ssoLogin();
+  // 初始化SSO管理器（统一SSO解决方案，支持webauth和apiauth双模式）
+  await globalSSOManager.initialize();
 
   // 注册super应用路由
   await registerSuper(app);

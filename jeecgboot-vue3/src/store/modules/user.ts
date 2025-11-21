@@ -18,6 +18,7 @@ import { isArray } from '/@/utils/is';
 import { useGlobSetting } from '/@/hooks/setting';
 import { JDragConfigEnum } from '/@/enums/jeecgEnum';
 import { useSso } from '/@/hooks/web/useSso';
+import { globalSSOManager } from '/@/utils/sso/GlobalSSOManager';
 import { isOAuth2AppEnv } from "/@/views/sys/login/useLogin";
 import { getUrlParam } from "@/utils";
 interface dictType {
@@ -325,6 +326,10 @@ export const useUserStore = defineStore({
         this.setAllDictItems(null);
       }, 1e3);
       // update-end--author:liaozhiyang---date:20240517---for：【TV360X-23】退出登录后会提示「Token时效，请重新登录」
+
+      // 清理SSO会话（统一SSO解决方案）
+      globalSSOManager.clearSession();
+
       //update-begin-author:liusq date:2022-5-5 for:退出登录后清除拖拽模块的接口前缀
       localStorage.removeItem(JDragConfigEnum.DRAG_BASE_URL);
       //update-end-author:liusq date:2022-5-5 for: 退出登录后清除拖拽模块的接口前缀
