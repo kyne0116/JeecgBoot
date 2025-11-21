@@ -80,18 +80,21 @@ public class JeecgSystemApplication extends SpringBootServletInitializer {
 
     /**
      * 获取Redis配置信息
+     * 注意: Spring Boot 3.x 使用 spring.data.redis.* 前缀
      */
     private static String getRedisInfo(Environment env) {
+        // Spring Boot 3.x 前缀
+        final String PREFIX = "spring.data.redis.";
+
         // 首先检查集群模式配置
-        String clusterNodesProperty = env.getProperty("spring.redis.cluster.nodes");
+        String clusterNodesProperty = env.getProperty(PREFIX + "cluster.nodes");
 
         // 如果没有找到cluster.nodes，尝试从数组格式读取
         if (clusterNodesProperty == null || clusterNodesProperty.isEmpty()) {
-            // 尝试读取数组格式的节点配置 spring.redis.cluster.nodes[0], spring.redis.cluster.nodes[1], etc.
             StringBuilder nodeBuilder = new StringBuilder();
             int index = 0;
             String node;
-            while ((node = env.getProperty("spring.redis.cluster.nodes[" + index + "]")) != null) {
+            while ((node = env.getProperty(PREFIX + "cluster.nodes[" + index + "]")) != null) {
                 if (index > 0) {
                     nodeBuilder.append(",");
                 }
@@ -104,9 +107,9 @@ public class JeecgSystemApplication extends SpringBootServletInitializer {
         }
 
         if (clusterNodesProperty != null && !clusterNodesProperty.isEmpty()) {
-            String password = env.getProperty("spring.redis.password");
-            String timeout = env.getProperty("spring.redis.timeout");
-            String maxRedirects = env.getProperty("spring.redis.cluster.max-redirects");
+            String password = env.getProperty(PREFIX + "password");
+            String timeout = env.getProperty(PREFIX + "timeout");
+            String maxRedirects = env.getProperty(PREFIX + "cluster.max-redirects");
 
             StringBuilder redisInfo = new StringBuilder();
             redisInfo.append("Redis集群: 集群模式");
@@ -131,10 +134,10 @@ public class JeecgSystemApplication extends SpringBootServletInitializer {
             return redisInfo.toString();
         } else {
             // 单机模式或无Redis配置
-            String redisHost = env.getProperty("spring.redis.host");
-            String redisPort = env.getProperty("spring.redis.port");
-            String redisDatabase = env.getProperty("spring.redis.database");
-            String password = env.getProperty("spring.redis.password");
+            String redisHost = env.getProperty(PREFIX + "host");
+            String redisPort = env.getProperty(PREFIX + "port");
+            String redisDatabase = env.getProperty(PREFIX + "database");
+            String password = env.getProperty(PREFIX + "password");
 
             // 检查是否有任何Redis配置
             if (redisHost == null && redisPort == null && redisDatabase == null && password == null) {

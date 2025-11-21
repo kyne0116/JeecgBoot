@@ -1308,12 +1308,11 @@ class MavenModuleCreationTask:
             return None
     
     def _check_module_exists(self, module_name: str) -> bool:
-        """检查模块是否完整存在（通过验证pom.xml）"""
+        """检查模块目录是否存在"""
         try:
             project_root = self.config.get_project_root()
-            # 检查 pom.xml 而不是目录，确保模块完整创建
-            pom_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}/pom.xml"
-            return os.path.exists(pom_path)
+            module_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
+            return os.path.exists(module_path)
         except Exception:
             return False
     
@@ -2770,15 +2769,20 @@ class PlaceholderVariableProcessingTask:
             }
             
             print(f"[INFO] 占位变量映射: {placeholders}")
-
-            # 处理文件夹重命名 - 递归查找并处理所有 {{PACKAGE_NAME}} 占位符目录
-            print(f"[PROCESS] 开始递归查找占位符目录...")
-            renamed_dirs = self._find_and_rename_placeholder_dirs(src_java_path, package_name)
-            if renamed_dirs > 0:
-                print(f"[OK] 成功处理 {renamed_dirs} 个占位符目录")
+            
+            # 处理文件夹重命名 - 先重命名包目录结构
+            old_package_path = f"{src_java_path}/{{{{PACKAGE_NAME}}}}"
+            new_package_path = f"{src_java_path}/{package_path}"
+            
+            if os.path.exists(old_package_path):
+                print(f"[RENAME] 重命名包目录: {{{{PACKAGE_NAME}}}} -> {package_path}")
+                # 创建正确的包目录结构
+                os.makedirs(os.path.dirname(new_package_path), exist_ok=True)
+                shutil.move(old_package_path, new_package_path)
+                print(f"[OK] 包目录重命名成功")
             else:
-                print(f"[INFO] 未发现需要处理的占位符目录")
-
+                print(f"[INFO] 未找到需要重命名的包目录: {old_package_path}")
+            
             # 处理所有文件中的占位变量
             replaced_count = 0
             processed_files = []
@@ -2847,128 +2851,10 @@ class PlaceholderVariableProcessingTask:
                     }
             
             return None
-
+            
         except Exception:
             return None
-
-    def _find_and_rename_placeholder_dirs(self, src_java_path: str, package_name: str) -> int:
-        """
-        递归查找并智能处理所有 {{PACKAGE_NAME}} 占位符目录
-
-        策略：
-        1. 递归遍历整个 src/main/java 目录树，找到所有 {{PACKAGE_NAME}} 占位符目录
-        2. 按深度从深到浅排序，确保先处理子目录再处理父目录
-        3. 智能处理：
-           a) 顶层占位符目录（在 src/main/java 下）:
-              - 如果正确的包路径已存在 -> 删除冗余的占位符目录
-              - 如果正确的包路径不存在 -> 将占位符目录重命名为正确的包路径
-           b) 嵌套占位符目录（在包路径中）:
-              - 将占位符目录中的内容移动到父目录
-              - 如果目标已存在，使用占位符版本覆盖
-              - 删除空的占位符目录
-
-        Args:
-            src_java_path: Java源代码根路径（如 .../src/main/java）
-            package_name: 正确的包名（如 org.jeecg.modules.finance）
-
-        Returns:
-            int: 成功处理的占位符目录数量
-        """
-        import shutil
-        renamed_count = 0
-        placeholder_dir_name = '{{PACKAGE_NAME}}'
-        package_path = package_name.replace('.', os.sep)  # org.jeecg.modules.finance -> org/jeecg/modules/finance
-
-        # 收集所有需要处理的占位符目录（从深到浅排序，避免处理冲突）
-        placeholder_dirs = []
-
-        for root, dirs, files in os.walk(src_java_path):
-            if placeholder_dir_name in dirs:
-                placeholder_dir_path = os.path.join(root, placeholder_dir_name)
-                # 计算目录深度（用于排序）
-                depth = placeholder_dir_path.count(os.sep)
-                placeholder_dirs.append((depth, placeholder_dir_path))
-
-        # 按深度从深到浅排序，确保先处理子目录再处理父目录
-        placeholder_dirs.sort(key=lambda x: x[0], reverse=True)
-
-        print(f"[SEARCH] 发现 {len(placeholder_dirs)} 个占位符目录需要处理")
-
-        for depth, placeholder_dir_path in placeholder_dirs:
-            try:
-                parent_dir = os.path.dirname(placeholder_dir_path)
-                relative_parent = os.path.relpath(parent_dir, src_java_path)
-
-                print(f"[RENAME] 处理占位符目录: {os.path.relpath(placeholder_dir_path, src_java_path)}")
-                print(f"   父目录: {relative_parent}")
-
-                # 判断是否为顶层占位符目录（直接在 src/main/java 下）
-                is_top_level = (parent_dir == src_java_path or relative_parent == '.')
-
-                if is_top_level:
-                    # 顶层占位符目录：检查正确路径是否存在
-                    correct_package_path = os.path.join(src_java_path, package_path)
-
-                    if os.path.exists(correct_package_path):
-                        # 正确路径已存在，直接删除占位符目录
-                        print(f"   [INFO] 正确的包路径已存在: {package_path}")
-                        print(f"   [DELETE] 删除冗余的顶层占位符目录及其内容")
-                        shutil.rmtree(placeholder_dir_path)
-                        renamed_count += 1
-                    else:
-                        # 正确路径不存在，将占位符目录重命名为正确路径
-                        print(f"   [INFO] 这是顶层占位符目录，重命名为正确的包路径")
-                        print(f"   [MOVE] {{{{PACKAGE_NAME}}}} -> {package_path}")
-                        os.makedirs(os.path.dirname(correct_package_path), exist_ok=True)
-                        shutil.move(placeholder_dir_path, correct_package_path)
-                        renamed_count += 1
-                else:
-                    # 嵌套的占位符目录：将内容移到父目录
-                    items_to_move = []
-                    for item in os.listdir(placeholder_dir_path):
-                        item_path = os.path.join(placeholder_dir_path, item)
-                        items_to_move.append((item, item_path))
-
-                    print(f"   [INFO] 这是嵌套的占位符目录，移动内容到父目录")
-                    print(f"   需要移动的项目数: {len(items_to_move)}")
-
-                    # 将所有内容移动到父目录
-                    moved_count = 0
-                    for item_name, item_path in items_to_move:
-                        target_path = os.path.join(parent_dir, item_name)
-
-                        # 如果目标已存在，使用占位符版本覆盖
-                        if os.path.exists(target_path):
-                            print(f"   [WARN] 目标已存在: {item_name}，使用占位符版本覆盖")
-                            if os.path.isdir(target_path):
-                                shutil.rmtree(target_path)
-                            else:
-                                os.remove(target_path)
-
-                        # 移动项目
-                        shutil.move(item_path, target_path)
-                        moved_count += 1
-                        print(f"   [MOVE] {item_name}")
-
-                    # 删除空的占位符目录
-                    try:
-                        os.rmdir(placeholder_dir_path)
-                        print(f"   [DELETE] 删除空占位符目录")
-                        renamed_count += 1
-                    except OSError as e:
-                        print(f"   [WARN] 无法删除占位符目录: {e}")
-
-                    print(f"   [OK] 成功移动 {moved_count} 个项目")
-
-            except Exception as e:
-                import traceback
-                print(f"[ERROR] Exception: {str(e)}")
-                traceback.print_exc()
-                print(f"   [ERROR] 处理占位符目录失败: {e}")
-                continue
-
-        return renamed_count
-
+    
     def _replace_file_placeholders(self, file_path: str, placeholders: Dict[str, str]) -> bool:
         """替换单个文件中的占位变量"""
         try:

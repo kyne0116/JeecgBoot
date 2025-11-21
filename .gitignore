@@ -21,4 +21,9 @@ derby.log
 
 ## macOS
 .DS_Store
-jeecgboot-vue3/pnpm-lock.yaml
+
+
+## upstream ignore - upstream更新后也不跟踪的目录
+jeecg-boot/jeecg-server-cloud
+jeecg-boot/jeecg-boot-module/jeecg-module-demo/
+jeecgboot-vue3/src/views/demo/
