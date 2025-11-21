@@ -1,5 +1,33 @@
 [
   {
+    "id": "success_fail_dict_id_001",
+    "type": 0,
+    "dictName": "成功失败状态",
+    "dictCode": "success_fail",
+    "description": "用于标识操作成功或失败的状态",
+    "delFlag": 0,
+    "createBy": "admin",
+    "createTime": "2025-11-20 22:37:12",
+    "updateBy": null,
+    "updateTime": null,
+    "tenantId": 0,
+    "lowAppId": null
+  },
+  {
+    "id": "1964944899916697602",
+    "type": 0,
+    "dictName": "用户职务",
+    "dictCode": "user_position",
+    "description": "用户职务",
+    "delFlag": 0,
+    "createBy": "admin",
+    "createTime": "2025-09-08 14:52:26",
+    "updateBy": null,
+    "updateTime": null,
+    "tenantId": 0,
+    "lowAppId": null
+  },
+  {
     "id": "1939572486447292418",
     "type": 0,
     "dictName": "首页关联",
@@ -382,7 +410,7 @@
     "type": 0,
     "dictName": "机构类型",
     "dictCode": "org_category",
-    "description": "机构类型 1公司，2部门 3岗位",
+    "description": "机构类型 1公司，2部门，3岗位，4子公司",
     "delFlag": 0,
     "createBy": "admin",
     "createTime": "2019-09-19 10:30:43",

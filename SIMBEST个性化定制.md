@@ -8,6 +8,7 @@
 
 | 定制时间   | 功能名称                          | 主要文件                                                                                                                                                   | 功能描述                                                                                      | 状态 |
 | ---------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---- |
+| 2025-11-21 | AI 代码生成配置优化               | jeecg_config.properties                                                                                                                                    | jeecg_config.properties 使用占位符变量用于动态的 AI 代码生成                                   | ✅   |
 | 2025-11-20 | Shiro + Actuator 兼容性修复       | application.yml<br/>application-dev.yml<br/>ShiroConfig.java                                                                                               | 解决 Shiro 与 Spring Boot Actuator RequestMappingHandlerMapping Bean 冲突导致的启动失败问题   | ✅   |
 | 2025-09-08 | 统一 SSO 单点登录解决方案         | SsoLoginController.java<br/>GlobalSSOManager.ts<br/>ssoGuard.ts<br/>README.md<br/>main.ts<br/>user.ts                                                      | 企业级 SSO 解决方案，支持 webauth(后端主导)和 apiauth(前端主导)双模式，统一 sso_data 参数体系 | ✅   |
 | 2025-08-28 | 增强型 Redis 工具类               | SimbestRedisUtil.java                                                                                                                                      | 支持中文 Key 自动编码、应用前缀管理、分布式锁、双向转换的 Redis 工具类                        | ✅   |
@@ -22,6 +23,30 @@
 ## 二、功能详细说明（按时间倒序）
 
 > 💡 **新增功能请在此部分顶部直接插入新的章节**
+
+### 2025-11-21：AI 代码生成配置优化
+
+**功能概述：** 优化 jeecg_config.properties 配置文件，使用占位符变量替代硬编码值，支持动态的 AI 代码生成功能。
+
+**技术背景：** 在 AI 辅助代码生成场景中，配置文件中的静态值（如数据库连接信息、服务器地址等）会影响 AI 对代码上下文的理解和生成质量。通过使用占位符变量，可以让 AI 更好地识别配置的动态性，生成更加灵活和可维护的代码。
+
+**涉及文件：**
+
+#### 配置文件
+
+**jeecg_config.properties（修改）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/resources/jeecg/jeecg_config.properties`
+- **功能摘要：** JeecgBoot 代码生成配置文件，使用模板占位符变量提升 AI 代码生成的准确性
+- **核心变更：**
+  - `project_path` 使用 `{{PROJECT_PATH}}` 模板变量替代硬编码路径
+  - `bussi_package` 使用 `{{PACKAGE_NAME}}` 模板变量替代固定包名
+  - 采用双大括号 Mustache/Handlebars 风格的变量语法
+  - 便于 AI 识别配置的动态性和项目差异性
+
+**实施状态：** ✅ 已完成
+
+---
 
 ### 2025-11-20：Shiro + Spring Boot Actuator 兼容性修复
 
