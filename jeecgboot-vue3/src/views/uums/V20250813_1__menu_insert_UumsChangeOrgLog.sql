@@ -3,7 +3,7 @@
 
 
 INSERT INTO sys_permission(id, parent_id, name, url, component, component_name, redirect, menu_type, perms, perms_type, sort_no, always_show, icon, is_route, is_leaf, keep_alive, hidden, hide_tab, description, status, del_flag, rule_flag, create_by, create_time, update_by, update_time, internal_or_external) 
-VALUES ('2025081310124830330', NULL, '主数据组织变更日志', '/uums/uumsChangeOrgLogList', 'uums/UumsChangeOrgLogList', NULL, NULL, 0, NULL, '1', 0.00, 0, NULL, 1, 0, 0, 0, 0, NULL, '1', 0, 0, 'admin', '2025-08-13 22:12:33', NULL, NULL, 0);
+VALUES ('2025081310124830330', '1439398677984878593', '主数据组织变更日志', '/uums/uumsChangeOrgLogList', 'uums/UumsChangeOrgLogList', NULL, NULL, 0, NULL, '1', 0.00, 0, NULL, 1, 0, 0, 0, 0, NULL, '1', 0, 0, 'admin', '2025-08-13 22:12:33', NULL, NULL, 0);
 
 -- 权限控制sql
 -- 新增

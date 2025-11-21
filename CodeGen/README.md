@@ -61,30 +61,30 @@ env | grep JEECG
 
 **1. 标准代码生成**
 ```bash
-python3 Code_Gen_Execute.py <配置文件.json>
+python Code_Gen_Execute.py <配置文件.json>
 ```
 
 **2. 环境配置向导**
 ```bash
-python3 Code_Gen_Execute.py --setup-guide
+python Code_Gen_Execute.py --setup-guide
 ```
 
 **3. 环境检查**
 ```bash
-python3 Code_Gen_Execute.py --check-env
+python Code_Gen_Execute.py --check-env
 ```
 
 **4. 数据字典下载**
 ```bash
-python3 Code_Gen_Execute.py --dict
+python Code_Gen_Execute.py --dict
 ```
 
 **推荐工作流程**：
 ```bash
-python3 Code_Gen_Execute.py --setup-guide    # 1. 配置环境
-python3 Code_Gen_Execute.py --check-env      # 2. 检查环境（可选）
-python3 Code_Gen_Execute.py --dict           # 3. 下载数据字典（可选）
-python3 Code_Gen_Execute.py config.json      # 4. 执行生成
+python Code_Gen_Execute.py --setup-guide    # 1. 配置环境
+python Code_Gen_Execute.py --check-env      # 2. 检查环境（可选）
+python Code_Gen_Execute.py --dict           # 3. 下载数据字典（可选）
+python Code_Gen_Execute.py config.json      # 4. 执行生成
 ```
 
 ## 三核心变量系统
@@ -196,10 +196,10 @@ graph TD
 
 ```bash
 # 1. 配置验证
-python3 Code_Gen_Validator.py customer_config.json
+python Code_Gen_Validator.py customer_config.json
 
 # 2. 代码生成
-python3 Code_Gen_Execute.py customer_config.json
+python Code_Gen_Execute.py customer_config.json
 
 # 生成结果
 # - 后端代码：jeecg-module-crm/
@@ -211,10 +211,10 @@ python3 Code_Gen_Execute.py customer_config.json
 
 ```bash
 # 1. 主表生成
-python3 Code_Gen_Execute.py student_main_config.json
+python Code_Gen_Execute.py student_main_config.json
 
 # 2. 子表生成
-python3 Code_Gen_Execute.py education_history_config.json
+python Code_Gen_Execute.py education_history_config.json
 
 # 生成结果
 # - 主子表关联的完整CRUD功能
@@ -236,7 +236,7 @@ export JEECG_PROJECT_ROOT=/your/project/path
 # ... 设置其他变量
 
 # 验证设置
-python3 Code_Gen_Execute.py --check-env
+python Code_Gen_Execute.py --check-env
 ```
 
 **2. API调用失败**
@@ -247,7 +247,7 @@ python3 Code_Gen_Execute.py --check-env
 **3. 配置验证失败**
 ```bash
 # 验证配置文件
-python3 Code_Gen_Validator.py your_config.json
+python Code_Gen_Validator.py your_config.json
 ```
 
 **4. 前端代码迁移失败**
@@ -258,7 +258,7 @@ python3 Code_Gen_Validator.py your_config.json
 
 ```bash
 export CODEGEN_DEBUG=1
-python3 Code_Gen_Execute.py config.json
+python Code_Gen_Execute.py config.json
 ```
 
 ## 参考资料

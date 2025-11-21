@@ -1337,12 +1337,12 @@ class MavenModuleCreationTask:
 
             maven_cmd = [
                 mvn_executable, 'archetype:generate',
-                '-DgroupId=org.jeecgframework.boot',
+                '-DgroupId=org.jeecgframework.boot3',  # 修正: boot -> boot3
                 f'-DartifactId=jeecg-module-{module_name}',
-                '-Dversion=3.8.2',
+                '-Dversion=3.8.3',  # 更新: 3.8.2 -> 3.8.3
                 '-DarchetypeGroupId=org.jeecgframework.archetype',
-                '-DarchetypeArtifactId=jeecg-boot-gen',
-                '-DarchetypeVersion=2.0',
+                '-DarchetypeArtifactId=jeecg-boot-archetype',  # 修正: jeecg-boot-gen -> jeecg-boot-archetype
+                '-DarchetypeVersion=3.0',  # 更新: 2.0 -> 3.0
                 '-DinteractiveMode=false'  # 非交互模式
             ]
 
@@ -2903,13 +2903,14 @@ class PlaceholderVariableProcessingTask:
 
 class FrontendCodeMigrationTask:
     """任务8：前端代码迁移"""
-    
+
     def __init__(self, config: JeecgBootConfig = None):
         self.task_id = 8
         self.task_name = "前端代码迁移"
         self.config = config or JeecgBootConfig()
         if not self.config.loaded:
             self.config.load_config()
+        self.target_directory = None  # 保存目标目录路径
     
     def execute(self, filename: str) -> str:
         """执行前端代码迁移任务"""
@@ -2917,20 +2918,22 @@ class FrontendCodeMigrationTask:
             # 读取配置数据
             with open(filename, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
-            
+
             print("8--前端代码迁移--任务开始")
-            
+
             # 执行前端代码迁移
-            if self.migrate_frontend_code(config_data):
+            success, target_dir = self.migrate_frontend_code(config_data)
+            if success:
+                self.target_directory = target_dir  # 保存目标目录
                 summary = "前端代码迁移成功"
                 task_result = "pass"
             else:
                 summary = "前端代码迁移失败"
                 task_result = "fail"
-            
+
             print(f"{self.task_id}--{self.task_name}--{summary}")
             print(task_result)
-            
+
             return f"{self.task_id}-{self.task_name}-{task_result}"
             
         except Exception as e:
@@ -2944,18 +2947,22 @@ class FrontendCodeMigrationTask:
             print(task_result)
             return f"{self.task_id}-{self.task_name}-{task_result}"
     
-    def migrate_frontend_code(self, config_data: Dict) -> bool:
-        """迁移前端代码到正确位置"""
+    def migrate_frontend_code(self, config_data: Dict) -> tuple:
+        """迁移前端代码到正确位置
+
+        Returns:
+            tuple: (success: bool, target_dir: str) - 成功状态和目标目录路径
+        """
         import shutil
-        
+
         try:
             print("[PROCESS] 开始迁移Vue3前端代码")
-            
+
             # 提取模块信息
             module_info = self._extract_module_info(config_data)
             if not module_info:
                 print("[ERROR] 缺少必要的模块信息")
-                return False
+                return (False, "")
             
             module_name = module_info['module_name']
             submodule_name = module_info['submodule_name']
@@ -2976,12 +2983,12 @@ class FrontendCodeMigrationTask:
             # 检查源路径是否存在
             if not os.path.exists(source_vue_path):
                 print(f"[ERROR] 源路径不存在: {source_vue_path}")
-                return False
-            
+                return (False, "")
+
             # 检查源路径中是否有文件
             if not os.listdir(source_vue_path):
                 print(f"[WARN] 源路径为空: {source_vue_path}")
-                return True  # 空目录也算成功
+                return (True, target_dir)  # 空目录也算成功，返回目标目录
             
             # 确保目标目录存在
             os.makedirs(target_dir, exist_ok=True)
@@ -3025,9 +3032,9 @@ class FrontendCodeMigrationTask:
                 print(f"[ERROR] Exception: {str(e)}")
                 traceback.print_exc()
                 print(f"[WARN] 清理源目录失败: {e}")
-            
-            return True
-            
+
+            return (True, target_dir)
+
         except Exception as e:
             import traceback
             print(f"[ERROR] Exception: {str(e)}")
@@ -3035,8 +3042,16 @@ class FrontendCodeMigrationTask:
             print(f"[ERROR] 前端代码迁移失败: {e}")
             import traceback
             traceback.print_exc()
-            return False
-    
+            return (False, "")
+
+    def get_target_directory(self) -> Optional[str]:
+        """获取前端代码迁移的目标目录
+
+        Returns:
+            Optional[str]: 目标目录路径，如果未执行迁移则返回None
+        """
+        return self.target_directory
+
     def _extract_module_info(self, config_data: Dict) -> Dict:
         """提取模块信息"""
         try:
@@ -3077,17 +3092,26 @@ class FrontendCodeMigrationTask:
 
 class DatabaseSQLExecutionTask:
     """任务9：菜单权限SQL执行任务"""
-    
+
     def __init__(self, config: Optional[JeecgBootConfig] = None):
         """初始化SQL执行任务
-        
+
         Args:
             config: JeecgBoot配置对象，包含数据库连接信息
         """
         self.config = config or JeecgBootConfig()
         if not self.config.loaded:
             self.config.load_config()
-    
+        self.target_directory = None  # 指定SQL文件查找目录
+
+    def set_target_directory(self, target_dir: Optional[str]):
+        """设置SQL文件查找目录
+
+        Args:
+            target_dir: 目标目录路径，如果为None则使用全局扫描
+        """
+        self.target_directory = target_dir
+
     def execute(self, config_file: str) -> str:
         """执行SQL文件中的菜单权限语句
 
@@ -3210,20 +3234,27 @@ class DatabaseSQLExecutionTask:
             List[str]: 发现的SQL文件路径列表
         """
         try:
-            # [FIX BUG2] 使用项目根目录的绝对路径而不是相对路径
-            project_root = self.config.get_project_root()
-            frontend_views_path = os.path.join(project_root, "jeecgboot-vue3", "src", "views")
+            # 确定SQL文件扫描路径
+            if self.target_directory and os.path.exists(self.target_directory):
+                # 优先使用指定的目标目录（本次任务生成的目录）
+                search_path = self.target_directory
+                print(f"[CHECK] 在指定目录中查找SQL文件: {search_path}")
+            else:
+                # Fallback: 全局扫描（兼容性处理）
+                project_root = self.config.get_project_root()
+                search_path = os.path.join(project_root, "jeecgboot-vue3", "src", "views")
+                if self.target_directory:
+                    print(f"[WARN] 指定目录不存在: {self.target_directory}，fallback到全局扫描")
+                print(f"[CHECK] 在前端代码路径中查找SQL文件（全局扫描）: {search_path}")
 
-            if not os.path.exists(frontend_views_path):
-                print(f"[WARN] 前端视图目录不存在: {frontend_views_path}")
+            if not os.path.exists(search_path):
+                print(f"[WARN] SQL文件扫描路径不存在: {search_path}")
                 return []
-
-            print(f"[CHECK] 在前端代码路径中查找SQL文件: {frontend_views_path}")
 
             sql_files = []
 
             # 递归查找所有.sql文件
-            for root, dirs, files in os.walk(frontend_views_path):
+            for root, dirs, files in os.walk(search_path):
                 for file in files:
                     if file.endswith('.sql'):
                         file_path = os.path.join(root, file)
@@ -3231,8 +3262,15 @@ class DatabaseSQLExecutionTask:
                         # 检查文件是否包含菜单权限相关的SQL
                         if self._is_menu_permission_sql(file_path):
                             sql_files.append(file_path)
-                            relative_path = os.path.relpath(file_path, frontend_views_path)
-                            print(f"[FILE] 发现菜单权限SQL文件: views/{relative_path}")
+                            # 显示相对路径以便识别
+                            if self.target_directory:
+                                relative_path = os.path.relpath(file_path, self.target_directory)
+                                print(f"[FILE] 发现菜单权限SQL文件: {relative_path}")
+                            else:
+                                project_root = self.config.get_project_root()
+                                frontend_views_path = os.path.join(project_root, "jeecgboot-vue3", "src", "views")
+                                relative_path = os.path.relpath(file_path, frontend_views_path)
+                                print(f"[FILE] 发现菜单权限SQL文件: views/{relative_path}")
 
             return sql_files
 
@@ -4049,7 +4087,7 @@ def _execute_main_tasks(filename, log_manager=None):
     if not env_status['all_configured']:
         print(f"\n[ERROR] 检测到缺失必需环境变量: {', '.join(env_status['missing_vars'])}")
         print(f"[TIP] 请运行以下命令进行环境配置:")
-        print(f"   python3 Code_Gen_Execute.py --setup-guide")
+        print(f"   python Code_Gen_Execute.py --setup-guide")
         print(f"[WARN]  执行中断，请先配置环境变量")
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
@@ -4197,24 +4235,28 @@ def _execute_main_tasks(filename, log_manager=None):
     # 任务8：前端代码迁移
     if log_manager:
         log_manager.log_section_start("任务8: 前端代码迁移")
-    
+
     migration_task = FrontendCodeMigrationTask(config)
     task8_result = migration_task.execute(filename)
     task8_status = "pass" if "pass" in task8_result else "fail"
     task_results.append(("8", "前端代码迁移", task8_status))
-    
+
     if log_manager:
         log_manager.log_section_end("任务8: 前端代码迁移")
-    
+
     if task8_status == "fail":
         _print_execution_summary(task_results, "ERROR")
         return "ERROR"
-    
+
     # 任务9：菜单权限SQL执行
     if log_manager:
         log_manager.log_section_start("任务9: 菜单权限SQL执行")
-    
+
     sql_task = DatabaseSQLExecutionTask(config)
+    # 传递任务8的目标目录给任务9，只在该目录中查找SQL文件
+    target_dir = migration_task.get_target_directory()
+    if target_dir:
+        sql_task.set_target_directory(target_dir)
     task9_result = sql_task.execute(filename)
     task9_status = "pass" if "pass" in task9_result else "fail"
     task_results.append(("9", "菜单权限SQL执行", task9_status))
@@ -4279,7 +4321,7 @@ def main_enhanced(filename="", check_env=False, setup_guide=False):
         if guide.interactive_setup_guide():
             print("[OK] 环境配置已完成，环境变量已在当前Python进程中生效")
             print("\n[TIP] 提示: 您现在可以运行代码生成任务，环境变量在此Python进程中有效")
-            print("   示例: python3 Code_Gen_Execute.py your_table_config.json")
+            print("   示例: python Code_Gen_Execute.py your_table_config.json")
             return "SETUP_COMPLETE"
         else:
             print("[ERROR] 环境配置失败")
@@ -4308,10 +4350,10 @@ if __name__ == "__main__":
         print("[NEW] 新功能: 所有执行过程自动记录到日志文件 {MODULE_NAME}_{SUBMODULE_NAME}_{timestamp}.log")
         print("=" * 60)
         print("使用方法:")
-        print("  python3 Code_Gen_Execute.py <表单配置文件.json>  # 执行代码生成任务 (含日志记录)")
-        print("  python3 Code_Gen_Execute.py --setup-guide        # 启动交互式环境变量配置向导")
-        print("  python3 Code_Gen_Execute.py --check-env          # 检查环境变量配置")
-        print("  python3 Code_Gen_Execute.py --dict               # 下载最新数据字典文件")
+        print("  python Code_Gen_Execute.py <表单配置文件.json>  # 执行代码生成任务 (含日志记录)")
+        print("  python Code_Gen_Execute.py --setup-guide        # 启动交互式环境变量配置向导")
+        print("  python Code_Gen_Execute.py --check-env          # 检查环境变量配置")
+        print("  python Code_Gen_Execute.py --dict               # 下载最新数据字典文件")
         print("")
         print("[LOG] 日志功能说明:")
         print("  - 所有控制台输出都会同步记录到日志文件")
@@ -4323,8 +4365,8 @@ if __name__ == "__main__":
         print("  - --setup-guide 配置系统环境变量，生成临时配置文件 .env_temp")
         print("  - 后续运行会自动加载 .env_temp 文件中的环境变量")
         print("  - 建议工作流程:")
-        print("    1. python3 Code_Gen_Execute.py --setup-guide      # 配置环境")
-        print("    2. python3 Code_Gen_Execute.py your_table.json    # 执行生成")
+        print("    1. python Code_Gen_Execute.py --setup-guide      # 配置环境")
+        print("    2. python Code_Gen_Execute.py your_table.json    # 执行生成")
         print("    3. 如需重新配置，重复步骤1即可")
         sys.exit(1)
     

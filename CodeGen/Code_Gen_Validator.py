@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 JeecgBoot配置文件验证器
@@ -959,9 +959,9 @@ def main():
     """主函数"""
     if len(sys.argv) < 2:
         print("用法:")
-        print("  python3 Code_Gen_Validator.py <config_file.json>           # 验证配置文件")
-        print("  python3 Code_Gen_Validator.py --show-dicts                # 显示所有可用数据字典")
-        print("  python3 Code_Gen_Validator.py --help                      # 显示帮助信息")
+        print("  python Code_Gen_Validator.py <config_file.json>           # 验证配置文件")
+        print("  python Code_Gen_Validator.py --show-dicts                # 显示所有可用数据字典")
+        print("  python Code_Gen_Validator.py --help                      # 显示帮助信息")
         sys.exit(1)
 
     validator = CodeGenValidator()
@@ -981,8 +981,8 @@ def main():
         print("  4. 提供详细的错误报告和修复建议")
         print()
         print("使用方法:")
-        print("  python3 Code_Gen_Validator.py config.json    # 验证配置文件")
-        print("  python3 Code_Gen_Validator.py --show-dicts   # 查看数据字典")
+        print("  python Code_Gen_Validator.py config.json    # 验证配置文件")
+        print("  python Code_Gen_Validator.py --show-dicts   # 查看数据字典")
         print()
         print("数据字典严格校验:")
         print("  - 所有dictField必须存在于Code_Gen_DICT.json中")

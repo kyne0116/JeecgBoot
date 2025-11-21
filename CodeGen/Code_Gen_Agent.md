@@ -194,7 +194,7 @@ PRIORITY_LEVEL_1:
 7. **JSON文件生成位置规范**：所有临时JSON配置文件必须在CodeGen目录中生成，严禁在项目根目录或其他位置生成
 8. **脚本执行规范**：必须严格按照系统要求执行脚本，使用标准格式：
    ```bash
-   python3 Code_Gen_Execute.py <临时JSON配置文件>.json
+   python Code_Gen_Execute.py <临时JSON配置文件>.json
    ```
    **严格禁止**：使用任何其他参数格式或复杂的 Bash 调用方式
 9. 在标准模式下必须获得用户确认后才能执行代码生成
@@ -210,7 +210,7 @@ PRIORITY_LEVEL_1:
 
 0. **环境变量检测与配置引导**：
 
-   - **强制检测**：接收用户需求后，立即调用 `python3 Code_Gen_Execute.py --check-env` 检测环境变量配置状态
+   - **强制检测**：接收用户需求后，立即调用 `python Code_Gen_Execute.py --check-env` 检测环境变量配置状态
    - **环境验证**：检查以下必需环境变量是否已配置：
      - `JEECG_PROJECT_ROOT`: JeecgBoot项目根目录路径
      - `JEECG_BASE_URL`: JeecgBoot服务基础URL
@@ -229,7 +229,7 @@ PRIORITY_LEVEL_1:
      **方式1：自动配置（推荐）**
      运行以下命令启动配置向导：
      ```bash
-     python3 Code_Gen_Execute.py --setup-guide
+     python Code_Gen_Execute.py --setup-guide
      ```
      
      **方式2：手动配置**
@@ -249,7 +249,7 @@ PRIORITY_LEVEL_1:
 
 1. **数据字典同步与深度理解**：
 
-   - **字典生成调用**：执行 `python3 Code_Gen_Execute.py --dict` 生成最新的Code_Gen_DICT.json文件
+   - **字典生成调用**：执行 `python Code_Gen_Execute.py --dict` 生成最新的Code_Gen_DICT.json文件
    - **生成结果验证**：
      - 确认Code_Gen_DICT.json文件生成成功
      - 验证JSON文件格式正确性和完整性  
@@ -358,7 +358,7 @@ PRIORITY_LEVEL_1:
      ```bash
      # 确保在CodeGen目录中执行
      cd CodeGen  # 如果不在CodeGen目录
-     python3 Code_Gen_Execute.py <临时JSON配置文件>.json
+     python Code_Gen_Execute.py <临时JSON配置文件>.json
      ```
    - **职责分离**：
      - **AI 职责**：在CodeGen目录中生成JSON配置文件，在CodeGen目录中调用脚本，接收结果
@@ -454,7 +454,7 @@ PRIORITY_LEVEL_1:
 ### Code_Gen_Execute.py
 
 - 主要代码生成执行引擎
-- **标准调用方式**：`python3 Code_Gen_Execute.py <临时JSON文件>.json`
+- **标准调用方式**：`python Code_Gen_Execute.py <临时JSON文件>.json`
 - **核心职责**：从环境变量读取登录信息，执行完整的代码生成工作流
 - **哨兵协调机制**：支持 AI 随机性的主子表协调处理
 - 自动化处理：表单创建、数据库同步、代码生成、后续处理
@@ -468,8 +468,8 @@ PRIORITY_LEVEL_1:
   - 表名格式验证 (严格三段式：module_submodule_entity，禁止四段式)
   - **数据字典严格校验** (新增核心功能)：验证所有dictField都在Code_Gen_DICT.json中存在
 - 必须在代码生成前执行验证
-- 使用方法: `python3 Code_Gen_Validator.py config.json`
-- 支持数据字典浏览: `python3 Code_Gen_Validator.py --browse-dict`
+- 使用方法: `python Code_Gen_Validator.py config.json`
+- 支持数据字典浏览: `python Code_Gen_Validator.py --browse-dict`
 
 ### Configuration Files
 
@@ -507,7 +507,7 @@ PRIORITY_LEVEL_1:
   - 表名格式验证
 
 - **Code_Gen_DICT.json**: 数据字典动态缓存 (新增核心功能)
-  - 通过 `python3 Code_Gen_Execute.py --dict` 动态生成
+  - 通过 `python Code_Gen_Execute.py --dict` 动态生成
   - 包含系统所有可用的数据字典项 (id, dictCode, dictName, type, description等)
   - 为AI提供字典编码范围约束和智能推理基础
   - 支持字典内容的语义分析和分类归纳
