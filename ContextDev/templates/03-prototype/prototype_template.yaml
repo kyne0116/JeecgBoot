@@ -1,0 +1,228 @@
+# JeecgBoot原型设计模板 v2.0 - MCP集成版本
+# 专注核心设计流程：需求可视化 + 交互设计 + MCP原型生成
+
+# ============================================================================
+# 文档标识
+# ============================================================================
+document_info:
+  id: "{{SYSTEM}}-{{MODULE}}-{{TIMESTAMP}}-PROTO"
+  title: "{{BUSINESS_TITLE}}"
+  agent: "Agent-3"
+  version: "2.0-MCP"
+  created_date: "{{CREATED_DATE}}"
+  req_document_ref: "{{REQ_DOCUMENT_ID}}"
+  mcp_integration: true
+
+# ============================================================================
+# MCP服务调用配置
+# ============================================================================
+mcp_service_config:
+  service_name: "superdesign"
+  service_type: "prototype_generation"
+
+  # MCP调用参数
+  mcp_call_parameters:
+    input_source: "{{REQ_DOCUMENT_ID}}"
+    target_framework: "JeecgBoot + Vue3 + Ant Design Vue"
+    output_format: ["html", "wireframe", "mockup"]
+    responsive_design: true
+    output_directory: "AIGC/{{SYSTEM}}_{{MODULE}}/prototypes"  # 指定输出目录为ContextDev规范路径
+
+  # 调用指令
+  mcp_execution_commands:
+    - command: "generate_wireframe"
+      description: "基于需求分析生成线框图"
+      input_data: "{{EARS_REQUIREMENTS}}"
+      output_file: "{{WIREFRAME_OUTPUT_PATH}}"
+
+    - command: "generate_mockup"
+      description: "生成高保真原型"
+      input_data: "{{BDD_SCENARIOS}}"
+      output_file: "{{MOCKUP_OUTPUT_PATH}}"
+
+    - command: "generate_interactive_prototype"
+      description: "生成可交互原型"
+      input_data: "{{COMPONENT_MAPPING}}"
+      output_file: "{{INTERACTIVE_PROTOTYPE_PATH}}"
+
+# ============================================================================
+# 需求解析 - 来自agent-2的需求分析
+# ============================================================================
+requirement_analysis:
+  source_requirement: "{{REQ_DOCUMENT_ID}}"
+
+  # 提取的关键需求（用于MCP调用）
+  key_requirements_for_mcp:
+    functional_requirements: "{{EARS_REQUIREMENTS}}"
+    user_scenarios: "{{BDD_SCENARIOS}}"
+    business_rules: "{{BUSINESS_RULES}}"
+    technical_constraints: "{{TECHNICAL_CONSTRAINTS}}"
+
+  # 用户画像（用于UX设计）
+  user_personas:
+    - persona: "{{USER_PERSONA_1}}"
+      needs: "{{USER_NEEDS_1}}"
+      pain_points: "{{USER_PAIN_POINTS_1}}"
+      goals: "{{USER_GOALS_1}}"
+
+# ============================================================================
+# MCP原型生成执行
+# ============================================================================
+mcp_prototype_generation:
+  # 执行状态
+  execution_status: "{{MCP_EXECUTION_STATUS}}" # pending|running|completed|failed
+
+  # MCP调用结果
+  mcp_results:
+    wireframe_generation:
+      status: "{{WIREFRAME_STATUS}}"
+      output_files: ["{{WIREFRAME_FILES}}"]
+      generation_time: "{{WIREFRAME_TIME}}"
+
+    mockup_generation:
+      status: "{{MOCKUP_STATUS}}"
+      output_files: ["{{MOCKUP_FILES}}"]
+      generation_time: "{{MOCKUP_TIME}}"
+
+    interactive_prototype:
+      status: "{{INTERACTIVE_STATUS}}"
+      output_files: ["{{INTERACTIVE_FILES}}"]
+      generation_time: "{{INTERACTIVE_TIME}}"
+
+  # 生成的原型文件清单
+  generated_prototypes:
+    - file_type: "wireframe"
+      file_path: "{{WIREFRAME_OUTPUT_PATH}}"
+      file_format: "html"
+      description: "低保真线框图原型"
+
+    - file_type: "mockup"
+      file_path: "{{MOCKUP_OUTPUT_PATH}}"
+      file_format: "html"
+      description: "高保真视觉原型"
+
+    - file_type: "interactive"
+      file_path: "{{INTERACTIVE_PROTOTYPE_PATH}}"
+      file_format: "html"
+      description: "可交互功能原型"
+
+# ============================================================================
+# 用户体验设计
+# ============================================================================
+user_experience_design:
+  # 信息架构
+  information_architecture:
+    primary_navigation: ["{{PRIMARY_NAV}}"]
+    secondary_navigation: ["{{SECONDARY_NAV}}"]
+    content_hierarchy: "{{CONTENT_HIERARCHY}}"
+
+  # 交互设计原则
+  interaction_principles:
+    - "{{INTERACTION_PRINCIPLE_1}}"
+    - "{{INTERACTION_PRINCIPLE_2}}"
+    - "{{INTERACTION_PRINCIPLE_3}}"
+
+  # 用户流程设计
+  user_flows:
+    - flow_name: "{{USER_FLOW_1}}"
+      steps: ["{{FLOW_STEPS_1}}"]
+      mcp_wireframe_ref: "{{WIREFRAME_REF_1}}"
+
+# ============================================================================
+# 界面原型设计（MCP生成结果）
+# ============================================================================
+interface_prototypes:
+  # MCP生成的页面原型
+  mcp_generated_pages:
+    - page_name: "{{PAGE_NAME_1}}"
+      page_type: "{{PAGE_TYPE_1}}"
+      mcp_wireframe_file: "{{MCP_WIREFRAME_1}}"
+      mcp_mockup_file: "{{MCP_MOCKUP_1}}"
+      jeecg_components_used: ["{{JEECG_COMPONENTS_1}}"]
+
+  # 手工优化的原型
+  manual_optimizations:
+    - optimization_type: "component_mapping"
+      description: "优化MCP生成的组件映射"
+      changes_made: ["{{OPTIMIZATION_CHANGES}}"]
+
+# ============================================================================
+# JeecgBoot适配（基于MCP结果）
+# ============================================================================
+jeecg_adaptation:
+  # MCP结果验证
+  mcp_result_validation:
+    component_mapping_accuracy: "{{MAPPING_ACCURACY}}"
+    jeecg_compliance_score: "{{COMPLIANCE_SCORE}}"
+    responsive_design_quality: "{{RESPONSIVE_QUALITY}}"
+
+  # 组件映射优化
+  optimized_component_mapping:
+    - mcp_component: "{{MCP_COMPONENT_1}}"
+      jeecg_component: "{{JEECG_COMPONENT_1}}"
+      ant_design_component: "{{ANT_COMPONENT_1}}"
+      optimization_reason: "{{OPTIMIZATION_REASON_1}}"
+
+  # 布局适配
+  layout_adaptation:
+    responsive_breakpoints: ["{{BREAKPOINTS}}"]
+    mobile_adaptations: ["{{MOBILE_ADAPTATIONS}}"]
+    tablet_adaptations: ["{{TABLET_ADAPTATIONS}}"]
+
+  # 主题适配
+  theme_adaptation:
+    color_scheme: "{{COLOR_SCHEME}}"
+    typography_scale: "{{TYPOGRAPHY_SCALE}}"
+    spacing_system: "{{SPACING_SYSTEM}}"
+
+# ============================================================================
+# 原型交付物
+# ============================================================================
+prototype_deliverables:
+  # MCP生成的文件
+  mcp_generated_files:
+    - "{{WIREFRAME_OUTPUT_PATH}}"
+    - "{{MOCKUP_OUTPUT_PATH}}"
+    - "{{INTERACTIVE_PROTOTYPE_PATH}}"
+
+  # 设计规范文档
+  design_specifications:
+    - "用户体验设计说明"
+    - "MCP生成结果分析"
+    - "JeecgBoot适配方案"
+    - "交互原型使用指南"
+
+  # 技术规范
+  technical_specifications:
+    - "前端组件清单"
+    - "API接口定义"
+    - "数据结构设计"
+    - "状态管理方案"
+
+# ============================================================================
+# Agent协作传递
+# ============================================================================
+agent_handoff:
+  source_agent: "agent-3 (设计思考师)"
+  target_agent: "agent-4 (架构推理师)"
+
+  handoff_package:
+    - "MCP生成的原型文件"
+    - "JeecgBoot组件映射方案"
+    - "用户体验设计规范"
+    - "技术实现约束"
+
+  architecture_guidance:
+    - "基于MCP原型设计前后端架构"
+    - "优化组件复用和模块化设计"
+    - "考虑原型中的性能要求"
+    - "实现原型中的交互逻辑"
+
+---
+# MCP集成原型设计模板说明
+#
+# 本模板增强了MCP服务集成能力，支持：
+# 1. 自动调用superdesign MCP Server生成原型
+# 2. 管理MCP调用的输入输出
+# 3. 验证和优化MCP生成结果
+# 4. 提供完整的原型交付物

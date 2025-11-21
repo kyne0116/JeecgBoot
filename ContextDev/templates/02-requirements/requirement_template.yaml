@@ -1,0 +1,286 @@
+# JeecgBoot需求分析模板 v6.0-CoT
+# 专注核心技术流程：需求理解 + 需求分析 + CoT推理链
+
+# ============================================================================
+# 文档标识
+# ============================================================================
+document_info:
+  id: "{{SYSTEM}}-{{MODULE}}-{{TIMESTAMP}}-REQ"
+  title: "{{BUSINESS_TITLE}}"
+  agent: "Agent-2"
+  version: "6.0-CoT"
+  cot_enabled: true
+
+# ============================================================================
+# CoT推理链 - 需求分析思维过程
+# ============================================================================
+requirement_reasoning:
+  # 步骤1: 业务理解推理
+  business_understanding_reasoning:
+    reasoning_question: "如何准确理解业务需求的本质和价值？"
+
+    step_1_business_value_analysis:
+      thinking: "分析核心业务价值和目标"
+      process: |
+        1. 识别业务痛点: {{PAIN_POINT_IDENTIFICATION}}
+        2. 分析价值主张: {{VALUE_PROPOSITION_ANALYSIS}}
+        3. 评估业务影响: {{BUSINESS_IMPACT_ASSESSMENT}}
+      findings: "{{BUSINESS_VALUE_FINDINGS}}"
+
+    step_2_stakeholder_analysis:
+      thinking: "识别和分析关键利益相关者"
+      process: |
+        1. 主要用户群体: {{PRIMARY_USERS}}
+        2. 次要用户群体: {{SECONDARY_USERS}}
+        3. 系统管理员: {{SYSTEM_ADMINS}}
+        4. 业务决策者: {{BUSINESS_DECISION_MAKERS}}
+      findings: "{{STAKEHOLDER_FINDINGS}}"
+
+    step_3_constraint_analysis:
+      thinking: "理解业务和技术约束条件"
+      process: |
+        1. 业务规则约束: {{BUSINESS_RULE_CONSTRAINTS}}
+        2. 技术平台约束: {{TECHNICAL_CONSTRAINTS}}
+        3. 时间和资源约束: {{RESOURCE_CONSTRAINTS}}
+        4. 合规性约束: {{COMPLIANCE_CONSTRAINTS}}
+      findings: "{{CONSTRAINT_FINDINGS}}"
+
+    reasoning_conclusion:
+      business_understanding: "{{BUSINESS_UNDERSTANDING_SUMMARY}}"
+      core_objectives: "{{CORE_BUSINESS_OBJECTIVES}}"
+      success_criteria: "{{SUCCESS_CRITERIA}}"
+
+  # 步骤2: EARS分类推理
+  ears_classification_reasoning:
+    reasoning_question: "如何将业务需求准确转换为EARS标准化表达？"
+
+    step_1_trigger_analysis:
+      thinking: "分析需求的触发条件和上下文"
+      process: |
+        1. 事件驱动需求识别: {{EVENT_DRIVEN_IDENTIFICATION}}
+        2. 状态驱动需求识别: {{STATE_DRIVEN_IDENTIFICATION}}
+        3. 普遍性需求识别: {{UBIQUITOUS_IDENTIFICATION}}
+      findings: "{{TRIGGER_ANALYSIS_FINDINGS}}"
+
+    step_2_pattern_analysis:
+      thinking: "识别需求类型模式和分类规律"
+      process: |
+        1. Ubiquitous模式: {{UBIQUITOUS_PATTERNS}}
+        2. Event-driven模式: {{EVENT_DRIVEN_PATTERNS}}
+        3. State-driven模式: {{STATE_DRIVEN_PATTERNS}}
+        4. Unwanted behavior模式: {{UNWANTED_BEHAVIOR_PATTERNS}}
+        5. Optional模式: {{OPTIONAL_PATTERNS}}
+      findings: "{{PATTERN_ANALYSIS_FINDINGS}}"
+
+    step_3_priority_analysis:
+      thinking: "评估需求优先级和实施顺序"
+      process: |
+        1. 业务价值评分: {{BUSINESS_VALUE_SCORING}}
+        2. 技术复杂度评分: {{TECHNICAL_COMPLEXITY_SCORING}}
+        3. 依赖关系分析: {{DEPENDENCY_ANALYSIS}}
+        4. 风险评估: {{RISK_ASSESSMENT}}
+      findings: "{{PRIORITY_ANALYSIS_FINDINGS}}"
+
+    reasoning_conclusion:
+      ears_classification_strategy: "{{EARS_STRATEGY}}"
+      requirement_priorities: "{{REQUIREMENT_PRIORITIES}}"
+      implementation_sequence: "{{IMPLEMENTATION_SEQUENCE}}"
+
+  # 步骤3: BDD场景推理
+  bdd_scenario_reasoning:
+    reasoning_question: "如何设计完整覆盖的BDD测试场景？"
+
+    step_1_user_path_analysis:
+      thinking: "识别关键用户使用路径"
+      process: |
+        1. 主要用户流程: {{PRIMARY_USER_FLOWS}}
+        2. 替代用户流程: {{ALTERNATIVE_USER_FLOWS}}
+        3. 用户目标分析: {{USER_GOAL_ANALYSIS}}
+      findings: "{{USER_PATH_FINDINGS}}"
+
+    step_2_exception_analysis:
+      thinking: "分析异常处理和错误场景"
+      process: |
+        1. 系统异常场景: {{SYSTEM_EXCEPTION_SCENARIOS}}
+        2. 用户错误场景: {{USER_ERROR_SCENARIOS}}
+        3. 数据异常场景: {{DATA_EXCEPTION_SCENARIOS}}
+        4. 网络异常场景: {{NETWORK_EXCEPTION_SCENARIOS}}
+      findings: "{{EXCEPTION_ANALYSIS_FINDINGS}}"
+
+    step_3_boundary_analysis:
+      thinking: "设计边界条件和极限测试"
+      process: |
+        1. 数据边界测试: {{DATA_BOUNDARY_TESTS}}
+        2. 性能边界测试: {{PERFORMANCE_BOUNDARY_TESTS}}
+        3. 权限边界测试: {{PERMISSION_BOUNDARY_TESTS}}
+      findings: "{{BOUNDARY_ANALYSIS_FINDINGS}}"
+
+    reasoning_conclusion:
+      bdd_coverage_strategy: "{{BDD_COVERAGE_STRATEGY}}"
+      scenario_completeness: "{{SCENARIO_COMPLETENESS}}"
+      test_automation_guidance: "{{TEST_AUTOMATION_GUIDANCE}}"
+
+  # 推理链总结
+  overall_reasoning_summary:
+    reasoning_quality_score: "{{REASONING_QUALITY_SCORE}}" # 1-10
+    key_insights_discovered: "{{KEY_INSIGHTS}}"
+    assumptions_documented: "{{DOCUMENTED_ASSUMPTIONS}}"
+    risks_identified: "{{IDENTIFIED_RISKS}}"
+    next_agent_guidance: "{{GUIDANCE_FOR_AGENT_3}}"
+
+# ============================================================================
+# 需求理解 - 业务需求准确理解和解析 (CoT增强)
+# ============================================================================
+requirement_understanding:
+  # 基于CoT推理的需求理解
+  cot_business_analysis:
+    reasoning_input: "{{AGENT_1_REASONING_CONCLUSION}}"
+    business_context: "{{BUSINESS_CONTEXT_ANALYSIS}}"
+    stakeholder_insights: "{{STAKEHOLDER_INSIGHTS}}"
+
+  business_domain: "{{BUSINESS_DOMAIN}}"
+  core_business_value: "{{BUSINESS_VALUE}}"
+  key_stakeholders: [{ { STAKEHOLDERS } }]
+  business_constraints: [{ { BUSINESS_CONSTRAINTS } }]
+  success_metrics: [{ { SUCCESS_METRICS } }]
+
+# ============================================================================
+# 技术理解 - JeecgBoot技术约束 (CoT增强)
+# ============================================================================
+technical_understanding:
+  # 基于CoT推理的技术分析
+  cot_technical_analysis:
+    jeecg_capability_assessment: "{{JEECG_CAPABILITY_ASSESSMENT}}"
+    technical_feasibility: "{{TECHNICAL_FEASIBILITY}}"
+    implementation_complexity: "{{IMPLEMENTATION_COMPLEXITY}}"
+
+  jeecg_version: "{{JEECG_VERSION}}"
+  technical_constraints: [{ { TECH_CONSTRAINTS } }]
+  codegen_applicable: "{{CODEGEN_APPLICABLE}}" # true|false
+  custom_development_needs: [{ { CUSTOM_DEV_NEEDS } }]
+
+# ============================================================================
+# 需求分析 - EARS标准化需求分析 (CoT驱动)
+# ============================================================================
+ears_requirements:
+  # 基于CoT推理的EARS分类
+  ears_reasoning_summary: "{{EARS_REASONING_SUMMARY}}"
+
+  # EARS标准化功能需求
+  functional_requirements:
+    - id: "F001"
+      ears_statement: "系统应当能够{{FUNCTION_ACTION_1}}"
+      type: "ubiquitous"
+      reasoning: "{{F001_REASONING}}"
+      priority: "{{F001_PRIORITY}}"
+
+    - id: "F002"
+      ears_statement: "当{{EVENT_TRIGGER_2}}时，系统应当{{FUNCTION_RESPONSE_2}}"
+      type: "event_driven"
+      reasoning: "{{F002_REASONING}}"
+      priority: "{{F002_PRIORITY}}"
+
+    - id: "F003"
+      ears_statement: "如果{{CONDITION_3}}，系统应当{{PREVENTION_3}}"
+      type: "unwanted_behavior"
+      reasoning: "{{F003_REASONING}}"
+      priority: "{{F003_PRIORITY}}"
+
+  # 业务规则分析
+  business_rules:
+    - rule: "{{BUSINESS_RULE_1}}"
+      type: "validation"
+      reasoning: "{{RULE_1_REASONING}}"
+
+    - rule: "{{BUSINESS_RULE_2}}"
+      type: "calculation"
+      reasoning: "{{RULE_2_REASONING}}"
+
+# ============================================================================
+# BDD场景设计 - 行为驱动场景分析 (CoT优化)
+# ============================================================================
+bdd_scenarios:
+  # 基于CoT推理的场景设计
+  scenario_design_reasoning: "{{SCENARIO_DESIGN_REASONING}}"
+
+  # 正常业务场景
+  normal_scenarios:
+    - scenario: "{{SCENARIO_TITLE_1}}"
+      given: "{{GIVEN_CONDITION_1}}"
+      when: "{{WHEN_ACTION_1}}"
+      then: "{{THEN_RESULT_1}}"
+      reasoning: "{{SCENARIO_1_REASONING}}"
+      coverage_area: "{{SCENARIO_1_COVERAGE}}"
+
+    - scenario: "{{SCENARIO_TITLE_2}}"
+      given: "{{GIVEN_CONDITION_2}}"
+      when: "{{WHEN_ACTION_2}}"
+      then: "{{THEN_RESULT_2}}"
+      reasoning: "{{SCENARIO_2_REASONING}}"
+      coverage_area: "{{SCENARIO_2_COVERAGE}}"
+
+  # 异常处理场景
+  exception_scenarios:
+    - scenario: "{{EXCEPTION_SCENARIO_1}}"
+      given: "{{EXCEPTION_GIVEN_1}}"
+      when: "{{EXCEPTION_WHEN_1}}"
+      then: "{{EXCEPTION_THEN_1}}"
+      reasoning: "{{EXCEPTION_1_REASONING}}"
+      error_type: "{{EXCEPTION_1_TYPE}}"
+
+# ============================================================================
+# 技术传递接口 - 传递给Agent-3 (CoT增强)
+# ============================================================================
+technical_handoff:
+  # CoT推理结论传递
+  reasoning_output:
+    requirement_insights: "{{REQUIREMENT_INSIGHTS_SUMMARY}}"
+    design_implications: "{{DESIGN_IMPLICATIONS}}"
+    technical_considerations: "{{TECHNICAL_CONSIDERATIONS}}"
+    prototype_guidance: "{{PROTOTYPE_GUIDANCE}}"
+
+  # 核心实体识别
+  core_entities: [{ { CORE_ENTITIES } }]
+
+  # 关键业务流程
+  key_processes: [{ { KEY_PROCESSES } }]
+
+  # JeecgBoot技术映射
+  jeecg_components:
+    entities: [{ { ENTITY_LIST } }]
+    services: [{ { SERVICE_LIST } }]
+    apis: [{ { API_LIST } }]
+    pages: [{ { PAGE_LIST } }]
+
+  # 原型设计指导
+  prototype_requirements:
+    ui_complexity: "{{UI_COMPLEXITY}}"
+    interaction_patterns: [{ { INTERACTION_PATTERNS } }]
+    user_experience_priorities: [{ { UX_PRIORITIES } }]
+
+# ============================================================================
+# 协作信息 - Agent协作和CoT传递
+# ============================================================================
+collaboration_info:
+  input_documents: ["{{BASELINE_DOCUMENT_ID}}"]
+  input_reasoning: "{{AGENT_1_REASONING_CONCLUSION}}"
+  output_for_next_agent: "technical_handoff"
+  output_reasoning: "{{REQUIREMENT_REASONING_CONCLUSION}}"
+  next_agent: "agent-3 (Prototype Designer)"
+  reasoning_traceability: "{{REASONING_CHAIN_TRACE}}"
+  collaboration_notes: "{{COLLABORATION_NOTES}}"
+
+# ============================================================================
+# 元数据 - 文档管理和CoT质量追溯
+# ============================================================================
+metadata:
+  creation_timestamp: "{{TIMESTAMP}}"
+  agent_version: "6.0-CoT"
+  template_version: "6.0-CoT"
+  reasoning_quality_score: "{{REASONING_QUALITY_SCORE}}"
+  cot_processing_time: "{{COT_PROCESSING_TIME}}"
+  ears_compliance_score: "{{EARS_COMPLIANCE_SCORE}}"
+  bdd_coverage_score: "{{BDD_COVERAGE_SCORE}}"
+  quality_score: "{{QUALITY_SCORE}}"
+  review_status: "{{REVIEW_STATUS}}" # draft|reviewed|approved
+  last_modified: "{{LAST_MODIFIED}}"

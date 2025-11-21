@@ -1,0 +1,700 @@
+# JeecgBoot需求基线跟踪管理模板 v4.0
+# 支持三层架构的模块化需求基线管理
+# 专为 Layer 2 - 模块层 (Module Level) 设计
+
+# ============================================================================
+# 📁 v4.0 三层架构存储规范 (重要更新)
+# ============================================================================
+# 本模板属于: Layer 2 - 模块层 (Module Level)
+# 命名格式: requirement_baseline_[SYSTEM]_[MODULE].yaml
+# 存储位置: ${base_working_directory}/AIGC/requirement_baseline_[SYSTEM]_[MODULE].yaml
+# 
+# 示例路径:
+# - 汽车4S店-基础信息: /Users/admin/Work/Github/JeecgBoot/AIGC/requirement_baseline_AUTO_INFO.yaml
+# - 汽车4S店-销售信息: /Users/admin/Work/Github/JeecgBoot/AIGC/requirement_baseline_AUTO_SALE.yaml
+# - 电商系统-产品管理: /Users/admin/Work/Github/JeecgBoot/AIGC/requirement_baseline_ECOM_PROD.yaml
+#
+# 关联文档:
+# - Layer 1: system_base_info_[SYSTEM].yaml (系统基础配置)
+# - Layer 3: [SYSTEM]_[MODULE]/ 目录下的具体需求文档
+#
+# 模块独立性原则:
+# - 每个模块拥有独立的需求基线文件
+# - 模块间依赖通过cross_module_dependencies管理
+# - 支持模块级别的独立版本控制和变更管理
+# ============================================================================
+# 
+# ============================================================================
+# 📁 新文件命名规范 (重要更新)
+# ============================================================================
+# 需求编号格式: 系统功能模块-子功能模块-年月日时分秒
+# 示例: ECOM-PROD-20250731143000 (电商-产品管理-2025年7月31日14:30:00)
+#
+# 各环节文档命名:
+# - REQ环节: ECOM-PROD-20250731143000-REQ-产品管理功能.yaml
+# - ARCH环节: ECOM-PROD-20250731143000-ARCH-产品管理功能.yaml  
+# - DEV环节: ECOM-PROD-20250731143000-DEV-产品管理功能.yaml
+# - TEST环节: ECOM-PROD-20250731143000-TEST-产品管理功能.yaml
+#
+# 目录结构: ECOM-PROD-20250731143000-产品管理功能/
+#
+# 命名说明:
+# - 系统功能模块: ECOM(电商) | CRM(客户管理) | ERP(企业资源) | OA(办公自动化)
+# - 子功能模块: PROD(产品) | ORDER(订单) | USER(用户) | PAY(支付) 等
+# - 年月日时分秒: 20250731143000 (2025年7月31日14:30:00)
+# - 环节代码: REQ(需求) | ARCH(架构) | DEV(开发) | TEST(测试)
+# ============================================================================
+
+# ============================================================================
+# 基线标识与元数据信息
+# ============================================================================
+baseline_identity:
+  # 基线文档标识
+  baseline_id: "REQ-BASELINE-{{YYYYMMDD}}-{{SEQUENCE}}" # 如：REQ-BASELINE-20250731-001
+  baseline_name: "{{BASELINE_NAME}}" # 如：电商系统需求基线V1.0
+  baseline_version: "{{BASELINE_VERSION}}" # 如：v1.0
+  created_timestamp: "{{YYYY-MM-DD HH:MM:SS}}"
+  last_updated: "{{YYYY-MM-DD HH:MM:SS}}"
+  baseline_status: "{{BASELINE_STATUS}}" # active | archived | deprecated
+  
+  # 基线负责人信息
+  baseline_owner: "{{OWNER_NAME}}" # 需求基线负责人
+  baseline_team: [{{TEAM_MEMBERS}}] # 相关团队成员
+  review_board: [{{REVIEW_BOARD_MEMBERS}}] # 评审委员会成员
+
+# ============================================================================
+# 系统基础信息关联
+# ============================================================================
+system_base_reference:
+  # 系统基础文档引用
+  system_base_doc_path: "{{SYSTEM_BASE_DOC_PATH}}" # 如：/ContextDev/templates/01-baseline/system_base_info.yaml
+  system_id: "{{SYSTEM_ID}}" # 来自系统基础文档的系统标识
+  system_name: "{{SYSTEM_NAME}}" # 来自系统基础文档的系统名称
+  
+  # 继承的系统配置
+  inherited_system_config:
+    jeecg_version: "{{JEECG_VERSION}}" # 继承JeecgBoot版本
+    base_working_directory: "{{BASE_WORKING_DIRECTORY}}" # 继承工作目录
+    tech_stack_reference: "{{TECH_STACK_REFERENCE}}" # 技术栈引用
+    environment_matrix: [{{ENVIRONMENT_MATRIX}}] # 环境配置引用
+    
+  # 系统约束条件
+  system_constraints:
+    architectural_constraints: [{{ARCHITECTURAL_CONSTRAINTS}}] # 架构约束
+    technical_constraints: [{{TECHNICAL_CONSTRAINTS}}] # 技术约束
+    business_constraints: [{{BUSINESS_CONSTRAINTS}}] # 业务约束
+    compliance_requirements: [{{COMPLIANCE_REQUIREMENTS}}] # 合规要求
+
+# ============================================================================
+# 共享组件管理
+# ============================================================================
+shared_components_management:
+  # 共享组件概览
+  shared_components_overview:
+    total_shared_components: {{TOTAL_SHARED_COMPONENTS}}
+    cross_suite_dependencies: {{CROSS_SUITE_DEPENDENCIES}}
+    shared_entities_count: {{SHARED_ENTITIES_COUNT}}
+    shared_services_count: {{SHARED_SERVICES_COUNT}}
+    
+  # 共享组件注册表
+  shared_component_registry:
+    - component_id: "SHARED-COMP-001"
+      component_name: "{{SHARED_COMPONENT_NAME_1}}" # 如：UserEntity
+      component_type: "{{COMPONENT_TYPE_1}}" # entity | service | util | config
+      component_description: "{{COMPONENT_DESCRIPTION_1}}"
+      
+      # 使用此组件的需求套件
+      consuming_suites:
+        - suite_id: "{{CONSUMING_SUITE_ID_1}}" # 如：REQ-SUITE-001-产品管理功能
+          usage_type: "{{USAGE_TYPE_1}}" # dependency | inheritance | composition
+          usage_description: "{{USAGE_DESCRIPTION_1}}"
+          
+        - suite_id: "{{CONSUMING_SUITE_ID_2}}" # 如：REQ-SUITE-002-购物车管理功能
+          usage_type: "{{USAGE_TYPE_2}}"
+          usage_description: "{{USAGE_DESCRIPTION_2}}"
+          
+      # 组件管理信息
+      component_management:
+        owner_suite: "{{OWNER_SUITE_1}}" # 主要负责的需求套件
+        version: "{{COMPONENT_VERSION_1}}" # 组件版本
+        stability_level: "{{STABILITY_LEVEL_1}}" # stable | evolving | experimental
+        change_impact_level: "{{CHANGE_IMPACT_LEVEL_1}}" # high | medium | low
+        
+  # 跨需求组件依赖图
+  cross_suite_dependency_graph:
+    - source_suite: "{{SOURCE_SUITE_1}}" # 如：REQ-SUITE-001-产品管理功能
+      target_suite: "{{TARGET_SUITE_1}}" # 如：REQ-SUITE-002-购物车管理功能
+      dependency_type: "data_dependency"
+      shared_components: [{{SHARED_COMPONENTS_LIST_1}}] # 共享的组件列表
+      dependency_strength: "{{DEPENDENCY_STRENGTH_1}}" # strong | medium | weak
+
+# ============================================================================
+# 需求套件注册管理
+# ============================================================================
+requirement_registry:
+  # 需求注册摘要
+  registry_summary:
+    total_requirements: {{TOTAL_REQUIREMENTS}} # 总需求数量
+    active_requirements: {{ACTIVE_REQUIREMENTS}} # 活跃需求数量
+    completed_requirements: {{COMPLETED_REQUIREMENTS}} # 已完成需求数量
+    blocked_requirements: {{BLOCKED_REQUIREMENTS}} # 阻塞需求数量
+    high_priority_requirements: {{HIGH_PRIORITY_COUNT}} # 高优先级需求数量
+    
+  # 需求套件列表
+  requirement_suites:
+    - requirement_suite_id: "{{REQ_ID_1}}" # 如：ECOM-PROD-20250731143000
+      business_requirement_title: "{{BUSINESS_REQUIREMENT_TITLE_1}}" # 如：产品管理功能
+      business_requirement_description: "{{BUSINESS_REQUIREMENT_DESCRIPTION_1}}"
+      
+      # 需求基本信息
+      requirement_basic_info:
+        requirement_category: "{{REQUIREMENT_CATEGORY_1}}" # core_function | enhancement | integration | compliance
+        business_domain: "{{BUSINESS_DOMAIN_1}}" # 如：用户管理 | 订单处理 | 支付系统
+        stakeholders: [{{STAKEHOLDERS_1}}] # 利益相关者
+        business_value_score: {{BUSINESS_VALUE_SCORE_1}} # 1-10，业务价值评分
+        
+      # 需求优先级和状态
+      requirement_priority_status:
+        priority: "{{PRIORITY_1}}" # critical | high | medium | low
+        status: "{{STATUS_1}}" # planned | in_analysis | in_design | in_development | in_testing | completed | blocked | cancelled
+        urgency: "{{URGENCY_1}}" # urgent | normal | low
+        complexity: "{{COMPLEXITY_1}}" # simple | medium | complex
+        
+      # 实施推理
+      implementation_reasoning:
+        complexity_analysis: "{{COMPLEXITY_ANALYSIS_1}}" # 复杂度分析
+        implementation_strategy: "{{IMPLEMENTATION_STRATEGY_1}}" # 实施策略
+        technical_approach: "{{TECHNICAL_APPROACH_1}}" # 技术方案
+        reasoning_quality: "{{REASONING_QUALITY_1}}" # 推理质量评分
+        
+      # 文档关联路径 (核心关联机制) - 新命名规范
+      document_references:
+        # agent-2需求分析文档
+        requirement_analysis_doc:
+          doc_path: "{{REQ_DOC_PATH_1}}" # 如：/ContextDev/example/ECOM-PROD-20250731143000-产品管理功能/ECOM-PROD-20250731143000-REQ-产品管理功能.yaml
+          doc_id: "{{REQ_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-REQ
+          doc_status: "{{REQ_DOC_STATUS_1}}" # draft | review | approved | outdated
+          doc_version: "{{REQ_DOC_VERSION_1}}" # v1.0
+          last_modified: "{{REQ_DOC_LAST_MODIFIED_1}}" # YYYY-MM-DD HH:MM:SS
+          
+        # agent-4架构设计文档
+        architecture_design_doc:
+          doc_path: "{{DESIGN_DOC_PATH_1}}" # 如：ECOM-PROD-20250731143000-ARCH-产品管理功能.yaml
+          doc_id: "{{DESIGN_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-ARCH
+          doc_status: "{{DESIGN_DOC_STATUS_1}}"
+          doc_version: "{{DESIGN_DOC_VERSION_1}}"
+          last_modified: "{{DESIGN_DOC_LAST_MODIFIED_1}}"
+
+        # agent-5开发任务文档
+        development_task_doc:
+          doc_path: "{{DEV_DOC_PATH_1}}" # 如：ECOM-PROD-20250731143000-DEV-产品管理功能.yaml
+          doc_id: "{{DEV_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-DEV
+          doc_status: "{{DEV_DOC_STATUS_1}}"
+          doc_version: "{{DEV_DOC_VERSION_1}}"
+          last_modified: "{{DEV_DOC_LAST_MODIFIED_1}}"
+          
+        # agent-6测试设计文档
+        testing_design_doc:
+          doc_path: "{{TEST_DOC_PATH_1}}" # 如：ECOM-PROD-20250731143000-TEST-产品管理功能.yaml
+          doc_id: "{{TEST_DOC_ID_1}}" # 如：ECOM-PROD-20250731143000-TEST
+          doc_status: "{{TEST_DOC_STATUS_1}}"
+          doc_version: "{{TEST_DOC_VERSION_1}}"
+          last_modified: "{{TEST_DOC_LAST_MODIFIED_1}}"
+          
+      # 完整追溯链标识
+      traceability_chain:
+        baseline_traceability_id: "TRACE-{{BASELINE_ID}}-{{SUITE_ID_1}}" # 完整追溯链唯一标识
+        system_reference: "{{SYSTEM_ID}}" # 系统级追溯
+        baseline_reference: "{{BASELINE_ID}}" # 基线级追溯
+        requirement_suite_reference: "REQ-SUITE-001" # 需求套件级追溯
+        
+      # AI推理分析
+      ai_reasoning_analysis:
+        reasoning_complexity: "{{REASONING_COMPLEXITY_1}}" # 推理复杂度评估
+        context_requirements: [{{CONTEXT_REQUIREMENTS_1}}] # 上下文需求
+        knowledge_dependencies: [{{KNOWLEDGE_DEPENDENCIES_1}}] # 知识依赖
+        reasoning_patterns: [{{REASONING_PATTERNS_1}}] # 推理模式
+        
+      # 需求套件依赖
+      suite_dependencies:
+        upstream_dependencies: # 本需求依赖的其他需求
+          - dependency_suite_id: "{{UPSTREAM_DEPENDENCY_SUITE_ID_1}}" # 如：REQ-SUITE-000-基础功能
+            dependency_type: "{{DEPENDENCY_TYPE_1}}" # data_dependency | functional_dependency | technical_dependency
+            dependency_description: "{{DEPENDENCY_DESCRIPTION_1}}" # 依赖关系描述
+            dependency_status: "{{DEPENDENCY_STATUS_1}}" # resolved | pending | blocked
+            
+        downstream_dependencies: # 依赖本需求的其他需求
+          - dependent_suite_id: "{{DOWNSTREAM_DEPENDENT_SUITE_ID_1}}" # 如：REQ-SUITE-002-购物车管理功能
+            dependency_type: "{{DEPENDENT_TYPE_1}}" # data_dependency | functional_dependency | technical_dependency
+            dependency_description: "{{DEPENDENT_DESCRIPTION_1}}"
+            dependency_impact: "{{DEPENDENCY_IMPACT_1}}" # high | medium | low
+            
+    - requirement_suite_id: "REQ-SUITE-002"
+      business_requirement_title: "{{BUSINESS_REQUIREMENT_TITLE_2}}"
+      business_requirement_description: "{{BUSINESS_REQUIREMENT_DESCRIPTION_2}}"
+      requirement_basic_info:
+        requirement_category: "{{REQUIREMENT_CATEGORY_2}}"
+        business_domain: "{{BUSINESS_DOMAIN_2}}"
+        stakeholders: [{{STAKEHOLDERS_2}}]
+        business_value_score: {{BUSINESS_VALUE_SCORE_2}}
+      requirement_priority_status:
+        priority: "{{PRIORITY_2}}"
+        status: "{{STATUS_2}}"
+        urgency: "{{URGENCY_2}}"
+        complexity: "{{COMPLEXITY_2}}"
+      timeline_planning:
+        planned_start_date: "{{PLANNED_START_DATE_2}}"
+        planned_end_date: "{{PLANNED_END_DATE_2}}"
+        actual_start_date: "{{ACTUAL_START_DATE_2}}"
+        estimated_completion_date: "{{ESTIMATED_COMPLETION_DATE_2}}"
+        target_sprint: "{{TARGET_SPRINT_2}}"
+      document_references:
+        requirement_analysis_doc:
+          doc_path: "{{REQ_DOC_PATH_2}}"
+          doc_id: "{{REQ_DOC_ID_2}}"
+          doc_status: "{{REQ_DOC_STATUS_2}}"
+          doc_version: "{{REQ_DOC_VERSION_2}}"
+          last_modified: "{{REQ_DOC_LAST_MODIFIED_2}}"
+        architecture_design_doc:
+          doc_path: "{{DESIGN_DOC_PATH_2}}"
+          doc_id: "{{DESIGN_DOC_ID_2}}"
+          doc_status: "{{DESIGN_DOC_STATUS_2}}"
+          doc_version: "{{DESIGN_DOC_VERSION_2}}"
+          last_modified: "{{DESIGN_DOC_LAST_MODIFIED_2}}"
+        development_task_doc:
+          doc_path: "{{DEV_DOC_PATH_2}}"
+          doc_id: "{{DEV_DOC_ID_2}}"
+          doc_status: "{{DEV_DOC_STATUS_2}}"
+          doc_version: "{{DEV_DOC_VERSION_2}}"
+          last_modified: "{{DEV_DOC_LAST_MODIFIED_2}}"
+        testing_design_doc:
+          doc_path: "{{TEST_DOC_PATH_2}}"
+          doc_id: "{{TEST_DOC_ID_2}}"
+          doc_status: "{{TEST_DOC_STATUS_2}}"
+          doc_version: "{{TEST_DOC_VERSION_2}}"
+          last_modified: "{{TEST_DOC_LAST_MODIFIED_2}}"
+      traceability_chain:
+        baseline_traceability_id: "TRACE-{{BASELINE_ID}}-{{SUITE_ID_2}}"
+        system_reference: "{{SYSTEM_ID}}"
+        baseline_reference: "{{BASELINE_ID}}"
+        requirement_suite_reference: "REQ-SUITE-002"
+      effort_estimation:
+        estimated_story_points: {{ESTIMATED_STORY_POINTS_2}}
+        estimated_person_hours: {{ESTIMATED_PERSON_HOURS_2}}
+        estimated_person_days: {{ESTIMATED_PERSON_DAYS_2}}
+        complexity_factor: {{COMPLEXITY_FACTOR_2}}
+      resource_requirements:
+        required_skills: [{{REQUIRED_SKILLS_2}}]
+        team_composition: [{{TEAM_COMPOSITION_2}}]
+        external_dependencies: [{{EXTERNAL_DEPENDENCIES_2}}]
+        infrastructure_needs: [{{INFRASTRUCTURE_NEEDS_2}}]
+      # 继续添加更多需求套件...
+
+# ============================================================================
+# 需求间关系管理
+# ============================================================================
+requirement_relationship_management:
+  # 需求依赖关系
+  requirement_dependencies:
+    - dependency_id: "REQ-DEP-001"
+      source_requirement_suite_id: "{{SOURCE_SUITE_ID_1}}" # 依赖源
+      target_requirement_suite_id: "{{TARGET_SUITE_ID_1}}" # 依赖目标
+      dependency_type: "{{DEPENDENCY_TYPE_1}}" # prerequisite | parallel | conditional | exclusive | enhancement
+      dependency_description: "{{DEPENDENCY_DESCRIPTION_1}}"
+      dependency_strength: "{{DEPENDENCY_STRENGTH_1}}" # mandatory | preferred | optional
+      impact_if_delayed: "{{IMPACT_IF_DELAYED_1}}" # high | medium | low
+      mitigation_strategy: "{{MITIGATION_STRATEGY_1}}"
+      
+    - dependency_id: "REQ-DEP-002"
+      source_requirement_suite_id: "{{SOURCE_SUITE_ID_2}}"
+      target_requirement_suite_id: "{{TARGET_SUITE_ID_2}}"
+      dependency_type: "{{DEPENDENCY_TYPE_2}}"
+      dependency_description: "{{DEPENDENCY_DESCRIPTION_2}}"
+      dependency_strength: "{{DEPENDENCY_STRENGTH_2}}"
+      impact_if_delayed: "{{IMPACT_IF_DELAYED_2}}"
+      mitigation_strategy: "{{MITIGATION_STRATEGY_2}}"
+      # 继续添加依赖关系...
+      
+  # 需求冲突管理
+  requirement_conflicts:
+    - conflict_id: "REQ-CONFLICT-001"
+      conflicting_requirements: [{{CONFLICTING_REQ_IDS_1}}] # 冲突的需求套件IDs
+      conflict_type: "{{CONFLICT_TYPE_1}}" # resource_conflict | priority_conflict | technical_conflict | business_conflict
+      conflict_description: "{{CONFLICT_DESCRIPTION_1}}"
+      conflict_severity: "{{CONFLICT_SEVERITY_1}}" # critical | high | medium | low
+      resolution_strategy: "{{RESOLUTION_STRATEGY_1}}"
+      resolution_owner: "{{RESOLUTION_OWNER_1}}"
+      resolution_deadline: "{{RESOLUTION_DEADLINE_1}}" # YYYY-MM-DD
+      resolution_status: "{{RESOLUTION_STATUS_1}}" # identified | analyzing | resolving | resolved
+      
+  # 需求优先级矩阵
+  priority_matrix:
+    critical_requirements: [{{CRITICAL_REQ_IDS}}] # 关键需求列表
+    high_priority_requirements: [{{HIGH_PRIORITY_REQ_IDS}}] # 高优先级需求
+    medium_priority_requirements: [{{MEDIUM_PRIORITY_REQ_IDS}}] # 中优先级需求
+    low_priority_requirements: [{{LOW_PRIORITY_REQ_IDS}}] # 低优先级需求
+    
+    # 优先级调整记录
+    priority_adjustments:
+      - adjustment_id: "PRI-ADJ-001"
+        requirement_suite_id: "{{ADJUSTED_REQ_ID_1}}"
+        old_priority: "{{OLD_PRIORITY_1}}"
+        new_priority: "{{NEW_PRIORITY_1}}"
+        adjustment_date: "{{ADJUSTMENT_DATE_1}}" # YYYY-MM-DD
+        adjustment_reason: "{{ADJUSTMENT_REASON_1}}"
+        approved_by: "{{APPROVED_BY_1}}"
+
+# ============================================================================
+# Context Engineering集成
+# ============================================================================
+context_engineering_integration:
+  # 推理链规划
+  reasoning_chain_planning:
+    - reasoning_chain_id: "REASONING-{{SYSTEM}}-{{MODULE}}-{{SEQUENCE}}" # 如：REASONING-ECOM-PROD-001
+      reasoning_chain_name: "{{REASONING_CHAIN_NAME_1}}" # 如：产品管理功能推理链
+      reasoning_depth: {{REASONING_DEPTH_1}} # 推理深度级别
+      context_quality: {{CONTEXT_QUALITY_1}} # 上下文质量评分
+
+      # 推理链分配的需求
+      allocated_requirements:
+        - requirement_suite_id: "{{ALLOCATED_REQ_ID_1}}"
+          reasoning_complexity: {{REASONING_COMPLEXITY_1}}
+          context_completeness: {{CONTEXT_COMPLETENESS_1}}% # 上下文完整性百分比
+          reasoning_risk_level: "{{REASONING_RISK_LEVEL_1}}" # low | medium | high
+
+        - requirement_suite_id: "{{ALLOCATED_REQ_ID_2}}"
+          reasoning_complexity: {{REASONING_COMPLEXITY_2}}
+          context_completeness: {{CONTEXT_COMPLETENESS_2}}%
+          reasoning_risk_level: "{{REASONING_RISK_LEVEL_2}}"
+          # 继续添加分配的需求...
+
+      # 推理目标和质量标准
+      reasoning_objectives: [{{REASONING_OBJECTIVES_1}}]
+      quality_criteria: [{{REASONING_QUALITY_CRITERIA_1}}]
+      reasoning_risks: [{{REASONING_RISKS_1}}]
+      
+  # 推理质量检查点
+  reasoning_quality_checkpoints:
+    - checkpoint_id: "CHECKPOINT-001"
+      checkpoint_name: "{{CHECKPOINT_NAME_1}}" # 如：需求推理完成检查点
+      reasoning_stage: "{{REASONING_STAGE_1}}" # requirements_analysis | design_thinking | architecture_reasoning | implementation_reasoning
+      quality_threshold: {{QUALITY_THRESHOLD_1}} # 质量阈值评分
+
+      # 检查点包含的需求
+      included_requirements: [{{CHECKPOINT_REQ_IDS_1}}]
+      validation_criteria: [{{VALIDATION_CRITERIA_1}}]
+      reasoning_deliverables: [{{REASONING_DELIVERABLES_1}}]
+      context_validation_required: {{CONTEXT_VALIDATION_REQUIRED_1}} # true | false
+
+    - checkpoint_id: "CHECKPOINT-002"
+      checkpoint_name: "{{CHECKPOINT_NAME_2}}"
+      reasoning_stage: "{{REASONING_STAGE_2}}"
+      quality_threshold: {{QUALITY_THRESHOLD_2}}
+      included_requirements: [{{CHECKPOINT_REQ_IDS_2}}]
+      validation_criteria: [{{VALIDATION_CRITERIA_2}}]
+      reasoning_deliverables: [{{REASONING_DELIVERABLES_2}}]
+      context_validation_required: {{CONTEXT_VALIDATION_REQUIRED_2}}
+      # 继续添加检查点...
+      
+  # Agent推理能力分配
+  agent_reasoning_allocation:
+    # Agent推理能力分配
+    reasoning_capability_allocation:
+      - agent_role: "context_baseline_agent" # 对应agent-1
+        reasoning_capability: {{CBA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{CBA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{CBA_COMPLEXITY_HANDLING}}] # 按需求套件分配
+
+      - agent_role: "requirements_reasoning_agent" # 对应agent-2
+        reasoning_capability: {{RRA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{RRA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{RRA_COMPLEXITY_HANDLING}}]
+
+      - agent_role: "design_thinking_agent" # 对应agent-3
+        reasoning_capability: {{DTA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{DTA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{DTA_COMPLEXITY_HANDLING}}]
+
+      - agent_role: "architecture_reasoning_agent" # 对应agent-4
+        reasoning_capability: {{ARA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{ARA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{ARA_COMPLEXITY_HANDLING}}]
+
+      - agent_role: "implementation_reasoning_agent" # 对应agent-5
+        reasoning_capability: {{IRA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{IRA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{IRA_COMPLEXITY_HANDLING}}]
+
+      - agent_role: "validation_reasoning_agent" # 对应agent-6
+        reasoning_capability: {{VRA_REASONING_CAPABILITY}}
+        context_knowledge_domains: [{{VRA_KNOWLEDGE_DOMAINS}}]
+        reasoning_complexity_handling: [{{VRA_COMPLEXITY_HANDLING}}]
+
+    # Context Engineering基础设施
+    context_infrastructure_allocation:
+      knowledge_repositories: [{{KNOWLEDGE_REPO_ALLOCATION}}]
+      reasoning_pattern_libraries: [{{REASONING_PATTERN_ALLOCATION}}]
+      context_validation_tools: [{{CONTEXT_VALIDATION_ALLOCATION}}]
+      mcp_tool_integrations: [{{MCP_TOOL_ALLOCATION}}]
+
+# ============================================================================
+# 变更管理与追溯
+# ============================================================================
+change_management_and_traceability:
+  # 变更追踪机制
+  change_tracking:
+    # 需求变更记录
+    requirement_changes:
+      - change_id: "REQ-CHANGE-001"
+        requirement_suite_id: "{{CHANGED_SUITE_ID_1}}"
+        change_date: "{{CHANGE_DATE_1}}" # YYYY-MM-DD HH:MM:SS
+        change_type: "{{CHANGE_TYPE_1}}" # add | modify | delete | suspend | reactivate
+        change_description: "{{CHANGE_DESCRIPTION_1}}"
+        change_reason: "{{CHANGE_REASON_1}}"
+        change_initiator: "{{CHANGE_INITIATOR_1}}"
+        change_approver: "{{CHANGE_APPROVER_1}}"
+        
+        # 变更影响分析
+        impact_analysis:
+          affected_documents: [{{AFFECTED_DOCS_1}}] # 受影响的Agent文档
+          affected_requirements: [{{AFFECTED_REQ_IDS_1}}] # 受影响的其他需求
+          affected_reasoning_chains: [{{AFFECTED_REASONING_CHAINS_1}}] # 受影响的推理链
+          affected_checkpoints: [{{AFFECTED_CHECKPOINTS_1}}] # 受影响的质量检查点
+          
+        # 变更传播路径
+        propagation_path:
+          - layer: "L1_context_baseline" # Context基线层变更
+            actions_required: [{{L1_ACTIONS_1}}]
+            reasoning_impact: "{{L1_REASONING_IMPACT_1}}"
+
+          - layer: "L2_requirements_reasoning" # 需求推理层变更
+            actions_required: [{{L2_ACTIONS_1}}]
+            reasoning_impact: "{{L2_REASONING_IMPACT_1}}"
+
+          - layer: "L3_architecture_reasoning" # 架构推理层变更
+            actions_required: [{{L3_ACTIONS_1}}]
+            reasoning_impact: "{{L3_REASONING_IMPACT_1}}"
+
+          - layer: "L4_implementation_reasoning" # 实施推理层变更
+            actions_required: [{{L4_ACTIONS_1}}]
+            reasoning_impact: "{{L4_REASONING_IMPACT_1}}"
+            
+          - layer: "L5_testing" # 测试设计层变更
+            actions_required: [{{L5_ACTIONS_1}}]
+            estimated_effort: "{{L5_EFFORT_1}}"
+            
+        change_status: "{{CHANGE_STATUS_1}}" # proposed | approved | implementing | completed | rejected
+        
+  # 完整追溯矩阵
+  complete_traceability_matrix:
+    # 系统→基线→需求→文档追溯
+    - traceability_entry_id: "TRACE-ENTRY-001"
+      business_requirement: "{{ORIGINAL_BUSINESS_NEED_1}}"
+      system_reference: "{{SYSTEM_ID}}"
+      baseline_reference: "{{BASELINE_ID}}"
+      requirement_suite_reference: "{{REQ_SUITE_ID_1}}"
+      
+      # 完整文档链
+      document_chain:
+        requirement_doc_reference: "{{REQ_DOC_ID_1}}"
+        design_doc_reference: "{{DESIGN_DOC_ID_1}}"
+        development_doc_reference: "{{DEV_DOC_ID_1}}"
+        testing_doc_reference: "{{TEST_DOC_ID_1}}"
+        
+      # 实现追溯
+      implementation_traceability:
+        ears_requirements: [{{EARS_REQ_IDS_1}}] # agent-2产生的EARS需求
+        bdd_scenarios: [{{BDD_SCENARIO_IDS_1}}] # agent-2产生的BDD场景
+        prototype_designs: [{{PROTOTYPE_IDS_1}}] # agent-3产生的原型设计
+        design_decisions: [{{DESIGN_DECISION_IDS_1}}] # agent-4产生的设计决策
+        development_tasks: [{{DEV_TASK_IDS_1}}] # agent-5产生的开发任务
+        test_cases: [{{TEST_CASE_IDS_1}}] # agent-6产生的测试用例
+        
+      # 交付物追溯
+      deliverable_traceability:
+        generated_code: [{{GENERATED_CODE_1}}] # CodeGen生成的代码
+        manual_code: [{{MANUAL_CODE_1}}] # 手工开发的代码
+        test_scripts: [{{TEST_SCRIPTS_1}}] # 测试脚本
+        documentation: [{{DOCUMENTATION_1}}] # 相关文档
+        
+      traceability_validation: "{{TRACEABILITY_VALID_1}}" # validated | pending | broken
+      
+  # 变更影响预测
+  change_impact_prediction:
+    # 变更影响评估规则
+    impact_assessment_rules:
+      - rule_id: "IMPACT-RULE-001"
+        rule_description: "需求优先级变更影响评估"
+        trigger_condition: "requirement_priority_change"
+        impact_calculation: "{{IMPACT_CALCULATION_1}}"
+        automated_actions: [{{AUTOMATED_ACTIONS_1}}]
+        
+    # 变更风险评估
+    change_risk_assessment:
+      - risk_id: "CHANGE-RISK-001"
+        risk_description: "{{CHANGE_RISK_DESCRIPTION_1}}"
+        risk_probability: "{{RISK_PROBABILITY_1}}" # high | medium | low
+        risk_impact: "{{RISK_IMPACT_1}}" # high | medium | low
+        risk_mitigation: "{{RISK_MITIGATION_1}}"
+        risk_owner: "{{RISK_OWNER_1}}"
+
+# ============================================================================
+# 质量保证与监控
+# ============================================================================
+quality_assurance_and_monitoring:
+  # 基线质量指标
+  baseline_quality_metrics:
+    # 需求覆盖率指标
+    requirement_coverage_metrics:
+      business_requirements_covered: {{BUSINESS_REQ_COVERED}}%
+      functional_requirements_covered: {{FUNCTIONAL_REQ_COVERED}}%
+      document_completeness_rate: {{DOC_COMPLETENESS_RATE}}%
+      traceability_completeness_rate: {{TRACEABILITY_COMPLETENESS}}%
+      
+    # 文档质量指标
+    document_quality_metrics:
+      document_consistency_score: {{DOC_CONSISTENCY_SCORE}} # 1-10
+      document_up_to_date_rate: {{DOC_UP_TO_DATE_RATE}}%
+      document_review_completion_rate: {{DOC_REVIEW_COMPLETION}}%
+      
+    # 项目健康指标
+    project_health_metrics:
+      requirements_on_schedule: {{REQ_ON_SCHEDULE}}%
+      requirements_within_budget: {{REQ_WITHIN_BUDGET}}%
+      stakeholder_satisfaction_score: {{STAKEHOLDER_SATISFACTION}} # 1-10
+      team_velocity_consistency: {{TEAM_VELOCITY_CONSISTENCY}} # stable | improving | declining
+      
+  # 监控告警规则
+  monitoring_alert_rules:
+    - alert_rule_id: "ALERT-001"
+      alert_name: "需求文档过期告警"
+      alert_condition: "document_last_modified > 30_days"
+      alert_severity: "warning"
+      alert_recipients: [{{ALERT_RECIPIENTS_1}}]
+      alert_action: "{{ALERT_ACTION_1}}"
+      
+    - alert_rule_id: "ALERT-002"
+      alert_name: "需求依赖阻塞告警"
+      alert_condition: "dependency_blocked > 7_days"
+      alert_severity: "critical"
+      alert_recipients: [{{ALERT_RECIPIENTS_2}}]
+      alert_action: "{{ALERT_ACTION_2}}"
+      
+  # 定期审查机制
+  periodic_review_mechanism:
+    # 周审查
+    weekly_reviews:
+      review_scope: [{{WEEKLY_REVIEW_SCOPE}}] # 需求进展、文档状态、阻塞问题
+      review_participants: [{{WEEKLY_REVIEW_PARTICIPANTS}}]
+      review_deliverables: [{{WEEKLY_REVIEW_DELIVERABLES}}]
+      
+    # 月审查
+    monthly_reviews:
+      review_scope: [{{MONTHLY_REVIEW_SCOPE}}] # 基线健康度、优先级调整、资源重分配
+      review_participants: [{{MONTHLY_REVIEW_PARTICIPANTS}}]
+      review_deliverables: [{{MONTHLY_REVIEW_DELIVERABLES}}]
+      
+    # 季度审查
+    quarterly_reviews:
+      review_scope: [{{QUARTERLY_REVIEW_SCOPE}}] # 战略对齐、基线架构审查、流程管理
+      review_participants: [{{QUARTERLY_REVIEW_PARTICIPANTS}}]
+      review_deliverables: [{{QUARTERLY_REVIEW_DELIVERABLES}}]
+
+# ============================================================================
+# 基线生命周期管理
+# ============================================================================
+baseline_lifecycle_management:
+  # 基线状态转换
+  baseline_state_transitions: 实现
+    current_state: "{{CURRENT_STATE}}" # draft | active | frozen | archived | deprecated
+    state_transition_history:
+      - transition_id: "STATE-TRANS-001"
+        from_state: "{{FROM_STATE_1}}"
+        to_state: "{{TO_STATE_1}}"
+        transition_date: "{{TRANSITION_DATE_1}}" # YYYY-MM-DD HH:MM:SS
+        transition_reason: "{{TRANSITION_REASON_1}}"
+        approved_by: "{{TRANSITION_APPROVED_BY_1}}"
+        
+  # 基线版本管理
+  baseline_version_management:
+    version_history:
+      - version: "{{VERSION_1}}" # v1.0
+        version_date: "{{VERSION_DATE_1}}"
+        version_changes: [{{VERSION_CHANGES_1}}]
+        version_status: "{{VERSION_STATUS_1}}" # current | superseded | archived
+        
+    branching_strategy:
+      main_baseline: "{{MAIN_BASELINE_VERSION}}"
+      experimental_branches: [{{EXPERIMENTAL_BRANCHES}}]
+      hotfix_branches: [{{HOTFIX_BRANCHES}}]
+      
+  # 基线归档与恢复
+  baseline_archival_recovery:
+    archival_policy: "{{ARCHIVAL_POLICY}}" # 归档策略
+    recovery_procedures: [{{RECOVERY_PROCEDURES}}] # 恢复程序
+    backup_locations: [{{BACKUP_LOCATIONS}}] # 备份位置
+
+# ============================================================================
+# 报告与仪表板
+# ============================================================================
+reporting_and_dashboard:
+  # 标准报告模板
+  standard_reports:
+    # 需求状态报告
+    requirement_status_report:
+      report_frequency: "{{REPORT_FREQUENCY_1}}" # daily | weekly | monthly
+      report_recipients: [{{REPORT_RECIPIENTS_1}}]
+      report_sections: [{{REPORT_SECTIONS_1}}] # 状态摘要、进展详情、风险提示、下期计划
+      
+    # 基线健康度报告
+    baseline_health_report:
+      report_frequency: "{{REPORT_FREQUENCY_2}}"
+      report_recipients: [{{REPORT_RECIPIENTS_2}}]
+      report_sections: [{{REPORT_SECTIONS_2}}] # 质量指标、追溯完整性、文档状态、管理建议
+      
+  # 可视化仪表板
+  visualization_dashboard:
+    dashboard_components:
+      - component: "需求进展甘特图"
+        component_description: "显示所有需求的时间线和依赖关系"
+        update_frequency: "实时"
+        
+      - component: "文档状态矩阵"
+        component_description: "显示所有需求套件的4文档完成状态"
+        update_frequency: "每日"
+        
+      - component: "质量指标趋势图"
+        component_description: "显示基线质量指标的历史趋势"
+        update_frequency: "每周"
+
+# ============================================================================
+# 附加信息
+# ============================================================================
+additional_information:
+  # 重要假设条件
+  key_assumptions: |
+    {{KEY_ASSUMPTIONS}}
+    
+  # 基线范围外事项
+  out_of_baseline_scope: |
+    {{OUT_OF_BASELINE_SCOPE}}
+    
+  # 风险提示
+  risk_alerts: |
+    {{RISK_ALERTS}}
+    
+  # 使用指南
+  usage_guidelines: |
+    1. 基线创建后，首先建立系统基础信息关联
+    2. 逐个注册需求套件，确保文档路径正确
+    3. 建立需求间依赖关系，识别并解决冲突
+    4. 定期更新需求状态和文档版本信息
+    5. 监控质量指标，及时处理告警和风险
+    6. 定期审查基线健康度，维护管理流程
+    
+  # 维护说明
+  maintenance_notes: |
+    - 本基线模板应定期审查和更新，确保与实际项目情况同步
+    - 文档路径变更时，必须同步更新基线中的引用
+    - 需求优先级调整需要评估对整体规划的影响
+    - 基线状态变更需要相关利益相关者的批准

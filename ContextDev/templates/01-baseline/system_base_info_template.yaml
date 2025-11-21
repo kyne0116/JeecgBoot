@@ -1,0 +1,186 @@
+# JeecgBoot系统基础信息模板 v4.0
+# 支持三层架构管理体系和模块化文档组织
+
+# ============================================================================
+# 📁 v4.0 三层架构存储规范 (重要更新)
+# ============================================================================
+# 本模板属于: Layer 1 - 系统层 (System Level)
+# 命名格式: system_base_info_[SYSTEM].yaml
+# 存储位置: ${base_working_directory}/AIGC/system_base_info_[SYSTEM].yaml
+# 
+# 示例路径:
+# - 汽车4S店系统: /Users/admin/Work/Github/JeecgBoot/AIGC/system_base_info_AUTO.yaml
+# - 电商系统: /Users/admin/Work/Github/JeecgBoot/AIGC/system_base_info_ECOM.yaml
+# - 办公系统: /Users/admin/Work/Github/JeecgBoot/AIGC/system_base_info_OA.yaml
+#
+# 关联文档:
+# - Layer 2: requirement_baseline_[SYSTEM]_[MODULE].yaml (模块需求基线)
+# - Layer 3: [SYSTEM]_[MODULE]/ 目录下的具体需求文档
+# ============================================================================
+system_overview:
+  system_name: "${SYSTEM_NAME}" # 系统名称
+  description: "${SYSTEM_DESCRIPTION}" # 系统的简短描述
+  base_working_directory: "${BASE_WORKING_DIRECTORY}" # 整个项目的根工作目录，如：/Users/admin/Work/Github/JeecgBoot
+  aigc_working_directory: "${base_working_directory}/AIGC" # AIGC 项目需求文档根目录
+  codegen_working_directory: "${base_working_directory}/CodeGen" # CodeGen系统代码生成源码
+  contextdev_working_directory: "${base_working_directory}/ContextDev" # ContextDev上下文编程源码
+  backend_working_directory: "${base_working_directory}/jeecg-boot" # 后端服务根路径
+  frontend_working_directory: "${base_working_directory}/jeecgboot-vue3" # 前端服务根路径
+
+  contains_jeecgboot_module: # 本系统包含的JeecgBoot主要模块
+    - code: "${MODULE_1_CODE}"
+      description: "${MODULE_1_DESCRIPTION}"
+    - code: "${MODULE_2_CODE}"
+      description: "${MODULE_2_DESCRIPTION}"
+    # Add more modules as needed
+
+  contains_jeecgboot_submodule: # 本系统包含的JeecgBoot具体子模块
+    - code: "${SUBMODULE_1_CODE}"
+      description: "${SUBMODULE_1_DESCRIPTION}"
+    - code: "${SUBMODULE_2_CODE}"
+      description: "${SUBMODULE_2_DESCRIPTION}"
+    # Add more sub-modules as needed
+
+  contains_jeecgboot_submodule_views: # 本系统包含的JeecgBoot子模块相关的前端Vue 3视图或页面
+    - path: "${VIEW_1_PATH}"
+      description: "${VIEW_1_DESCRIPTION}"
+    - path: "${VIEW_2_PATH}"
+      description: "${VIEW_2_DESCRIPTION}"
+    # Add more Vue 3 view paths as needed
+
+  environments: # 系统部署的环境信息，可包含多个
+    - id: "dev" # 开发环境的唯一标识
+      name: "开发环境"
+      backend_url: "${DEV_BACKEND_URL}"
+      frontend_url: "${DEV_FRONTEND_URL}"
+      database:
+        connection_url: "${DEV_DATABASE_CONNECTION_URL}"
+        driver: "${DEV_DATABASE_DRIVER}"
+        username: "${DEV_DATABASE_USERNAME}"
+        password: "${DEV_DATABASE_PASSWORD}"
+      redis:
+        ip: "${DEV_REDIS_IP}"
+        port: "${DEV_REDIS_PORT}"
+        password: "${DEV_REDIS_PASSWORD}"
+      storage: "${DEV_STORAGE_TYPE}" # 可选值: "local", "minIO", "oss"
+      notes: "供开发人员本地测试和联调使用"
+    - id: "test" # 测试环境的唯一标识
+      name: "测试环境"
+      backend_url: "${TEST_BACKEND_URL}"
+      frontend_url: "${TEST_FRONTEND_URL}"
+      database:
+        connection_url: "${TEST_DATABASE_CONNECTION_URL}"
+        driver: "${TEST_DATABASE_DRIVER}"
+        username: "${TEST_DATABASE_USERNAME}"
+        password: "${TEST_DATABASE_PASSWORD}"
+      redis:
+        ip: "${TEST_REDIS_IP}"
+        port: "${TEST_REDIS_PORT}"
+        password: "${TEST_REDIS_PASSWORD}"
+      storage: "${TEST_STORAGE_TYPE}"
+      notes: "供测试团队进行功能和性能测试"
+    - id: "uat" # 用户验收测试环境的唯一标识
+      name: "用户验收测试环境"
+      backend_url: "${UAT_BACKEND_URL}"
+      frontend_url: "${UAT_FRONTEND_URL}"
+      database:
+        connection_url: "${UAT_DATABASE_CONNECTION_URL}"
+        driver: "${UAT_DATABASE_DRIVER}"
+        username: "${UAT_DATABASE_USERNAME}"
+        password: "${UAT_DATABASE_PASSWORD}"
+      redis:
+        ip: "${UAT_REDIS_IP}"
+        port: "${UAT_REDIS_PORT}"
+        password: "${UAT_REDIS_PASSWORD}"
+      storage: "${UAT_STORAGE_TYPE}"
+      notes: "供业务用户进行验收测试，验证系统功能是否满足业务需求"
+    - id: "prod" # 生产环境的唯一标识
+      name: "生产环境"
+      backend_url: "${PROD_BACKEND_URL}"
+      frontend_url: "${PROD_FRONTEND_URL}"
+      database:
+        connection_url: "${PROD_DATABASE_CONNECTION_URL}"
+        driver: "${PROD_DATABASE_DRIVER}"
+        username: "${PROD_DATABASE_USERNAME}"
+        password: "${PROD_DATABASE_PASSWORD}"
+      redis:
+        ip: "${PROD_REDIS_IP}"
+        port: "${PROD_REDIS_PORT}"
+        password: "${PROD_REDIS_PASSWORD}"
+      storage: "${PROD_STORAGE_TYPE}"
+      notes: "正式对外服务，高可用和高性能要求"
+
+  tech_stack:
+    base_platform: "JeecgBoot" # 基础开发平台
+    base_version: "3.8.2" # JeecgBoot版本
+    frontend: # 前端技术栈 - 基于JeecgBoot-Vue3
+      framework: "Vue.js" # 基于Vue 3的现代前端框架
+      version: "3.5.13" # Vue版本
+      ui_library: "Ant Design Vue" # UI组件库
+      build_tool: "Vite" # 前端构建工具
+      language: "TypeScript" # 开发语言
+      package_manager: "pnpm" # 包管理器
+      jeecg_frontend_version: "3.8.2" # JeecgBoot前端版本
+      additional_libraries: # 其他主要依赖
+        - name: "Vue Router"
+          version: "4.5.0"
+          description: "前端路由管理"
+        - name: "Pinia"
+          version: "2.1.7"
+          description: "状态管理"
+        - name: "Axios"
+          version: "1.7.9"
+          description: "HTTP客户端"
+        - name: "VXE Table"
+          version: "4.13.31"
+          description: "高性能表格组件"
+        - name: "ECharts"
+          version: "5.6.0"
+          description: "数据可视化图表库"
+    backend: # 后端技术栈 - 基于JeecgBoot后端框架
+      framework: "Spring Boot" # 基于Spring Boot的企业级Java框架
+      language: "Java" # 开发语言
+      version: "17" # Java版本(支持JDK 17和1.8)
+      spring_boot_version: "2.7.18" # Spring Boot版本
+      jeecg_backend_version: "3.8.2" # JeecgBoot后端版本
+      orm_library: "MyBatis Plus" # ORM框架
+      api_protocol: "RESTful API" # API协议
+      security_framework: "Spring Security + JWT + Apache Shiro" # 安全框架
+      additional_frameworks: # 其他主要框架和组件
+        - name: "Spring Cloud"
+          version: "2021.0.8"
+          description: "微服务框架(可选)"
+        - name: "Spring Cloud Alibaba"
+          version: "2021.0.6.2"
+          description: "阿里巴巴微服务套件"
+        - name: "MyBatis Plus"
+          version: "3.5.3.2"
+          description: "MyBatis-Plus ORM框架"
+        - name: "Druid"
+          version: "1.2.24"
+          description: "数据库连接池"
+        - name: "Apache Shiro"
+          version: "1.13.0"
+          description: "权限管理框架"
+        - name: "Nacos"
+          version: "2.0.4"
+          description: "服务注册与配置中心"
+        - name: "XXL-Job"
+          version: "2.4.1"
+          description: "分布式任务调度"
+        - name: "Knife4j"
+          version: "4.4.0"
+          description: "API文档生成工具"
+        - name: "Hutool"
+          version: "5.8.25"
+          description: "Java工具类库"
+
+  git_repository:
+    repo_url: "${GIT_REPOSITORY_URL}" # 项目的主要Git仓库地址
+    branch_strategy: "${GIT_BRANCH_STRATEGY}"
+    cicd_pipeline_tool: "${CICD_PIPELINE_TOOL}"
+
+  additional_notes: |
+    # 备注说明
+    ${ADDITIONAL_NOTES_CONTENT}
+    此处可添加任何其他重要信息，例如特殊配置要求、第三方服务依赖、已知问题等。

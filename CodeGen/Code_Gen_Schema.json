@@ -1,0 +1,189 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JeecgBoot配置Schema(简化版)",
+  "description": "验证JSON配置文件核心结构",
+  "type": "object",
+  "required": ["head", "fields", "indexs", "deleteFieldIds", "deleteIndexIds"],
+  "properties": {
+    "head": {
+      "type": "object",
+      "required": ["tableName", "tableTxt", "business_entity", "tableType", "formCategory"],
+      "properties": {
+        "tableName": {
+          "type": "string",
+          "pattern": "^[a-z]+_[a-z]+_[a-z0-9]+$",
+          "description": "表名必须严格为三段式格式: {MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_SUFFIX}，其中ENTITY_SUFFIX为实体类英文去驼峰后的全称，不允许四段式或更多段式"
+        },
+        "tableTxt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "business_entity": {
+          "type": "string",
+          "pattern": "^[A-Z][a-zA-Z]*$"
+        },
+        "tableType": {
+          "type": "integer",
+          "enum": [1, 2, 3],
+          "description": "表类型：1=独立表，2=主表，3=子表"
+        },
+        "relationType": {
+          "type": ["integer", "null"],
+          "enum": [null, 0, 1],
+          "description": "关联类型：null=无关联，0=一对多，1=一对一"
+        },
+        "tabOrderNum": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "子表显示顺序，仅子表使用"
+        },
+        "formCategory": {
+          "type": "string",
+          "enum": ["temp"]
+        }
+      },
+      "additionalProperties": true
+    },
+    "fields": {
+      "type": "array",
+      "minItems": 8,
+      "description": "字段数组，orderNum必须从0开始连续递增",
+      "items": {
+        "type": "object",
+        "required": ["dbFieldName", "dbFieldTxt", "dbType", "orderNum"],
+        "properties": {
+          "dbFieldName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "字段名，最大32字符，对应数据库表onl_cgform_field.db_field_name字段限制"
+          },
+          "dbFieldTxt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dbType": {
+            "type": "string",
+            "enum": ["string", "int", "BigDecimal", "Date", "Datetime", "text"]
+          },
+          "orderNum": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "必须从0开始严格连续递增"
+          },
+          "queryMode": {
+            "type": "string",
+            "maxLength": 10,
+            "enum": ["single", "range", "like", "in", "between"],
+            "description": "查询模式，最大10字符"
+          },
+          "fieldShowType": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "显示类型，最大20字符"
+          },
+          "queryShowType": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "查询显示类型，最大50字符"
+          },
+          "fieldValidType": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "字段验证类型，最大300字符"
+          },
+          "dictField": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "数据字典字段编码，指向系统字典项，如sex、status等"
+          },
+          "dictTable": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "数据字典表名，通常为空字符串使用系统默认"
+          },
+          "dictText": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "数据字典文本字段，通常为空字符串使用系统默认"
+          },
+          "queryDictField": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "查询条件数据字典字段编码，与dictField保持相同"
+          },
+          "queryDictTable": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "查询条件数据字典表名，通常为空"
+          },
+          "queryDictText": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "查询条件数据字典文本，通常为空"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "indexs": {
+      "type": "array"
+    },
+    "deleteFieldIds": {
+      "type": "array"
+    },
+    "deleteIndexIds": {
+      "type": "array"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "generation_info": {
+          "type": "object",
+          "required": ["module_name", "submodule_name", "business_entity"]
+        },
+        "derived_formats": {
+          "type": "object",
+          "required": ["table_suffix", "url_path", "frontend_path"]
+        }
+      }
+    },
+    "subList": {
+      "type": "array",
+      "description": "主子表关联场景的子表配置数组（可选）",
+      "items": {
+        "type": "object",
+        "required": ["tableName", "entityName", "ftlDescription", "id"],
+        "properties": {
+          "tableName": {
+            "type": "string",
+            "pattern": "^[a-z]+_[a-z]+_[a-z0-9]+$",
+            "description": "子表的表名，必须严格为三段式命名结构: {MODULE_NAME}_{SUBMODULE_NAME}_{ENTITY_SUFFIX}，其中ENTITY_SUFFIX为实体类英文去驼峰后的全称"
+          },
+          "entityName": {
+            "type": "string",
+            "pattern": "^[A-Z][a-zA-Z0-9]*$",
+            "minLength": 1,
+            "description": "子表的Java实体类名称，使用简洁格式，如ParentInfo、ContactInfo",
+            "examples": ["ParentInfo", "ContactInfo", "ClassmateInfo"],
+            "errorMessage": "entityName必须为简洁格式，统一命名规范"
+          },
+          "ftlDescription": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "子表的业务描述"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^row_[0-9]{4}$",
+            "description": "子表ID，格式为row_xxxx，从1020开始递增"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": true
+}

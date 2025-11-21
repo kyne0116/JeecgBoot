@@ -1,0 +1,369 @@
+# JeecgBoot测试设计模板 v5.1
+# 专注核心技术流程：测试设计 + 质量保证
+
+# ============================================================================
+# 文档标识
+# ============================================================================
+document_info:
+  id: "{{SYSTEM}}-{{MODULE}}-{{TIMESTAMP}}-TEST"
+  title: "{{BUSINESS_TITLE}}"
+  agent: "agent-6"
+
+# ============================================================================
+# 开发解析 - 来自agent-5的开发实施
+# ============================================================================
+development_analysis:
+  source_development: "{{SOURCE_DEV_DOC_ID}}"
+  test_targets:
+    backend_components: [{{BACKEND_COMPONENTS}}]
+    frontend_components: [{{FRONTEND_COMPONENTS}}]
+    api_endpoints: [{{API_ENDPOINTS}}]
+    database_tables: [{{DATABASE_TABLES}}]
+
+# ============================================================================
+# 测试策略 - BTDTP测试设计和计�?# ============================================================================
+test_strategy:
+  # 测试层级策略
+  test_levels:
+    unit_testing:
+      scope: "{{UNIT_TEST_SCOPE}}"
+      frameworks: ["JUnit5", "Mockito"]
+      coverage_target: "{{UNIT_COVERAGE_TARGET}}%" # 建议80%+
+
+    integration_testing:
+      scope: "{{INTEGRATION_TEST_SCOPE}}"
+      frameworks: ["SpringBootTest", "TestContainers"]
+      coverage_target: "{{INTEGRATION_COVERAGE_TARGET}}%" # 建议70%+
+
+    system_testing:
+      scope: "{{SYSTEM_TEST_SCOPE}}"
+      frameworks: ["Selenium", "RestAssured"]
+      coverage_target: "{{SYSTEM_COVERAGE_TARGET}}%" # 建议60%+
+
+  # 测试类型策略
+  test_types:
+    functional_testing:
+      priority: "{{FUNCTIONAL_PRIORITY}}" # high|medium|low
+      approach: "{{FUNCTIONAL_APPROACH}}" # bdd|traditional
+
+    performance_testing:
+      priority: "{{PERFORMANCE_PRIORITY}}"
+      tools: ["JMeter", "Gatling"]
+
+    security_testing:
+      priority: "{{SECURITY_PRIORITY}}"
+      tools: ["OWASP ZAP", "SonarQube"]
+
+# ============================================================================
+# BDD测试场景设计 - 行为驱动测试用例
+# ============================================================================
+bdd_test_scenarios:
+  # 功能测试场景
+  functional_scenarios:
+    - feature: "{{FEATURE_NAME_1}}"
+      scenarios:
+        - scenario: "{{SCENARIO_TITLE_1}}"
+          given: "{{GIVEN_CONDITION_1}}"
+          when: "{{WHEN_ACTION_1}}"
+          then: "{{THEN_RESULT_1}}"
+          test_data: "{{TEST_DATA_1}}"
+
+        - scenario: "{{SCENARIO_TITLE_2}}"
+          given: "{{GIVEN_CONDITION_2}}"
+          when: "{{WHEN_ACTION_2}}"
+          then: "{{THEN_RESULT_2}}"
+          test_data: "{{TEST_DATA_2}}"
+
+    - feature: "{{FEATURE_NAME_2}}"
+      scenarios:
+        - scenario: "{{SCENARIO_TITLE_3}}"
+          given: "{{GIVEN_CONDITION_3}}"
+          when: "{{WHEN_ACTION_3}}"
+          then: "{{THEN_RESULT_3}}"
+          test_data: "{{TEST_DATA_3}}"
+
+  # 异常处理场景
+  exception_scenarios:
+    - scenario: "{{EXCEPTION_SCENARIO_1}}"
+      given: "{{EXCEPTION_GIVEN_1}}"
+      when: "{{EXCEPTION_WHEN_1}}"
+      then: "{{EXCEPTION_THEN_1}}"
+      expected_error: "{{EXPECTED_ERROR_1}}"
+
+    - scenario: "{{EXCEPTION_SCENARIO_2}}"
+      given: "{{EXCEPTION_GIVEN_2}}"
+      when: "{{EXCEPTION_WHEN_2}}"
+      then: "{{EXCEPTION_THEN_2}}"
+      expected_error: "{{EXPECTED_ERROR_2}}"
+
+  # 边界值测试场�?  boundary_scenarios:
+    - scenario: "{{BOUNDARY_SCENARIO_1}}"
+      given: "{{BOUNDARY_GIVEN_1}}"
+      when: "{{BOUNDARY_WHEN_1}}"
+      then: "{{BOUNDARY_THEN_1}}"
+      boundary_values: [{{BOUNDARY_VALUES_1 }}]
+
+# ============================================================================
+# TBDWBS测试任务分解 - 测试工作分解结构
+# ============================================================================
+test_work_breakdown:
+  # 后端测试任务
+  backend_testing:
+    # 单元测试任务
+    unit_tests:
+      - component: "{{UNIT_COMPONENT_1}}"
+        test_class: "{{UNIT_TEST_CLASS_1}}"
+        test_methods: [{{UNIT_TEST_METHODS_1 }}]
+        dependencies: [{{UNIT_DEPENDENCIES_1 }}]
+
+      - component: "{{UNIT_COMPONENT_2}}"
+        test_class: "{{UNIT_TEST_CLASS_2}}"
+        test_methods: [{{UNIT_TEST_METHODS_2 }}]
+        dependencies: [{{UNIT_DEPENDENCIES_2 }}]
+
+    # 集成测试任务
+    integration_tests:
+      - component: "{{INTEGRATION_COMPONENT_1}}"
+        test_class: "{{INTEGRATION_TEST_CLASS_1}}"
+        test_scenarios: [{{INTEGRATION_SCENARIOS_1 }}]
+        external_dependencies: [{{EXTERNAL_DEPS_1 }}]
+
+      - component: "{{INTEGRATION_COMPONENT_2}}"
+        test_class: "{{INTEGRATION_TEST_CLASS_2}}"
+        test_scenarios: [{{INTEGRATION_SCENARIOS_2 }}]
+        external_dependencies: [{{EXTERNAL_DEPS_2 }}]
+
+  # 前端测试任务
+  frontend_testing:
+    # 组件测试
+    component_tests:
+      - component: "{{FRONTEND_COMPONENT_1}}"
+        test_file: "{{FRONTEND_TEST_FILE_1}}"
+        test_cases: [{{FRONTEND_TEST_CASES_1 }}]
+
+      - component: "{{FRONTEND_COMPONENT_2}}"
+        test_file: "{{FRONTEND_TEST_FILE_2}}"
+        test_cases: [{{FRONTEND_TEST_CASES_2 }}]
+
+    # E2E测试
+    e2e_tests:
+      - page: "{{E2E_PAGE_1}}"
+        test_file: "{{E2E_TEST_FILE_1}}"
+        user_journeys: [{{E2E_JOURNEYS_1 }}]
+
+      - page: "{{E2E_PAGE_2}}"
+        test_file: "{{E2E_TEST_FILE_2}}"
+        user_journeys: [{{E2E_JOURNEYS_2 }}]
+
+  # API测试任务
+  api_testing:
+    - endpoint: "{{API_ENDPOINT_1}}"
+      test_class: "{{API_TEST_CLASS_1}}"
+      test_scenarios: [{{API_SCENARIOS_1 }}]
+
+    - endpoint: "{{API_ENDPOINT_2}}"
+      test_class: "{{API_TEST_CLASS_2}}"
+      test_scenarios: [{{API_SCENARIOS_2 }}]
+
+# ============================================================================
+# JeecgBoot集成测试 - 框架特定测试要求
+# ============================================================================
+jeecg_integration_testing:
+  # 权限测试
+  permission_testing:
+    - test_case: "{{PERMISSION_TEST_1}}"
+      roles: [{{TEST_ROLES_1 }}]
+      expected_access: "{{EXPECTED_ACCESS_1}}" # allow|deny
+
+    - test_case: "{{PERMISSION_TEST_2}}"
+      roles: [{{TEST_ROLES_2 }}]
+      expected_access: "{{EXPECTED_ACCESS_2}}"
+
+  # 数据字典测试
+  dict_testing:
+    - dict_code: "{{DICT_CODE_1}}"
+      test_scenarios: [{{DICT_SCENARIOS_1 }}]
+
+    - dict_code: "{{DICT_CODE_2}}"
+      test_scenarios: [{{DICT_SCENARIOS_2 }}]
+
+  # 代码生成测试
+  codegen_testing:
+    - entity: "{{CODEGEN_ENTITY_1}}"
+      generation_type: "{{CODEGEN_TYPE_1}}"
+      validation_points: [{{VALIDATION_POINTS_1 }}]
+
+    - entity: "{{CODEGEN_ENTITY_2}}"
+      generation_type: "{{CODEGEN_TYPE_2}}"
+      validation_points: [{{VALIDATION_POINTS_2 }}]
+
+  # 工作流测�?  workflow_testing:
+    - workflow: "{{WORKFLOW_NAME_1}}"
+      test_scenarios: [{{WORKFLOW_SCENARIOS_1 }}]
+
+    - workflow: "{{WORKFLOW_NAME_2}}"
+      test_scenarios: [{{WORKFLOW_SCENARIOS_2 }}]
+
+# ============================================================================
+# 测试数据准备 - 测试数据设计和管�?# ============================================================================
+test_data_preparation:
+  # 基础测试数据
+  base_test_data:
+    # 用户数据
+    users:
+      - username: "{{TEST_USER_1}}"
+        role: "{{TEST_ROLE_1}}"
+        permissions: [{{TEST_PERMISSIONS_1 }}]
+
+      - username: "{{TEST_USER_2}}"
+        role: "{{TEST_ROLE_2}}"
+        permissions: [{{TEST_PERMISSIONS_2 }}]
+
+    # 业务数据
+    business_data:
+      - entity: "{{BUSINESS_ENTITY_1}}"
+        records: [{{BUSINESS_RECORDS_1 }}]
+
+      - entity: "{{BUSINESS_ENTITY_2}}"
+        records: [{{BUSINESS_RECORDS_2 }}]
+
+  # 边界测试数据
+  boundary_test_data:
+    - field: "{{BOUNDARY_FIELD_1}}"
+      min_value: "{{MIN_VALUE_1}}"
+      max_value: "{{MAX_VALUE_1}}"
+      invalid_values: [{{INVALID_VALUES_1 }}]
+
+    - field: "{{BOUNDARY_FIELD_2}}"
+      min_value: "{{MIN_VALUE_2}}"
+      max_value: "{{MAX_VALUE_2}}"
+      invalid_values: [{{INVALID_VALUES_2 }}]
+
+  # 异常测试数据
+  exception_test_data:
+    - scenario: "{{EXCEPTION_DATA_SCENARIO_1}}"
+      invalid_data: "{{INVALID_DATA_1}}"
+      expected_error: "{{EXPECTED_ERROR_CODE_1}}"
+
+    - scenario: "{{EXCEPTION_DATA_SCENARIO_2}}"
+      invalid_data: "{{INVALID_DATA_2}}"
+      expected_error: "{{EXPECTED_ERROR_CODE_2}}"
+
+# ============================================================================
+# 测试执行计划 - 测试执行和调�?# ============================================================================
+test_execution_plan:
+  # 测试环境配置
+  test_environments:
+    development:
+      database: "{{DEV_DATABASE}}"
+      redis: "{{DEV_REDIS}}"
+      external_services: [{{DEV_EXTERNAL_SERVICES }}]
+
+    testing:
+      database: "{{TEST_DATABASE}}"
+      redis: "{{TEST_REDIS}}"
+      external_services: [{{TEST_EXTERNAL_SERVICES }}]
+
+    staging:
+      database: "{{STAGING_DATABASE}}"
+      redis: "{{STAGING_REDIS}}"
+      external_services: [{{STAGING_EXTERNAL_SERVICES }}]
+
+  # 测试执行顺序
+  execution_sequence:
+    phase_1_unit_tests:
+      duration: "{{UNIT_TEST_DURATION}}"
+      parallel: true
+      dependencies: []
+
+    phase_2_integration_tests:
+      duration: "{{INTEGRATION_TEST_DURATION}}"
+      parallel: false
+      dependencies: ["phase_1_unit_tests"]
+
+    phase_3_system_tests:
+      duration: "{{SYSTEM_TEST_DURATION}}"
+      parallel: false
+      dependencies: ["phase_2_integration_tests"]
+
+  # CI/CD集成
+  cicd_integration:
+    trigger_conditions: [{{TRIGGER_CONDITIONS }}]
+    failure_actions: [{{FAILURE_ACTIONS }}]
+    success_actions: [{{SUCCESS_ACTIONS }}]
+    notification_channels: [{{NOTIFICATION_CHANNELS }}]
+
+# ============================================================================
+# EARS需求追�?- 需求到测试的可追溯�?# ============================================================================
+ears_traceability:
+  # 功能需求追�?  functional_requirements_trace:
+    - requirement_id: "{{REQ_ID_1}}"
+      ears_statement: "{{EARS_STATEMENT_1}}"
+      test_cases: [{{TEST_CASES_1 }}]
+      coverage_status: "{{COVERAGE_STATUS_1}}" # covered|partial|not_covered
+
+    - requirement_id: "{{REQ_ID_2}}"
+      ears_statement: "{{EARS_STATEMENT_2}}"
+      test_cases: [{{TEST_CASES_2 }}]
+      coverage_status: "{{COVERAGE_STATUS_2}}"
+
+  # 业务规则追溯
+  business_rules_trace:
+    - rule_id: "{{RULE_ID_1}}"
+      rule_description: "{{RULE_DESCRIPTION_1}}"
+      test_scenarios: [{{RULE_TEST_SCENARIOS_1 }}]
+      validation_method: "{{VALIDATION_METHOD_1}}"
+
+    - rule_id: "{{RULE_ID_2}}"
+      rule_description: "{{RULE_DESCRIPTION_2}}"
+      test_scenarios: [{{RULE_TEST_SCENARIOS_2 }}]
+      validation_method: "{{VALIDATION_METHOD_2}}"
+
+# ============================================================================
+# 质量保证 - 测试质量控制和度�?# ============================================================================
+quality_assurance:
+  # 测试覆盖率要�?  coverage_requirements:
+    code_coverage:
+      unit_test_coverage: "{{UNIT_COVERAGE_REQUIREMENT}}%" # 最低要�?      integration_coverage: "{{INTEGRATION_COVERAGE_REQUIREMENT}}%"
+      overall_coverage: "{{OVERALL_COVERAGE_REQUIREMENT}}%"
+
+    requirement_coverage:
+      functional_coverage: "{{FUNCTIONAL_COVERAGE_REQUIREMENT}}%"
+      business_rule_coverage: "{{BUSINESS_RULE_COVERAGE_REQUIREMENT}}%"
+
+  # 质量门禁
+  quality_gates:
+    - gate: "{{QUALITY_GATE_1}}"
+      criteria: "{{GATE_CRITERIA_1}}"
+      threshold: "{{GATE_THRESHOLD_1}}"
+
+    - gate: "{{QUALITY_GATE_2}}"
+      criteria: "{{GATE_CRITERIA_2}}"
+      threshold: "{{GATE_THRESHOLD_2}}"
+
+  # 缺陷管理
+  defect_management:
+    severity_levels: [{{SEVERITY_LEVELS }}]
+    priority_levels: [{{PRIORITY_LEVELS }}]
+    resolution_sla: [{{RESOLUTION_SLA }}]
+
+# ============================================================================
+# 技术传递接�?- 测试结果和质量报�?# ============================================================================
+technical_handoff:
+  # 测试结果
+  test_results:
+    test_execution_summary: "{{TEST_EXECUTION_SUMMARY}}"
+    coverage_report: "{{COVERAGE_REPORT}}"
+    defect_summary: "{{DEFECT_SUMMARY}}"
+
+  # 质量评估
+  quality_assessment:
+    functional_quality: "{{FUNCTIONAL_QUALITY_SCORE}}"
+    performance_quality: "{{PERFORMANCE_QUALITY_SCORE}}"
+    security_quality: "{{SECURITY_QUALITY_SCORE}}"
+
+  # 发布建议
+  release_recommendation:
+    go_live_readiness: "{{GO_LIVE_READINESS}}" # ready|not_ready|conditional
+    outstanding_issues: [{{OUTSTANDING_ISSUES }}]
+    risk_assessment: "{{RISK_ASSESSMENT}}"
