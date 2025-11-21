@@ -5802,6 +5802,19 @@ INSERT INTO `sys_dict_item` VALUES ('f80a8f6838215753b05e1a5ba3346d22', '880a895
 INSERT INTO `sys_dict_item` VALUES ('fcec03570f68a175e1964808dc3f1c91', '4c03fca6bf1f0299c381213961566349', 'Tab风格', 'tab', NULL, NULL, 1, 1, 'admin', '2019-04-12 17:43:31', NULL, NULL);
 INSERT INTO `sys_dict_item` VALUES ('fe50b23ae5e68434def76f67cef35d2d', '78bda155fe380b1b3f175f1e88c284c6', '已作废', '4', NULL, '已作废', 4, 1, 'admin', '2021-09-09 16:33:43', 'admin', '2019-05-09 16:34:40');
 
+-- 添加成功失败字典
+  INSERT INTO `sys_dict` VALUES
+  ('success_fail_dict_id_001', '成功失败状态', 'success_fail', '用于标识操作成功或失败的状态', 0, 'admin', NOW(),
+  NULL, NULL, 0, 0, NULL);
+
+  -- 添加字典项
+  INSERT INTO `sys_dict_item` VALUES
+  ('success_fail_item_001', 'success_fail_dict_id_001', '成功', '1', 'green', '操作成功', 1, 1, 'admin', NOW(),
+  NULL, NULL);
+
+  INSERT INTO `sys_dict_item` VALUES
+  ('success_fail_item_002', 'success_fail_dict_id_001', '失败', '0', 'red', '操作失败', 2, 1, 'admin', NOW(), NULL,
+  NULL);
 -- ----------------------------
 -- Table structure for sys_files
 -- ----------------------------
@@ -8187,6 +8200,81 @@ INSERT INTO `sys_user_tenant` VALUES ('1955211766602534913', '171447128501689549
 
 
 
+
+-- ----------------------------
+-- Table structure for us_log_uums_change_org
+-- ----------------------------
+DROP TABLE IF EXISTS `us_log_uums_change_org`;
+CREATE TABLE `us_log_uums_change_org`  (
+  `id` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
+  `create_by` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建日期',
+  `update_by` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '更新人',
+  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
+  `sys_org_code` varchar(64) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '所属部门',
+  `del_flag` int(11) NULL DEFAULT 0 COMMENT '删除标志',
+  `change_type` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '变更类型',
+  `pre_orgname` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '变更前组织名称',
+  `orgname` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '组织名称',
+  `orgcode` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '组织代码',
+  `orgcode20` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '20位组织代码',
+  `orgtype` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '组织类型',
+  `parent_orgname` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '上级组织名称',
+  `parent_orgcode` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '上级组织代码',
+  `parent_orgcode20` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '上级20位组织代码',
+  `display_name` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '显示名称',
+  `display_order` int(11) NULL DEFAULT NULL COMMENT '显示顺序',
+  `level_dict_value` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '层级字典值',
+  `result` varchar(500) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '处理结果',
+  `result_flag` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '同步状态',
+  `sync_date` date NULL DEFAULT NULL COMMENT '同步日期',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_orgcode`(`orgcode`) USING BTREE,
+  INDEX `idx_orgcode20`(`orgcode20`) USING BTREE,
+  INDEX `idx_sync_date`(`sync_date`) USING BTREE,
+  INDEX `idx_result_flag`(`result_flag`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '主数据组织变更日志' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Table structure for us_log_uums_change_user
+-- ----------------------------
+DROP TABLE IF EXISTS `us_log_uums_change_user`;
+CREATE TABLE `us_log_uums_change_user`  (
+  `id` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
+  `create_by` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建日期',
+  `update_by` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '更新人',
+  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
+  `sys_org_code` varchar(64) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '所属部门',
+  `del_flag` int(11) NULL DEFAULT 0 COMMENT '删除标志',
+  `change_type` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '变更类型',
+  `username` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '用户名',
+  `display_order` int(11) NULL DEFAULT NULL COMMENT '显示顺序',
+  `current_org_code20` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '当前组织编码20位',
+  `employee_number` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '员工编号',
+  `position_name` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '职位名称',
+  `truename` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '真实姓名',
+  `pre_orgcode` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '变更前组织编码',
+  `current_orgcode` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '变更后组织编码',
+  `pre_position_name` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '变更前职位名称',
+  `current_position_name` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '变更后职位名称',
+  `preferred_mobile` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '首选手机号',
+  `email` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '邮箱',
+  `ireserved1` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '备用字段1',
+  `ireserved2` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '备用字段2',
+  `ireserved3` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '备用字段3',
+  `ireserved4` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '备用字段4',
+  `ireserved5` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '备用字段5',
+  `result` varchar(500) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '处理结果',
+  `result_flag` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '同步状态',
+  `sync_date` date NULL DEFAULT NULL COMMENT '同步日期',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_username`(`username`) USING BTREE,
+  INDEX `idx_employee_number`(`employee_number`) USING BTREE,
+  INDEX `idx_current_org_code20`(`current_org_code20`) USING BTREE,
+  INDEX `idx_sync_date`(`sync_date`) USING BTREE,
+  INDEX `idx_result_flag`(`result_flag`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '主数据用户变更日志' ROW_FORMAT = DYNAMIC;
 
 
 -- ----------------------------
