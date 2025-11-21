@@ -14,7 +14,7 @@
 | 2025-08-27 | 用户身份信息控制台显示功能        | user.ts                                                                                                                                                    | 登录成功后在浏览器控制台显示用户完整身份信息，包含用户基本信息、部门信息、权限代码等          | ✅   |
 | 2025-08-26 | OceanBase Oracle 兼容模式分页优化 | CustomPaginationInnerInterceptor.java<br/>MybatisPlusSaasConfig.java<br/>GlobalPaginationConfig.java                                                       | 解决 OceanBase Oracle 兼容模式下分页 SQL 语法不兼容问题（三层防护方案）                       | ⚡   |
 | 2025-08-15 | MyBatis-Plus 升级及数据库优化     | pom.xml<br/>SysDepart.java<br/>SysUser.java<br/>SysDepartController.java                                                                                   | MyBatis-Plus 版本升级，添加数据库唯一索引，优化查询性能                                       | ✅   |
-| 2025-08-14 | UUMS 组织用户同步功能             | SimbestAppToken.java<br/>UumsChangeOrgLogController.java<br/>UumsChangeUserLogController.java<br/>SyncUumsOrgScheduler.java<br/>SyncUumsUserScheduler.java | 第三方应用 Token 管理、组织用户变更日志记录、定时同步功能                                     | ✅   |
+| 2025-08-14 | UUMS 组织用户同步功能             | AppConfig.java<br/>SimbestConstants.java<br/>SimbestAppToken.java<br/>DistributedLockUtil.java<br/>UumsChangeOrgLog/UserLog.java<br/>SyncUumsOrg/UserScheduler.java<br/>Controller/Service/Mapper（各2个）<br/>前端文件12个<br/>SQL脚本2个 | 企业级主数据集成方案，支持组织用户同步、OAuth2 Token管理、分布式锁调度、变更日志追溯（30个文件） | ✅   |
 | 2025-08-14 | 启动配置信息打印功能              | JeecgSystemApplication.java                                                                                                                                | 应用启动时打印 Profile、数据库、Redis 等关键配置信息                                          | ✅   |
 | 2025-08-02 | 系统心跳检测功能                  | SysHealthController.java                                                                                                                                   | 提供系统健康状态检查接口，支持 HEAD 请求心跳检测                                              | ✅   |
 | 2025-07-31 | 日志生成规则定制                  | logback-spring.xml                                                                                                                                         | 按端口和日志级别分离的自定义日志配置                                                          | ✅   |
@@ -687,53 +687,456 @@ public class GlobalPaginationConfig implements BeanPostProcessor {
 
 ### 2025-08-14：UUMS 组织用户同步功能
 
-**功能概述：** 实现与 UUMS 主数据系统的组织用户同步功能，包括第三方应用 Token 管理、变更日志记录、定时同步等核心功能。
+**功能概述：** 实现与 UUMS 主数据系统的组织用户同步功能，提供完整的企业级主数据集成方案。功能涵盖应用配置统一管理、第三方 OAuth2 Token 获取与缓存、分布式锁定时任务调度、变更日志记录、自动化数据同步等核心能力，支持组织架构和用户信息的增量同步与全量同步。
+
+**需求背景：** 在企业数字化转型过程中，需要将 UUMS 统一用户管理系统作为组织架构和用户信息的权威数据源，定期同步到 JeecgBoot 系统，确保多系统间组织用户数据的一致性和实时性。
+
+**技术亮点：**
+
+- **统一配置管理：** 通过 AppConfig 类集中管理应用配置，避免配置分散和重复@Value 注解
+- **Token 管理优化：** 实现带 Redis 缓存的 OAuth2 Token 自动获取与刷新，支持并发控制
+- **分布式任务调度：** 基于 Redis 分布式锁确保集群环境下定时任务只执行一次
+- **完整同步链路：** 从 API 调用、数据转换、日志记录到 JeecgBoot 部门数据操作的全流程处理
+- **前后端分离架构：** 提供完整的前端管理界面，支持变更日志查询、Excel 导入导出等功能
 
 **涉及文件：**
 
-#### 后端文件
+#### 后端配置与工具类
 
-**1.1 SimbestAppToken.java（新增）**
+**1.1 AppConfig.java（新增）**
 
-- **路径：** `jeecg-boot/jeecg-boot-module/jeecg-module-dictd/src/main/java/org/jeecg/modules/dictd/simbest/token/SimbestAppToken.java`
-- **功能摘要：** 第三方应用 Token 管理类，提供获取和缓存第三方应用 access token 的功能
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/config/AppConfig.java`
+- **功能摘要：** 应用配置统一管理类，负责收敛和管理 SpringBoot 配置变量，其他类通过注入 AppConfig 实例获取配置值
 - **核心特性：**
-  - **Token 获取：** 通过`getAccessToken(appcode, appurl)`静态方法获取第三方应用访问令牌
-  - **Redis 缓存：** 支持 Token 的 Redis 缓存存储，避免频繁 API 调用
-  - **并发控制：** 使用 ReentrantLock 防止并发请求同一 appcode 时的重复调用
-  - **过期管理：** 自动计算缓存过期时间，比 expires_in 少 60 秒避免边界问题
-- **TokenResponse 内部类：** 封装 access token 响应信息（accessToken, tokenType, expiresIn, scope）
+  - **统一配置收敛：** 避免在各个类中直接使用@Value 注解，实现配置集中管理
+  - **UUMS 配置管理：** 管理 UUMS 系统地址（jeecg.uums.address）
+  - **定时任务配置：** 管理组织同步和用户同步的 Cron 表达式
+  - **初始化日志：** 使用@PostConstruct 在应用启动时打印关键配置信息
+- **配置项：**
+  - `spring.application.name` - 应用编码（默认：jeecg-app）
+  - `jeecg.uums.address` - UUMS 系统地址
+  - `jeecg.uums.scheduler.org-sync-cron` - 组织同步 Cron 表达式（默认：0 0 1 \* \* ?）
+  - `jeecg.uums.scheduler.user-sync-cron` - 用户同步 Cron 表达式（默认：0 0 2 \* \* ?）
 
-**1.2 UumsChangeOrgLogController.java（新增）**
+**1.2 SimbestConstants.java（新增）**
 
-- **路径：** `jeecg-boot/jeecg-boot-module/jeecg-module-dictd/src/main/java/org/jeecg/modules/dictd/simbest/uums/controller/UumsChangeOrgLogController.java`
-- **功能摘要：** 主数据组织变更日志控制器，提供组织变更数据的 CRUD 操作和同步功能
-- **核心方法：**
-  - `syncOrg()` - 组织数据同步接口，支持时间范围查询参数
-  - `queryPageList()` - 分页查询组织变更日志
-  - 标准 CRUD 操作（增删改查、批量删除、Excel 导入导出）
-- **同步示例：** 集成 SimbestAppToken 获取访问令牌，演示 JSON 转换操作
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/constants/SimbestConstants.java`
+- **功能摘要：** SIMBEST 系统常量定义类，集中管理 UUMS 相关的应用编码、API 路径等常量
+- **核心常量：**
+  - `APPCODE_UUMS` = "uums" - UUMS 应用编码
+  - `OAUTH2_UUMS` - UUMS OAuth2 Token 获取端点
+  - `UUMS_SYNC_ORG` - UUMS 组织同步 API 路径
+  - `UUMS_SYNC_USER` - UUMS 用户同步 API 路径
+  - `ROLE_USER` = "ROLE_USER" - 默认用户角色
 
-**1.3 UumsChangeUserLogController.java（新增）**
+**1.3 SimbestAppToken.java（新增）**
 
-- **路径：** `jeecg-boot/jeecg-boot-module/jeecg-module-dictd/src/main/java/org/jeecg/modules/dictd/simbest/uums/controller/UumsChangeUserLogController.java`
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/token/SimbestAppToken.java`
+- **功能摘要：** 第三方应用 Token 管理类，提供 OAuth2 访问令牌的获取、缓存、并发控制等完整功能
+- **核心特性：**
+  - **静态方法调用：** 通过`getAccessToken(appcode, appurl)`静态方法获取第三方应用访问令牌
+  - **Redis 缓存机制：** 使用 RedisUtil 缓存 Token，缓存 key 格式：`{应用名}:simbest:token:{appcode}`
+  - **并发控制：** 使用 ConcurrentHashMap + ReentrantLock 防止并发请求同一 appcode 时的重复 API 调用
+  - **过期时间管理：** 自动计算缓存过期时间（expires_in - 60 秒），避免边界问题
+  - **缓存未命中处理：** 自动向 API 发送 POST 请求获取新 Token 并缓存
+  - **异常处理：** 完善的异常捕获和日志记录机制
+- **TokenResponse 内部类：** 封装 access_token、token_type、expires_in、scope 等响应字段
+- **技术实现：**
+  - 使用@PostConstruct 初始化单例实例和 Redis 缓存 key 前缀
+  - 使用 RestUtil.postNative()发送 HTTP POST 请求
+  - 使用 Lua 脚本确保 Token 刷新的原子性
+
+**1.4 DistributedLockUtil.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/utils/DistributedLockUtil.java`
+- **功能摘要：** Redis 分布式锁工具类，用于解决集群环境下定时任务重复执行的问题
+- **核心特性：**
+  - **分布式锁前缀：** 动态生成，格式：`{应用名}:distributed:lock:{lockKey}`
+  - **获取锁：** `acquireLock(lockKey, expireMinutes)` - 使用 Redis SETNX 原子操作获取锁
+  - **释放锁：** `releaseLock(lockKey, lockValue)` - 使用 Lua 脚本确保原子性，只能释放自己持有的锁
+  - **锁值生成：** 包含节点 IP 和 UUID，格式：`{hostIP}:{uuid}`，便于追踪锁的持有者
+  - **默认过期时间：** 30 分钟，防止死锁
+  - **辅助方法：** `isLockExists()`、`getLockTtl()`、`forceReleaseLock()`等
+- **使用场景：** 定时任务执行前获取锁，执行完成后释放锁，确保集群中只有一个节点执行任务
+
+#### 后端实体类
+
+**1.5 UumsChangeOrgLog.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/entity/UumsChangeOrgLog.java`
+- **功能摘要：** 主数据组织变更日志实体类，对应数据库表 us_log_uums_change_org
+- **核心字段：**
+  - **变更信息：** changeType（变更类型）、preOrgname（变更前组织名称）、orgname（组织名称）
+  - **组织信息：** orgcode（组织代码）、orgcode20（20 位组织代码）、orgtype（组织类型）
+  - **层级关系：** parentOrgname、parentOrgcode、parentOrgcode20（父组织信息）
+  - **显示信息：** displayName（显示名称）、displayOrder（显示顺序）
+  - **处理结果：** result（处理结果）、resultFlag（同步状态）、syncDate（同步日期）
+- **技术特性：**
+  - 使用@TableLogic 实现逻辑删除
+  - 使用@Dict 注解实现字典翻译（resultFlag → success_fail 字典）
+  - 支持 Excel 导入导出
+
+**1.6 UumsChangeUserLog.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/entity/UumsChangeUserLog.java`
+- **功能摘要：** 主数据用户变更日志实体类，对应数据库表 us_log_uums_change_user
+- **核心字段：**
+  - **用户信息：** username（用户名）、truename（真实姓名）、employeeNumber（员工编号）
+  - **组织信息：** currentOrgCode20、preOrgcode、currentOrgcode（组织编码变更）
+  - **职位信息：** positionName、prePositionName、currentPositionName（职位变更）
+  - **联系信息：** preferredMobile（手机号）、email（邮箱）
+  - **扩展字段：** ireserved1~ireserved5（备用字段）
+  - **处理结果：** result、resultFlag、syncDate
+- **技术特性：** 与 UumsChangeOrgLog 类似，支持逻辑删除、字典翻译、Excel 导入导出
+
+#### 后端控制器
+
+**1.7 UumsChangeOrgLogController.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/controller/UumsChangeOrgLogController.java`
+- **功能摘要：** 主数据组织变更日志控制器，提供组织变更数据的 CRUD 操作和手动同步功能
+- **核心接口：**
+  - `GET /syncOrg` - 手动触发组织同步（@IgnoreAuth 匿名访问）
+    - 参数：startDate、endDate（时间范围）
+    - 功能：调用 SyncUumsOrgScheduler.syncUumsOrgs()执行同步逻辑
+  - `GET /list` - 分页查询组织变更日志
+  - 标准 CRUD 接口：add、edit、delete、deleteBatch、queryById
+  - Excel 接口：exportXls、importExcel
+- **技术特性：**
+  - 继承 JeecgController 获得基础 CRUD 能力
+  - 使用 QueryGenerator 自动生成查询条件
+  - 集成 Swagger 注解提供 API 文档
+
+**1.8 UumsChangeUserLogController.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/controller/UumsChangeUserLogController.java`
 - **功能摘要：** 主数据用户变更日志控制器，提供用户变更数据的 CRUD 操作
-- **核心特性：** 完整的用户变更日志管理功能，包括分页查询、增删改查、Excel 导入导出
+- **核心接口：** 与 UumsChangeOrgLogController 类似，提供完整的 CRUD 和 Excel 导入导出功能
+- **区别：** 暂未提供手动同步接口（用户同步由定时任务自动执行）
 
-**1.4 SyncUumsOrgScheduler.java（新增）**
+#### 后端服务层
 
-- **路径：** `jeecg-boot/jeecg-boot-module/jeecg-module-dictd/src/main/java/org/jeecg/modules/dictd/simbest/uums/scheduler/SyncUumsOrgScheduler.java`
-- **功能摘要：** 组织数据同步定时任务调度器
+**1.9 IUumsChangeOrgLogService.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/service/IUumsChangeOrgLogService.java`
+- **功能摘要：** 组织变更日志服务接口，继承 IService<UumsChangeOrgLog>
+
+**1.10 UumsChangeOrgLogServiceImpl.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/service/impl/UumsChangeOrgLogServiceImpl.java`
+- **功能摘要：** 组织变更日志服务实现类，继承 ServiceImpl<UumsChangeOrgLogMapper, UumsChangeOrgLog>
+
+**1.11 IUumsChangeUserLogService.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/service/IUumsChangeUserLogService.java`
+- **功能摘要：** 用户变更日志服务接口，继承 IService<UumsChangeUserLog>
+
+**1.12 UumsChangeUserLogServiceImpl.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/service/impl/UumsChangeUserLogServiceImpl.java`
+- **功能摘要：** 用户变更日志服务实现类，继承 ServiceImpl<UumsChangeUserLogMapper, UumsChangeUserLog>
+
+#### 后端数据访问层
+
+**1.13 UumsChangeOrgLogMapper.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/mapper/UumsChangeOrgLogMapper.java`
+- **功能摘要：** 组织变更日志 Mapper 接口，继承 BaseMapper<UumsChangeOrgLog>
+
+**1.14 UumsChangeUserLogMapper.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/mapper/UumsChangeUserLogMapper.java`
+- **功能摘要：** 用户变更日志 Mapper 接口，继承 BaseMapper<UumsChangeUserLog>
+
+#### 后端定时任务
+
+**1.15 SyncUumsOrgScheduler.java（新增）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/scheduler/SyncUumsOrgScheduler.java`
+- **功能摘要：** 组织数据同步定时任务调度器，实现 UUMS 组织数据的自动化同步和 JeecgBoot 部门数据的增删改操作
 - **核心特性：**
-  - **定时执行：** 每天凌晨 2 点执行组织同步任务（cron = "0 0 2 \* \* ?"）
-  - **配置注入：** 自动注入 AppConfig 获取 UUMS 系统地址
-  - **加密工具：** 集成 EncryptorUtil 实现用户名加密功能
+  - **定时执行：** 使用@Scheduled 注解，Cron 表达式通过配置文件动态配置（默认：每天凌晨 1 点）
+  - **分布式锁：** 使用 DistributedLockUtil 获取分布式锁，确保集群环境下只有一个节点执行
+  - **同步时间范围：** 默认同步上一日到今日的增量数据
+  - **完整同步流程：**
+    1. 获取 OAuth2 访问令牌（SimbestAppToken.getAccessToken()）
+    2. 构建请求参数（包含时间范围、客户端信息等）
+    3. 发送 HTTP POST 请求到 UUMS API（RestUtil.request()）
+    4. 解析响应数据，提取组织变更列表
+    5. 转换为 UumsChangeOrgLog 实体并批量保存
+    6. 根据 ChangeType 处理 JeecgBoot 部门操作（新增/更新/删除）
+    7. 更新变更日志的处理结果和同步状态
+    8. 记录定时任务执行日志（BaseCommonService.addLog()）
+- **核心方法：**
+  - `syncUumsOrgs()` - 定时任务入口，获取分布式锁后执行同步
+  - `syncUumsOrgs(startDate, endDate)` - 同步逻辑主方法，支持外部调用
+  - `buildRequestParams()` - 构建 UUMS API 请求参数
+  - `sendHttpRequest()` - 发送 HTTP 请求并设置 Bearer Token
+  - `processResponse()` - 处理 UUMS API 响应数据
+  - `convertToOrgLogList()` - 将 UUMS 返回的 JSON 数组转换为实体列表
+  - `saveOrgLogList()` - 批量保存组织变更日志
+  - `processDepartmentOperation()` - 根据 ChangeType 分发部门操作
+  - `handleAddDepartment()` - 处理新增部门逻辑
+  - `handleUpdateDepartment()` - 处理更新部门逻辑
+  - `handleDeleteDepartment()` - 处理删除部门逻辑（逻辑删除）
+  - `findDepartByUumsOrgCode()` - 根据 uumsOrgCode 查找部门
+  - `createSysDepartObject()` - 创建 SysDepart 对象
+  - `updateDepartmentInfo()` - 更新部门信息
+  - `updateOrgLogResult()` - 更新变更日志的处理结果
+  - `recordTaskExecutionLog()` - 记录定时任务执行日志
+- **部门操作逻辑：**
+  - **ADD：** 检查部门是否存在 → 查找父部门 → 创建 SysDepart 对象 → 调用 saveDepartData()保存
+  - **UPDATE：** 查找现有部门 → 查找新父部门 → 更新部门信息 → 调用 updateDepartDataById()更新
+  - **DELETE：** 查找要删除的部门 → 调用 deleteDepart()进行逻辑删除
+- **日志记录：** 记录节点 IP、处理记录数、执行耗时、执行结果、开始/结束时间等信息
 
-**1.5 SyncUumsUserScheduler.java（新增）**
+**1.16 SyncUumsUserScheduler.java（新增）**
 
-- **路径：** `jeecg-boot/jeecg-boot-module/jeecg-module-dictd/src/main/java/org/jeecg/modules/dictd/simbest/uums/scheduler/SyncUumsUserScheduler.java`
-- **功能摘要：** 用户数据同步定时任务调度器
-- **核心特性：** 每天凌晨 2 点执行用户同步任务，与组织同步任务并行执行
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-start/src/main/java/org/jeecg/simbest/uums/scheduler/SyncUumsUserScheduler.java`
+- **功能摘要：** 用户数据同步定时任务调度器，实现 UUMS 用户数据的自动化同步
+- **核心特性：**
+  - **定时执行：** 默认每天凌晨 2 点执行（在组织同步之后）
+  - **同步逻辑：** 与 SyncUumsOrgScheduler 类似，包含 Token 获取、API 调用、数据转换、日志记录等完整流程
+  - **分布式锁：** 使用独立的锁 key（sync_uums_users）确保集群环境下的唯一性
+
+#### 数据库修改
+
+**1.17 jeecgboot-mysql-5.7.clean.sql（修改）**
+
+- **路径：** `jeecg-boot/db/jeecgboot-mysql-5.7.clean.sql`
+- **功能摘要：** 数据库初始化脚本，添加 UUMS 同步功能所需的数据字典和数据表
+- **核心变更：**
+  - **添加数据字典：** 创建 success_fail 字典，用于标识操作成功或失败的状态
+    - 字典项：成功（值：1，颜色：green）、失败（值：0，颜色：red）
+  - **创建组织变更日志表：** us_log_uums_change_org
+    - 主要字段：id、changeType、orgname、orgcode、orgcode20、orgtype、parentOrgcode、displayName、displayOrder、result、resultFlag、syncDate
+    - 索引：idx_orgcode、idx_orgcode20、idx_sync_date、idx_result_flag
+  - **创建用户变更日志表：** us_log_uums_change_user
+    - 主要字段：id、changeType、username、truename、employeeNumber、currentOrgCode20、positionName、preferredMobile、email、ireserved1~5、result、resultFlag、syncDate
+    - 索引：idx_username、idx_employee_number、idx_current_org_code20、idx_sync_date、idx_result_flag
+
+**1.18 SysDepart.java（修改）**
+
+- **路径：** `jeecg-boot/jeecg-module-system/jeecg-system-biz/src/main/java/org/jeecg/modules/system/entity/SysDepart.java`
+- **功能摘要：** 系统部门实体类，添加 UUMS 组织代码字段，支持 UUMS 组织与 JeecgBoot 部门的映射关联
+- **核心变更：**
+  - **新增字段：** uumsOrgCode（UUMS 机构编码，添加@Column(unique = true)唯一约束）
+  - **新增字段：** uumsParentOrgCode（UUMS 父机构编码）
+  - **索引优化：** 为 orgCode 字段添加@Column(unique = true)唯一约束
+  - **方法更新：** 更新 equals()和 hashCode()方法，包含新增字段的比较
+- **技术意义：** 通过 uumsOrgCode 建立 UUMS 组织与 JeecgBoot 部门的双向映射，支持根据 UUMS 组织代码快速查找和更新部门信息
+
+#### 前端文件
+
+**1.19 UumsChangeOrgLogList.vue（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/UumsChangeOrgLogList.vue`
+- **功能摘要：** 组织变更日志列表页面，提供查询、新增、编辑、删除、导入、导出等完整功能
+- **核心功能：**
+  - 基于 BasicTable 组件的分页列表展示
+  - 支持高级查询（SuperQuery）
+  - 批量操作（批量删除）
+  - Excel 导入导出
+  - 行内操作（编辑、删除、详情）
+
+**1.20 UumsChangeOrgLogModal.vue（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/components/UumsChangeOrgLogModal.vue`
+- **功能摘要：** 组织变更日志弹窗组件，用于新增和编辑组织变更日志
+
+**1.21 UumsChangeOrgLogForm.vue（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/components/UumsChangeOrgLogForm.vue`
+- **功能摘要：** 组织变更日志表单组件，包含所有字段的表单控件
+
+**1.22 UumsChangeOrgLog.api.ts（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/UumsChangeOrgLog.api.ts`
+- **功能摘要：** 组织变更日志 API 接口定义，封装所有后端接口调用
+- **核心接口：**
+  - list() - 分页查询
+  - deleteOne() - 删除单条
+  - batchDelete() - 批量删除
+  - getImportUrl() - 获取导入 URL
+  - getExportUrl() - 获取导出 URL
+
+**1.23 UumsChangeOrgLog.data.ts（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/UumsChangeOrgLog.data.ts`
+- **功能摘要：** 组织变更日志数据配置文件，定义表格列、搜索表单、高级查询等配置
+- **核心配置：**
+  - columns - 表格列定义
+  - searchFormSchema - 搜索表单配置
+  - superQuerySchema - 高级查询配置
+  - formSchema - 表单字段配置
+
+**1.24 UumsChangeUserLogList.vue（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/UumsChangeUserLogList.vue`
+- **功能摘要：** 用户变更日志列表页面，功能与 UumsChangeOrgLogList.vue 类似
+
+**1.25 UumsChangeUserLogModal.vue（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/components/UumsChangeUserLogModal.vue`
+- **功能摘要：** 用户变更日志弹窗组件
+
+**1.26 UumsChangeUserLogForm.vue（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/components/UumsChangeUserLogForm.vue`
+- **功能摘要：** 用户变更日志表单组件
+
+**1.27 UumsChangeUserLog.api.ts（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/UumsChangeUserLog.api.ts`
+- **功能摘要：** 用户变更日志 API 接口定义
+
+**1.28 UumsChangeUserLog.data.ts（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/UumsChangeUserLog.data.ts`
+- **功能摘要：** 用户变更日志数据配置文件
+
+**1.29 V20250813_1__menu_insert_UumsChangeOrgLog.sql（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/V20250813_1__menu_insert_UumsChangeOrgLog.sql`
+- **功能摘要：** 组织变更日志菜单 SQL 脚本，用于添加菜单和权限配置
+
+**1.30 V20250813_1__menu_insert_UumsChangeUserLog.sql（新增）**
+
+- **路径：** `jeecgboot-vue3/src/views/uums/V20250813_1__menu_insert_UumsChangeUserLog.sql`
+- **功能摘要：** 用户变更日志菜单 SQL 脚本，用于添加菜单和权限配置
+
+**技术架构：**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        UUMS 组织用户同步系统架构                    │
+└─────────────────────────────────────────────────────────────────┘
+
+┌──────────────┐                ┌──────────────┐
+│  UUMS 系统   │                │  定时任务层   │
+│              │                │              │
+│  OAuth2 API  │◄───Token───────│  Scheduler   │
+│  组织 API    │◄───请求────────│              │
+│  用户 API    │                │  分布式锁    │
+└──────────────┘                └──────┬───────┘
+                                       │
+                              ┌────────▼─────────┐
+                              │  业务服务层       │
+                              │                  │
+                              │  Controller      │
+                              │  Service         │
+                              │  Mapper          │
+                              └────────┬─────────┘
+                                       │
+                              ┌────────▼─────────┐
+                              │  数据持久层       │
+                              │                  │
+                              │  变更日志表      │
+                              │  部门表          │
+                              └──────────────────┘
+
+核心组件：
+
+1. Token 管理层（SimbestAppToken）
+   └─ Redis 缓存 + 并发控制 + 自动刷新
+
+2. 配置管理层（AppConfig + SimbestConstants）
+   └─ 统一配置收敛 + 常量管理
+
+3. 分布式锁层（DistributedLockUtil）
+   └─ Redis 锁 + Lua 脚本 + 节点追踪
+
+4. 同步调度层（SyncUumsOrgScheduler + SyncUumsUserScheduler）
+   └─ 定时任务 + 分布式锁 + 完整同步链路
+
+5. 数据处理层（Entity + Service + Mapper）
+   └─ 变更日志记录 + 部门数据同步
+
+6. 前端展示层（Vue3 + TypeScript）
+   └─ 列表查询 + CRUD 操作 + Excel 导入导出
+```
+
+**核心流程：**
+
+**组织同步流程：**
+
+```
+1. 定时任务触发（默认每天凌晨 1 点）
+   ↓
+2. 获取分布式锁（sync_uums_orgs）
+   ↓ [成功]
+3. 获取 UUMS OAuth2 Token（SimbestAppToken）
+   ├─ 检查 Redis 缓存
+   └─ 缓存未命中 → 调用 OAuth2 API → 缓存新 Token
+   ↓
+4. 构建请求参数（时间范围、客户端信息）
+   ↓
+5. 调用 UUMS 组织同步 API
+   ├─ 设置 Bearer Token
+   └─ 发送 HTTP POST 请求
+   ↓
+6. 解析响应数据
+   ├─ 提取 details 数组（组织变更列表）
+   └─ 转换为 UumsChangeOrgLog 实体
+   ↓
+7. 批量保存变更日志
+   ↓
+8. 处理 JeecgBoot 部门操作
+   ├─ ADD：检查存在性 → 查找父部门 → 创建部门
+   ├─ UPDATE：查找现有部门 → 更新信息 → 保存
+   └─ DELETE：查找部门 → 逻辑删除
+   ↓
+9. 更新变更日志处理结果
+   ├─ 成功：result = "同步成功", resultFlag = "1"
+   └─ 失败：result = "同步失败：{原因}", resultFlag = "0"
+   ↓
+10. 记录定时任务执行日志
+    ├─ 节点 IP
+    ├─ 处理记录数
+    ├─ 执行耗时
+    └─ 执行结果
+   ↓
+11. 释放分布式锁
+```
+
+**用户同步流程：**
+
+与组织同步流程类似，主要差异：
+- 定时任务默认每天凌晨 2 点执行（在组织同步之后）
+- 调用 UUMS 用户同步 API
+- 处理用户变更日志（UumsChangeUserLog）
+- 同步到 JeecgBoot 用户表（sys_user）
+
+**手动同步流程：**
+
+```
+1. 前端调用手动同步接口
+   ↓
+2. UumsChangeOrgLogController.syncOrg(startDate, endDate)
+   ↓
+3. 调用 SyncUumsOrgScheduler.syncUumsOrgs(startDate, endDate)
+   ↓
+4. 执行完整同步流程（同定时任务，但不需要获取分布式锁）
+   ↓
+5. 返回同步结果
+```
+
+**架构优势：**
+
+- **配置统一管理：** AppConfig 集中管理所有配置，避免配置分散和维护困难
+- **Token 自动管理：** Redis 缓存 + 并发控制 + 自动刷新，减少 API 调用，提升性能
+- **分布式任务调度：** Redis 分布式锁确保集群环境下定时任务只执行一次
+- **完整数据链路：** 从 UUMS API 调用到 JeecgBoot 数据库操作的全流程跟踪
+- **变更日志追溯：** 完整记录每次同步的变更内容和处理结果，支持数据追溯和问题排查
+- **双向映射机制：** 通过 uumsOrgCode 建立 UUMS 组织与 JeecgBoot 部门的双向映射
+- **前后端分离：** 提供完整的前端管理界面，支持变更日志查询、Excel 导入导出等功能
+- **异常容错处理：** 完善的异常捕获和日志记录，单条记录失败不影响整体同步
+
+**文件统计：**
+
+- **后端文件：** 18 个（配置 2 + 工具 2 + 实体 2 + 控制器 2 + 服务 4 + Mapper 2 + 定时任务 2 + 数据库修改 2）
+- **前端文件：** 12 个（列表 2 + Modal 2 + Form 2 + API 2 + Data 2 + 菜单 SQL 2）
+- **总计：** 30 个文件
 
 ### 2025-08-14：启动配置信息打印功能
 
