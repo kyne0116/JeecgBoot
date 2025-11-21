@@ -27,3 +27,4 @@ derby.log
 jeecg-boot/jeecg-server-cloud
 jeecg-boot/jeecg-boot-module/jeecg-module-demo/
 jeecgboot-vue3/src/views/demo/
+jeecgboot-vue3/src/router/routes/modules/demo/
