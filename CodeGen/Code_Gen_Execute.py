@@ -1552,9 +1552,9 @@ class PomConfigurationTask:
             # 构建新的依赖配置
             new_dependency = f"""
         <dependency>
-            <groupId>org.jeecgframework.boot</groupId>
+            <groupId>org.jeecgframework.boot3</groupId>
             <artifactId>{artifact_id}</artifactId>
-            <version>3.8.2</version>
+            <version>${{jeecgboot.version}}</version>
         </dependency>"""
             
             # 插入新依赖
