@@ -37,7 +37,7 @@ NC='\033[0m' # No Color
 
 # 上游仓库配置
 UPSTREAM_REMOTE="upstream"
-UPSTREAM_BRANCH="master"
+UPSTREAM_BRANCH="main"  # 默认主分支，但会被自动检测覆盖
 
 # 本地分支
 LOCAL_BRANCH=$(git branch --show-current)
@@ -56,6 +56,32 @@ MODE="interactive"
 # ============================================================================
 # 工具函数
 # ============================================================================
+
+# 自动检测 upstream 主分支
+detect_upstream_branch() {
+    print_info "检测 upstream 主分支..."
+
+    # 获取 upstream 的 HEAD 指向（支持中英文）
+    local upstream_head=$(git remote show "$UPSTREAM_REMOTE" 2>/dev/null | grep -E "(HEAD branch|HEAD 分支)" | cut -d: -f2 | tr -d ' ')
+
+    if [ -n "$upstream_head" ]; then
+        print_info "检测到 upstream 主分支: $upstream_head"
+        UPSTREAM_BRANCH="$upstream_head"
+    else
+        print_warning "无法自动检测，使用默认分支: $UPSTREAM_BRANCH"
+    fi
+
+    # 验证检测到的分支是否存在
+    if ! git ls-remote --heads "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH" 2>/dev/null | grep -q "$UPSTREAM_BRANCH"; then
+        print_error "分支 $UPSTREAM_BRANCH 在 upstream 中不存在"
+        echo ""
+        echo "可用的 upstream 分支："
+        git ls-remote --heads "$UPSTREAM_REMOTE" 2>/dev/null | awk '{print $2}' | sed 's/refs\/heads\///' | grep -v '^$'
+        echo ""
+        echo "请使用 --branch 参数指定正确的分支名"
+        exit 1
+    fi
+}
 
 # 打印带颜色的消息
 print_info() {
@@ -121,7 +147,7 @@ JeecgBoot Upstream 同步脚本 v2.1
                         auto        - 自动模式，完全自动执行（危险）
 
     --upstream <name>   指定 upstream 远程仓库名（默认: upstream）
-    --branch <name>     指定 upstream 分支名（默认: master）
+    --branch <name>     指定 upstream 分支名（默认: main，自动检测）
     --help              显示此帮助信息
 
 示例:
@@ -852,6 +878,10 @@ main() {
     echo ""
     print_info "运行模式: $MODE"
     print_info "当前分支: $LOCAL_BRANCH"
+
+    # 自动检测 upstream 主分支
+    detect_upstream_branch
+
     print_info "同步目标: ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}"
     echo ""
 
