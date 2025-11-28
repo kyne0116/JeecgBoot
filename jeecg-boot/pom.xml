@@ -57,7 +57,12 @@
 		<!-- Ai流程编排-->
 		<kotlin.version>2.2.0</kotlin.version>
 		<liteflow.version>2.15.0</liteflow.version>
-		
+
+		<!-- Spring AI Alibaba -->
+		<spring-ai.version>1.1.0-M4</spring-ai.version>
+		<spring-ai-alibaba.version>1.1.0.0-M5</spring-ai-alibaba.version>
+		<spring-ai-alibaba-extensions.version>1.1.0.0-M5</spring-ai-alibaba-extensions.version>
+
 		<!-- 积木报表-->
 		<jimureport-spring-boot-starter.version>2.1.5</jimureport-spring-boot-starter.version>
 		<jimubi-spring-boot-starter.version>2.1.5</jimubi-spring-boot-starter.version>
@@ -102,6 +107,14 @@
 				<enabled>false</enabled>
 			</snapshots>
         </repository>
+		<repository>
+			<id>spring-milestones</id>
+			<name>Spring Milestones</name>
+			<url>https://repo.spring.io/milestone</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
 		<repository>
             <id>jeecg</id>
             <name>jeecg Repository</name>
@@ -162,6 +175,30 @@
 
 	<dependencyManagement>
 		<dependencies>
+			<!-- Spring AI BOM -->
+			<dependency>
+				<groupId>org.springframework.ai</groupId>
+				<artifactId>spring-ai-bom</artifactId>
+				<version>${spring-ai.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<!-- Spring AI Alibaba Extensions BOM -->
+			<dependency>
+				<groupId>com.alibaba.cloud.ai</groupId>
+				<artifactId>spring-ai-alibaba-extensions-bom</artifactId>
+				<version>${spring-ai-alibaba-extensions.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<!-- Spring AI Alibaba BOM -->
+			<dependency>
+				<groupId>com.alibaba.cloud.ai</groupId>
+				<artifactId>spring-ai-alibaba-bom</artifactId>
+				<version>${spring-ai-alibaba.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 			<!-- spring-cloud-->
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>

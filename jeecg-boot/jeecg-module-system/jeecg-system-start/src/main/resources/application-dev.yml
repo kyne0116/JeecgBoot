@@ -23,9 +23,9 @@ management:
         include:
 
 spring:
-#  main:
-#    # 启动加速 (建议开发环境，开启后flyway自动升级失效)
-#    lazy-initialization: true
+  #  main:
+  #    # 启动加速 (建议开发环境，开启后flyway自动升级失效)
+  #    lazy-initialization: true
   flyway:
     # 是否启用flyway
     enabled: true
@@ -42,12 +42,12 @@ spring:
     username: jeecgos@163.com
     password: ??
     properties:
-      mail.smtp.timeout: 10000  # 连接超时（毫秒）
-      mail.smtp.connectiontimeout: 10000  # 连接超时（毫秒）
-      mail.smtp.writetimeout: 10000  # 写入超时（毫秒）
+      mail.smtp.timeout: 10000 # 连接超时（毫秒）
+      mail.smtp.connectiontimeout: 10000 # 连接超时（毫秒）
+      mail.smtp.writetimeout: 10000 # 写入超时（毫秒）
       mail.smtp.auth: true
       smtp.ssl.enable: true
-#      mail.debug: true  # 启用调试模式(查看详细日志)
+  #      mail.debug: true  # 启用调试模式(查看详细日志)
   ## quartz定时任务,采用数据库方式
   quartz:
     job-store-type: jdbc
@@ -85,6 +85,15 @@ spring:
     open-in-view: false
   aop:
     proxy-target-class: true
+  # Spring AI Alibaba配置
+  ai:
+    dashscope:
+      api-key: ${AI_DASHSCOPE_API_KEY:your-api-key-here}
+      chat:
+        enabled: true
+        options:
+          model: qwen-turbo
+          temperature: 0.7
   #配置freemarker
   freemarker:
     # 设置模板后缀名
@@ -156,10 +165,10 @@ spring:
           username: root
           password: Best@2008
           driver-class-name: com.mysql.cj.jdbc.Driver
-#        # shardingjdbc数据源
-#        sharding-db:
-#          driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
-#          url: jdbc:shardingsphere:classpath:sharding.yaml
+  #        # shardingjdbc数据源
+  #        sharding-db:
+  #          driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
+  #          url: jdbc:shardingsphere:classpath:sharding.yaml
   #redis 配置
   data:
     redis:
@@ -179,7 +188,7 @@ mybatis-plus:
       # 默认数据库表下划线命名
       table-underline: true
   configuration:
-#    # 这个配置会将执行的sql打印出来，在开发或测试的时候可以用
+    #    # 这个配置会将执行的sql打印出来，在开发或测试的时候可以用
     #log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     # 返回类型为Map,显示null对应的字段
     call-setters-on-nulls: true
@@ -265,7 +274,7 @@ jeecg:
   #大屏报表参数设置
   jmreport:
     #多租户模式，默认值为空(created:按照创建人隔离、tenant:按照租户隔离) (v1.6.2+ 新增)
-    saasMode: 
+    saasMode:
     # 平台上线安全配置(v1.6.2+ 新增)
     firewall:
       # 数据源安全 (开启后，不允许使用平台数据源、SQL解析加签并且不允许查询数据库)
@@ -283,7 +292,7 @@ jeecg:
     enabled: false
     adminAddresses: http://127.0.0.1:9080/xxl-job-admin
     appname: ${spring.application.name}
-    accessToken: ''
+    accessToken: ""
     address: 127.0.0.1:30007
     ip: 127.0.0.1
     port: 30007
@@ -343,5 +352,5 @@ justauth:
       redirect-uri: http://sso.test.com:8080/jeecg-boot/sys/thirdLogin/wechat_open/callback
   cache:
     type: default
-    prefix: 'demo::'
+    prefix: "demo::"
     timeout: 1h

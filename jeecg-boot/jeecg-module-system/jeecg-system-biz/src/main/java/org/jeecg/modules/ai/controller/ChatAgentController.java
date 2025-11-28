@@ -1,14 +1,11 @@
 package org.jeecg.modules.ai.controller;
 
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import org.jeecg.common.api.vo.Result;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
@@ -20,31 +17,32 @@ import java.util.concurrent.ConcurrentHashMap;
  * 重命名为CustomAgentController以避免与Studio的AgentController冲突
  */
 @Controller
-public class CustomAgentController {
+@RequestMapping("/ai/chat")
+public class ChatAgentController {
 
     private final ReactAgent reactAgent;
     private final ChatModel chatModel;
     private final Map<String, Object> threadStates = new ConcurrentHashMap<>();
 
-    public CustomAgentController(ReactAgent reactAgent, ChatModel chatModel) {
+    public ChatAgentController(ReactAgent reactAgent, ChatModel chatModel) {
         this.reactAgent = reactAgent;
         this.chatModel = chatModel;
     }
 
     @GetMapping("/invoke")
     @ResponseBody
-    public AgentResponse invoke(@RequestParam("query") String query,
-                               @RequestParam("threadId") String threadId
+    public Result<?> invoke(@RequestParam("query") String query,
+                         @RequestParam("threadId") String threadId
     ) {
         try {
             // 直接使用ChatModel调用(简化版,不使用工具)
             var response = chatModel.call(new Prompt(query));
             String responseMessage = response.getResult().getOutput().getText();
 
-            return AgentResponse.success("请求已处理", responseMessage);
+            return Result.ok(responseMessage);
         } catch (Exception e) {
             e.printStackTrace();
-            return AgentResponse.error("Agent处理失败: " + e.getMessage());
+            return Result.error("Agent处理失败: " + e.getMessage());
         }
     }
 
@@ -108,24 +106,6 @@ public class CustomAgentController {
         }).start();
 
         return emitter;
-    }
-
-    @PostMapping("/feedback")
-    @ResponseBody
-    public AgentResponse feedback(@RequestBody List<Feedback> feedbacks,
-                                  @RequestParam("threadId") String threadId
-    ) throws Exception {
-        try {
-            // 处理用户反馈
-            for (Feedback fb : feedbacks) {
-                if (!fb.isApproved()) {
-                    return AgentResponse.error("操作被拒绝: " + fb.getFeedback());
-                }
-            }
-            return AgentResponse.success("反馈已处理", "所有操作已批准");
-        } catch (Exception e) {
-            return AgentResponse.error("反馈处理失败: " + e.getMessage());
-        }
     }
 
     @GetMapping
