@@ -61,26 +61,19 @@ MODE="interactive"
 detect_upstream_branch() {
     print_info "检测 upstream 主分支..."
 
-    # 获取 upstream 的 HEAD 指向（支持中英文）
-    local upstream_head=$(git remote show "$UPSTREAM_REMOTE" 2>/dev/null | grep -E "(HEAD branch|HEAD 分支)" | cut -d: -f2 | tr -d ' ')
-
-    if [ -n "$upstream_head" ]; then
-        print_info "检测到 upstream 主分支: $upstream_head"
-        UPSTREAM_BRANCH="$upstream_head"
-    else
-        print_warning "无法自动检测，使用默认分支: $UPSTREAM_BRANCH"
-    fi
-
-    # 验证检测到的分支是否存在
+    # 验证默认分支是否存在，如果不存在则列出可用分支
     if ! git ls-remote --heads "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH" 2>/dev/null | grep -q "$UPSTREAM_BRANCH"; then
-        print_error "分支 $UPSTREAM_BRANCH 在 upstream 中不存在"
+        print_warning "默认分支 $UPSTREAM_BRANCH 在 upstream 中不存在"
         echo ""
         echo "可用的 upstream 分支："
         git ls-remote --heads "$UPSTREAM_REMOTE" 2>/dev/null | awk '{print $2}' | sed 's/refs\/heads\///' | grep -v '^$'
         echo ""
-        echo "请使用 --branch 参数指定正确的分支名"
+        echo "请使用 --branch 参数指定正确的分支名，例如："
+        echo "  $0 --branch main"
         exit 1
     fi
+
+    print_success "使用 upstream 分支: $UPSTREAM_BRANCH"
 }
 
 # 打印带颜色的消息
