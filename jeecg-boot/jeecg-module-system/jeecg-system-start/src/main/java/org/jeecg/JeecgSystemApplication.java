@@ -68,6 +68,7 @@ public class JeecgSystemApplication extends SpringBootServletInitializer {
         String dataSourceUrl = env.getProperty("spring.datasource.dynamic.datasource.master.url");
         String redisInfo = getRedisInfo(env);
         String uumsAddress = env.getProperty("jeecg.uums.address");
+        String aiInfo = getAiInfo();
 
         log.info("\n========================================" +
                 "\n系统配置信息:" +
@@ -75,6 +76,7 @@ public class JeecgSystemApplication extends SpringBootServletInitializer {
                 "\n数据库连接: " + (dataSourceUrl != null ? dataSourceUrl : "未配置") +
                 "\n" + redisInfo +
                 "\nUUMS地址: " + (uumsAddress != null ? uumsAddress : "未配置") +
+                "\n" + aiInfo +
                 "\n========================================");
     }
 
@@ -149,6 +151,32 @@ public class JeecgSystemApplication extends SpringBootServletInitializer {
                     " (DB:" + (redisDatabase != null ? redisDatabase : "0") + ")" +
                     " 密码:" + (password != null && !password.isEmpty() ? "已配置" : "未配置");
         }
+    }
+
+    /**
+     * 获取AI配置信息（从环境变量读取）
+     */
+    private static String getAiInfo() {
+        String apiKey = System.getenv("AI_API_KEY");
+        String baseUrl = System.getenv("AI_BASE_URL");
+        String model = System.getenv("AI_MODEL");
+
+        // API Key 脱敏处理
+        String maskedApiKey;
+        if (apiKey != null && !apiKey.isEmpty()) {
+            if (apiKey.length() >= 8) {
+                maskedApiKey = apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length() - 4);
+            } else {
+                maskedApiKey = apiKey;
+            }
+        } else {
+            maskedApiKey = "***未设置***";
+        }
+
+        return "AI服务配置: (从环境变量读取)" +
+                "\n  ├─ API_KEY: " + maskedApiKey +
+                "\n  ├─ BASE_URL: " + (baseUrl != null ? baseUrl : "api.openai.com (默认)") +
+                "\n  └─ MODEL: " + (model != null ? model : "gpt-4o-mini (默认)");
     }
 
     /**

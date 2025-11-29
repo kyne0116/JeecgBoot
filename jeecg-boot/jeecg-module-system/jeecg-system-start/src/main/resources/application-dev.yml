@@ -85,15 +85,17 @@ spring:
     open-in-view: false
   aop:
     proxy-target-class: true
-  # Spring AI Alibaba配置
+  # Spring AI OpenAI配置
   ai:
-    dashscope:
-      api-key: ${AI_DASHSCOPE_API_KEY:your-api-key-here}
+    openai:
+      api-key: ${AI_API_KEY:your-api-key-here}
+      base-url: ${AI_BASE_URL:https://api.openai.com}
       chat:
         enabled: true
         options:
-          model: qwen-turbo
+          model: ${AI_MODEL:gpt-4o-mini}
           temperature: 0.7
+          max-tokens: 1000
   #配置freemarker
   freemarker:
     # 设置模板后缀名

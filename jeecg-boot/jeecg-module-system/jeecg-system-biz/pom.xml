@@ -22,16 +22,10 @@
 			<artifactId>spring-ai-alibaba-agent-framework</artifactId>
 		</dependency>
 
-		<!-- DashScope ChatModel -->
+		<!-- Spring AI OpenAI Starter (兼容性OpenAI支持) -->
 		<dependency>
-			<groupId>com.alibaba.cloud.ai</groupId>
-			<artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
-		</dependency>
-
-		<!-- Spring AI Alibaba Studio UI -->
-		<dependency>
-			<groupId>com.alibaba.cloud.ai</groupId>
-			<artifactId>spring-ai-alibaba-studio</artifactId>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-openai</artifactId>
 		</dependency>
 
 		<dependency>
