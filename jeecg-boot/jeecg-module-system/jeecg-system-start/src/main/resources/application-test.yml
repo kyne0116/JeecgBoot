@@ -14,6 +14,9 @@ server:
     mime-types: application/javascript,application/json,application/xml,text/html,text/xml,text/plain,text/css,image/*
 
 management:
+  # 禁用Actuator Web端点以避免与Shiro的RequestMappingHandlerMapping冲突
+  server:
+    port: -1
   endpoints:
     web:
       exposure:
@@ -74,10 +77,21 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
-  aop:
-    proxy-target-class: true
   jpa:
     open-in-view: false
+  aop:
+    proxy-target-class: true
+  # Spring AI OpenAI配置
+  ai:
+    openai:
+      api-key: ${AI_API_KEY:your-api-key-here}
+      base-url: ${AI_BASE_URL:https://api.openai.com}
+      chat:
+        enabled: true
+        options:
+          model: ${AI_MODEL:gpt-4o-mini}
+          temperature: 0.7
+          max-tokens: 1000
   #配置freemarker
   freemarker:
     # 设置模板后缀名
@@ -149,12 +163,6 @@ spring:
           username: root
           password: root
           driver-class-name: com.mysql.cj.jdbc.Driver
-          # 多数据源配置
-          #multi-datasource1:
-          #url: jdbc:mysql://localhost:3306/jeecg-boot2?useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-          #username: root
-          #password: root
-          #driver-class-name: com.mysql.cj.jdbc.Driver
   #redis 配置
   data:
     redis:
