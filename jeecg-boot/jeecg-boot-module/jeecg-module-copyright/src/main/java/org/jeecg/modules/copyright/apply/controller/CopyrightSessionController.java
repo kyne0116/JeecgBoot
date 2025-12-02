@@ -39,12 +39,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.jeecg.common.aspect.annotation.AutoLog;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
  /**
- * @Description: 软著申请聊天会话
+ * @Description: 软著申请申请会话
  * @Author: jeecg-boot
  * @Date:   2025-12-02
  * @Version: V1.0
  */
-@Tag(name="软著申请聊天会话")
+@Tag(name="软著申请申请会话")
 @RestController
 @RequestMapping("/apply/copyrightSession")
 @Slf4j
@@ -61,8 +61,8 @@ public class CopyrightSessionController extends JeecgController<CopyrightSession
 	 * @param req
 	 * @return
 	 */
-	//@AutoLog(value = "软著申请聊天会话-分页列表查询")
-	@Operation(summary="软著申请聊天会话-分页列表查询")
+	//@AutoLog(value = "软著申请申请会话-分页列表查询")
+	@Operation(summary="软著申请申请会话-分页列表查询")
 	@GetMapping(value = "/list")
 	public Result<IPage<CopyrightSession>> queryPageList(CopyrightSession copyrightSession,
 								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
@@ -82,8 +82,8 @@ public class CopyrightSessionController extends JeecgController<CopyrightSession
 	 * @param copyrightSession
 	 * @return
 	 */
-	@AutoLog(value = "软著申请聊天会话-添加")
-	@Operation(summary="软著申请聊天会话-添加")
+	@AutoLog(value = "软著申请申请会话-添加")
+	@Operation(summary="软著申请申请会话-添加")
 	@RequiresPermissions("apply:copyright_apply_copyrightsession:add")
 	@PostMapping(value = "/add")
 	public Result<String> add(@RequestBody CopyrightSession copyrightSession) {
@@ -98,8 +98,8 @@ public class CopyrightSessionController extends JeecgController<CopyrightSession
 	 * @param copyrightSession
 	 * @return
 	 */
-	@AutoLog(value = "软著申请聊天会话-编辑")
-	@Operation(summary="软著申请聊天会话-编辑")
+	@AutoLog(value = "软著申请申请会话-编辑")
+	@Operation(summary="软著申请申请会话-编辑")
 	@RequiresPermissions("apply:copyright_apply_copyrightsession:edit")
 	@RequestMapping(value = "/edit", method = {RequestMethod.PUT,RequestMethod.POST})
 	public Result<String> edit(@RequestBody CopyrightSession copyrightSession) {
@@ -113,8 +113,8 @@ public class CopyrightSessionController extends JeecgController<CopyrightSession
 	 * @param id
 	 * @return
 	 */
-	@AutoLog(value = "软著申请聊天会话-通过id删除")
-	@Operation(summary="软著申请聊天会话-通过id删除")
+	@AutoLog(value = "软著申请申请会话-通过id删除")
+	@Operation(summary="软著申请申请会话-通过id删除")
 	@RequiresPermissions("apply:copyright_apply_copyrightsession:delete")
 	@DeleteMapping(value = "/delete")
 	public Result<String> delete(@RequestParam(name="id",required=true) String id) {
@@ -128,8 +128,8 @@ public class CopyrightSessionController extends JeecgController<CopyrightSession
 	 * @param ids
 	 * @return
 	 */
-	@AutoLog(value = "软著申请聊天会话-批量删除")
-	@Operation(summary="软著申请聊天会话-批量删除")
+	@AutoLog(value = "软著申请申请会话-批量删除")
+	@Operation(summary="软著申请申请会话-批量删除")
 	@RequiresPermissions("apply:copyright_apply_copyrightsession:deleteBatch")
 	@DeleteMapping(value = "/deleteBatch")
 	public Result<String> deleteBatch(@RequestParam(name="ids",required=true) String ids) {
@@ -143,8 +143,8 @@ public class CopyrightSessionController extends JeecgController<CopyrightSession
 	 * @param id
 	 * @return
 	 */
-	//@AutoLog(value = "软著申请聊天会话-通过id查询")
-	@Operation(summary="软著申请聊天会话-通过id查询")
+	//@AutoLog(value = "软著申请申请会话-通过id查询")
+	@Operation(summary="软著申请申请会话-通过id查询")
 	@GetMapping(value = "/queryById")
 	public Result<CopyrightSession> queryById(@RequestParam(name="id",required=true) String id) {
 		CopyrightSession copyrightSession = copyrightSessionService.getById(id);
@@ -163,7 +163,7 @@ public class CopyrightSessionController extends JeecgController<CopyrightSession
     @RequiresPermissions("apply:copyright_apply_copyrightsession:exportXls")
     @RequestMapping(value = "/exportXls")
     public ModelAndView exportXls(HttpServletRequest request, CopyrightSession copyrightSession) {
-        return super.exportXls(request, copyrightSession, CopyrightSession.class, "软著申请聊天会话");
+        return super.exportXls(request, copyrightSession, CopyrightSession.class, "软著申请申请会话");
     }
 
     /**

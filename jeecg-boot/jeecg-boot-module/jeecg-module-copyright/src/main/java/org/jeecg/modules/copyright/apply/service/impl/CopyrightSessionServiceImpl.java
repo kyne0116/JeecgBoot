@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
 /**
- * @Description: 软著申请聊天会话
+ * @Description: 软著申请申请会话
  * @Author: jeecg-boot
  * @Date:   2025-12-02
  * @Version: V1.0

@@ -61,7 +61,7 @@
   //注册table数据
   const { prefixCls,tableContext,onExportXls,onImportXls } = useListPage({
       tableProps:{
-           title: '软著申请聊天会话',
+           title: '软著申请申请会话',
            api: list,
            columns,
            canResize:true,
@@ -91,7 +91,7 @@
             },
       },
        exportConfig: {
-            name:"软著申请聊天会话",
+            name:"软著申请申请会话",
             url: getExportUrl,
             params: queryParam,
           },

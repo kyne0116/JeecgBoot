@@ -3,7 +3,7 @@
         <!--标题和返回-->
 		<cu-custom :bgColor="NavBarColor" isBack :backRouterName="backRouteName">
 			<block slot="backText">返回</block>
-			<block slot="content">软著申请聊天会话</block>
+			<block slot="content">软著申请申请会话</block>
 		</cu-custom>
 		 <!--表单区域-->
 		<view>

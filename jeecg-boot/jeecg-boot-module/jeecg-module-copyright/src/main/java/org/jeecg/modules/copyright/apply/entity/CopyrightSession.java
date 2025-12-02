@@ -20,7 +20,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 /**
- * @Description: 软著申请聊天会话
+ * @Description: 软著申请申请会话
  * @Author: jeecg-boot
  * @Date:   2025-12-02
  * @Version: V1.0
@@ -29,7 +29,7 @@ import lombok.experimental.Accessors;
 @TableName("copyright_apply_copyrightsession")
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
-@Schema(description="软著申请聊天会话")
+@Schema(description="软著申请申请会话")
 public class CopyrightSession implements Serializable {
     private static final long serialVersionUID = 1L;
 

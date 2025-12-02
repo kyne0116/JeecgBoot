@@ -20,7 +20,7 @@
 
 ### T001: 项目初始化和环境配置
 
-**状态**: 🔴 未开始
+**状态**: 🟢 已完成
 **优先级**: P0 - 最高
 **预估工作量**: 0.5天
 **依赖任务**: 无
@@ -49,240 +49,74 @@
 
 ### T002: 数据库设计和初始化
 
-**状态**: 🔴 未开始
+**状态**: 🟢 已完成
 **优先级**: P0 - 最高
 **预估工作量**: 1天
 **依赖任务**: T001
 **负责人**: 待分配
 
 **任务描述**:
-- [ ] 创建数据库表结构（5张表）
-  - [ ] `us_session` - 会话表
-  - [ ] `us_message` - 对话记录表
-  - [ ] `us_file` - 生成文件表
-  - [ ] `us_agent_log` - Agent执行日志表
-  - [ ] `us_config` - 系统配置表
-- [ ] 创建索引优化查询性能
-- [ ] 插入初始系统配置数据
-- [ ] 生成MyBatis-Plus实体类
+- [x] 创建业务实体类（5个实体对象）
+  - [x] `CopyrightSession` - 会话实体（org.jeecg.modules.copyright.apply.entity）
+  - [x] `CopyrightMessage` - 对话记录实体（org.jeecg.modules.copyright.apply.entity）
+  - [x] `CopyrightFile` - 生成文件实体（org.jeecg.modules.copyright.apply.entity）
+  - [x] `CopyrightConfig` - 系统配置实体（org.jeecg.modules.copyright.apply.entity）
+  - [x] `CopyrightAgentLog` - Agent执行日志实体（org.jeecg.modules.copyright.log.entity）
+- [x] 创建数据库表及索引
+- [x] 插入初始系统配置数据
+- [x] 生成MyBatis-Plus Mapper接口
 
-**数据库表设计详细说明**:
+**对象设计说明**:
 
-#### 5.1 会话表 (us_session)
-```sql
-CREATE TABLE us_session (
-    id VARCHAR(64) PRIMARY KEY COMMENT '会话ID(格式:用户名_时间戳_哈希前8位)',
-    user_id VARCHAR(32) NOT NULL COMMENT '用户ID',
-    username VARCHAR(50) COMMENT '用户名',
-    software_name VARCHAR(255) COMMENT '软件名称',
-    short_name VARCHAR(100) COMMENT '软件简称',
-    version VARCHAR(50) COMMENT '软件版本号',
-    status VARCHAR(20) NOT NULL DEFAULT 'CLARIFYING' COMMENT '状态:CLARIFYING/GENERATING/CHECKING/COMPLETED/FAILED',
-    requirement_json TEXT COMMENT '需求JSON(CopyrightRequirement)',
-    progress_json TEXT COMMENT '进度JSON(包含各Agent执行状态)',
-    error_message TEXT COMMENT '错误信息',
-    retry_count INT DEFAULT 0 COMMENT '重试次数',
-    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    create_by VARCHAR(50) COMMENT '创建人',
-    update_by VARCHAR(50) COMMENT '更新人',
+系统包含5个核心业务实体对象，分别位于以下包路径：
 
-    INDEX idx_user_id (user_id),
-    INDEX idx_username (username),
-    INDEX idx_status (status),
-    INDEX idx_create_time (create_time),
-    INDEX idx_software_name (software_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='软著申报会话表';
-```
+#### 申报业务实体（org.jeecg.modules.copyright.apply.entity）
+1. **CopyrightSession** - 软著申报会话实体
+   - 会话ID采用格式：用户名_时间戳_哈希前8位
+   - 记录会话状态：CLARIFYING/GENERATING/CHECKING/COMPLETED/FAILED
+   - 存储需求JSON和进度JSON
 
-#### 5.2 对话记录表 (us_message)
-```sql
-CREATE TABLE us_message (
-    id VARCHAR(32) PRIMARY KEY COMMENT '消息ID',
-    session_id VARCHAR(64) NOT NULL COMMENT '会话ID',
-    sequence_no INT NOT NULL COMMENT '消息序号(同一会话内递增)',
-    role VARCHAR(20) NOT NULL COMMENT '角色:user/assistant/system',
-    content TEXT NOT NULL COMMENT '消息内容',
-    message_type VARCHAR(20) DEFAULT 'text' COMMENT '消息类型:text/file/status/error',
-    agent_name VARCHAR(100) COMMENT 'Agent名称(如果是Agent发送的消息)',
-    metadata_json TEXT COMMENT '消息元数据JSON',
-    token_count INT COMMENT '消息Token数量',
-    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+2. **CopyrightMessage** - 对话记录实体
+   - 关联会话ID
+   - 支持多种角色：user/assistant/system
+   - 支持消息类型：text/file/status/error
 
-    INDEX idx_session_id (session_id),
-    INDEX idx_sequence_no (session_id, sequence_no),
-    INDEX idx_create_time (create_time),
-    INDEX idx_role (role),
-    FOREIGN KEY (session_id) REFERENCES us_session(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='软著申报对话记录表';
-```
+3. **CopyrightFile** - 生成文件实体
+   - 关联会话ID
+   - 支持文件类型：source_code/info_form/desc_doc
+   - 支持质量状态：checking/passed/failed
+   - 支持版本控制
 
-#### 5.3 生成文件表 (us_file)
-```sql
-CREATE TABLE us_file (
-    id VARCHAR(32) PRIMARY KEY COMMENT '文件ID',
-    session_id VARCHAR(64) NOT NULL COMMENT '会话ID',
-    file_type VARCHAR(20) NOT NULL COMMENT '文件类型:source_code/info_form/desc_doc',
-    file_category VARCHAR(50) COMMENT '文件分类:申报材料/质检报告/其他',
-    filename VARCHAR(255) NOT NULL COMMENT '文件名',
-    file_path VARCHAR(500) NOT NULL COMMENT '文件路径(相对路径)',
-    file_size BIGINT COMMENT '文件大小(字节)',
-    mime_type VARCHAR(100) COMMENT 'MIME类型',
-    file_extension VARCHAR(10) COMMENT '文件扩展名',
-    quality_status VARCHAR(20) DEFAULT 'checking' COMMENT '质量状态:checking/passed/failed',
-    quality_score INT COMMENT '质量得分(0-100)',
-    quality_report_json TEXT COMMENT '质检报告JSON',
-    code_lines INT COMMENT '代码行数(仅代码文件)',
-    doc_word_count INT COMMENT '文档字数(仅文档文件)',
-    version INT DEFAULT 1 COMMENT '文件版本号',
-    is_latest TINYINT(1) DEFAULT 1 COMMENT '是否最新版本',
-    generated_by VARCHAR(100) COMMENT '生成者Agent名称',
-    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+4. **CopyrightConfig** - 系统配置实体
+   - 支持多种配置类型：string/int/bool/json/decimal
+   - 配置分组：system/agent/file/mcp
+   - 支持配置加密存储
 
-    INDEX idx_session_id (session_id),
-    INDEX idx_file_type (file_type),
-    INDEX idx_quality_status (quality_status),
-    INDEX idx_version (session_id, file_type, version),
-    INDEX idx_latest (session_id, is_latest),
-    UNIQUE KEY uk_session_type_version (session_id, file_type, version),
-    FOREIGN KEY (session_id) REFERENCES us_session(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='软著申报生成文件表';
-```
-
-#### 5.4 Agent执行日志表 (us_agent_log)
-```sql
-CREATE TABLE us_agent_log (
-    id VARCHAR(32) PRIMARY KEY COMMENT '日志ID',
-    session_id VARCHAR(64) NOT NULL COMMENT '会话ID',
-    agent_name VARCHAR(100) NOT NULL COMMENT 'Agent名称',
-    agent_type VARCHAR(50) COMMENT 'Agent类型:ReactAgent/NormalAgent',
-    execution_phase VARCHAR(50) COMMENT '执行阶段:clarify/generate/check',
-    status VARCHAR(20) NOT NULL COMMENT '执行状态:STARTED/RUNNING/COMPLETED/FAILED',
-    start_time DATETIME COMMENT '开始时间',
-    end_time DATETIME COMMENT '结束时间',
-    duration_ms BIGINT COMMENT '执行时长(毫秒)',
-    input_params JSON COMMENT '输入参数JSON',
-    output_result JSON COMMENT '输出结果JSON',
-    error_message TEXT COMMENT '错误信息',
-    error_stack TEXT COMMENT '错误堆栈',
-    retry_count INT DEFAULT 0 COMMENT '重试次数',
-    model_name VARCHAR(50) COMMENT '使用的模型名称',
-    total_tokens INT COMMENT '总Token消耗',
-    prompt_tokens INT COMMENT 'Prompt Token数',
-    completion_tokens INT COMMENT '完成Token数',
-    cost_amount DECIMAL(10,4) COMMENT '费用金额',
-    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-
-    INDEX idx_session_id (session_id),
-    INDEX idx_agent_name (agent_name),
-    INDEX idx_status (status),
-    INDEX idx_start_time (start_time),
-    INDEX idx_execution_phase (execution_phase),
-    INDEX idx_duration (duration_ms),
-    FOREIGN KEY (session_id) REFERENCES us_session(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Agent执行日志表';
-```
-
-#### 5.5 系统配置表 (us_config)
-```sql
-CREATE TABLE us_config (
-    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '配置ID',
-    config_key VARCHAR(100) NOT NULL UNIQUE COMMENT '配置键',
-    config_value TEXT NOT NULL COMMENT '配置值',
-    config_type VARCHAR(20) DEFAULT 'string' COMMENT '配置类型:string/int/bool/json/decimal',
-    config_group VARCHAR(50) DEFAULT 'system' COMMENT '配置分组:system/agent/file/mcp',
-    description VARCHAR(500) COMMENT '配置描述',
-    is_system TINYINT(1) DEFAULT 0 COMMENT '是否系统配置(系统配置不可删除)',
-    is_encrypted TINYINT(1) DEFAULT 0 COMMENT '是否加密存储',
-    sort_order INT DEFAULT 0 COMMENT '排序顺序',
-    status TINYINT(1) DEFAULT 1 COMMENT '状态:0-禁用,1-启用',
-    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    create_by VARCHAR(50) COMMENT '创建人',
-    update_by VARCHAR(50) COMMENT '更新人',
-
-    INDEX idx_config_group (config_group),
-    INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统配置表';
-
--- 初始化系统配置数据
-INSERT INTO us_config (config_key, config_value, config_type, config_group, description, is_system, sort_order) VALUES
--- Agent配置
-('agent.clarify.max_iterations', '10', 'int', 'agent', '需求澄清Agent最大对话轮次', 1, 1),
-('agent.clarify.timeout', '300000', 'int', 'agent', '需求澄清Agent超时时间(毫秒)', 1, 2),
-('agent.quality.max_retries', '2', 'int', 'agent', '质量检查最大重试次数', 1, 3),
-('agent.quality.timeout', '600000', 'int', 'agent', '质量检查超时时间(毫秒)', 1, 4),
-('agent.codegen.timeout', '900000', 'int', 'agent', '代码生成超时时间(毫秒)', 1, 5),
-
--- 文件配置
-('file.storage.base_path', '/data/copyright-files', 'string', 'file', '文件存储基础路径', 1, 10),
-('file.storage.max_size', '104857600', 'int', 'file', '单文件最大大小(字节,100MB)', 1, 11),
-('file.allowed.extensions', '.java,.py,.js,.docx,.zip', 'string', 'file', '允许的文件扩展名', 1, 12),
-('file.temp.cleanup_days', '7', 'int', 'file', '临时文件清理天数', 1, 13),
-
--- 代码生成配置
-('code.target_lines.min', '5000', 'int', 'agent', '目标代码最小行数', 1, 20),
-('code.target_lines.max', '6000', 'int', 'agent', '目标代码最大行数', 1, 21),
-('code.quality.min_score', '70', 'int', 'agent', '代码质量最低得分', 1, 22),
-
--- 文档配置
-('doc.word_count.min', '3000', 'int', 'agent', '文档最小字数', 1, 30),
-('doc.word_count.max', '5000', 'int', 'agent', '文档最大字数', 1, 31),
-('doc.font.name', '仿宋', 'string', 'agent', '文档字体名称', 1, 32),
-('doc.font.size', '12', 'int', 'agent', '文档字体大小', 1, 33),
-
--- MCP配置
-('mcp.word_server.url', 'http://localhost:8765', 'string', 'mcp', 'MCP Word服务器地址', 1, 40),
-('mcp.word_server.timeout', '30000', 'int', 'mcp', 'MCP请求超时时间(毫秒)', 1, 41),
-('mcp.word_server.health_check_interval', '60000', 'int', 'mcp', 'MCP健康检查间隔(毫秒)', 1, 42),
-
--- AI模型配置
-('ai.model.default', 'qwen-max', 'string', 'system', '默认AI模型', 1, 50),
-('ai.model.temperature', '0.7', 'decimal', 'system', '模型温度参数', 1, 51),
-('ai.model.max_tokens', '4000', 'int', 'system', '最大Token数', 1, 52),
-
--- 系统配置
-('system.concurrent.max_sessions', '10', 'int', 'system', '最大并发会话数', 1, 60),
-('system.session.expire_hours', '24', 'int', 'system', '会话过期时间(小时)', 1, 61),
-('system.log.retention_days', '30', 'int', 'system', '日志保留天数', 1, 62);
-```
-
-#### 5.6 性能优化索引
-```sql
--- 会话列表查询优化(用户查看自己的会话列表)
-CREATE INDEX idx_session_user_status_time ON us_session(user_id, status, create_time DESC);
-
--- 消息历史查询优化(按时间顺序加载消息)
-CREATE INDEX idx_message_session_time ON us_message(session_id, create_time ASC);
-
--- 文件查询优化(查询会话的最新文件)
-CREATE INDEX idx_file_session_type_quality ON us_file(session_id, file_type, quality_status);
-CREATE INDEX idx_file_latest ON us_file(session_id, is_latest, file_type);
-
--- Agent日志分析优化(性能监控和问题排查)
-CREATE INDEX idx_agent_log_name_time ON us_agent_log(agent_name, start_time DESC);
-CREATE INDEX idx_agent_log_session_phase ON us_agent_log(session_id, execution_phase, status);
-
--- 配置查询优化
-CREATE INDEX idx_config_group_status ON us_config(config_group, status);
-```
+#### 日志实体（org.jeecg.modules.copyright.log.entity）
+5. **CopyrightAgentLog** - Agent执行日志实体
+   - 记录Agent执行状态和时长
+   - 记录Token消耗和费用
+   - 支持错误堆栈记录
 
 **测试要点**:
-- [ ] 所有表创建成功
-- [ ] 索引创建正确
-- [ ] 外键约束生效
-- [ ] 实体类生成正确，字段映射准确
-- [ ] 初始配置数据插入成功
+- [x] 所有数据库表创建成功
+- [x] 索引创建正确
+- [x] 外键约束生效
+- [x] 实体类生成正确，字段映射准确
+- [x] 初始配置数据插入成功
+- [x] MyBatis-Plus Mapper接口生成正确
 
 **产出物**:
-- `init-db.sql` 数据库初始化脚本
-- 实体类（表名映射）：
-  - `CopyrightSession.java` → 表 `us_session`
-  - `CopyrightMessage.java` → 表 `us_message`
-  - `CopyrightFile.java` → 表 `us_file`
-  - `CopyrightAgentLog.java` → 表 `us_agent_log`
-  - `CopyrightConfig.java` → 表 `us_config`
+- 数据库初始化脚本
+- 实体类（对象 → 表名映射）：
+  - **org.jeecg.modules.copyright.apply.entity**
+    - `CopyrightSession.java` → 表 `copyright_session`
+    - `CopyrightMessage.java` → 表 `copyright_message`
+    - `CopyrightFile.java` → 表 `copyright_file`
+    - `CopyrightConfig.java` → 表 `copyright_config`
+  - **org.jeecg.modules.copyright.log.entity**
+    - `CopyrightAgentLog.java` → 表 `copyright_agent_log`
+- MyBatis-Plus Mapper接口
 
 ---
 
@@ -1212,8 +1046,8 @@ CREATE INDEX idx_config_group_status ON us_config(config_group, status);
 
 | 任务编号 | 任务名称 | 负责人 | 状态 | 开始日期 | 完成日期 | 备注 |
 |---------|---------|--------|------|---------|---------|------|
-| T001 | 项目初始化和环境配置 | - | 🔴 | - | - | - |
-| T002 | 数据库设计和初始化 | - | 🔴 | - | - | - |
+| T001 | 项目初始化和环境配置 | - | 🟢 | - | - | 已完成 |
+| T002 | 数据库设计和初始化 | - | 🟢 | - | - | 已完成 |
 | T003 | MCP Word服务器环境准备 | - | 🔴 | - | - | - |
 | T004 | 会话管理核心功能 | - | 🔴 | - | - | - |
 | T005 | 对话消息管理功能 | - | 🔴 | - | - | - |

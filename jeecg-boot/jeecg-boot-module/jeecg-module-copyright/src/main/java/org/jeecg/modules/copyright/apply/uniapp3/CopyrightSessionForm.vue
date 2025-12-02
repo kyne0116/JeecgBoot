@@ -3,7 +3,7 @@
 layout: 'default',
 style: {
 navigationStyle: 'custom',
-navigationBarTitleText: '软著申请聊天会话',
+navigationBarTitleText: '软著申请申请会话',
 },
 }
 </route>

@@ -2,13 +2,13 @@
 {
 layout: 'default',
 style: {
-navigationBarTitleText: '软著申请聊天会话',
+navigationBarTitleText: '软著申请申请会话',
 navigationStyle: 'custom',
 },
 }
 </route>
 <template>
-  <PageLayout navTitle="软著申请聊天会话"  backRouteName="index" routeMethod="pushTab">
+  <PageLayout navTitle="软著申请申请会话"  backRouteName="index" routeMethod="pushTab">
     <view class="wrap">
       <z-paging
           ref="paging"
