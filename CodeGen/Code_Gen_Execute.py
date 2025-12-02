@@ -1232,7 +1232,13 @@ class MavenModuleCreationTask:
             self.config.load_config()
     
     def execute(self, config_data: Dict) -> str:
-        """执行Maven模块创建任务"""
+        """执行Maven模块创建任务
+
+        修改逻辑：
+        - 如果模块已存在，直接跳过创建（返回成功）
+        - 如果模块不存在，才执行Maven创建
+        - 不再删除整个模块目录，避免误删其他表的代码
+        """
         try:
             # 1. 提取模块信息
             module_info = self._extract_module_info(config_data)
@@ -1242,21 +1248,21 @@ class MavenModuleCreationTask:
             else:
                 module_name = module_info['module_name']
 
-                # 2. 删除旧模块（如果存在）
+                # 2. 检查模块是否已存在
                 if self._check_module_exists(module_name):
-                    print(f"[INFO] 检测到模块已存在: {module_name}，准备删除...")
-                    if self._delete_existing_module(module_name):
-                        print(f"[OK] 旧模块删除成功")
-                    else:
-                        print(f"[WARN] 旧模块删除失败，尝试继续创建")
-
-                # 3. 创建Maven模块
-                if self._create_maven_module(module_name):
-                    summary = f"Maven模块 {module_name} 创建成功"
+                    print(f"[INFO] 检测到模块已存在: {module_name}")
+                    print(f"[OK] 跳过Maven模块创建，复用已有模块（支持同模块多表生成）")
+                    summary = f"Maven模块 {module_name} 已存在，复用成功"
                     task_result = "pass"
                 else:
-                    summary = f"Maven模块 {module_name} 创建失败"
-                    task_result = "fail"
+                    # 3. 模块不存在时才创建
+                    print(f"[INFO] 模块不存在，开始创建: {module_name}")
+                    if self._create_maven_module(module_name):
+                        summary = f"Maven模块 {module_name} 创建成功"
+                        task_result = "pass"
+                    else:
+                        summary = f"Maven模块 {module_name} 创建失败"
+                        task_result = "fail"
 
         except Exception as e:
             import traceback
@@ -1320,28 +1326,6 @@ class MavenModuleCreationTask:
         except Exception:
             return False
 
-    def _delete_existing_module(self, module_name: str) -> bool:
-        """删除已存在的模块目录"""
-        import shutil
-        try:
-            project_root = self.config.get_project_root()
-            module_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
-
-            if os.path.exists(module_path):
-                print(f"[DELETE] 删除模块目录: {module_path}")
-                shutil.rmtree(module_path)
-                print(f"[OK] 模块目录删除完成")
-                return True
-            else:
-                print(f"[INFO] 模块目录不存在，无需删除")
-                return True
-        except Exception as e:
-            import traceback
-            print(f"[ERROR] Exception: {str(e)}")
-            traceback.print_exc()
-            print(f"[ERROR] 删除模块目录失败: {str(e)}")
-            return False
-    
     def _create_maven_module(self, module_name: str) -> bool:
         """使用Maven archetype创建新模块"""
         import subprocess
@@ -2100,56 +2084,60 @@ class CodeGenerationTask:
     def _handle_independent_table(self, config_data: Dict) -> str:
         """处理独立表场景(tableType=1)"""
         table_name = config_data.get('head', {}).get('tableName', '')
-        
+
         # 登录获取token
-        login_result = jeecg_login(self.base_url, self.username, self.password, 
+        login_result = jeecg_login(self.base_url, self.username, self.password,
                                   self.config.get_timeout('login'))
         if not login_result['success']:
             print(f"登录失败: {login_result['message']}")
             return "fail"
-        
+
         token = login_result['token']
-        
+
         # API调用链：创建 -> 查询 -> 同步 -> 代码生成
         try:
             # 1. 表单创建
-            create_result = jeecg_create_form(self.base_url, token, config_data, 
+            create_result = jeecg_create_form(self.base_url, token, config_data,
                                             self.config.get_timeout('create'))
             if not create_result['success']:
                 print(f"表单创建失败: {create_result['message']}")
                 return "fail"
-            
+
             form_id = create_result['form_id']
             print(f"表单创建成功: {form_id}")
-            
+
             # 2. 表单查询（验证）
-            query_result = jeecg_query_form(self.base_url, token, table_name, 
-                                          self.config.get_page_size(), 
+            query_result = jeecg_query_form(self.base_url, token, table_name,
+                                          self.config.get_page_size(),
                                           self.config.get_timeout('list'))
             if not query_result['success']:
                 print(f"表单查询失败: {query_result['message']}")
                 return "fail"
-            
+
             # 3. 数据库同步
-            sync_result = jeecg_sync_database(self.base_url, token, form_id, 
+            sync_result = jeecg_sync_database(self.base_url, token, form_id,
                                             self.config.get_timeout('sync'))
             if not sync_result['success']:
                 print(f"数据库同步失败: {sync_result['message']}")
                 return "fail"
-            
+
             print(f"数据库同步成功")
-            
+
+            # 3.5. 清理旧代码文件（在代码生成前）
+            print(f"[CLEAN] 清理旧代码文件...")
+            self._clean_old_generated_files(config_data)
+
             # 4. 代码生成
             project_root = self.config.env_vars.get('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
-            generate_result = jeecg_generate_code(self.base_url, token, form_id, config_data, 
+            generate_result = jeecg_generate_code(self.base_url, token, form_id, config_data,
                                                 self.config.get_timeout('codegen'), project_root)
             if not generate_result['success']:
                 print(f"代码生成失败: {generate_result['message']}")
                 return "fail"
-            
+
             print(f"代码生成成功")
             return "pass"
-            
+
         except Exception as e:
             import traceback
             print(f"[ERROR] Exception: {str(e)}")
@@ -2466,34 +2454,38 @@ class CodeGenerationTask:
         try:
             # 构建subList
             sub_list = self._build_sublist_from_sentinel(sentinel_data)
-            
+
             # 将subList添加到主表配置中
             main_table_config['subList'] = sub_list
-            
+
             # 获取主表form_id
             main_table_info = sentinel_data.get('tables', {}).get(main_table_name, {})
             form_id = main_table_info.get('form_id')
-            
+
             if not form_id:
                 print(f"主表 {main_table_name} 缺少form_id")
                 return "fail"
-            
+
+            # 清理旧代码文件（在代码生成前）
+            print(f"[CLEAN] 清理主表旧代码文件...")
+            self._clean_old_generated_files(main_table_config)
+
             # 执行代码生成
             project_root = self.config.env_vars.get('JEECG_PROJECT_ROOT', '/Users/admin/Work/Github/JeecgBoot')
-            generate_result = jeecg_generate_code(self.base_url, token, form_id, main_table_config, 
+            generate_result = jeecg_generate_code(self.base_url, token, form_id, main_table_config,
                                                 self.config.get_timeout('codegen'), project_root)
             if not generate_result['success']:
                 print(f"主表代码生成失败: {generate_result['message']}")
                 self._update_table_status(sentinel_file, main_table_name, SentinelStatus.TABLE_FAIL)
                 self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_FAIL)
                 return "fail"
-            
+
             # 更新主表状态为代码已生成
             self._update_table_status(sentinel_file, main_table_name, SentinelStatus.TABLE_CODE_GENERATED)
             self._update_sentinel_summary_status(sentinel_file, SentinelStatus.SUMMARY_PASS)
             print(f"主表 {main_table_name} 代码生成成功")
             return "pass"
-            
+
         except Exception as e:
             import traceback
             print(f"[ERROR] Exception: {str(e)}")
@@ -2691,16 +2683,101 @@ class CodeGenerationTask:
             traceback.print_exc()
             print(f"[ERROR] 清理JSON配置文件失败: {str(e)}")
     
+    def _clean_old_generated_files(self, config_data: Dict):
+        """清理旧的生成文件（只删除当前表相关的文件，保留其他表的文件）
+
+        清理策略：
+        1. 根据business_entity精确匹配文件名
+        2. 只删除后端Java文件（controller, service, mapper, entity, vo等）
+        3. 前端文件由任务8（前端代码迁移）处理
+        4. 保留其他实体的文件，避免误删
+
+        Args:
+            config_data: 配置数据，包含模块和实体信息
+        """
+        import glob
+        import shutil
+
+        try:
+            # 提取模块和实体信息
+            module_info = self._extract_module_info(config_data)
+            if not module_info:
+                print(f"   [WARN] 无法提取模块信息，跳过清理")
+                return
+
+            module_name = module_info.get('module_name')
+            submodule_name = module_info.get('submodule_name')
+            business_entity = module_info.get('business_entity')
+
+            if not all([module_name, submodule_name, business_entity]):
+                print(f"   [WARN] 模块信息不完整，跳过清理")
+                return
+
+            project_root = self.config.get_project_root()
+            module_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
+
+            if not os.path.exists(module_path):
+                print(f"   [INFO] 模块目录不存在，无需清理: {module_path}")
+                return
+
+            print(f"   [TARGET] 清理目标实体: {business_entity}")
+            print(f"   [SCOPE] 扫描路径: {module_path}")
+
+            # 定义需要清理的目录和文件模式
+            cleanup_patterns = [
+                # Controller
+                f"src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/controller/{business_entity}Controller.java",
+                # Service
+                f"src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/service/I{business_entity}Service.java",
+                f"src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/service/impl/{business_entity}ServiceImpl.java",
+                # Mapper
+                f"src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/mapper/{business_entity}Mapper.java",
+                f"src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/mapper/xml/{business_entity}Mapper.xml",
+                # Entity
+                f"src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/entity/{business_entity}.java",
+                # VO
+                f"src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/vo/{business_entity}*.java",
+            ]
+
+            deleted_files = []
+            for pattern in cleanup_patterns:
+                full_pattern = os.path.join(module_path, pattern)
+                matching_files = glob.glob(full_pattern)
+
+                for file_path in matching_files:
+                    if os.path.exists(file_path):
+                        try:
+                            if os.path.isfile(file_path):
+                                os.remove(file_path)
+                            else:
+                                shutil.rmtree(file_path)
+                            deleted_files.append(os.path.relpath(file_path, module_path))
+                            print(f"   [DELETE] {os.path.relpath(file_path, module_path)}")
+                        except Exception as e:
+                            print(f"   [ERROR] 删除失败: {os.path.relpath(file_path, module_path)} - {str(e)}")
+
+            if deleted_files:
+                print(f"   [OK] 清理完成，共删除 {len(deleted_files)} 个旧文件")
+            else:
+                print(f"   [INFO] 未发现需要清理的旧文件（首次生成或文件已不存在）")
+
+        except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"   [WARN] 清理旧文件时出错: {str(e)}")
+            # 不抛出异常，允许继续执行
+
     def _update_sentinel_summary_status(self, sentinel_file: str, summary_status: str):
         """更新哨兵文件的汇总状态"""
         try:
             with open(sentinel_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            
+
             data['summary_status'] = summary_status
             data['last_updated'] = datetime.now().isoformat()
             data['version'] = data.get('version', 0) + 1
-            
+
             with open(sentinel_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
@@ -2978,9 +3055,11 @@ class PlaceholderVariableProcessingTask:
                             shutil.rmtree(placeholder_dir_path)
                             renamed_count += 1
                         elif placeholder_has_content and correct_has_content:
-                            # 两个都有内容 → 错误情况，保留正确路径，删除占位符
-                            print(f"   [WARN] 两个目录都包含内容，保留正确路径，删除占位符目录")
-                            print(f"   [DELETE] 删除占位符目录")
+                            # 两个都有内容 → 合并目录（支持同模块多表生成）
+                            print(f"   [INFO] 检测到多表生成场景，合并占位符目录到正确路径")
+                            merge_count = self._merge_directories(placeholder_dir_path, correct_package_path)
+                            print(f"   [MERGE] 已合并 {merge_count} 个文件/目录")
+                            print(f"   [DELETE] 删除已合并的占位符目录")
                             shutil.rmtree(placeholder_dir_path)
                             renamed_count += 1
                         else:
@@ -3041,6 +3120,45 @@ class PlaceholderVariableProcessingTask:
                 continue
 
         return renamed_count
+
+    def _merge_directories(self, src_dir: str, dest_dir: str) -> int:
+        """合并源目录的内容到目标目录（支持同模块多表生成）
+
+        Args:
+            src_dir: 源目录路径（占位符目录）
+            dest_dir: 目标目录路径（正确路径）
+
+        Returns:
+            合并的文件/目录数量
+        """
+        import shutil
+        merged_count = 0
+
+        # 确保目标目录存在
+        if not os.path.exists(dest_dir):
+            os.makedirs(dest_dir)
+
+        for item in os.listdir(src_dir):
+            src_path = os.path.join(src_dir, item)
+            dest_path = os.path.join(dest_dir, item)
+
+            if os.path.isdir(src_path):
+                # 如果是目录，递归合并
+                if os.path.exists(dest_path):
+                    # 目标目录已存在，递归合并
+                    merged_count += self._merge_directories(src_path, dest_path)
+                else:
+                    # 目标目录不存在，直接移动
+                    shutil.move(src_path, dest_path)
+                    merged_count += 1
+            else:
+                # 如果是文件，直接覆盖
+                if os.path.exists(dest_path):
+                    os.remove(dest_path)
+                shutil.move(src_path, dest_path)
+                merged_count += 1
+
+        return merged_count
 
     def _replace_file_placeholders(self, file_path: str, placeholders: Dict[str, str]) -> bool:
         """替换单个文件中的占位变量"""
@@ -3156,20 +3274,30 @@ class FrontendCodeMigrationTask:
             
             # 获取路径信息
             project_root = self.config.get_project_root()
-            
-            # 源路径：生成的Vue3代码位置（占位符处理后的实际路径）
-            source_vue_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}/src/main/java/org/jeecg/modules/{module_name}/{submodule_name}/vue3"
-            
+
+            # 智能检测源路径：依次尝试vue3、uniapp3、uniapp
+            base_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}/src/main/java/org/jeecg/modules/{module_name}/{submodule_name}"
+            source_vue_path = None
+            code_type = None
+
+            for code_dir in ['vue3', 'uniapp3', 'uniapp']:
+                test_path = f"{base_path}/{code_dir}"
+                if os.path.exists(test_path):
+                    source_vue_path = test_path
+                    code_type = code_dir
+                    print(f"[DETECT] 检测到前端代码类型: {code_dir}")
+                    break
+
             # 目标路径：前端项目中的位置（使用submodule层级）
             target_base_path = "jeecgboot-vue3/src/views"
             target_dir = f"{project_root}/{target_base_path}/{submodule_name}"
 
             print(f"[SOURCE] 源路径: {source_vue_path}")
             print(f"[TARGET] 目标路径: {target_dir}")
-            
+
             # 检查源路径是否存在
-            if not os.path.exists(source_vue_path):
-                print(f"[ERROR] 源路径不存在: {source_vue_path}")
+            if not source_vue_path or not os.path.exists(source_vue_path):
+                print(f"[ERROR] 未找到前端代码，尝试过的路径类型: vue3, uniapp3, uniapp")
                 return (False, "")
 
             # 检查源路径中是否有文件
@@ -3180,21 +3308,28 @@ class FrontendCodeMigrationTask:
             # 确保目标目录存在
             os.makedirs(target_dir, exist_ok=True)
             print(f"[FOLDER] 创建目标目录: {target_dir}")
-            
+
+            # 清理目标目录中与当前实体相关的旧文件
+            business_entity = module_info.get('business_entity', '')
+            if business_entity:
+                self._clean_old_frontend_files(target_dir, business_entity)
+
             # 统计迁移的文件数
             migrated_files = []
-            
+
             # 移动vue3目录下的所有内容到目标位置
             for item in os.listdir(source_vue_path):
                 source_item = os.path.join(source_vue_path, item)
                 target_item = os.path.join(target_dir, item)
-                
-                # 如果目标文件已存在，先备份
+
+                # 如果目标文件已存在，直接覆盖（已在上面的清理步骤处理）
                 if os.path.exists(target_item):
-                    backup_name = f"{target_item}.backup.{int(time.time())}"
-                    shutil.move(target_item, backup_name)
-                    print(f"[PROCESS] 备份已存在文件: {item} -> {os.path.basename(backup_name)}")
-                
+                    if os.path.isfile(target_item):
+                        os.remove(target_item)
+                    else:
+                        shutil.rmtree(target_item)
+                    print(f"[REPLACE] 覆盖已存在文件: {item}")
+
                 # 移动文件或目录
                 shutil.move(source_item, target_item)
                 migrated_files.append(item)
@@ -3244,33 +3379,91 @@ class FrontendCodeMigrationTask:
         try:
             metadata = config_data.get('metadata', {})
             generation_info = metadata.get('generation_info', {})
-            
+
             if generation_info:
                 module_name = generation_info.get('module_name')
                 submodule_name = generation_info.get('submodule_name')
-                
+                business_entity = generation_info.get('business_entity')
+
                 if module_name and submodule_name:
                     return {
                         'module_name': module_name,
-                        'submodule_name': submodule_name
+                        'submodule_name': submodule_name,
+                        'business_entity': business_entity or ''
                     }
-            
+
             # 从表名推断模块信息
             head = config_data.get('head', {})
             table_name = head.get('tableName', '')
-            
+            business_entity = head.get('business_entity', '')
+
             if table_name and '_' in table_name:
                 parts = table_name.split('_')
                 if len(parts) >= 2:
                     return {
                         'module_name': parts[0],
-                        'submodule_name': parts[1]
+                        'submodule_name': parts[1],
+                        'business_entity': business_entity
                     }
-            
+
             return None
-            
+
         except Exception:
             return None
+
+    def _clean_old_frontend_files(self, target_dir: str, business_entity: str):
+        """清理目标目录中与当前实体相关的旧前端文件
+
+        清理策略：
+        1. 根据business_entity匹配文件名模式
+        2. 删除匹配的.vue、.ts等前端文件
+        3. 保留其他实体的文件
+
+        Args:
+            target_dir: 目标前端目录
+            business_entity: 业务实体名称
+        """
+        import glob
+
+        try:
+            if not os.path.exists(target_dir):
+                return
+
+            print(f"   [CLEAN] 清理旧前端文件: {business_entity}")
+
+            # 定义需要清理的文件模式
+            # 例如：CopyrightMessage.vue, CopyrightMessageData.ts, CopyrightMessageList.vue等
+            cleanup_patterns = [
+                f"{business_entity}.vue",
+                f"{business_entity}*.vue",
+                f"{business_entity}*.ts",
+                f"{business_entity}*.js",
+            ]
+
+            deleted_files = []
+            for pattern in cleanup_patterns:
+                full_pattern = os.path.join(target_dir, pattern)
+                matching_files = glob.glob(full_pattern)
+
+                for file_path in matching_files:
+                    if os.path.isfile(file_path):
+                        try:
+                            os.remove(file_path)
+                            deleted_files.append(os.path.basename(file_path))
+                            print(f"   [DELETE] {os.path.basename(file_path)}")
+                        except Exception as e:
+                            print(f"   [ERROR] 删除失败: {os.path.basename(file_path)} - {str(e)}")
+
+            if deleted_files:
+                print(f"   [OK] 清理旧前端文件完成，共删除 {len(deleted_files)} 个文件")
+            else:
+                print(f"   [INFO] 未发现需要清理的旧前端文件")
+
+        except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"   [WARN] 清理前端旧文件时出错: {str(e)}")
 
 
 # =============================================================================
@@ -3941,10 +4134,12 @@ def jeecg_generate_code(base_url: str, token: str, form_id: str, config_data: Di
             "entityPackage": submodule_name,
             "jspMode": jsp_mode,
             "jformType": jform_type,
+            "jformPkType": "vue3",
+            "pkType": "vue3",
+            "vueStyle": "vue3",
             "ftlDescription": config_data.get('head', {}).get('tableTxt', ''),
             "tableName_tmp": table_name,
             "packageStyle": "service",
-            "vueStyle": "vue3",
             "codeTypes": "controller,service,dao,mapper,entity,vue",
             "tableName": table_name
         }
