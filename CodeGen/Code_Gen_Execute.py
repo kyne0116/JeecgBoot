@@ -1241,20 +1241,23 @@ class MavenModuleCreationTask:
                 task_result = "fail"
             else:
                 module_name = module_info['module_name']
-                
-                # 2. 检查模块是否已存在
+
+                # 2. 删除旧模块（如果存在）
                 if self._check_module_exists(module_name):
-                    summary = f"模块 {module_name} 已存在，跳过创建"
+                    print(f"[INFO] 检测到模块已存在: {module_name}，准备删除...")
+                    if self._delete_existing_module(module_name):
+                        print(f"[OK] 旧模块删除成功")
+                    else:
+                        print(f"[WARN] 旧模块删除失败，尝试继续创建")
+
+                # 3. 创建Maven模块
+                if self._create_maven_module(module_name):
+                    summary = f"Maven模块 {module_name} 创建成功"
                     task_result = "pass"
                 else:
-                    # 3. 创建Maven模块
-                    if self._create_maven_module(module_name):
-                        summary = f"Maven模块 {module_name} 创建成功"
-                        task_result = "pass"
-                    else:
-                        summary = f"Maven模块 {module_name} 创建失败"
-                        task_result = "fail"
-        
+                    summary = f"Maven模块 {module_name} 创建失败"
+                    task_result = "fail"
+
         except Exception as e:
             import traceback
             print(f"[ERROR] Exception: {str(e)}")
@@ -1262,10 +1265,10 @@ class MavenModuleCreationTask:
             summary = f"Maven模块创建异常: {e}"
             task_result = "fail"
             print(f"[ERROR] {summary}")
-        
+
         print(f"{self.task_id}--{self.task_name}--{summary}")
         print(task_result)
-        
+
         return f"{self.task_id}-{self.task_name}-{task_result}"
     
     def _extract_module_info(self, config_data: Dict) -> Dict:
@@ -1315,6 +1318,28 @@ class MavenModuleCreationTask:
             pom_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}/pom.xml"
             return os.path.exists(pom_path)
         except Exception:
+            return False
+
+    def _delete_existing_module(self, module_name: str) -> bool:
+        """删除已存在的模块目录"""
+        import shutil
+        try:
+            project_root = self.config.get_project_root()
+            module_path = f"{project_root}/jeecg-boot/jeecg-boot-module/jeecg-module-{module_name}"
+
+            if os.path.exists(module_path):
+                print(f"[DELETE] 删除模块目录: {module_path}")
+                shutil.rmtree(module_path)
+                print(f"[OK] 模块目录删除完成")
+                return True
+            else:
+                print(f"[INFO] 模块目录不存在，无需删除")
+                return True
+        except Exception as e:
+            import traceback
+            print(f"[ERROR] Exception: {str(e)}")
+            traceback.print_exc()
+            print(f"[ERROR] 删除模块目录失败: {str(e)}")
             return False
     
     def _create_maven_module(self, module_name: str) -> bool:
@@ -2851,6 +2876,30 @@ class PlaceholderVariableProcessingTask:
         except Exception:
             return None
 
+    def _dir_has_content(self, dir_path: str) -> bool:
+        """
+        检查目录是否包含实际内容（非空目录或有文件）
+
+        Args:
+            dir_path: 目录路径
+
+        Returns:
+            bool: True表示有内容，False表示空目录
+        """
+        try:
+            if not os.path.exists(dir_path):
+                return False
+
+            # 递归检查目录内是否有文件
+            for root, dirs, files in os.walk(dir_path):
+                if files:  # 只要有任何文件就认为有内容
+                    return True
+
+            return False  # 没有找到任何文件
+        except Exception as e:
+            print(f"   [WARN] 检查目录内容失败: {e}")
+            return False
+
     def _find_and_rename_placeholder_dirs(self, src_java_path: str, package_name: str) -> int:
         """
         递归查找并智能处理所有 {{PACKAGE_NAME}} 占位符目录
@@ -2910,11 +2959,35 @@ class PlaceholderVariableProcessingTask:
                     correct_package_path = os.path.join(src_java_path, package_path)
 
                     if os.path.exists(correct_package_path):
-                        # 正确路径已存在，直接删除占位符目录
-                        print(f"   [INFO] 正确的包路径已存在: {package_path}")
-                        print(f"   [DELETE] 删除冗余的顶层占位符目录及其内容")
-                        shutil.rmtree(placeholder_dir_path)
-                        renamed_count += 1
+                        # 正确路径已存在，需要判断哪个目录有实际内容
+                        placeholder_has_content = self._dir_has_content(placeholder_dir_path)
+                        correct_has_content = self._dir_has_content(correct_package_path)
+
+                        if placeholder_has_content and not correct_has_content:
+                            # 占位符目录有内容，正确路径是空的 → 删除空目录，重命名占位符目录
+                            print(f"   [INFO] 正确路径是空目录，占位符目录包含实际代码")
+                            print(f"   [DELETE] 删除空的正确路径目录: {package_path}")
+                            shutil.rmtree(correct_package_path)
+                            print(f"   [MOVE] 占位符目录重命名为正确路径")
+                            shutil.move(placeholder_dir_path, correct_package_path)
+                            renamed_count += 1
+                        elif not placeholder_has_content and correct_has_content:
+                            # 正确路径有内容，占位符目录是空的 → 删除占位符目录
+                            print(f"   [INFO] 占位符目录是空的，正确路径包含实际代码")
+                            print(f"   [DELETE] 删除空的占位符目录")
+                            shutil.rmtree(placeholder_dir_path)
+                            renamed_count += 1
+                        elif placeholder_has_content and correct_has_content:
+                            # 两个都有内容 → 错误情况，保留正确路径，删除占位符
+                            print(f"   [WARN] 两个目录都包含内容，保留正确路径，删除占位符目录")
+                            print(f"   [DELETE] 删除占位符目录")
+                            shutil.rmtree(placeholder_dir_path)
+                            renamed_count += 1
+                        else:
+                            # 两个都是空的 → 删除占位符目录即可
+                            print(f"   [INFO] 两个目录都是空的，删除占位符目录")
+                            shutil.rmtree(placeholder_dir_path)
+                            renamed_count += 1
                     else:
                         # 正确路径不存在，将占位符目录重命名为正确路径
                         print(f"   [INFO] 这是顶层占位符目录，重命名为正确的包路径")
@@ -3593,14 +3666,14 @@ def jeecg_login(base_url: str, username: str, password: str, timeout: int = 10) 
 
 def jeecg_create_form(base_url: str, token: str, form_data: Dict, timeout: int = 60) -> Dict:
     """
-    JeecgBoot表单创建API
-    
+    JeecgBoot表单创建API（检测到重复时自动删除旧表单后重新创建）
+
     Args:
         base_url: JeecgBoot服务基础URL
         token: 认证token
         form_data: 表单配置数据（包含head、fields等信息）
         timeout: 请求超时时间（秒）
-        
+
     Returns:
         Dict: {"success": bool, "form_id": str, "is_duplicate": bool, "message": str}
     """
@@ -3609,61 +3682,98 @@ def jeecg_create_form(base_url: str, token: str, form_data: Dict, timeout: int =
     print(f"[API] Create Form Request: POST {create_url}")
     print(f"[API] Table Name: {table_name}")
     headers = {'X-Access-Token': token, 'Content-Type': 'application/json'}
-    
+
     try:
         response = requests.post(create_url, json=form_data, headers=headers, timeout=timeout)
         if response.status_code == 200:
             result = response.json()
             if result.get('success'):
                 table_name = form_data.get('head', {}).get('tableName')
-                
+
                 # 创建成功后获取form_id
                 time.sleep(1)  # 等待数据库写入
                 form_id_result = jeecg_query_form(base_url, token, table_name)
                 if form_id_result.get('success'):
                     form_id = form_id_result.get('form_id')
                     return {
-                        "success": True, 
-                        "form_id": form_id, 
-                        "is_duplicate": False, 
+                        "success": True,
+                        "form_id": form_id,
+                        "is_duplicate": False,
                         "message": f"表单创建成功: {table_name}"
                     }
                 else:
                     return {
-                        "success": False, 
-                        "form_id": None, 
-                        "is_duplicate": False, 
+                        "success": False,
+                        "form_id": None,
+                        "is_duplicate": False,
                         "message": "表单创建成功但无法获取form_id"
                     }
             else:
                 error_message = result.get('message', '')
-                # 处理重复表单情况
+                # 处理重复表单情况：删除旧表单后重新创建
                 if '数据库表' in error_message and '已存在' in error_message:
                     table_name = form_data.get('head', {}).get('tableName')
+                    print(f"[WARN] 检测到表单已存在: {table_name}，准备删除后重新创建...")
+
+                    # 查询旧表单ID
                     time.sleep(1)
                     form_id_result = jeecg_query_form(base_url, token, table_name)
                     if form_id_result.get('success'):
-                        form_id = form_id_result.get('form_id')
-                        return {
-                            "success": True, 
-                            "form_id": form_id, 
-                            "is_duplicate": True, 
-                            "message": f"发现重复表单: {table_name}"
-                        }
+                        old_form_id = form_id_result.get('form_id')
+                        print(f"[INFO] 旧表单ID: {old_form_id}")
+
+                        # 删除旧表单
+                        delete_result = jeecg_delete_forms_batch(base_url, token, [old_form_id])
+                        if delete_result.get('success'):
+                            print(f"[OK] 旧表单删除成功")
+
+                            # 等待删除完成
+                            time.sleep(2)
+
+                            # 重新创建表单
+                            print(f"[INFO] 重新创建表单...")
+                            retry_response = requests.post(create_url, json=form_data, headers=headers, timeout=timeout)
+                            if retry_response.status_code == 200:
+                                retry_result = retry_response.json()
+                                if retry_result.get('success'):
+                                    time.sleep(1)
+                                    new_form_id_result = jeecg_query_form(base_url, token, table_name)
+                                    if new_form_id_result.get('success'):
+                                        new_form_id = new_form_id_result.get('form_id')
+                                        return {
+                                            "success": True,
+                                            "form_id": new_form_id,
+                                            "is_duplicate": False,
+                                            "message": f"表单重新创建成功: {table_name}"
+                                        }
+
+                            return {
+                                "success": False,
+                                "form_id": None,
+                                "is_duplicate": False,
+                                "message": "删除旧表单后重新创建失败"
+                            }
+                        else:
+                            return {
+                                "success": False,
+                                "form_id": None,
+                                "is_duplicate": False,
+                                "message": f"删除旧表单失败: {delete_result.get('message')}"
+                            }
                     else:
                         return {
-                            "success": False, 
-                            "form_id": None, 
-                            "is_duplicate": False, 
-                            "message": f"表单创建失败，数据不一致: {error_message}"
+                            "success": False,
+                            "form_id": None,
+                            "is_duplicate": False,
+                            "message": f"表单已存在但无法获取ID: {error_message}"
                         }
                 else:
                     return {"success": False, "form_id": None, "is_duplicate": False, "message": error_message}
         else:
             return {
-                "success": False, 
-                "form_id": None, 
-                "is_duplicate": False, 
+                "success": False,
+                "form_id": None,
+                "is_duplicate": False,
                 "message": f"请求失败，状态码: {response.status_code}"
             }
     except Exception as e:

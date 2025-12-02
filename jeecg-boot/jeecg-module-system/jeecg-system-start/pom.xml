@@ -18,6 +18,11 @@
             <artifactId>jeecg-system-biz</artifactId>
             <version>${jeecgboot.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.jeecgframework.boot3</groupId>
+            <artifactId>jeecg-module-copyright</artifactId>
+            <version>${jeecgboot.version}</version>
+        </dependency>
         
         <!-- flyway 数据库自动升级 
         <dependency>

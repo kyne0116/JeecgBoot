@@ -1,0 +1,21 @@
+{
+  "scenario_id": "copyright_apply",
+  "scenario_type": "independent_table",
+  "module_name": "copyright",
+  "submodule_name": "apply",
+  "created_at": "2025-12-02T12:31:17.046068",
+  "last_updated": "2025-12-02T12:31:17.046068",
+  "tables": {
+    "copyright_apply_copyrightsession": {
+      "table_name": "copyright_apply_copyrightsession",
+      "table_type": 1,
+      "entity_name": "CopyrightSession",
+      "status": "pending",
+      "form_id": null,
+      "created_at": "2025-12-02T12:31:17.046068",
+      "last_updated": "2025-12-02T12:31:17.046068"
+    }
+  },
+  "version": 1,
+  "summary_status": "pending"
+}
