@@ -44,9 +44,9 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
  * @Date:   2025-12-02
  * @Version: V1.0
  */
-@Tag(name="软著申请消息管理")
+@Tag(name="软著申请聊天记录管理")
 @RestController
-@RequestMapping("/copyright/message")
+@RequestMapping("/apply/copyrightMessage")
 @Slf4j
 public class CopyrightMessageController extends JeecgController<CopyrightMessage, ICopyrightMessageService> {
 	@Autowired

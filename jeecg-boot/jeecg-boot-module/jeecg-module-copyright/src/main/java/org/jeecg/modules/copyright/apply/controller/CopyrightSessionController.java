@@ -44,9 +44,9 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
  * @Date:   2025-12-02
  * @Version: V1.0
  */
-@Tag(name="软著申请会话管理")
+@Tag(name="软著申请申请会话")
 @RestController
-@RequestMapping("/copyright/session")
+@RequestMapping("/apply/copyrightSession")
 @Slf4j
 public class CopyrightSessionController extends JeecgController<CopyrightSession, ICopyrightSessionService> {
 	@Autowired

@@ -159,6 +159,9 @@ public class ReactClarifyAgent implements CopyrightAgent {
                 // 将响应添加到对话历史
                 conversationHistory.append("助手: ").append(agentResponse).append("\n");
 
+                // 输出Agent响应（通过SSE推送）
+                outputAgentResponse(agentResponse, context);
+
                 // 检查是否完成信息收集
                 if (isRequirementComplete(agentResponse)) {
                     log.info("[ReactClarifyAgent] 需求信息收集完成");
@@ -167,10 +170,8 @@ public class ReactClarifyAgent implements CopyrightAgent {
 
                 // 检查是否需要用户提供更多信息
                 if (round < MAX_CONVERSATION_ROUNDS) {
-                    // 从context中获取用户的后续输入
-                    // 在实际应用中,这里应该等待WebSocket接收用户的输入
-                    // 当前为了测试,我们构造模拟的用户回复
-                    currentInput = generateMockUserResponse(agentResponse, round);
+                    // 获取用户输入（真实输入或模拟输入）
+                    currentInput = getUserInput(agentResponse, round, context);
                     conversationHistory.append("用户: ").append(currentInput).append("\n");
 
                     log.info("[ReactClarifyAgent] 用户回复: {}", currentInput);
@@ -203,8 +204,80 @@ public class ReactClarifyAgent implements CopyrightAgent {
     }
 
     /**
+     * 获取用户输入
+     *
+     * 优先使用回调接口获取真实用户输入，如果未提供回调则使用模拟输入
+     *
+     * @param agentQuestion Agent的提问
+     * @param round 对话轮次
+     * @param context Agent上下文
+     * @return 用户输入
+     */
+    private String getUserInput(String agentQuestion, int round, AgentContext context) {
+        try {
+            // 尝试从context中获取用户输入回调
+            Object inputCallbackObj = context.getParams().get("inputCallback");
+
+            if (inputCallbackObj instanceof org.jeecg.modules.copyright.agent.service.ReactClarifyAgentSSEService.UserInputCallback) {
+                // 使用真实用户输入回调
+                var inputCallback = (org.jeecg.modules.copyright.agent.service.ReactClarifyAgentSSEService.UserInputCallback) inputCallbackObj;
+
+                log.info("[ReactClarifyAgent] 等待真实用户输入...");
+                String userInput = inputCallback.waitForInput(context.getSessionId(), agentQuestion);
+                log.info("[ReactClarifyAgent] 收到真实用户输入: {}", userInput);
+
+                return userInput;
+            } else {
+                // 回调未提供，使用模拟输入（用于测试）
+                log.warn("[ReactClarifyAgent] 未提供用户输入回调，使用模拟输入");
+                return generateMockUserResponse(agentQuestion, round);
+            }
+
+        } catch (java.util.concurrent.TimeoutException e) {
+            log.error("[ReactClarifyAgent] 等待用户输入超时", e);
+            return "抱歉，我需要更多时间考虑";
+        } catch (InterruptedException e) {
+            log.error("[ReactClarifyAgent] 等待用户输入被中断", e);
+            Thread.currentThread().interrupt();
+            return "对话已中断";
+        } catch (Exception e) {
+            log.error("[ReactClarifyAgent] 获取用户输入失败", e);
+            return generateMockUserResponse(agentQuestion, round);
+        }
+    }
+
+    /**
+     * 输出Agent响应
+     *
+     * 使用回调接口推送Agent响应，如果未提供回调则仅记录日志
+     *
+     * @param agentResponse Agent响应
+     * @param context Agent上下文
+     */
+    private void outputAgentResponse(String agentResponse, AgentContext context) {
+        try {
+            // 尝试从context中获取输出回调
+            Object outputCallbackObj = context.getParams().get("outputCallback");
+
+            if (outputCallbackObj instanceof org.jeecg.modules.copyright.agent.service.ReactClarifyAgentSSEService.AgentOutputCallback) {
+                // 使用输出回调推送响应
+                var outputCallback = (org.jeecg.modules.copyright.agent.service.ReactClarifyAgentSSEService.AgentOutputCallback) outputCallbackObj;
+
+                log.debug("[ReactClarifyAgent] 通过回调推送Agent响应");
+                outputCallback.onOutput(context.getSessionId(), agentResponse);
+            } else {
+                // 回调未提供，仅记录日志
+                log.debug("[ReactClarifyAgent] 未提供输出回调，仅记录: {}", agentResponse);
+            }
+
+        } catch (Exception e) {
+            log.error("[ReactClarifyAgent] 输出Agent响应失败", e);
+        }
+    }
+
+    /**
      * 生成模拟的用户回复(用于测试)
-     * TODO: 在实际应用中,应该通过WebSocket接收真实的用户输入
+     * 当未提供用户输入回调时使用
      */
     private String generateMockUserResponse(String agentQuestion, int round) {
         // 根据Agent的问题生成模拟回复

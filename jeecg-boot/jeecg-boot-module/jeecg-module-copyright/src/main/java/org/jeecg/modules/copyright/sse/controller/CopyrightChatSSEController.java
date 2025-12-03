@@ -2,6 +2,7 @@ package org.jeecg.modules.copyright.sse.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jeecg.common.api.vo.Result;
+import org.jeecg.modules.copyright.agent.service.ReactClarifyAgentSSEService;
 import org.jeecg.modules.copyright.apply.entity.CopyrightMessage;
 import org.jeecg.modules.copyright.apply.service.ICopyrightMessageService;
 import org.jeecg.modules.copyright.apply.service.ICopyrightSessionService;
@@ -46,6 +47,9 @@ public class CopyrightChatSSEController {
     private ICopyrightSessionService sessionService;
 
     @Autowired
+    private ReactClarifyAgentSSEService clarifyAgentService;
+
+    @Autowired
     private ChatModel chatModel;
 
     /**
@@ -77,23 +81,23 @@ public class CopyrightChatSSEController {
     /**
      * SSE流式响应端点
      *
-     * 前端使用: new EventSource('/copyright/chat/stream?sessionId=xxx')
+     * 前端使用: new EventSource('/copyright/chat/stream?sessionId=xxx&username=admin')
      *
      * @param sessionId 会话ID
+     * @param username  用户名
      * @return SseEmitter
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter stream(@RequestParam String sessionId) {
-        log.info("[CopyrightChatSSEController] 建立SSE连接, sessionId: {}", sessionId);
+    public SseEmitter stream(@RequestParam String sessionId,
+                            @RequestParam String username) {
+        log.info("[CopyrightChatSSEController] 建立SSE连接, sessionId: {}, username: {}",
+                sessionId, username);
 
         // 创建SSE Emitter
         SseEmitter emitter = emitterManager.createEmitter(sessionId);
 
         // 发送欢迎消息
         emitterManager.sendStatus(sessionId, "SSE连接成功，可以开始对话了!");
-
-        // TODO: 后续集成ReactClarifyAgent时，在这里启动流式对话
-        // 现在仅返回Emitter，等待后续通过POST接收用户输入后进行处理
 
         return emitter;
     }
@@ -104,13 +108,18 @@ public class CopyrightChatSSEController {
      * 用户输入通过POST发送，AI响应通过SSE流式推送
      *
      * @param sessionId 会话ID
+     * @param username  用户名
      * @param message   用户消息
+     * @param isFirstMessage 是否为首条消息（首条消息启动ReactClarifyAgent流程）
      * @return Result
      */
     @PostMapping("/message")
     public Result<?> sendMessage(@RequestParam String sessionId,
-                                   @RequestParam String message) {
-        log.info("[CopyrightChatSSEController] 接收用户消息, sessionId: {}, message: {}", sessionId, message);
+                                   @RequestParam String username,
+                                   @RequestParam String message,
+                                   @RequestParam(defaultValue = "false") boolean isFirstMessage) {
+        log.info("[CopyrightChatSSEController] 接收用户消息, sessionId: {}, user: {}, isFirst: {}, message: {}",
+                sessionId, username, isFirstMessage, message);
 
         try {
             // 1. 检查SSE连接是否在线
@@ -118,13 +127,29 @@ public class CopyrightChatSSEController {
                 return Result.error("SSE连接已断开，请重新建立连接");
             }
 
-            // 2. 保存用户消息到数据库
-            messageService.saveMessage(sessionId, "user", message);
+            // 2. 判断是首条消息还是后续消息
+            if (isFirstMessage) {
+                // 首条消息：启动ReactClarifyAgent流程
+                log.info("[CopyrightChatSSEController] 首条消息，启动ReactClarifyAgent流程");
 
-            // 3. 异步调用Agent进行流式对话
-            processMessageAsync(sessionId, message);
+                // 异步启动需求澄清流程
+                clarifyAgentService.startClarification(sessionId, username, message);
 
-            return Result.OK("消息已接收，正在处理中...");
+                return Result.OK("需求澄清流程已启动，请等待AI回复...");
+
+            } else {
+                // 后续消息：提交到用户输入队列
+                log.info("[CopyrightChatSSEController] 后续消息，提交到输入队列");
+
+                boolean success = clarifyAgentService.submitUserInput(sessionId, message);
+
+                if (success) {
+                    return Result.OK("消息已接收，正在处理中...");
+                } else {
+                    return Result.error("消息提交失败，会话可能已结束");
+                }
+            }
+
         } catch (Exception e) {
             log.error("[CopyrightChatSSEController] 处理消息失败", e);
             emitterManager.sendError(sessionId, "消息处理失败: " + e.getMessage());
