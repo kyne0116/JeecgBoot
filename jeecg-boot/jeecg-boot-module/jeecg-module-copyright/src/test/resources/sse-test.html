@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>软著申报AI助手 - SSE流式对话测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 800px;
+            height: 700px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .header .status {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f7f7f7;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.assistant {
+            text-align: left;
+        }
+
+        .message.status {
+            text-align: center;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 70%;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-bubble {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.status .message-bubble {
+            background: #f0f0f0;
+            color: #666;
+            font-size: 14px;
+            padding: 8px 16px;
+        }
+
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #messageInput:focus {
+            border-color: #667eea;
+        }
+
+        #sendBtn {
+            padding: 12px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #sendBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        #sendBtn:active {
+            transform: translateY(0);
+        }
+
+        #sendBtn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .connection-info {
+            padding: 12px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .connection-info strong {
+            color: #667eea;
+        }
+
+        /* 滚动条样式 */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 软著申报AI助手</h1>
+            <div class="status" id="connectionStatus">正在连接...</div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="connection-info">
+                <strong>会话ID:</strong> <span id="displaySessionId">-</span><br>
+                <strong>连接状态:</strong> <span id="displayStatus">未连接</span>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="messageInput"
+                    placeholder="请输入您的消息..."
+                    disabled
+                />
+                <button id="sendBtn" disabled>发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 配置
+        const API_BASE = 'http://localhost:8080/jeecg-boot/copyright/chat';
+        let eventSource = null;
+        let sessionId = 'test_' + Date.now();
+        let isProcessing = false;
+
+        // 页面元素
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const displaySessionId = document.getElementById('displaySessionId');
+        const displayStatus = document.getElementById('displayStatus');
+
+        // 初始化
+        displaySessionId.textContent = sessionId;
+
+        // 建立SSE连接
+        function connectSSE() {
+            const url = `${API_BASE}/stream?sessionId=${sessionId}`;
+            console.log('[SSE] 正在连接:', url);
+
+            eventSource = new EventSource(url);
+
+            eventSource.onopen = () => {
+                console.log('[SSE] 连接成功');
+                connectionStatus.textContent = '✅ 已连接 - 开始对话吧！';
+                displayStatus.textContent = '在线';
+                displayStatus.style.color = '#4caf50';
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                messageInput.focus();
+            };
+
+            eventSource.onerror = (error) => {
+                console.error('[SSE] 连接错误:', error);
+                connectionStatus.textContent = '❌ 连接断开 - 正在重连...';
+                displayStatus.textContent = '离线';
+                displayStatus.style.color = '#f44336';
+                messageInput.disabled = true;
+                sendBtn.disabled = true;
+            };
+
+            // 监听聊天消息事件
+            eventSource.addEventListener('chat', (event) => {
+                const data = JSON.parse(event.data);
+                console.log('[SSE] 收到聊天消息:', data);
+                appendMessageDelta('assistant', data.content);
+            });
+
+            // 监听状态消息事件
+            eventSource.addEventListener('status', (event) => {
+                const data = JSON.parse(event.data);
+                console.log('[SSE] 收到状态消息:', data);
+                appendStatusMessage(data.content);
+
+                if (data.content.includes('完成') || data.content.includes('结束')) {
+                    isProcessing = false;
+                    sendBtn.disabled = false;
+                    messageInput.disabled = false;
+                }
+            });
+
+            // 监听完成事件
+            eventSource.addEventListener('done', (event) => {
+                console.log('[SSE] 流式响应完成');
+                isProcessing = false;
+                sendBtn.disabled = false;
+                messageInput.disabled = false;
+            });
+
+            // 监听错误消息事件
+            eventSource.addEventListener('error', (event) => {
+                const data = JSON.parse(event.data);
+                console.error('[SSE] 收到错误消息:', data);
+                appendStatusMessage('❌ ' + data.content);
+                isProcessing = false;
+                sendBtn.disabled = false;
+                messageInput.disabled = false;
+            });
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || isProcessing) return;
+
+            // 显示用户消息
+            appendMessage('user', message);
+            messageInput.value = '';
+            isProcessing = true;
+            sendBtn.disabled = true;
+
+            try {
+                // 发送POST请求
+                const response = await fetch(`${API_BASE}/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `sessionId=${encodeURIComponent(sessionId)}&message=${encodeURIComponent(message)}`
+                });
+
+                const result = await response.json();
+                console.log('[HTTP] 消息发送响应:', result);
+
+                if (!result.success) {
+                    appendStatusMessage('❌ ' + result.message);
+                    isProcessing = false;
+                    sendBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('[HTTP] 发送消息失败:', error);
+                appendStatusMessage('❌ 发送失败: ' + error.message);
+                isProcessing = false;
+                sendBtn.disabled = false;
+                messageInput.disabled = false;
+            }
+        }
+
+        // 添加消息到聊天窗口
+        function appendMessage(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = content;
+
+            messageDiv.appendChild(bubble);
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // 追加消息增量（用于流式响应）
+        let currentAssistantMessage = null;
+        function appendMessageDelta(role, delta) {
+            if (!currentAssistantMessage) {
+                // 创建新的AI消息
+                currentAssistantMessage = document.createElement('div');
+                currentAssistantMessage.className = `message ${role}`;
+
+                const bubble = document.createElement('div');
+                bubble.className = 'message-bubble';
+                bubble.textContent = delta;
+
+                currentAssistantMessage.appendChild(bubble);
+                chatMessages.appendChild(currentAssistantMessage);
+            } else {
+                // 追加到现有消息
+                const bubble = currentAssistantMessage.querySelector('.message-bubble');
+                bubble.textContent += delta;
+            }
+            scrollToBottom();
+        }
+
+        // 添加状态消息
+        function appendStatusMessage(content) {
+            // 如果上一轮对话完成，清除当前消息引用
+            if (content.includes('完成') || content.includes('结束')) {
+                currentAssistantMessage = null;
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message status';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = content;
+
+            messageDiv.appendChild(bubble);
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // 滚动到底部
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 事件监听
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 启动连接
+        connectSSE();
+    </script>
+</body>
+</html>
