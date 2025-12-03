@@ -44,14 +44,131 @@ import org.apache.shiro.authz.annotation.RequiresPermissions;
  * @Date:   2025-12-02
  * @Version: V1.0
  */
-@Tag(name="软著申请申请会话")
+@Tag(name="软著申请会话管理")
 @RestController
-@RequestMapping("/apply/copyrightSession")
+@RequestMapping("/copyright/session")
 @Slf4j
 public class CopyrightSessionController extends JeecgController<CopyrightSession, ICopyrightSessionService> {
 	@Autowired
 	private ICopyrightSessionService copyrightSessionService;
-	
+
+	// ============= 自定义业务接口 =============
+
+	/**
+	 * 创建新会话
+	 *
+	 * @param username 用户名
+	 * @return 会话对象
+	 */
+	@AutoLog(value = "软著申请会话-创建会话")
+	@Operation(summary="创建新会话")
+	@PostMapping(value = "/create")
+	public Result<CopyrightSession> createSession(@RequestParam(name="username", required=true) String username) {
+		log.info("[CopyrightSessionController] 创建会话, username: {}", username);
+
+		try {
+			CopyrightSession session = copyrightSessionService.createSession(username);
+			return Result.OK("会话创建成功", session);
+		} catch (Exception e) {
+			log.error("[CopyrightSessionController] 创建会话失败", e);
+			return Result.error("会话创建失败: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * 获取用户的会话列表（分页）
+	 *
+	 * @param username 用户名
+	 * @param pageNo 页码
+	 * @param pageSize 每页大小
+	 * @return 分页结果
+	 */
+	@Operation(summary="获取用户会话列表")
+	@GetMapping(value = "/user/{username}")
+	public Result<IPage<CopyrightSession>> getUserSessions(
+			@PathVariable("username") String username,
+			@RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
+			@RequestParam(name="pageSize", defaultValue="10") Integer pageSize) {
+
+		log.info("[CopyrightSessionController] 查询用户会话列表, username: {}, page: {}/{}", username, pageNo, pageSize);
+
+		Page<CopyrightSession> page = new Page<>(pageNo, pageSize);
+		IPage<CopyrightSession> pageList = copyrightSessionService.getUserSessions(username, page);
+
+		return Result.OK(pageList);
+	}
+
+	/**
+	 * 获取会话详情
+	 *
+	 * @param sessionId 会话ID
+	 * @return 会话对象
+	 */
+	@Operation(summary="获取会话详情")
+	@GetMapping(value = "/detail/{sessionId}")
+	public Result<CopyrightSession> getSessionDetail(@PathVariable("sessionId") String sessionId) {
+		log.info("[CopyrightSessionController] 查询会话详情, sessionId: {}", sessionId);
+
+		CopyrightSession session = copyrightSessionService.getSessionDetail(sessionId);
+		if (session == null) {
+			return Result.error("会话不存在或已删除");
+		}
+
+		return Result.OK(session);
+	}
+
+	/**
+	 * 更新会话状态
+	 *
+	 * @param sessionId 会话ID
+	 * @param status 新状态(CLARIFYING/GENERATING/CHECKING/COMPLETED/FAILED)
+	 * @param errorMessage 错误信息(可选)
+	 * @return 操作结果
+	 */
+	@AutoLog(value = "软著申请会话-更新状态")
+	@Operation(summary="更新会话状态")
+	@PutMapping(value = "/{sessionId}/status")
+	public Result<String> updateSessionStatus(
+			@PathVariable("sessionId") String sessionId,
+			@RequestParam(name="status", required=true) String status,
+			@RequestParam(name="errorMessage", required=false) String errorMessage) {
+
+		log.info("[CopyrightSessionController] 更新会话状态, sessionId: {}, status: {}", sessionId, status);
+
+		boolean updated = copyrightSessionService.updateSessionStatus(sessionId, status, errorMessage);
+		if (updated) {
+			return Result.OK("状态更新成功");
+		} else {
+			return Result.error("状态更新失败");
+		}
+	}
+
+	/**
+	 * 更新会话需求JSON
+	 *
+	 * @param sessionId 会话ID
+	 * @param requirementJson 需求JSON字符串
+	 * @return 操作结果
+	 */
+	@AutoLog(value = "软著申请会话-更新需求")
+	@Operation(summary="更新会话需求")
+	@PutMapping(value = "/{sessionId}/requirement")
+	public Result<String> updateRequirement(
+			@PathVariable("sessionId") String sessionId,
+			@RequestBody String requirementJson) {
+
+		log.info("[CopyrightSessionController] 更新会话需求, sessionId: {}", sessionId);
+
+		boolean updated = copyrightSessionService.updateRequirement(sessionId, requirementJson);
+		if (updated) {
+			return Result.OK("需求更新成功");
+		} else {
+			return Result.error("需求更新失败");
+		}
+	}
+
+	// ============= JeecgBoot标准CRUD接口 =============
+
 	/**
 	 * 分页列表查询
 	 *
@@ -61,8 +178,8 @@ public class CopyrightSessionController extends JeecgController<CopyrightSession
 	 * @param req
 	 * @return
 	 */
-	//@AutoLog(value = "软著申请申请会话-分页列表查询")
-	@Operation(summary="软著申请申请会话-分页列表查询")
+	//@AutoLog(value = "软著申请会话-分页列表查询")
+	@Operation(summary="软著申请会话-分页列表查询")
 	@GetMapping(value = "/list")
 	public Result<IPage<CopyrightSession>> queryPageList(CopyrightSession copyrightSession,
 								   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,

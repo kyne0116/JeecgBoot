@@ -1,16 +1,20 @@
 package org.jeecg.modules.ai.controller;
 
-import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.jeecg.common.api.vo.Result;
+import org.jeecg.config.shiro.IgnoreAuth;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 
 /**
  * 自定义Agent控制器
@@ -29,11 +33,11 @@ public class ChatAgentController {
         this.chatModel = chatModel;
     }
 
+    @IgnoreAuth
     @GetMapping("/invoke")
     @ResponseBody
     public Result<?> invoke(@RequestParam("query") String query,
-                         @RequestParam("threadId") String threadId
-    ) {
+            @RequestParam("threadId") String threadId) {
         try {
             // 直接使用ChatModel调用(简化版,不使用工具)
             var response = chatModel.call(new Prompt(query));
@@ -49,7 +53,7 @@ public class ChatAgentController {
     @GetMapping(value = "/stream", produces = "text/event-stream")
     @ResponseBody
     public SseEmitter stream(@RequestParam("query") String query,
-                            @RequestParam("threadId") String threadId) {
+            @RequestParam("threadId") String threadId) {
         SseEmitter emitter = new SseEmitter(60000L);
 
         // 异步处理
@@ -60,44 +64,43 @@ public class ChatAgentController {
 
                 // 订阅并发送流式数据
                 flux.subscribe(
-                    chatResponse -> {
-                        try {
-                            String content = chatResponse.getResult().getOutput().getText();
-                            if (content != null && !content.isEmpty()) {
-                                emitter.send(SseEmitter.event()
-                                    .data(content)
-                                    .name("message"));
+                        chatResponse -> {
+                            try {
+                                String content = chatResponse.getResult().getOutput().getText();
+                                if (content != null && !content.isEmpty()) {
+                                    emitter.send(SseEmitter.event()
+                                            .data(content)
+                                            .name("message"));
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    },
-                    error -> {
-                        try {
-                            emitter.send(SseEmitter.event()
-                                .data("错误: " + error.getMessage())
-                                .name("error"));
-                            emitter.complete();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    },
-                    () -> {
-                        try {
-                            emitter.send(SseEmitter.event()
-                                .data("[DONE]")
-                                .name("done"));
-                            emitter.complete();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                );
+                        },
+                        error -> {
+                            try {
+                                emitter.send(SseEmitter.event()
+                                        .data("错误: " + error.getMessage())
+                                        .name("error"));
+                                emitter.complete();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        },
+                        () -> {
+                            try {
+                                emitter.send(SseEmitter.event()
+                                        .data("[DONE]")
+                                        .name("done"));
+                                emitter.complete();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        });
             } catch (Exception e) {
                 try {
                     emitter.send(SseEmitter.event()
-                        .data("错误: " + e.getMessage())
-                        .name("error"));
+                            .data("错误: " + e.getMessage())
+                            .name("error"));
                     emitter.completeWithError(e);
                 } catch (Exception ex) {
                     ex.printStackTrace();

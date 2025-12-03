@@ -39,19 +39,152 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.jeecg.common.aspect.annotation.AutoLog;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
  /**
- * @Description: 软著申请聊天记录
+ * @Description: 软著申请聊天记录管理
  * @Author: jeecg-boot
  * @Date:   2025-12-02
  * @Version: V1.0
  */
-@Tag(name="软著申请聊天记录")
+@Tag(name="软著申请消息管理")
 @RestController
-@RequestMapping("/apply/copyrightMessage")
+@RequestMapping("/copyright/message")
 @Slf4j
 public class CopyrightMessageController extends JeecgController<CopyrightMessage, ICopyrightMessageService> {
 	@Autowired
 	private ICopyrightMessageService copyrightMessageService;
-	
+
+	// ============= 自定义业务接口 =============
+
+	/**
+	 * 保存对话消息
+	 *
+	 * @param sessionId   会话ID
+	 * @param role        角色(user/assistant/system)
+	 * @param content     消息内容
+	 * @param messageType 消息类型(可选,默认text)
+	 * @param agentName   Agent名称(可选)
+	 * @return 保存的消息对象
+	 */
+	@AutoLog(value = "软著申请消息-保存消息")
+	@Operation(summary="保存对话消息")
+	@PostMapping(value = "/save")
+	public Result<CopyrightMessage> saveMessage(
+			@RequestParam(name="sessionId", required=true) String sessionId,
+			@RequestParam(name="role", required=true) String role,
+			@RequestParam(name="content", required=true) String content,
+			@RequestParam(name="messageType", required=false, defaultValue="text") String messageType,
+			@RequestParam(name="agentName", required=false) String agentName) {
+
+		log.info("[CopyrightMessageController] 保存消息, sessionId: {}, role: {}", sessionId, role);
+
+		try {
+			CopyrightMessage message = copyrightMessageService.saveMessage(
+					sessionId, role, content, messageType, agentName);
+			return Result.OK("消息保存成功", message);
+		} catch (Exception e) {
+			log.error("[CopyrightMessageController] 消息保存失败", e);
+			return Result.error("消息保存失败: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * 获取会话的消息历史(分页)
+	 *
+	 * @param sessionId 会话ID
+	 * @param pageNo    页码
+	 * @param pageSize  每页大小
+	 * @return 分页结果
+	 */
+	@Operation(summary="获取会话消息历史")
+	@GetMapping(value = "/history/{sessionId}")
+	public Result<IPage<CopyrightMessage>> getSessionMessages(
+			@PathVariable("sessionId") String sessionId,
+			@RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
+			@RequestParam(name="pageSize", defaultValue="20") Integer pageSize) {
+
+		log.info("[CopyrightMessageController] 查询会话消息, sessionId: {}, page: {}/{}", sessionId, pageNo, pageSize);
+
+		Page<CopyrightMessage> page = new Page<>(pageNo, pageSize);
+		IPage<CopyrightMessage> result = copyrightMessageService.getSessionMessages(sessionId, page);
+
+		return Result.OK(result);
+	}
+
+	/**
+	 * 获取会话的所有消息(不分页)
+	 *
+	 * @param sessionId 会话ID
+	 * @return 消息列表
+	 */
+	@Operation(summary="获取会话所有消息")
+	@GetMapping(value = "/all/{sessionId}")
+	public Result<List<CopyrightMessage>> getAllSessionMessages(@PathVariable("sessionId") String sessionId) {
+		log.info("[CopyrightMessageController] 查询会话所有消息, sessionId: {}", sessionId);
+
+		List<CopyrightMessage> messages = copyrightMessageService.getSessionMessages(sessionId);
+		return Result.OK(messages);
+	}
+
+	/**
+	 * 获取会话的最近N条消息
+	 *
+	 * @param sessionId 会话ID
+	 * @param limit     数量限制
+	 * @return 消息列表
+	 */
+	@Operation(summary="获取最近N条消息")
+	@GetMapping(value = "/recent/{sessionId}")
+	public Result<List<CopyrightMessage>> getRecentMessages(
+			@PathVariable("sessionId") String sessionId,
+			@RequestParam(name="limit", defaultValue="10") Integer limit) {
+
+		log.info("[CopyrightMessageController] 查询最近消息, sessionId: {}, limit: {}", sessionId, limit);
+
+		List<CopyrightMessage> messages = copyrightMessageService.getRecentMessages(sessionId, limit);
+		return Result.OK(messages);
+	}
+
+	/**
+	 * 构建对话上下文
+	 *
+	 * @param sessionId 会话ID
+	 * @param limit     包含的历史消息数量
+	 * @return 对话上下文字符串
+	 */
+	@Operation(summary="构建对话上下文")
+	@GetMapping(value = "/context/{sessionId}")
+	public Result<String> buildDialogueContext(
+			@PathVariable("sessionId") String sessionId,
+			@RequestParam(name="limit", defaultValue="10") Integer limit) {
+
+		log.info("[CopyrightMessageController] 构建对话上下文, sessionId: {}, limit: {}", sessionId, limit);
+
+		String context = copyrightMessageService.buildDialogueContext(sessionId, limit);
+		return Result.OK(context);
+	}
+
+	/**
+	 * 删除会话的所有消息
+	 *
+	 * @param sessionId 会话ID
+	 * @return 删除的消息数量
+	 */
+	@AutoLog(value = "软著申请消息-删除会话消息")
+	@Operation(summary="删除会话的所有消息")
+	@DeleteMapping(value = "/session/{sessionId}")
+	public Result<String> deleteSessionMessages(@PathVariable("sessionId") String sessionId) {
+		log.info("[CopyrightMessageController] 删除会话消息, sessionId: {}", sessionId);
+
+		try {
+			int count = copyrightMessageService.deleteSessionMessages(sessionId);
+			return Result.OK("成功删除 " + count + " 条消息");
+		} catch (Exception e) {
+			log.error("[CopyrightMessageController] 删除会话消息失败", e);
+			return Result.error("删除失败: " + e.getMessage());
+		}
+	}
+
+	// ============= JeecgBoot标准CRUD接口 =============
+
 	/**
 	 * 分页列表查询
 	 *

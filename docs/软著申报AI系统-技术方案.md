@@ -1,8 +1,9 @@
 # 软件著作权申报AI系统 - 技术方案
 
-> **版本**: v1.0
-> **日期**: 2025-12-01
+> **版本**: v1.1
+> **日期**: 2025-12-03 (更新)
 > **技术栈**: Spring Boot 3.5.5 + Spring AI Alibaba 1.1.0.0-M5 + JeecgBoot 3.8.3
+> **AI模型**: OpenAI兼容模式 (通义千问/Qwen)
 
 ---
 
@@ -12,7 +13,27 @@
 
 基于JeecgBoot和Spring AI Alibaba构建B/S架构的软件著作权申报AI应用程序，通过多Agent协作，将用户的简单描述转换为完整的软著申报材料。
 
-### 1.2 核心功能
+### 1.2 核心技术决策 🆕
+
+**✅ 所有Agent统一采用OpenAI兼容性模式开发**
+
+- **技术基础**: Spring AI的ChatModel接口（兼容OpenAI协议）
+- **验证状态**: 已通过ChatAgentController.invoke()接口验证
+- **优势**:
+  - 🔄 支持多种LLM后端无缝切换（通义千问、OpenAI、DeepSeek等）
+  - 📦 代码可移植性强，遵循标准化接口
+  - 🚀 降低供应商锁定风险
+  - 🔧 易于集成和测试
+
+**验证成果** (2025-12-03):
+```
+测试URL: http://localhost:8080/jeecg-boot/ai/chat/invoke
+响应状态: success=true, code=200
+响应时间: ~21秒
+AI模型: 通义千问 (Qwen)
+```
+
+### 1.3 核心功能
 
 1. **智能对话**：通过ReactAgent与用户多轮对话，澄清申报需求
 2. **材料生成**：自动生成三类申报材料
@@ -246,10 +267,41 @@
 
 ## 四、技术实现要点
 
-### 4.1 核心依赖
+### 4.1 OpenAI兼容性模式 + SSE流式响应 🆕
+
+**核心原则**: 所有Agent统一使用Spring AI的ChatModel接口 + SSE流式推送
+
+```java
+@Component
+public class ReactClarifyAgent implements CopyrightAgent {
+
+    @Autowired
+    private ChatModel chatModel;  // OpenAI兼容接口
+
+    @Override
+    public Flux<AgentChunk> stream(AgentContext context) {
+        // 使用ChatModel的stream方法进行流式LLM调用
+        Prompt prompt = new Prompt(context.getUserInput());
+
+        return chatModel.stream(prompt)
+            .map(chatResponse -> {
+                String content = chatResponse.getResult().getOutput().getText();
+                return AgentChunk.of(content);
+            });
+    }
+}
+```
+
+**优势**:
+- ✅ 遵循OpenAI协议标准
+- ✅ 支持多种LLM后端（通义千问、OpenAI、DeepSeek等）
+- ✅ SSE流式响应，用户体验与ChatGPT一致
+- ✅ 代码可移植性强，易于测试和切换
+
+### 4.2 核心依赖
 
 ```xml
-<!-- Spring AI Alibaba -->
+<!-- Spring AI Alibaba (OpenAI兼容) -->
 <dependency>
     <groupId>com.alibaba.cloud.ai</groupId>
     <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
@@ -269,7 +321,7 @@
 </dependency>
 ```
 
-### 4.2 配置文件
+### 4.3 配置文件
 
 ```yaml
 spring:
@@ -278,8 +330,19 @@ spring:
       api-key: ${DASHSCOPE_API_KEY}
       chat:
         options:
-          model: qwen-max
+          model: qwen-max  # 通义千问模型
           temperature: 0.7
+    # 支持切换到其他OpenAI兼容服务
+    # openai:
+    #   api-key: ${OPENAI_API_KEY}
+    #   base-url: https://api.openai.com/v1
+
+# SSE配置
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
 
 # MCP配置
 mcp:
@@ -469,19 +532,62 @@ public class McpClientUtil {
 - → ReactQualityCheckAgent（顺序执行）
 - → 不通过则重新生成（最多2次）
 
-### 9.2 ReactAgent优势
+### 9.2 OpenAI兼容性优势 🆕
+
+**所有Agent统一采用OpenAI兼容模式的优势**:
+
+- ✅ **标准化接口**: 遵循OpenAI API标准，易于理解和维护
+- ✅ **供应商中立**: 不绑定特定LLM服务商，降低供应商锁定风险
+- ✅ **灵活切换**: 通过配置文件即可切换不同的LLM后端（通义千问/OpenAI/DeepSeek）
+- ✅ **生态丰富**: 兼容OpenAI生态的工具和库
+- ✅ **易于测试**: 可使用OpenAI兼容的Mock服务进行测试
+- ✅ **成本优化**: 根据不同场景选择性价比最优的LLM服务
+
+**验证状态**: 已通过ChatAgentController接口验证 (2025-12-03)
+
+### 9.3 ReactAgent优势
 
 - ✅ 自动推理：无需手动编写对话状态机
 - ✅ 工具调用：自动选择合适的工具函数
 - ✅ 多轮对话：内置对话历史管理（最多10轮）
 - ✅ 可观测性：enableLogging()查看推理过程
 
-### 9.3 质量保证机制
+### 9.4 质量保证机制
 
 1. **需求阶段**：ReactClarifyAgent通过工具函数验证完整性
 2. **生成阶段**：各Agent按规范生成材料
 3. **检查阶段**：ReactQualityCheckAgent统一质检
 4. **重试机制**：不通过自动重新生成（最多2次）
+
+### 9.5 OpenAI兼容性最佳实践 🆕
+
+**Agent开发规范**:
+
+1. **统一使用ChatModel接口**
+   ```java
+   @Autowired
+   private ChatModel chatModel;  // ✅ 推荐
+   // private DashScopeClient client;  // ❌ 避免直接使用厂商SDK
+   ```
+
+2. **标准化Prompt构建**
+   ```java
+   Prompt prompt = new Prompt(message);
+   ChatResponse response = chatModel.call(prompt);
+   ```
+
+3. **流式响应支持**
+   ```java
+   Flux<ChatResponse> stream = chatModel.stream(prompt);
+   ```
+
+4. **配置化模型参数**
+   ```yaml
+   spring.ai.chat.options:
+     model: qwen-max
+     temperature: 0.7
+     max-tokens: 2000
+   ```
 
 ---
 
