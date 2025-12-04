@@ -143,6 +143,12 @@ public class ChatAgentController {
                             return;
                         }
 
+                        // 检查连接是否还活跃
+                        if (!emitterCache.containsKey(requestId)) {
+                            log.debug("[AI-Chat] 客户端已断开连接，停止发送 - requestId={}", requestId);
+                            return;
+                        }
+
                         try {
                             String content = chatResponse.getResult().getOutput().getText();
                             if (content != null && !content.isEmpty()) {
@@ -158,6 +164,10 @@ public class ChatAgentController {
                                 );
                                 sendMessage2Client(emitter, requestId, messageEvent);
                             }
+                        } catch (IllegalStateException e) {
+                            // 连接已关闭，静默处理（客户端断开是正常行为）
+                            log.debug("[AI-Chat] 客户端已断开连接 - requestId={}", requestId);
+                            cleanupCache(requestId);
                         } catch (Exception e) {
                             log.error("[AI-Chat] 发送消息失败 - requestId={}", requestId, e);
                         }
@@ -402,8 +412,13 @@ public class ChatAgentController {
             if (historyMsg != null) {
                 historyMsg.add(eventData);
             }
+        } catch (IllegalStateException e) {
+            // 连接已关闭，静默处理（客户端断开是正常行为）
+            log.debug("[AI-Chat] 连接已关闭，停止发送 - requestId={}", requestId);
+            throw e; // 重新抛出，让调用方知道连接已关闭
         } catch (IOException e) {
-            log.error("[AI-Chat] 发送消息失败 - requestId={}", requestId, e);
+            log.error("[AI-Chat] 发送消息IO异常 - requestId={}", requestId, e);
+            throw new IllegalStateException("IO exception while sending message", e);
         }
     }
 

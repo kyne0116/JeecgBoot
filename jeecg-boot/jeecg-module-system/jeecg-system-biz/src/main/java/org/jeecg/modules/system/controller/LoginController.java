@@ -20,6 +20,7 @@ import org.jeecg.common.system.vo.LoginUser;
 import org.jeecg.common.util.*;
 import org.jeecg.common.util.encryption.EncryptedString;
 import org.jeecg.config.JeecgBaseConfig;
+import org.jeecg.config.shiro.IgnoreAuth;
 import org.jeecg.modules.base.service.BaseCommonService;
 import org.jeecg.modules.system.entity.SysDepart;
 import org.jeecg.modules.system.entity.SysRoleIndex;
@@ -71,6 +72,8 @@ public class LoginController {
 	private BaseCommonService baseCommonService;
 	@Autowired
 	private JeecgBaseConfig jeecgBaseConfig;
+	@Autowired
+	private org.springframework.core.env.Environment environment;
 	private final String BASE_CHECK_CODES = "qwertyuiplkjhgfdsazxcvbnmQWERTYUPLKJHGFDSAZXCVBNM1234567890";
 	/**
 	 * 线程池用于异步发送纪要
@@ -775,6 +778,174 @@ public class LoginController {
 		}
 		// 10分钟，一分钟为60s
 		redisUtil.set(key, ++val, 600);
+	}
+
+	/**
+	 * 生成短信验证码(通用接口)
+	 * 接受账号或手机号，生成6位数字验证码并存入Redis
+	 *
+	 * @param principal 账号或手机号
+	 * @param request HttpServletRequest
+	 * @return Result
+	 */
+	@Operation(summary="生成短信验证码")
+	@IgnoreAuth
+	@PostMapping("/generateSmsCode")
+	public Result<String> generateSmsCode(@RequestParam String principal, HttpServletRequest request) {
+		Result<String> result = new Result<>();
+
+		// 验证主体参数（账号或手机号）
+		if (oConvertUtils.isEmpty(principal)) {
+			result.setMessage("账号或手机号不能为空！");
+			result.setSuccess(false);
+			return result;
+		}
+
+		log.info("-------- 生成验证码，主体: {}", principal);
+
+		// 检查是否已存在有效验证码
+		String redisKey = CommonConstant.PHONE_REDIS_KEY_PRE + principal;
+		Object existingCode = redisUtil.get(redisKey);
+		if (existingCode != null) {
+			result.setMessage("验证码10分钟内仍然有效，请勿重复获取！");
+			result.setSuccess(false);
+			return result;
+		}
+
+		// IP限流检查
+		String clientIp = IpUtils.getIpAddr(request);
+		if (!DySmsLimit.canSendSms(clientIp)) {
+			log.warn("--------[警告] IP地址:{}, 验证码接口请求太多-------", clientIp);
+			result.setMessage("验证码接口请求太多，请稍后再试！");
+			result.setCode(CommonConstant.PHONE_SMS_FAIL_CODE);
+			result.setSuccess(false);
+			return result;
+		}
+
+		// 生成6位数字验证码
+		// 策略：生产环境使用随机验证码，其他环境使用固定验证码便于调试
+		String captcha;
+		String[] activeProfiles = environment.getActiveProfiles();
+		boolean isProd = false;
+		for (String profile : activeProfiles) {
+			if ("prod".equalsIgnoreCase(profile) || "production".equalsIgnoreCase(profile)) {
+				isProd = true;
+				break;
+			}
+		}
+
+		if (isProd) {
+			// 生产环境：随机生成6位数字验证码
+			captcha = RandomUtil.randomNumbers(6);
+			log.info("生产环境 - 生成随机验证码，主体: {}", principal);
+		} else {
+			// 开发/测试环境：使用固定验证码
+			captcha = "666666";
+			log.info("开发/测试环境 - 使用固定验证码: {}, 主体: {}, 当前Profile: {}",
+				captcha, principal, String.join(",", activeProfiles));
+		}
+
+		// 存入Redis，有效期10分钟
+		redisUtil.set(redisKey, captcha, 600);
+		log.info("验证码已存入Redis，key={}, 环境={}, code={}",
+			redisKey, isProd ? "生产" : "开发/测试", isProd ? "******" : captcha);
+
+		result.setSuccess(true);
+		result.setMessage("验证码已生成，10分钟内有效");
+		// 注意：生产环境不应该返回验证码，这里仅用于开发测试
+		// result.setResult(captcha);
+
+		return result;
+	}
+
+	/**
+	 * 短信验证码登录接口
+	 * 接受账号或手机号 + 验证码，实现登录并返回JWT
+	 *
+	 * @param principal 账号或手机号
+	 * @param captcha 6位数字验证码
+	 * @param request HttpServletRequest
+	 * @return Result<JSONObject> 包含token和用户信息
+	 */
+	@Operation(summary="短信验证码登录")
+	@IgnoreAuth
+	@PostMapping("/smsLogin")
+	public Result<JSONObject> smsLogin(@RequestParam String principal,
+									   @RequestParam String captcha,
+									   HttpServletRequest request) {
+		Result<JSONObject> result = new Result<>();
+
+		// 1. 验证参数
+		if (oConvertUtils.isEmpty(principal)) {
+			result.error500("账号或手机号不能为空");
+			return result;
+		}
+
+		if (oConvertUtils.isEmpty(captcha)) {
+			result.error500("验证码不能为空");
+			return result;
+		}
+
+		log.info("-------- 短信验证码登录，主体: {}", principal);
+
+		// 2. 检查登录失败次数
+		if (isLoginFailOvertimes(principal)) {
+			result.error500("该用户登录失败次数过多，请于10分钟后再次登录！");
+			return result;
+		}
+
+		// 3. 查找用户（支持账号或手机号）
+		SysUser sysUser = null;
+		LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
+
+		// 判断principal是手机号还是账号
+		if (principal.matches("^1[3-9]\\d{9}$")) {
+			// 手机号格式
+			queryWrapper.eq(SysUser::getPhone, principal);
+			sysUser = sysUserService.getOne(queryWrapper);
+		} else {
+			// 账号格式
+			queryWrapper.eq(SysUser::getUsername, principal);
+			sysUser = sysUserService.getOne(queryWrapper);
+		}
+
+		// 4. 校验用户是否存在且有效
+		result = sysUserService.checkUserIsEffective(sysUser);
+		if (!result.isSuccess()) {
+			return result;
+		}
+
+		// 5. 验证验证码
+		String redisKey = CommonConstant.PHONE_REDIS_KEY_PRE + principal;
+		Object storedCode = redisUtil.get(redisKey);
+
+		if (storedCode == null) {
+			result.error500("验证码已过期，请重新获取");
+			return result;
+		}
+
+		if (!captcha.equals(storedCode.toString())) {
+			addLoginFailOvertimes(principal);
+			result.error500("验证码错误");
+			return result;
+		}
+
+		// 6. 登录成功，生成用户信息和token
+		userInfo(sysUser, result, request);
+
+		// 7. 清除验证码和登录失败记录
+		redisUtil.del(redisKey);
+		redisUtil.del(CommonConstant.LOGIN_FAIL + principal);
+
+		// 8. 记录登录日志
+		LoginUser loginUser = new LoginUser();
+		BeanUtils.copyProperties(sysUser, loginUser);
+		baseCommonService.addLog("用户: " + sysUser.getUsername() + " (主体: " + principal + ") 通过短信验证码登录成功！",
+				CommonConstant.LOG_TYPE_1, null, loginUser);
+
+		log.info("短信验证码登录成功，用户: {}, 主体: {}", sysUser.getUsername(), principal);
+
+		return result;
 	}
 
 	/**
