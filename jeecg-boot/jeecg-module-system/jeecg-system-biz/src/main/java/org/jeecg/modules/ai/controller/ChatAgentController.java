@@ -7,6 +7,9 @@ import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.ai.vo.EventData;
 import org.jeecg.modules.ai.vo.EventErrorData;
 import org.jeecg.modules.ai.vo.EventMessageData;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Controller;
@@ -14,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -87,8 +92,9 @@ public class ChatAgentController {
         try {
             log.info("[AI-Chat] 同步调用 - query={}, threadId={}", query, threadId);
 
-            // 直接使用ChatModel调用(简化版,不使用工具)
-            var response = chatModel.call(new Prompt(query));
+            // 使用带时间上下文的Prompt
+            Prompt promptWithTime = buildPromptWithTimeContext(query);
+            var response = chatModel.call(promptWithTime);
             String responseMessage = response.getResult().getOutput().getText();
 
             log.info("[AI-Chat] 同步调用完成 - response length={}", responseMessage.length());
@@ -131,8 +137,9 @@ public class ChatAgentController {
             try {
                 log.info("[AI-Chat] 开始调用LLM - requestId={}", requestId);
 
-                // 调用ChatModel的stream方法
-                var flux = chatModel.stream(new Prompt(query));
+                // 使用带时间上下文的Prompt调用stream方法
+                Prompt promptWithTime = buildPromptWithTimeContext(query);
+                var flux = chatModel.stream(promptWithTime);
 
                 // 订阅并发送流式数据
                 flux.subscribe(
@@ -362,6 +369,32 @@ public class ChatAgentController {
     }
 
     // ==================== 私有方法 ====================
+
+    /**
+     * 构建带时间上下文的Prompt
+     *
+     * @param userQuery 用户查询
+     * @return Prompt 包含系统时间消息和用户消息
+     */
+    private Prompt buildPromptWithTimeContext(String userQuery) {
+        // 获取当前时间并格式化
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm:ss EEEE");
+        String currentTime = now.format(formatter);
+
+        // 构建系统消息 - 注入时间上下文
+        String systemContent = String.format(
+            "当前时间是：%s\n" +
+            "请在回答问题时，如果涉及时间相关的查询，请基于上述时间进行计算和回答。",
+            currentTime
+        );
+
+        SystemMessage systemMessage = new SystemMessage(systemContent);
+        UserMessage userMessage = new UserMessage(userQuery);
+
+        // 返回包含系统消息和用户消息的Prompt
+        return new Prompt(List.of(systemMessage, userMessage));
+    }
 
     /**
      * 创建 SSE Emitter
