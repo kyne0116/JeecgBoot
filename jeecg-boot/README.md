@@ -100,6 +100,7 @@ JeecgBoot低代码平台兼容所有J2EE项目开发，支持信创国产化，�
 - [Docker一键启动(单体模式)](https://help.jeecg.com/java/docker/quick)
 - [IDEA启动前后端(微服务方式)](https://help.jeecg.com/java/springcloud/switchcloud/monomer)
 - [Docker一键启动(微服务方式)](https://help.jeecg.com/java/docker/quickcloud)
+- [当前本地联调配置摘要](../LOCAL_DEV_SETUP.md)
 
 
 技术文档
@@ -258,7 +259,7 @@ JeecgBoot平台提供了一套完善的AI应用管理系统模块，是一套类
 │  ├─jeecg-module-demo    示例代码
 │  ├─jeecg-module-system  System系统管理目录
 │  │  ├─jeecg-system-biz    System系统管理权限等功能
-│  │  ├─jeecg-system-start  System单体启动项目(8080）
+│  │  ├─jeecg-system-start  System单体启动项目(28080）
 │  │  ├─jeecg-system-api    System系统管理模块对外api
 │  │  │  ├─jeecg-system-cloud-api   System模块对外提供的微服务接口
 │  │  │  ├─jeecg-system-local-api   System模块对外提供的单体接口
@@ -283,8 +284,6 @@ JeecgBoot平台提供了一套完善的AI应用管理系统模块，是一套类
 
 #### 微服务架构图
 ![微服务架构图](https://jeecgos.oss-cn-beijing.aliyuncs.com/files/jeecgboot_springcloud2022.png "在这里输入图片标题")
-
-
 
 
 

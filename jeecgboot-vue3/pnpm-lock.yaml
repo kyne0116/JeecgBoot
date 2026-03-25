@@ -21,8 +21,8 @@ importers:
         specifier: 3.9.1-beta
         version: 3.9.1-beta
       '@jeecg/online':
-        specifier: 3.9.1-beta
-        version: 3.9.1-beta
+        specifier: 3.9.1-RC
+        version: 3.9.1-RC
       '@logicflow/core':
         specifier: ^2.0.10
         version: 2.1.9
@@ -1648,8 +1648,8 @@ packages:
   '@jeecg/aiflow@3.9.1-beta':
     resolution: {integrity: sha512-RwYobjK95Kb23rXIPOuL7+MgSTry8QxHs6l88vJRliZSY55aACHqy6YyyDybugSEsbGuckFAfaSOGlb6kN1/iQ==}
 
-  '@jeecg/online@3.9.1-beta':
-    resolution: {integrity: sha512-PecK5QCazXpmCjdG0Y2Oa2+10M3hxCvfxy7gP1WDNDqDguN2Zl30rEN1ziOaqiv7on5/wp1XyLYOFid9n3egLA==}
+  '@jeecg/online@3.9.1-RC':
+    resolution: {integrity: sha512-HNduG4Rlm17eVQtNZaih27t8tIJeSvAYJXctKTO0Guh2rpJOEkvIRCBZFLu2j49WDRshfq83D7u0073z6kSjxQ==}
 
   '@jest/console@29.7.0':
     resolution: {integrity: sha512-5Ni4CU7XHQi32IJ398EEP4RrB8eV09sXP2ROqD4bksHrnTree52PsxvX8tpL8LvTZ3pFzXyPbNQReSN41CAhOg==}
@@ -4097,6 +4097,7 @@ packages:
   glob@11.1.0:
     resolution: {integrity: sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw==}
     engines: {node: 20 || >=22}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@7.2.3:
@@ -8558,7 +8559,7 @@ snapshots:
 
   '@jeecg/aiflow@3.9.1-beta': {}
 
-  '@jeecg/online@3.9.1-beta': {}
+  '@jeecg/online@3.9.1-RC': {}
 
   '@jest/console@29.7.0':
     dependencies:

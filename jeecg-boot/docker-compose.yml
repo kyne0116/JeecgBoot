@@ -71,7 +71,7 @@ services:
     image: jeecg-boot-system
     hostname: jeecg-boot-system
     ports:
-      - 8080:8080
+      - 28080:28080
     networks:
       - jeecg-boot
     volumes:

@@ -8,7 +8,7 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 WORKDIR /jeecg-boot
 
-EXPOSE 8080
+EXPOSE 28080
 
 #ADD ./src/main/resources/jeecg ./config/jeecg
 ADD ./target/jeecg-system-start-3.9.1.jar ./

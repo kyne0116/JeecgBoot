@@ -126,7 +126,7 @@ Three icon approaches:
 ### Environment Variables
 
 - `.env` — base config (port 3100, app title, SSO/qiankun flags)
-- `.env.development` — mock enabled, proxy to `localhost:8080/jeecg-boot`
+- `.env.development` — mock enabled, proxy to `localhost:28080/jeecg-boot`
 - `.env.production` — mock disabled, gzip compression
 - `.env.docker` — Docker production build config
 - `.env.dockercloud` — Docker cloud production build config

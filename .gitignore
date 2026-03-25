@@ -16,3 +16,5 @@ derby.log
 .cursor
 .history
 .claude
+.codex-run/
+docs/superpowers/plans/
